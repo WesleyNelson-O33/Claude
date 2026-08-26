@@ -22,7 +22,7 @@
     {
       "type": "callout",
       "label": "How to use it.",
-      "text": "Work through it with her in one or two sittings and write the answers in. Then hand the completed document back to me and I will fold the answers into the manuals, so the knowledge ends up in the procedure rather than in a separate file nobody opens."
+      "text": "Work through it with her before she finishes up and write the answers in. Then hand the completed document back to me and I will fold the answers into the manuals, so the knowledge ends up in the procedure rather than in a separate file nobody opens."
     },
     {
       "type": "p",
@@ -46,7 +46,6 @@
       "items": [
         "Do I have a CommBiz login of my own, and what access level does it need to import and submit a payment file?",
         "Who requests CommBiz access, and how long does it take to come through?",
-        "What are the company credit card details used for during payroll, and how do I get access to them?",
         "Is there anything else I will need a login for that has not come up yet?"
       ]
     },
@@ -60,14 +59,15 @@
     },
     {
       "type": "questions",
-      "start": 5,
+      "start": 4,
       "items": [
         "Graham approves the pay run finalisation and Duncan approves the payment in CommBiz. Who is the backup for each if they are on leave or unreachable?",
         "Can one person do both approvals if the other is unavailable, or does that break a separation-of-duties rule?",
         "If a manager has not approved timesheets by prep day, who do I chase and how hard do I push before escalating?",
         "Who arbitrates a disputed overtime attachment? In Part 3 a manager ticked 'not chargeable' where you both thought it should have been chargeable — what is the process for resolving that?",
         "If something goes wrong on pay day and neither Duncan nor Graham is available, who is my escalation?",
-        "Who should I tell that I am now running payroll, so managers know where to send approvals and queries?"
+        "Who should I tell that I am now running payroll, so managers know where to send approvals and queries?",
+        "Employment Hero has a support and consultation process for payroll. Who is our contact there, and how do I reach them if something goes wrong mid pay run?"
       ]
     },
     {
@@ -114,7 +114,6 @@
         "When Employment Hero triggers both daily overtime (over 8 hours) and weekly overtime (over 38 hours) for the same casual, which do I keep? The recording says 'we can choose to pay one of them' — is there a rule, or is it judgement, and what should I default to?",
         "The no-meal-break penalty was described as 2.25 with some hesitation, and calculated rather than read from the award. Can we confirm the correct multiplier and where it sits in the award?",
         "What is the casual loading percentage, and which spreadsheet columns hold the rate excluding loading versus including it?",
-        "The salaried hourly rate formula divides by 1.12 to strip superannuation. What do I change when the superannuation guarantee rate changes?",
         "Are there casual penalty rates for weekends or public holidays, and how would they show up in a pay run?",
         "The overtime matrix on file is headed 'FULL TIME STAFF'. Is there an equivalent for part-time employees, or are they treated another way?",
         "What exactly makes work 'chargeable to the client' for the matrix's dollar columns — is that always the manager's call, or is there a rule I can apply?"
@@ -126,14 +125,12 @@
     },
     {
       "type": "questions",
-      "start": 24,
+      "start": 23,
       "items": [
-        "Is the populated range columns E to S or F to S? Both were said during the recordings and I want to be sure which drives the formula.",
         "The total hours column does not handle leave without pay correctly — this was found during recording and left unresolved. Has it been fixed, and if not what is the manual workaround?",
         "When are the Public Holiday and Jury Leave columns used, and where do those hours come from?",
         "The Rate Check column shows #VALUE! against some employees. Is that expected, or does it indicate a problem?",
-        "Does green highlighting mean 'rate verified this fortnight' or 'rate was changed'? Both readings came up, and I want to use it consistently.",
-        "How far ahead is the Lookup tab populated with pay periods, and who extends it when it runs out?"
+        "Does green highlighting mean 'rate verified this fortnight' or 'rate was changed'? Both readings came up, and I want to use it consistently."
       ]
     },
     {
@@ -147,7 +144,7 @@
     },
     {
       "type": "questions",
-      "start": 30,
+      "start": 27,
       "items": [
         "What happens when the Monday of the processing week, or the Tuesday pay date, falls on a public holiday?",
         "How do I know a given fortnight is the last pay run of the month for bonus leave accrual, particularly when a fortnight straddles month end?",
@@ -160,7 +157,7 @@
     },
     {
       "type": "questions",
-      "start": 33,
+      "start": 30,
       "items": [
         "Where are bonus leave letters stored, and who issues them? Accruals are blocked until a letter is signed.",
         "What is the process when an employee queries their pay after pay day?",
@@ -282,20 +279,49 @@
     },
     {
       "type": "h1",
-      "text": "The one thing worth more than all of these"
+      "text": "You will be running this alone"
     },
     {
       "type": "p",
-      "text": "Run the next fortnight yourself, start to finish, with her sitting beside you rather than driving. Not watching her do it again — you doing it, with her available to catch mistakes."
+      "text": "The first pay run you do will be your own, unsupervised. She will already be on leave, so there is no practice fortnight with her beside you to fall back on."
+    },
+    {
+      "type": "p",
+      "text": "That changes what this document is for. Every answer has to be captured before she goes, because there will be no chance to work it out at the desk with her there."
     },
     {
       "type": "callout",
-      "label": "Do this while she is still here.",
-      "text": "Every question above assumes you will hit the problem alone and need the answer in advance. A supervised dry run surfaces the things nobody thought to ask about, including the ones she does out of habit and would never think to mention. If you only get one more session with her, make it this rather than another demonstration."
+      "label": "Get the answers written down.",
+      "text": "An answer given verbally in a corridor will not survive three weeks and a stressful pay day. Fill this document in as she answers, and hand it back so the answers go into the manuals themselves rather than staying in your notes."
     },
     {
       "type": "p",
-      "text": "Take this document into that session and fill in the answers as they come up naturally. Anything still blank at the end is what to ask directly."
+      "text": "Three of the questions matter more than the rest, because they are the ones you will need at the worst possible moment and will not be able to work out for yourself:"
+    },
+    {
+      "type": "bullet",
+      "text": "Who approves the pay run and the payment if Graham or Duncan is unavailable"
+    },
+    {
+      "type": "bullet",
+      "text": "Who to contact at Employment Hero when something breaks mid pay run"
+    },
+    {
+      "type": "bullet",
+      "text": "Who your escalation is if something goes wrong on pay day"
+    },
+    {
+      "type": "callout",
+      "label": "Have those three written down before you start.",
+      "text": "Names, roles and phone numbers, somewhere you can find them under pressure rather than somewhere you have to search for. Do this before your first pay run, not during it."
+    },
+    {
+      "type": "p",
+      "text": "It is also worth asking whether she would be willing to take a call if you get badly stuck. She may well say yes. But ask rather than assume, and plan as though the answer is no — she is entitled to be uncontactable, and a process that depends on reaching someone on leave is not a process."
+    },
+    {
+      "type": "p",
+      "text": "Anything still blank in this document by her last day is a gap you will be carrying into your first pay run. Better to know which ones those are than to discover them on the day."
     },
     {
       "type": "next",
