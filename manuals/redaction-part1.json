@@ -1,0 +1,30 @@
+{
+  "grid_00010.jpg": {
+    "out": "01-payroll-notes-email.png",
+    "blur": [[735, 194, 935, 214], [596, 384, 1272, 662]]
+  },
+  "grid_00013.jpg": {
+    "out": "02-payroll-category-inbox.png",
+    "blur": [[264, 198, 562, 312], [264, 390, 562, 664]]
+  },
+  "grid_00019.jpg": {
+    "out": "03-y-drive-03-payroll.png",
+    "blur": []
+  },
+  "grid_00022.jpg": {
+    "out": "04-timesheets-folder-template.png",
+    "blur": []
+  },
+  "grid_00026.jpg": {
+    "out": "05-timesheet-columns.png",
+    "blur": [[26, 414, 302, 642], [386, 414, 600, 642]]
+  },
+  "grid_00031.jpg": {
+    "out": "06-timesheet-notes-column.png",
+    "blur": [[26, 414, 302, 626], [531, 438, 1066, 562], [190, 155, 700, 174]]
+  },
+  "grid_00000.jpg": {
+    "out": "07-approve-timesheets-pending.png",
+    "blur": [[58, 386, 520, 406], [1146, 103, 1272, 123]]
+  }
+}
