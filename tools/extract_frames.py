@@ -6,6 +6,7 @@ Pulls two frame sets:
 """
 import argparse
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -13,7 +14,6 @@ from pathlib import Path
 import imageio_ffmpeg
 
 FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
-FFPROBE = FFMPEG.replace("ffmpeg", "ffprobe")
 
 
 def run(cmd):
@@ -24,16 +24,39 @@ def run(cmd):
 
 
 def probe(video):
-    raw = run([FFPROBE, "-v", "error", "-show_streams", "-show_format",
-               "-of", "json", str(video)])
-    data = json.loads(raw)
-    video_stream = next(s for s in data["streams"] if s["codec_type"] == "video")
+    """Read stream info from ffmpeg's own report.
+
+    imageio-ffmpeg bundles ffmpeg but not ffprobe, so parse the banner that
+    ffmpeg writes to stderr when asked to decode a file with no output.
+    """
+    result = subprocess.run([FFMPEG, "-hide_banner", "-i", str(video)],
+                            capture_output=True, text=True)
+    text = result.stderr
+
+    duration = None
+    match = re.search(r"Duration:\s*(\d+):(\d\d):(\d\d(?:\.\d+)?)", text)
+    if match:
+        hours, minutes, seconds = match.groups()
+        duration = int(hours) * 3600 + int(minutes) * 60 + float(seconds)
+
+    video_line = re.search(r"Stream #\d+:\d+.*?: Video: (\w+).*?(\d{2,5})x(\d{2,5})",
+                           text)
+    if not video_line:
+        sys.exit(f"no video stream found in {video}\n{text[-2000:]}")
+    codec, width, height = video_line.groups()
+
+    fps = None
+    fps_match = re.search(r"(\d+(?:\.\d+)?) fps", text)
+    if fps_match:
+        fps = float(fps_match.group(1))
+
     return {
-        "duration": float(data["format"]["duration"]),
-        "width": int(video_stream["width"]),
-        "height": int(video_stream["height"]),
-        "codec": video_stream["codec_name"],
-        "has_audio": any(s["codec_type"] == "audio" for s in data["streams"]),
+        "duration": duration,
+        "width": int(width),
+        "height": int(height),
+        "codec": codec,
+        "fps": fps,
+        "has_audio": bool(re.search(r"Stream #\d+:\d+.*?: Audio:", text)),
     }
 
 
