@@ -79,12 +79,16 @@
       "text": "These simply did not occur during the fortnight that was filmed. Each is common enough that it will come up, and none can be inferred from what was recorded."
     },
     {
+      "type": "callout",
+      "label": "Parental leave is already settled.",
+      "text": "There is no parental leave policy and it is unpaid. Staff take it as either annual leave or leave without pay. Where it is taken as leave without pay, follow Part 3c - including the rounding rule, which pushes a short day back up to eight hours for salaried staff and will overpay them if it is not corrected."
+    },
+    {
       "type": "questions",
       "start": 11,
       "items": [
         "How is a termination handled? Final pay, unused annual leave payout, time in lieu balance, and what changes on the last pay run.",
         "The Create Pay Run screen has an 'Include terminated employees' checkbox that we always leave unticked. When would it need ticking?",
-        "How is parental leave handled in a pay run — paid, unpaid, government-funded, and what changes fortnight to fortnight?",
         "What does payroll need to do for a new starter's first pay — TFN declaration, super choice, anything that must be in place before they can be paid?",
         "What do I do if I find an error after the pay run is finalised and super has been paid?",
         "What happens if an employee's bank details are wrong and the payment bounces back?",
@@ -105,7 +109,7 @@
     },
     {
       "type": "questions",
-      "start": 18,
+      "start": 17,
       "items": [
         "When Employment Hero triggers both daily overtime (over 8 hours) and weekly overtime (over 38 hours) for the same casual, which do I keep? The recording says 'we can choose to pay one of them' — is there a rule, or is it judgement, and what should I default to?",
         "The no-meal-break penalty was described as 2.25 with some hesitation, and calculated rather than read from the award. Can we confirm the correct multiplier and where it sits in the award?",
@@ -122,15 +126,14 @@
     },
     {
       "type": "questions",
-      "start": 25,
+      "start": 24,
       "items": [
         "Is the populated range columns E to S or F to S? Both were said during the recordings and I want to be sure which drives the formula.",
         "The total hours column does not handle leave without pay correctly — this was found during recording and left unresolved. Has it been fixed, and if not what is the manual workaround?",
         "When are the Public Holiday and Jury Leave columns used, and where do those hours come from?",
         "The Rate Check column shows #VALUE! against some employees. Is that expected, or does it indicate a problem?",
         "Does green highlighting mean 'rate verified this fortnight' or 'rate was changed'? Both readings came up, and I want to use it consistently.",
-        "How far ahead is the Lookup tab populated with pay periods, and who extends it when it runs out?",
-        "Is the template ever updated between fortnights, or do I always copy the same one?"
+        "How far ahead is the Lookup tab populated with pay periods, and who extends it when it runs out?"
       ]
     },
     {
@@ -138,12 +141,16 @@
       "text": "Calendar and timing"
     },
     {
+      "type": "callout",
+      "label": "The timesheet cut-off is 10am Monday.",
+      "text": "Staff must have timesheets in by 10am on the Monday of the processing week."
+    },
+    {
       "type": "questions",
-      "start": 32,
+      "start": 30,
       "items": [
         "What happens when the Monday of the processing week, or the Tuesday pay date, falls on a public holiday?",
         "How do I know a given fortnight is the last pay run of the month for bonus leave accrual, particularly when a fortnight straddles month end?",
-        "Is there a cut-off published to staff for timesheet submission, and who enforces it?",
         "How long before pay day does the money actually need to be in the account?"
       ]
     },
@@ -153,9 +160,8 @@
     },
     {
       "type": "questions",
-      "start": 36,
+      "start": 33,
       "items": [
-        "Employment Hero has a known fault where a rate updated in HR does not reach payroll. Is there an open support ticket, and who is our contact there?",
         "Where are bonus leave letters stored, and who issues them? Accruals are blocked until a letter is signed.",
         "What is the process when an employee queries their pay after pay day?",
         "Are there any employees with unusual arrangements I should know about before I meet them in a pay run?",
@@ -220,7 +226,7 @@
     {
       "type": "callout",
       "label": "Confirm:",
-      "text": "What if the savings account cannot cover it either? Who authorises moving money from elsewhere, and how much notice do they need?"
+      "text": "How much notice does the transfer need to clear before the payment is processed? Savings has always covered it, so the question is timing rather than availability."
     },
     {
       "type": "h2",
