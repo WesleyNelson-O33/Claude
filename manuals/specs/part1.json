@@ -1,0 +1,78 @@
+{
+  "eyebrow": "PAYROLL PROCESSING",
+  "title": "Part 1 — Payroll Prep",
+  "subtitle": "Corporate Technology Services  ·  Employment Hero Payroll  ·  Fortnightly cycle",
+  "runningHead": "Payroll Processing — Part 1: Payroll Prep",
+  "screenshotDir": "manuals/screenshots/part1",
+  "output": "manuals/Payroll Processing - Part 1 - Payroll Prep.docx",
+  "blocks": [
+    { "type": "h1", "text": "About this guide" },
+    { "type": "p", "text": "Payroll at CTS runs on a fortnightly cycle. This guide covers Payroll Prep — everything that must be done before a pay run is created. It is the first of a six-part series." },
+    { "type": "p", "text": "Work through it in order. Every step here must be complete before you move on to Part 2, because a pay run created from incomplete prep has to be scrapped and rebuilt." },
+    { "type": "callout", "label": "Start early.", "text": "Begin payroll prep on the Friday before the Monday you process payroll. Prep is not a Monday-morning task — leaving it until the day means chasing approvals under time pressure." },
+    { "type": "callout", "label": "Before you begin, make sure you have:", "text": "Access to the CTS Accounts mailbox, the Y drive (OneDrive), and Employment Hero payroll." },
+
+    { "type": "step", "number": 1, "title": "Collect payroll notes across the fortnight" },
+    { "type": "p", "text": "Throughout the fortnight you will receive emails covering anything that changes someone's pay. These include:" },
+    { "type": "bullet", "text": "Payroll queries" },
+    { "type": "bullet", "text": "Backpays — for example, hours worked at the wrong rate, or work not captured on a timesheet" },
+    { "type": "bullet", "text": "Additions and bonuses" },
+    { "type": "bullet", "text": "Leave approvals and bonus leave" },
+    { "type": "p", "text": "These arrive in one of two places: directly in your own inbox, or in the CTS Accounts inbox. Anything landing in the Accounts inbox is filed under the Payroll category." },
+    { "type": "shot", "file": "02-payroll-category-inbox.png", "caption": "The CTS Accounts inbox grouped by category. Payroll items are collected under the Payroll category." },
+    { "type": "callout", "label": "Collect as you go.", "text": "Do not leave this until prep day. Gathering a fortnight of scattered emails in one sitting is where items get missed." },
+
+    { "type": "step", "number": 2, "title": "Collate the notes into a single email" },
+    { "type": "p", "text": "How you collate the notes is your choice, but the recommended method is to keep them in a single draft email as they arrive." },
+    { "type": "p", "text": "The reason is the approval step: once prep is finished, the collated notes go to Duncan or Graham for approval. If they are already in an email, that approval is a single send with no rework." },
+    { "type": "shot", "file": "01-payroll-notes-email.png", "caption": "A running draft of payroll notes. Each item records who is affected, what is owed, and the dates involved. Employee details are blurred in this guide." },
+
+    { "type": "step", "number": 3, "title": "Copy the timesheet template into the fortnight folder" },
+    { "type": "p", "text": "The timesheet template lives on the Y drive. Navigate to it as follows:" },
+    { "type": "table", "rows": [
+      ["Drive", "Y drive — CTS NAS Accounts (Y:) Backup, via OneDrive"],
+      ["Folder", "03 Payroll"],
+      ["Sub-folder", "02 Payroll Related  ›  Payroll Timesheets"],
+      ["Then", "The relevant financial year"]
+    ]},
+    { "type": "shot", "file": "03-y-drive-03-payroll.png", "caption": "The Y drive folder structure. Payroll sits under 03 Payroll." },
+    { "type": "p", "text": "Inside the financial year folder you will find the timesheet template alongside a folder for each fortnight. Copy the template into the correct fortnight folder — do not edit the template itself." },
+    { "type": "shot", "file": "04-timesheets-folder-template.png", "caption": "The financial year folder, containing the fortnight folders and the timesheet template." },
+    { "type": "callout", "label": "Name it for the right fortnight.", "text": "In the example shown, the fortnight ending is 21 August, covering the period 8 August to 21 August." },
+
+    { "type": "step", "number": 4, "title": "Populate the timesheet" },
+    { "type": "p", "text": "Transfer each payroll note into your copy of the template. There are two distinct places information goes, and the difference matters." },
+    { "type": "h2", "text": "The Notes section" },
+    { "type": "p", "text": "Every payroll note goes in the Notes section against the relevant employee — regardless of whether it changes their pay. This is the record of what was raised and why." },
+    { "type": "shot", "file": "06-timesheet-notes-column.png", "caption": "The Notes column, recording the detail behind each adjustment." },
+    { "type": "h2", "text": "Columns E to S" },
+    { "type": "p", "text": "Columns E through S carry the hours and values that actually drive the pay calculation — Normal Hours, In Lieu Taken, Public Holiday, Annual Leave Hours, and the overtime multipliers T1.25, T1.5 and T1.75." },
+    { "type": "shot", "file": "05-timesheet-columns.png", "caption": "Columns E to S. Employee names and pay rates are blurred in this guide." },
+    { "type": "callout", "label": "Only if it changes the pay.", "text": "Populate columns E to S only where the item affects the actual dollar value of the employee's pay. A note that carries no pay impact belongs in the Notes section and nowhere else." },
+
+    { "type": "step", "number": 5, "title": "Confirm all timesheets are approved in Employment Hero" },
+    { "type": "p", "text": "The last prep step is a gate: you cannot create a pay run while timesheets are still awaiting approval." },
+    { "type": "p", "text": "In Employment Hero, go to Employee Management › Timesheet Approval, then set the filters:" },
+    { "type": "table", "rows": [
+      ["Show timesheets for period", "Fortnight Ending — set to the fortnight you are processing"],
+      ["Status", "Submitted"]
+    ]},
+    { "type": "shot", "file": "07-approve-timesheets-pending.png", "caption": "Approve Timesheets, filtered to Submitted for the fortnight ending 21 August. Employee names are blurred in this guide." },
+    { "type": "p", "text": "Read the result as follows:" },
+    { "type": "bullet", "text": "If timesheets are listed under Submitted, approvals are still outstanding. You cannot start the pay run — chase the approvals first." },
+    { "type": "bullet", "text": "If the list is empty, everything has been approved and you are clear to proceed." },
+    { "type": "callout", "label": "Missing Timesheets is a separate warning.", "text": "The banner lists employees who have not created a timesheet for the period at all. Follow these up as well — an approved-but-absent timesheet is still a gap in the pay run." },
+
+    { "type": "h1", "text": "Prep checklist" },
+    { "type": "p", "text": "Payroll prep is complete when all of the following are true:" },
+    { "type": "bullet", "text": "All payroll notes for the fortnight have been collected from both inboxes" },
+    { "type": "bullet", "text": "The notes are collated in a single email, ready to send to Duncan or Graham for approval" },
+    { "type": "bullet", "text": "The timesheet template has been copied into the correct fortnight folder" },
+    { "type": "bullet", "text": "Every note is recorded in the Notes section" },
+    { "type": "bullet", "text": "Columns E to S are populated for every item that changes the value of pay" },
+    { "type": "bullet", "text": "No timesheets remain under Submitted in Employment Hero" },
+    { "type": "bullet", "text": "Any missing timesheets have been followed up" },
+
+    { "type": "next", "text": "Part 2 — Creating a New Pay Run." }
+  ]
+}

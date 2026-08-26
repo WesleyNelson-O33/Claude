@@ -6,51 +6,173 @@
   "screenshotDir": "manuals/screenshots/part2",
   "output": "manuals/Payroll Processing - Part 2 - Creating a New Pay Run.docx",
   "blocks": [
-    { "type": "h1", "text": "About this guide" },
-    { "type": "p", "text": "This guide covers creating the fortnightly pay run in Employment Hero. It is the second of a six-part series and picks up directly where Part 1 (Payroll Prep) left off." },
-    { "type": "p", "text": "Do not start here. Part 1 must be complete first — in particular, every timesheet must be approved. Creating a pay run over unapproved timesheets means deleting it and starting again." },
-
-    { "type": "step", "number": 1, "title": "Set the fortnight period in the timesheet" },
-    { "type": "p", "text": "Before leaving the spreadsheet, update cell B1 so it reflects the correct fortnight period. This is easy to overlook, and every calculation downstream depends on it." },
-    { "type": "p", "text": "B1 is a data validation dropdown — click the cell and choose the period number from the list rather than typing a value in." },
-    { "type": "shot", "file": "01-b1-fortnight-cell.png", "caption": "Figure 1 — Cell B1 with its data validation dropdown open. Employee names and pay rates are blurred in this guide." },
-    { "type": "p", "text": "The dropdown values come from the Lookup tab, which lists every pay period in the financial year along with its start and end dates. If you are unsure which period number applies, check the dates there." },
-    { "type": "shot", "file": "02-lookup-pay-periods.png", "caption": "Figure 2 — The Lookup tab, listing the pay periods for the financial year." },
-
-    { "type": "step", "number": 2, "title": "Re-confirm that no timesheets are pending" },
-    { "type": "p", "text": "As covered in Part 1, check Employment Hero one more time before creating the pay run. Filter Approve Timesheets to the fortnight you are processing with Status set to Submitted." },
-    { "type": "callout", "label": "Nothing under Submitted.", "text": "If anything is still listed there, approvals are outstanding and you cannot proceed. An empty list means everything is approved and you are clear to continue." },
-
-    { "type": "step", "number": 3, "title": "Create the pay run" },
-    { "type": "p", "text": "In Employment Hero, go to Pay Runs and choose to create a new pay run. Most of the form pre-fills, but three fields need checking and one needs real care." },
-    { "type": "shot", "file": "03-create-pay-run-form.png", "caption": "Figure 3 — The Create Pay Run screen. Note the two import options and the difference in timesheet counts." },
-    { "type": "table", "rows": [
-      ["Pay schedule", "CTS - Fortnight"],
-      ["Pay period starting", "Pre-filled — confirm it matches your fortnight (8/08/2026 in the example)"],
-      ["Pay period ending", "Pre-filled — confirm it matches your fortnight (21/08/2026 in the example)"],
-      ["Date pay run will be paid", "Always the Tuesday of the payroll processing week (25/08/2026 in the example)"],
-      ["Import Timesheets", "Always the first option — Timesheets for this pay period"]
-    ]},
-    { "type": "callout", "label": "The import option is the one to get right.", "text": "Choose Timesheets for this pay period, never All unpaid timesheets. The second option sweeps up unpaid timesheets from outside the fortnight, which pulls the wrong periods into your pay run. In the example the difference is 665 timesheets versus 788 — 123 that do not belong." },
-    { "type": "p", "text": "Leave the three checkboxes (Manually add payees, Create pay run with empty pays, Include terminated employees) unticked unless you have a specific reason. Then click Create." },
-    { "type": "p", "text": "Employment Hero takes a few moments to perform its calculations — the wait is normal and scales with the size of the pay run." },
-
-    { "type": "step", "number": 4, "title": "Check the pay run has been created correctly" },
-    { "type": "p", "text": "When it finishes you land on the pay run itself, showing every payee with their hours, earnings, deductions, withheld amounts, super contributions and net pay." },
-    { "type": "shot", "file": "04-pay-run-created.png", "caption": "Figure 4 — A created pay run. Employee names and all pay figures are blurred in this guide." },
-    { "type": "p", "text": "Check the payee count at the top left before going further — it reads 1 - 54 of 54 total payees in the example. If that number looks wrong for the fortnight, stop and investigate rather than working through the pay run." },
-    { "type": "callout", "label": "You can start over.", "text": "Nothing is committed at this stage. If the pay run was created with the wrong period or the wrong import option, use Delete Pay Run and create it again. That is far quicker than correcting it employee by employee." },
-
-    { "type": "h1", "text": "Checklist" },
-    { "type": "p", "text": "The pay run is correctly created when all of the following are true:" },
-    { "type": "bullet", "text": "Cell B1 in the timesheet reflects the correct fortnight period" },
-    { "type": "bullet", "text": "Nothing remains under Submitted in Approve Timesheets" },
-    { "type": "bullet", "text": "The pay schedule is CTS - Fortnight" },
-    { "type": "bullet", "text": "The pay period start and end dates match the fortnight being processed" },
-    { "type": "bullet", "text": "The pay date is the Tuesday of the processing week" },
-    { "type": "bullet", "text": "Timesheets for this pay period was selected — not All unpaid timesheets" },
-    { "type": "bullet", "text": "The total payee count looks correct for the fortnight" },
-
-    { "type": "next", "text": "Part 3 — Reconciling Timesheets, which walks through what to check for casual, part-time and full-time employees." }
+    {
+      "type": "h1",
+      "text": "About this guide"
+    },
+    {
+      "type": "p",
+      "text": "This guide covers creating the fortnightly pay run in Employment Hero. It is the second of a six-part series and picks up directly where Part 1 (Payroll Prep) left off."
+    },
+    {
+      "type": "p",
+      "text": "Do not start here. Part 1 must be complete first — in particular, every timesheet must be approved. Creating a pay run over unapproved timesheets means deleting it and starting again."
+    },
+    {
+      "type": "step",
+      "number": 1,
+      "title": "Set the fortnight period in the timesheet"
+    },
+    {
+      "type": "p",
+      "text": "Before leaving the spreadsheet, update cell B1 so it reflects the correct fortnight period. This is easy to overlook, and every calculation downstream depends on it."
+    },
+    {
+      "type": "p",
+      "text": "B1 is a data validation dropdown — click the cell and choose the period number from the list rather than typing a value in."
+    },
+    {
+      "type": "shot",
+      "file": "01-b1-fortnight-cell.png",
+      "caption": "Cell B1 with its data validation dropdown open. Employee names and pay rates are blurred in this guide."
+    },
+    {
+      "type": "p",
+      "text": "The dropdown values come from the Lookup tab, which lists every pay period in the financial year along with its start and end dates. If you are unsure which period number applies, check the dates there."
+    },
+    {
+      "type": "shot",
+      "file": "02-lookup-pay-periods.png",
+      "caption": "The Lookup tab, listing the pay periods for the financial year."
+    },
+    {
+      "type": "step",
+      "number": 2,
+      "title": "Re-confirm that no timesheets are pending"
+    },
+    {
+      "type": "p",
+      "text": "As covered in Part 1, check Employment Hero one more time before creating the pay run. Filter Approve Timesheets to the fortnight you are processing with Status set to Submitted."
+    },
+    {
+      "type": "callout",
+      "label": "Nothing under Submitted.",
+      "text": "If anything is still listed there, approvals are outstanding and you cannot proceed. An empty list means everything is approved and you are clear to continue."
+    },
+    {
+      "type": "step",
+      "number": 3,
+      "title": "Create the pay run"
+    },
+    {
+      "type": "p",
+      "text": "In Employment Hero, go to Pay Runs and choose to create a new pay run. Most of the form pre-fills, but three fields need checking and one needs real care."
+    },
+    {
+      "type": "shot",
+      "file": "03-create-pay-run-form.png",
+      "caption": "The Create Pay Run screen. Note the two import options and the difference in timesheet counts."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Pay schedule",
+          "CTS - Fortnight"
+        ],
+        [
+          "Pay period starting",
+          "Pre-filled — confirm it matches your fortnight (8/08/2026 in the example)"
+        ],
+        [
+          "Pay period ending",
+          "Pre-filled — confirm it matches your fortnight (21/08/2026 in the example)"
+        ],
+        [
+          "Date pay run will be paid",
+          "Always the Tuesday of the payroll processing week (25/08/2026 in the example)"
+        ],
+        [
+          "Import Timesheets",
+          "Always the first option — Timesheets for this pay period"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "The import option is the one to get right.",
+      "text": "Choose Timesheets for this pay period, never All unpaid timesheets. The second option sweeps up unpaid timesheets from outside the fortnight, which pulls the wrong periods into your pay run. In the example the difference is 665 timesheets versus 788 — 123 that do not belong."
+    },
+    {
+      "type": "p",
+      "text": "Leave the three checkboxes (Manually add payees, Create pay run with empty pays, Include terminated employees) unticked unless you have a specific reason. Then click Create."
+    },
+    {
+      "type": "p",
+      "text": "Employment Hero takes a few moments to perform its calculations — the wait is normal and scales with the size of the pay run."
+    },
+    {
+      "type": "step",
+      "number": 4,
+      "title": "Check the pay run has been created correctly"
+    },
+    {
+      "type": "p",
+      "text": "When it finishes you land on the pay run itself, showing every payee with their hours, earnings, deductions, withheld amounts, super contributions and net pay."
+    },
+    {
+      "type": "shot",
+      "file": "04-pay-run-created.png",
+      "caption": "A created pay run. Employee names and all pay figures are blurred in this guide."
+    },
+    {
+      "type": "p",
+      "text": "Check the payee count at the top left before going further — it reads 1 - 54 of 54 total payees in the example. If that number looks wrong for the fortnight, stop and investigate rather than working through the pay run."
+    },
+    {
+      "type": "callout",
+      "label": "You can start over.",
+      "text": "Nothing is committed at this stage. If the pay run was created with the wrong period or the wrong import option, use Delete Pay Run and create it again. That is far quicker than correcting it employee by employee."
+    },
+    {
+      "type": "h1",
+      "text": "Checklist"
+    },
+    {
+      "type": "p",
+      "text": "The pay run is correctly created when all of the following are true:"
+    },
+    {
+      "type": "bullet",
+      "text": "Cell B1 in the timesheet reflects the correct fortnight period"
+    },
+    {
+      "type": "bullet",
+      "text": "Nothing remains under Submitted in Approve Timesheets"
+    },
+    {
+      "type": "bullet",
+      "text": "The pay schedule is CTS - Fortnight"
+    },
+    {
+      "type": "bullet",
+      "text": "The pay period start and end dates match the fortnight being processed"
+    },
+    {
+      "type": "bullet",
+      "text": "The pay date is the Tuesday of the processing week"
+    },
+    {
+      "type": "bullet",
+      "text": "Timesheets for this pay period was selected — not All unpaid timesheets"
+    },
+    {
+      "type": "bullet",
+      "text": "The total payee count looks correct for the fortnight"
+    },
+    {
+      "type": "next",
+      "text": "Part 3 — Reconciling Timesheets, which walks through what to check for casual, part-time and full-time employees."
+    }
   ]
 }

@@ -6,81 +6,284 @@
   "screenshotDir": "manuals/screenshots/part6",
   "output": "manuals/Payroll Processing - Part 6 - Finalisation and Bank Upload.docx",
   "blocks": [
-    { "type": "h1", "text": "About this guide" },
-    { "type": "p", "text": "This is the final stage of the fortnightly cycle. By this point the hours and dollar values are reconciled and every payroll note is captured in the pay run. What remains is to finalise, pay, and file the records." },
-    { "type": "p", "text": "It is the longest stage and the least reversible. Read Step 1 before you click anything." },
-    { "type": "callout", "label": "Finalising is close to a one-way door.", "text": "Once super payments have been made against a pay run, Employment Hero will not let you unlock it. Corrections after that point are far harder than corrections before it. Be confident the reconciliation is complete." },
-
-    { "type": "step", "number": 1, "title": "Finalise the pay run" },
-    { "type": "p", "text": "In the pay run, check the header details once more — pay period and paid date — then click Finalise Pay Run. Set the approver to Graham and confirm." },
-    { "type": "shot", "file": "01-finalise-pay-run.png", "caption": "Figure 1 — The pay run before finalisation. Employee rows are blurred in this guide." },
-    { "type": "p", "text": "Finalising requires a second person to approve. They log in, review the total, and approve. Nothing further can happen until they do." },
-    { "type": "p", "text": "Once approved, refresh the page. The payment file and the reports only become available after the refresh." },
-
-    { "type": "step", "number": 2, "title": "Download the ABA file and upload it to CommBiz" },
-    { "type": "p", "text": "The ABA file is the payment instruction the bank reads. Download it from the pay run, then upload it to CommBiz." },
-    { "type": "p", "text": "In CommBiz, go to Payables › Import › Import Files and complete the form:" },
-    { "type": "shot", "file": "02-commbiz-import-aba-file.png", "caption": "Figure 2 — The CommBiz Import File screen. Account and user identifiers are blurred in this guide." },
-    { "type": "table", "rows": [
-      ["File Type", "Direct Entry"],
-      ["File", "The ABA file you just downloaded"],
-      ["Set File as Modifiable", "Tick it — it costs nothing and leaves room to correct the file if needed"]
-    ]},
-    { "type": "p", "text": "Click Import File. To see the imported file you need to click through the confirmation and then back out — it does not appear immediately. Check the total on the confirmation screen matches the pay run, then Submit, Confirm, and OK." },
-
-    { "type": "step", "number": 3, "title": "Check there are enough funds — including super" },
-    { "type": "p", "text": "The payment is now sitting in CommBiz awaiting approval, so the account needs to cover it. This is the step where the numbers look confusing, so it is worth understanding why they differ." },
-    { "type": "callout", "label": "Gross earnings is not what leaves the account.", "text": "Gross earnings is the pre-tax figure and excludes super and PAYG. What actually gets paid is the net amount in the ABA file, plus other expenses such as staff expenses captured in the float line. That is why the transfer figure and the payroll figure never match." },
-    { "type": "p", "text": "Work out the total you need to cover:" },
-    { "type": "bullet", "text": "The net payroll amount in the ABA file" },
-    { "type": "bullet", "text": "Superannuation, which is direct debited separately and at the same time" },
-    { "type": "bullet", "text": "Any other payments due to leave the account in the next day or two — check for scheduled items such as a BAS payment" },
-    { "type": "p", "text": "Confirm whether those other payments have already been taken before allowing for them, or you will transfer more than you need." },
-    { "type": "callout", "label": "Leave a 20K buffer.", "text": "Transfer enough to cover payroll and super and still leave roughly $20,000 in the account. To see what is coming, run the transaction group list across the payroll dates — from the day before the pay date through to the pay date itself." },
-    { "type": "p", "text": "Make the transfer from the savings account. Use a description that will still make sense when it flows through to Xero — 'MT payroll' works, where MT is money transfer. The wording is free text, but it should be recognisable later." },
-
-    { "type": "step", "number": 4, "title": "Notify the approver" },
-    { "type": "p", "text": "The payment will not go anywhere until Duncan approves it in CommBiz, so tell him it is waiting. This happens two ways, and both are needed." },
-    { "type": "p", "text": "Send the payroll email to Duncan, copying Graham, Danica and accounts. Use a subject naming the fortnight ending date. Attach the production summary and anything else relevant to the fortnight, along with a screenshot of the transaction group list." },
-    { "type": "p", "text": "Then post in the payments chat, tagging Duncan, to say payroll is in CommBiz for approval and note the payroll notes reference." },
-
-    { "type": "step", "number": 5, "title": "Process super" },
-    { "type": "p", "text": "From the finalised pay run, click Create Super Payment. Super is direct debited automatically, so there is nothing to pay in CommBiz for it." },
-    { "type": "shot", "file": "03-finalised-pay-run-actions.png", "caption": "Figure 3 — The finalised pay run and the actions available afterwards. Approver name and employee rows are blurred in this guide." },
-    { "type": "callout", "label": "Creating the batch does not send it.", "text": "Creating a super batch does not submit anything to the clearing house — you still have to validate and confirm it separately. If you create one by mistake you can delete it. Once the batch exists the button changes to Review Super Payment, which is how you can tell it worked even if the screen appears not to have loaded." },
-    { "type": "p", "text": "Employment Hero can be slow here and gives little indication it is working. If it will not load at all, super can be processed the following day — it does not have to happen in the same sitting as the pay run." },
-
-    { "type": "step", "number": 6, "title": "Download and file the reports" },
-    { "type": "p", "text": "Five files need saving for every fortnight. The first two come from the pay run itself; the last two come from the Reports menu rather than the pay run." },
-    { "type": "table", "rows": [
-      ["Pay slips", "Pay run › Download Pay Slips for printing"],
-      ["Pay run audit", "Pay run › Reports › Audit report — tick everything on the left, Run report, download as Excel"],
-      ["ABA file", "The payment file downloaded in Step 2"],
-      ["Leave balances", "Reports › Leave Balances — run to the pay period end date, Excel"],
-      ["Leave liability", "Reports › Leave Liability — run to the pay period end date, Excel"]
-    ]},
-    { "type": "p", "text": "Set both leave reports to the pay period ending date, not today's date." },
-    { "type": "shot", "file": "04-reports-saved.png", "caption": "Figure 4 — The five payroll files downloaded for the fortnight. Unrelated files are blurred in this guide." },
-    { "type": "p", "text": "Move all five out of Downloads and into the folder for the corresponding fortnight, together with any emails relating to the period." },
-    { "type": "callout", "label": "File everything for the fortnight together.", "text": "Anything relating to the fortnight — the bank file, the reports, the emails behind an adjustment — belongs in that fortnight's folder. It costs a moment now and saves a great deal when someone queries a pay six months later." },
-
-    { "type": "step", "number": 7, "title": "Publish pay slips the next day" },
-    { "type": "p", "text": "Do not publish pay slips yet. Employees are notified the moment you do, so this waits until the payment is actually approved." },
-    { "type": "p", "text": "The following day, once you know Duncan has approved the payment in CommBiz, go back into the pay run and click Publish Pay Slips. That is what notifies employees." },
-    { "type": "callout", "label": "Still outstanding after this stage.", "text": "Lodging the pay run with the ATO is a separate action from the finalised pay run screen, and can also be done the following day alongside super if Employment Hero is unavailable." },
-
-    { "type": "h1", "text": "Checklist" },
-    { "type": "p", "text": "The fortnight is complete when all of the following are true:" },
-    { "type": "bullet", "text": "The pay run is finalised and approved" },
-    { "type": "bullet", "text": "The ABA file is imported into CommBiz and submitted" },
-    { "type": "bullet", "text": "Funds cover net payroll, super and any other scheduled payments, with a 20K buffer remaining" },
-    { "type": "bullet", "text": "The payroll email has gone to Duncan, copying Graham, Danica and accounts" },
-    { "type": "bullet", "text": "Duncan has been tagged in the payments chat" },
-    { "type": "bullet", "text": "The super payment batch has been created, validated and confirmed" },
-    { "type": "bullet", "text": "All five reports are saved into the fortnight folder, along with related emails" },
-    { "type": "bullet", "text": "Pay slips published the following day, after the payment is approved" },
-    { "type": "bullet", "text": "The pay run has been lodged with the ATO" },
-
-    { "type": "next", "text": "This completes the fortnightly payroll cycle. The next fortnight begins again at Part 1 — Payroll Prep." }
+    {
+      "type": "h1",
+      "text": "About this guide"
+    },
+    {
+      "type": "p",
+      "text": "This is the final stage of the fortnightly cycle. By this point the hours and dollar values are reconciled and every payroll note is captured in the pay run. What remains is to finalise, pay, and file the records."
+    },
+    {
+      "type": "p",
+      "text": "It is the longest stage and the least reversible. Read Step 1 before you click anything."
+    },
+    {
+      "type": "callout",
+      "label": "Finalising is close to a one-way door.",
+      "text": "Once super payments have been made against a pay run, Employment Hero will not let you unlock it. Corrections after that point are far harder than corrections before it. Be confident the reconciliation is complete."
+    },
+    {
+      "type": "step",
+      "number": 1,
+      "title": "Finalise the pay run"
+    },
+    {
+      "type": "p",
+      "text": "In the pay run, check the header details once more — pay period and paid date — then click Finalise Pay Run. Set the approver to Graham and confirm."
+    },
+    {
+      "type": "shot",
+      "file": "01-finalise-pay-run.png",
+      "caption": "The pay run before finalisation. Employee rows are blurred in this guide."
+    },
+    {
+      "type": "p",
+      "text": "Finalising requires a second person to approve. They log in, review the total, and approve. Nothing further can happen until they do."
+    },
+    {
+      "type": "p",
+      "text": "Once approved, refresh the page. The payment file and the reports only become available after the refresh."
+    },
+    {
+      "type": "step",
+      "number": 2,
+      "title": "Download the ABA file and upload it to CommBiz"
+    },
+    {
+      "type": "p",
+      "text": "The ABA file is the payment instruction the bank reads. Download it from the pay run, then upload it to CommBiz."
+    },
+    {
+      "type": "p",
+      "text": "In CommBiz, go to Payables › Import › Import Files and complete the form:"
+    },
+    {
+      "type": "shot",
+      "file": "02-commbiz-import-aba-file.png",
+      "caption": "The CommBiz Import File screen. Account and user identifiers are blurred in this guide."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "File Type",
+          "Direct Entry"
+        ],
+        [
+          "File",
+          "The ABA file you just downloaded"
+        ],
+        [
+          "Set File as Modifiable",
+          "Tick it — it costs nothing and leaves room to correct the file if needed"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Click Import File. To see the imported file you need to click through the confirmation and then back out — it does not appear immediately. Check the total on the confirmation screen matches the pay run, then Submit, Confirm, and OK."
+    },
+    {
+      "type": "step",
+      "number": 3,
+      "title": "Check there are enough funds — including super"
+    },
+    {
+      "type": "p",
+      "text": "The payment is now sitting in CommBiz awaiting approval, so the account needs to cover it. This is the step where the numbers look confusing, so it is worth understanding why they differ."
+    },
+    {
+      "type": "callout",
+      "label": "Gross earnings is not what leaves the account.",
+      "text": "Gross earnings is the pre-tax figure and excludes super and PAYG. What actually gets paid is the net amount in the ABA file, plus other expenses such as staff expenses captured in the float line. That is why the transfer figure and the payroll figure never match."
+    },
+    {
+      "type": "p",
+      "text": "Work out the total you need to cover:"
+    },
+    {
+      "type": "bullet",
+      "text": "The net payroll amount in the ABA file"
+    },
+    {
+      "type": "bullet",
+      "text": "Superannuation, which is direct debited separately and at the same time"
+    },
+    {
+      "type": "bullet",
+      "text": "Any other payments due to leave the account in the next day or two — check for scheduled items such as a BAS payment"
+    },
+    {
+      "type": "p",
+      "text": "Confirm whether those other payments have already been taken before allowing for them, or you will transfer more than you need."
+    },
+    {
+      "type": "callout",
+      "label": "Leave a 20K buffer.",
+      "text": "Transfer enough to cover payroll and super and still leave roughly $20,000 in the account. To see what is coming, run the transaction group list across the payroll dates — from the day before the pay date through to the pay date itself."
+    },
+    {
+      "type": "p",
+      "text": "Make the transfer from the savings account. Use a description that will still make sense when it flows through to Xero — 'MT payroll' works, where MT is money transfer. The wording is free text, but it should be recognisable later."
+    },
+    {
+      "type": "step",
+      "number": 4,
+      "title": "Notify the approver"
+    },
+    {
+      "type": "p",
+      "text": "The payment will not go anywhere until Duncan approves it in CommBiz, so tell him it is waiting. This happens two ways, and both are needed."
+    },
+    {
+      "type": "p",
+      "text": "Send the payroll email to Duncan, copying Graham, Danica and accounts. Use a subject naming the fortnight ending date. Attach the production summary and anything else relevant to the fortnight, along with a screenshot of the transaction group list."
+    },
+    {
+      "type": "p",
+      "text": "Then post in the payments chat, tagging Duncan, to say payroll is in CommBiz for approval and note the payroll notes reference."
+    },
+    {
+      "type": "step",
+      "number": 5,
+      "title": "Process super"
+    },
+    {
+      "type": "p",
+      "text": "From the finalised pay run, click Create Super Payment. Super is direct debited automatically, so there is nothing to pay in CommBiz for it."
+    },
+    {
+      "type": "shot",
+      "file": "03-finalised-pay-run-actions.png",
+      "caption": "The finalised pay run and the actions available afterwards. Approver name and employee rows are blurred in this guide."
+    },
+    {
+      "type": "callout",
+      "label": "Creating the batch does not send it.",
+      "text": "Creating a super batch does not submit anything to the clearing house — you still have to validate and confirm it separately. If you create one by mistake you can delete it. Once the batch exists the button changes to Review Super Payment, which is how you can tell it worked even if the screen appears not to have loaded."
+    },
+    {
+      "type": "p",
+      "text": "Employment Hero can be slow here and gives little indication it is working. If it will not load at all, super can be processed the following day — it does not have to happen in the same sitting as the pay run."
+    },
+    {
+      "type": "step",
+      "number": 6,
+      "title": "Download and file the reports"
+    },
+    {
+      "type": "p",
+      "text": "Five files need saving for every fortnight. The first two come from the pay run itself; the last two come from the Reports menu rather than the pay run."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Pay slips",
+          "Pay run › Download Pay Slips for printing"
+        ],
+        [
+          "Pay run audit",
+          "Pay run › Reports › Audit report — tick everything on the left, Run report, download as Excel"
+        ],
+        [
+          "ABA file",
+          "The payment file downloaded in Step 2"
+        ],
+        [
+          "Leave balances",
+          "Reports › Leave Balances — run to the pay period end date, Excel"
+        ],
+        [
+          "Leave liability",
+          "Reports › Leave Liability — run to the pay period end date, Excel"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Set both leave reports to the pay period ending date, not today's date."
+    },
+    {
+      "type": "shot",
+      "file": "04-reports-saved.png",
+      "caption": "The five payroll files downloaded for the fortnight. Unrelated files are blurred in this guide."
+    },
+    {
+      "type": "p",
+      "text": "Move all five out of Downloads and into the folder for the corresponding fortnight, together with any emails relating to the period."
+    },
+    {
+      "type": "callout",
+      "label": "File everything for the fortnight together.",
+      "text": "Anything relating to the fortnight — the bank file, the reports, the emails behind an adjustment — belongs in that fortnight's folder. It costs a moment now and saves a great deal when someone queries a pay six months later."
+    },
+    {
+      "type": "step",
+      "number": 7,
+      "title": "Publish pay slips the next day"
+    },
+    {
+      "type": "p",
+      "text": "Do not publish pay slips yet. Employees are notified the moment you do, so this waits until the payment is actually approved."
+    },
+    {
+      "type": "p",
+      "text": "The following day, once you know Duncan has approved the payment in CommBiz, go back into the pay run and click Publish Pay Slips. That is what notifies employees."
+    },
+    {
+      "type": "callout",
+      "label": "Still outstanding after this stage.",
+      "text": "Lodging the pay run with the ATO is a separate action from the finalised pay run screen, and can also be done the following day alongside super if Employment Hero is unavailable."
+    },
+    {
+      "type": "h1",
+      "text": "Checklist"
+    },
+    {
+      "type": "p",
+      "text": "The fortnight is complete when all of the following are true:"
+    },
+    {
+      "type": "bullet",
+      "text": "The pay run is finalised and approved"
+    },
+    {
+      "type": "bullet",
+      "text": "The ABA file is imported into CommBiz and submitted"
+    },
+    {
+      "type": "bullet",
+      "text": "Funds cover net payroll, super and any other scheduled payments, with a 20K buffer remaining"
+    },
+    {
+      "type": "bullet",
+      "text": "The payroll email has gone to Duncan, copying Graham, Danica and accounts"
+    },
+    {
+      "type": "bullet",
+      "text": "Duncan has been tagged in the payments chat"
+    },
+    {
+      "type": "bullet",
+      "text": "The super payment batch has been created, validated and confirmed"
+    },
+    {
+      "type": "bullet",
+      "text": "All five reports are saved into the fortnight folder, along with related emails"
+    },
+    {
+      "type": "bullet",
+      "text": "Pay slips published the following day, after the payment is approved"
+    },
+    {
+      "type": "bullet",
+      "text": "The pay run has been lodged with the ATO"
+    },
+    {
+      "type": "next",
+      "text": "This completes the fortnightly payroll cycle. The next fortnight begins again at Part 1 — Payroll Prep."
+    }
   ]
 }
