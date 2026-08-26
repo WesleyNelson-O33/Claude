@@ -7,132 +7,293 @@
   "output": "manuals/Payroll Handover - Questions and Scenarios.docx",
   "toc": true,
   "blocks": [
-    { "type": "h1", "text": "About this document" },
-    { "type": "p", "text": "The training manuals capture what the recordings show. This document captures what they do not — the gaps, the judgement calls, and the situations that never came up on camera." },
-    { "type": "p", "text": "Every question here comes from something specific: a step that was skipped, a rule stated with visible uncertainty, a piece of access that was noted as still outstanding, or a scenario the fortnight happened not to contain. None of them are general-purpose handover questions." },
-    { "type": "callout", "label": "How to use it.", "text": "Work through it with her in one or two sittings and write the answers in. Then hand the completed document back to me and I will fold the answers into the manuals, so the knowledge ends up in the procedure rather than in a separate file nobody opens." },
-    { "type": "p", "text": "Questions are grouped by urgency. Priority 1 is anything you cannot work out alone once she has gone. Priority 2 is where the rule exists but only she knows the reasoning. Priority 3 is worth having but recoverable." },
-
-    { "type": "h1", "text": "Priority 1 — Ask before she leaves" },
-
-    { "type": "h2", "text": "Access and credentials" },
-    { "type": "p", "text": "Two of these were flagged as outstanding during the recordings themselves — in Part 6 she says \"I still don't have a login for CommBiz\", and in Part 5 \"I don't have any credit card details, I need to share that with you at some point\". Chase these first; access requests take time and you cannot process a payroll without them." },
-    { "type": "questions", "start": 1, "items": [
-      "Do I have a CommBiz login of my own, and what access level does it need to import and submit a payment file?",
-      "Does CommBiz require an eToken? If so, do I have one, and who issues it?",
-      "Who requests CommBiz access, and how long does it take to come through?",
-      "What are the company credit card details used for during payroll, and how do I get access to them?",
-      "Employment Hero payroll and Employment Hero HR are separate systems with separate URLs. Do I have admin access to both?",
-      "Do I have write access to the Y drive at 03 Payroll and everything beneath it?",
-      "Where do the bonus leave tracker and the rate increase spreadsheet live, and do I have access to both?",
-      "Is there anything else I will need a login for that has not come up yet?"
-    ]},
-
-    { "type": "h2", "text": "People and approvals" },
-    { "type": "p", "text": "The process depends on two named approvers at two different points. Neither has a documented backup." },
-    { "type": "questions", "start": 9, "items": [
-      "Graham approves the pay run finalisation and Duncan approves the payment in CommBiz. Who is the backup for each if they are on leave or unreachable?",
-      "Can one person do both approvals if the other is unavailable, or does that break a separation-of-duties rule?",
-      "If a manager has not approved timesheets by prep day, who do I chase and how hard do I push before escalating?",
-      "Who arbitrates a disputed overtime attachment? In Part 3 a manager ticked 'not chargeable' where you both thought it should have been chargeable — what is the process for resolving that?",
-      "If something goes wrong on pay day and neither Duncan nor Graham is available, who is my escalation?",
-      "Who should I tell that I am now running payroll, so managers know where to send approvals and queries?"
-    ]},
-
-    { "type": "h2", "text": "Situations no recording covers" },
-    { "type": "p", "text": "These simply did not occur during the fortnight that was filmed. Each is common enough that it will come up, and none can be inferred from what was recorded." },
-    { "type": "questions", "start": 15, "items": [
-      "How is a termination handled? Final pay, unused annual leave payout, time in lieu balance, and what changes on the last pay run.",
-      "The Create Pay Run screen has an 'Include terminated employees' checkbox that we always leave unticked. When would it need ticking?",
-      "How is parental leave handled in a pay run — paid, unpaid, government-funded, and what changes fortnight to fortnight?",
-      "What does payroll need to do for a new starter's first pay — TFN declaration, super choice, anything that must be in place before they can be paid?",
-      "What do I do if I find an error after the pay run is finalised and super has been paid?",
-      "What happens if an employee's bank details are wrong and the payment bounces back?",
-      "Is there anything that happens only at end of financial year, or only in certain months, that I should know is coming?"
-    ]},
-
-    { "type": "h1", "text": "Priority 2 — Confirm the rules" },
-
-    { "type": "h2", "text": "Award interpretation and rates" },
-    { "type": "p", "text": "Several rules were stated on camera with audible uncertainty, or left as a judgement call without saying how to make it. These are the ones most likely to produce a wrong payment." },
-    { "type": "questions", "start": 22, "items": [
-      "When Employment Hero triggers both daily overtime (over 8 hours) and weekly overtime (over 38 hours) for the same casual, which do I keep? The recording says 'we can choose to pay one of them' — is there a rule, or is it judgement, and what should I default to?",
-      "The no-meal-break penalty was described as 2.25 with some hesitation, and calculated rather than read from the award. Can we confirm the correct multiplier and where it sits in the award?",
-      "What is the casual loading percentage, and which spreadsheet columns hold the rate excluding loading versus including it?",
-      "The salaried hourly rate formula divides by 1.12 to strip superannuation. What do I change when the superannuation guarantee rate changes?",
-      "Are there casual penalty rates for weekends or public holidays, and how would they show up in a pay run?",
-      "The overtime matrix on file is headed 'FULL TIME STAFF'. Is there an equivalent for part-time employees, or are they treated another way?",
-      "What exactly makes work 'chargeable to the client' for the matrix's dollar columns — is that always the manager's call, or is there a rule I can apply?"
-    ]},
-
-    { "type": "h2", "text": "The timesheet spreadsheet" },
-    { "type": "questions", "start": 29, "items": [
-      "Is the populated range columns E to S or F to S? Both were said during the recordings and I want to be sure which drives the formula.",
-      "The total hours column does not handle leave without pay correctly — this was found during recording and left unresolved. Has it been fixed, and if not what is the manual workaround?",
-      "When are the Public Holiday and Jury Leave columns used, and where do those hours come from?",
-      "The Rate Check column shows #VALUE! against some employees. Is that expected, or does it indicate a problem?",
-      "Does green highlighting mean 'rate verified this fortnight' or 'rate was changed'? Both readings came up, and I want to use it consistently.",
-      "How far ahead is the Lookup tab populated with pay periods, and who extends it when it runs out?",
-      "Is the template ever updated between fortnights, or do I always copy the same one?"
-    ]},
-
-    { "type": "h2", "text": "Calendar and timing" },
-    { "type": "questions", "start": 36, "items": [
-      "What happens when the Monday of the processing week, or the Tuesday pay date, falls on a public holiday?",
-      "How do I know a given fortnight is the last pay run of the month for bonus leave accrual, particularly when a fortnight straddles month end?",
-      "Is there a cut-off published to staff for timesheet submission, and who enforces it?",
-      "How long before pay day does the money actually need to be in the account?"
-    ]},
-
-    { "type": "h1", "text": "Priority 3 — Worth having" },
-    { "type": "questions", "start": 40, "items": [
-      "Employment Hero has a known fault where a rate updated in HR does not reach payroll. Is there an open support ticket, and who is our contact there?",
-      "Where are bonus leave letters stored, and who issues them? Accruals are blocked until a letter is signed.",
-      "What is the process when an employee queries their pay after pay day?",
-      "Are there any employees with unusual arrangements I should know about before I meet them in a pay run?",
-      "Is there anything you do out of habit that is not written down anywhere?"
-    ]},
-
-    { "type": "h1", "text": "Scenarios to talk through" },
-    { "type": "p", "text": "For each of these, my reading of the manuals is given first. Ask her to confirm or correct it — that is faster than an open question, and the disagreements are where the real knowledge is." },
-
-    { "type": "h2", "text": "Scenario 1 — Timesheets are still unapproved on prep day" },
-    { "type": "p", "text": "What the manuals say: you cannot create the pay run while anything sits under Submitted. Chase the approvals." },
-    { "type": "callout", "label": "Confirm:", "text": "How long do I wait before escalating, and to whom? If a manager is genuinely unreachable and pay day is tomorrow, is there an approved way to proceed without their approval, or does pay day move?" },
-
-    { "type": "h2", "text": "Scenario 2 — The pay run will not balance" },
-    { "type": "p", "text": "What the manuals say: hours balance first; a dollar variance with balanced hours means a wrong rate somewhere, usually an overtime rate on a stale base. Read gross earnings employee by employee to find it." },
-    { "type": "callout", "label": "Confirm:", "text": "How long do you spend before asking for help? Is there a threshold below which a variance is acceptable to finalise, or must it always be zero apart from rounding?" },
-
-    { "type": "h2", "text": "Scenario 3 — An error is found after finalising" },
-    { "type": "p", "text": "What the manuals say: once super has been paid the pay run cannot be unlocked. Part 5 shows corrections being made as back pays in the following fortnight." },
-    { "type": "callout", "label": "Confirm:", "text": "Is a back pay next fortnight always the answer, or are there errors that need fixing immediately — an underpayment, or something affecting a termination? Who decides?" },
-
-    { "type": "h2", "text": "Scenario 4 — There is not enough money in the account" },
-    { "type": "p", "text": "What the manuals say: work out net payroll plus super plus anything else scheduled, transfer from savings, leave roughly a $20,000 buffer." },
-    { "type": "callout", "label": "Confirm:", "text": "What if the savings account cannot cover it either? Who authorises moving money from elsewhere, and how much notice do they need?" },
-
-    { "type": "h2", "text": "Scenario 5 — Duncan has not approved by pay date" },
-    { "type": "p", "text": "What the manuals say: the payment sits in CommBiz until he approves it. The manuals do not say what happens if he does not." },
-    { "type": "callout", "label": "Confirm:", "text": "Does the payment fail, or sit and process late? Who can approve instead? At what point do I warn staff their pay will be late?" },
-
-    { "type": "h2", "text": "Scenario 6 — An employee reports a missed shift from two fortnights ago" },
-    { "type": "p", "text": "What the manuals say: add them as a payee if needed, use the unpaid timesheets import option, select only the affected dates and delete the rest. This is the one exception to the rule about always importing timesheets for this pay period." },
-    { "type": "callout", "label": "Confirm:", "text": "How far back can this go before it needs to be handled differently? Does anyone need to approve a back pay for a period already closed?" },
-
-    { "type": "h2", "text": "Scenario 7 — Employment Hero is unavailable on processing day" },
-    { "type": "p", "text": "What the manuals say: this actually happened during the Part 6 recording. Super was deferred to the following day without apparent consequence." },
-    { "type": "callout", "label": "Confirm:", "text": "Which steps can safely slip a day and which cannot? If the outage lands on the day the ABA file has to be uploaded, what changes?" },
-
-    { "type": "h2", "text": "Scenario 8 — A new starter's contract quotes a rate including loading" },
-    { "type": "p", "text": "What the manuals say: the spreadsheet holds rates excluding casual loading, so an inclusive rate must be converted before it goes in." },
-    { "type": "callout", "label": "Confirm:", "text": "What is the conversion, and is there anywhere I can check the correct ex-loading rate rather than calculating it? This came up repeatedly during rate verification as a source of confusion." },
-
-    { "type": "h1", "text": "The one thing worth more than all of these" },
-    { "type": "p", "text": "Run the next fortnight yourself, start to finish, with her sitting beside you rather than driving. Not watching her do it again — you doing it, with her available to catch mistakes." },
-    { "type": "callout", "label": "Do this while she is still here.", "text": "Every question above assumes you will hit the problem alone and need the answer in advance. A supervised dry run surfaces the things nobody thought to ask about, including the ones she does out of habit and would never think to mention. If you only get one more session with her, make it this rather than another demonstration." },
-    { "type": "p", "text": "Take this document into that session and fill in the answers as they come up naturally. Anything still blank at the end is what to ask directly." },
-
-    { "type": "next", "text": "Send the completed document back and I will fold the answers into the relevant manuals." }
+    {
+      "type": "h1",
+      "text": "About this document"
+    },
+    {
+      "type": "p",
+      "text": "The training manuals capture what the recordings show. This document captures what they do not — the gaps, the judgement calls, and the situations that never came up on camera."
+    },
+    {
+      "type": "p",
+      "text": "Every question here comes from something specific: a step that was skipped, a rule stated with visible uncertainty, a piece of access that was noted as still outstanding, or a scenario the fortnight happened not to contain. None of them are general-purpose handover questions."
+    },
+    {
+      "type": "callout",
+      "label": "How to use it.",
+      "text": "Work through it with her in one or two sittings and write the answers in. Then hand the completed document back to me and I will fold the answers into the manuals, so the knowledge ends up in the procedure rather than in a separate file nobody opens."
+    },
+    {
+      "type": "p",
+      "text": "Questions are grouped by urgency. Priority 1 is anything you cannot work out alone once she has gone. Priority 2 is where the rule exists but only she knows the reasoning. Priority 3 is worth having but recoverable."
+    },
+    {
+      "type": "h1",
+      "text": "Priority 1 — Ask before she leaves"
+    },
+    {
+      "type": "h2",
+      "text": "Access and credentials"
+    },
+    {
+      "type": "p",
+      "text": "Most access is already in place — Employment Hero payroll and HR, the Y drive, the bonus leave tracker and the rate increase spreadsheet. CommBiz is the one piece still outstanding, and it has been confirmed that it does not need an eToken. Chase it early: access requests take time and you cannot pay anyone without it."
+    },
+    {
+      "type": "questions",
+      "start": 1,
+      "items": [
+        "Do I have a CommBiz login of my own, and what access level does it need to import and submit a payment file?",
+        "Who requests CommBiz access, and how long does it take to come through?",
+        "What are the company credit card details used for during payroll, and how do I get access to them?",
+        "Is there anything else I will need a login for that has not come up yet?"
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "People and approvals"
+    },
+    {
+      "type": "p",
+      "text": "The process depends on two named approvers at two different points. Neither has a documented backup."
+    },
+    {
+      "type": "questions",
+      "start": 5,
+      "items": [
+        "Graham approves the pay run finalisation and Duncan approves the payment in CommBiz. Who is the backup for each if they are on leave or unreachable?",
+        "Can one person do both approvals if the other is unavailable, or does that break a separation-of-duties rule?",
+        "If a manager has not approved timesheets by prep day, who do I chase and how hard do I push before escalating?",
+        "Who arbitrates a disputed overtime attachment? In Part 3 a manager ticked 'not chargeable' where you both thought it should have been chargeable — what is the process for resolving that?",
+        "If something goes wrong on pay day and neither Duncan nor Graham is available, who is my escalation?",
+        "Who should I tell that I am now running payroll, so managers know where to send approvals and queries?"
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "Situations no recording covers"
+    },
+    {
+      "type": "p",
+      "text": "These simply did not occur during the fortnight that was filmed. Each is common enough that it will come up, and none can be inferred from what was recorded."
+    },
+    {
+      "type": "questions",
+      "start": 11,
+      "items": [
+        "How is a termination handled? Final pay, unused annual leave payout, time in lieu balance, and what changes on the last pay run.",
+        "The Create Pay Run screen has an 'Include terminated employees' checkbox that we always leave unticked. When would it need ticking?",
+        "How is parental leave handled in a pay run — paid, unpaid, government-funded, and what changes fortnight to fortnight?",
+        "What does payroll need to do for a new starter's first pay — TFN declaration, super choice, anything that must be in place before they can be paid?",
+        "What do I do if I find an error after the pay run is finalised and super has been paid?",
+        "What happens if an employee's bank details are wrong and the payment bounces back?",
+        "Is there anything that happens only at end of financial year, or only in certain months, that I should know is coming?"
+      ]
+    },
+    {
+      "type": "h1",
+      "text": "Priority 2 — Confirm the rules"
+    },
+    {
+      "type": "h2",
+      "text": "Award interpretation and rates"
+    },
+    {
+      "type": "p",
+      "text": "Several rules were stated on camera with audible uncertainty, or left as a judgement call without saying how to make it. These are the ones most likely to produce a wrong payment."
+    },
+    {
+      "type": "questions",
+      "start": 18,
+      "items": [
+        "When Employment Hero triggers both daily overtime (over 8 hours) and weekly overtime (over 38 hours) for the same casual, which do I keep? The recording says 'we can choose to pay one of them' — is there a rule, or is it judgement, and what should I default to?",
+        "The no-meal-break penalty was described as 2.25 with some hesitation, and calculated rather than read from the award. Can we confirm the correct multiplier and where it sits in the award?",
+        "What is the casual loading percentage, and which spreadsheet columns hold the rate excluding loading versus including it?",
+        "The salaried hourly rate formula divides by 1.12 to strip superannuation. What do I change when the superannuation guarantee rate changes?",
+        "Are there casual penalty rates for weekends or public holidays, and how would they show up in a pay run?",
+        "The overtime matrix on file is headed 'FULL TIME STAFF'. Is there an equivalent for part-time employees, or are they treated another way?",
+        "What exactly makes work 'chargeable to the client' for the matrix's dollar columns — is that always the manager's call, or is there a rule I can apply?"
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "The timesheet spreadsheet"
+    },
+    {
+      "type": "questions",
+      "start": 25,
+      "items": [
+        "Is the populated range columns E to S or F to S? Both were said during the recordings and I want to be sure which drives the formula.",
+        "The total hours column does not handle leave without pay correctly — this was found during recording and left unresolved. Has it been fixed, and if not what is the manual workaround?",
+        "When are the Public Holiday and Jury Leave columns used, and where do those hours come from?",
+        "The Rate Check column shows #VALUE! against some employees. Is that expected, or does it indicate a problem?",
+        "Does green highlighting mean 'rate verified this fortnight' or 'rate was changed'? Both readings came up, and I want to use it consistently.",
+        "How far ahead is the Lookup tab populated with pay periods, and who extends it when it runs out?",
+        "Is the template ever updated between fortnights, or do I always copy the same one?"
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "Calendar and timing"
+    },
+    {
+      "type": "questions",
+      "start": 32,
+      "items": [
+        "What happens when the Monday of the processing week, or the Tuesday pay date, falls on a public holiday?",
+        "How do I know a given fortnight is the last pay run of the month for bonus leave accrual, particularly when a fortnight straddles month end?",
+        "Is there a cut-off published to staff for timesheet submission, and who enforces it?",
+        "How long before pay day does the money actually need to be in the account?"
+      ]
+    },
+    {
+      "type": "h1",
+      "text": "Priority 3 — Worth having"
+    },
+    {
+      "type": "questions",
+      "start": 36,
+      "items": [
+        "Employment Hero has a known fault where a rate updated in HR does not reach payroll. Is there an open support ticket, and who is our contact there?",
+        "Where are bonus leave letters stored, and who issues them? Accruals are blocked until a letter is signed.",
+        "What is the process when an employee queries their pay after pay day?",
+        "Are there any employees with unusual arrangements I should know about before I meet them in a pay run?",
+        "Is there anything you do out of habit that is not written down anywhere?"
+      ]
+    },
+    {
+      "type": "h1",
+      "text": "Scenarios to talk through"
+    },
+    {
+      "type": "p",
+      "text": "For each of these, my reading of the manuals is given first. Ask her to confirm or correct it — that is faster than an open question, and the disagreements are where the real knowledge is."
+    },
+    {
+      "type": "h2",
+      "text": "Scenario 1 — Timesheets are still unapproved on prep day"
+    },
+    {
+      "type": "p",
+      "text": "What the manuals say: you cannot create the pay run while anything sits under Submitted. Chase the approvals."
+    },
+    {
+      "type": "callout",
+      "label": "Confirm:",
+      "text": "How long do I wait before escalating, and to whom? If a manager is genuinely unreachable and pay day is tomorrow, is there an approved way to proceed without their approval, or does pay day move?"
+    },
+    {
+      "type": "h2",
+      "text": "Scenario 2 — The pay run will not balance"
+    },
+    {
+      "type": "p",
+      "text": "What the manuals say: hours balance first; a dollar variance with balanced hours means a wrong rate somewhere, usually an overtime rate on a stale base. Read gross earnings employee by employee to find it."
+    },
+    {
+      "type": "callout",
+      "label": "Confirm:",
+      "text": "How long do you spend before asking for help? Is there a threshold below which a variance is acceptable to finalise, or must it always be zero apart from rounding?"
+    },
+    {
+      "type": "h2",
+      "text": "Scenario 3 — An error is found after finalising"
+    },
+    {
+      "type": "p",
+      "text": "What the manuals say: once super has been paid the pay run cannot be unlocked. Part 5 shows corrections being made as back pays in the following fortnight."
+    },
+    {
+      "type": "callout",
+      "label": "Confirm:",
+      "text": "Is a back pay next fortnight always the answer, or are there errors that need fixing immediately — an underpayment, or something affecting a termination? Who decides?"
+    },
+    {
+      "type": "h2",
+      "text": "Scenario 4 — There is not enough money in the account"
+    },
+    {
+      "type": "p",
+      "text": "What the manuals say: work out net payroll plus super plus anything else scheduled, transfer from savings, leave roughly a $20,000 buffer."
+    },
+    {
+      "type": "callout",
+      "label": "Confirm:",
+      "text": "What if the savings account cannot cover it either? Who authorises moving money from elsewhere, and how much notice do they need?"
+    },
+    {
+      "type": "h2",
+      "text": "Scenario 5 — Duncan has not approved by pay date"
+    },
+    {
+      "type": "p",
+      "text": "What the manuals say: the payment sits in CommBiz until he approves it. The manuals do not say what happens if he does not."
+    },
+    {
+      "type": "callout",
+      "label": "Confirm:",
+      "text": "Does the payment fail, or sit and process late? Who can approve instead? At what point do I warn staff their pay will be late?"
+    },
+    {
+      "type": "h2",
+      "text": "Scenario 6 — An employee reports a missed shift from two fortnights ago"
+    },
+    {
+      "type": "p",
+      "text": "What the manuals say: add them as a payee if needed, use the unpaid timesheets import option, select only the affected dates and delete the rest. This is the one exception to the rule about always importing timesheets for this pay period."
+    },
+    {
+      "type": "callout",
+      "label": "Confirm:",
+      "text": "How far back can this go before it needs to be handled differently? Does anyone need to approve a back pay for a period already closed?"
+    },
+    {
+      "type": "h2",
+      "text": "Scenario 7 — Employment Hero is unavailable on processing day"
+    },
+    {
+      "type": "p",
+      "text": "What the manuals say: this actually happened during the Part 6 recording. Super was deferred to the following day without apparent consequence."
+    },
+    {
+      "type": "callout",
+      "label": "Confirm:",
+      "text": "Which steps can safely slip a day and which cannot? If the outage lands on the day the ABA file has to be uploaded, what changes?"
+    },
+    {
+      "type": "h2",
+      "text": "Scenario 8 — A new starter's contract quotes a rate including loading"
+    },
+    {
+      "type": "p",
+      "text": "What the manuals say: the spreadsheet holds rates excluding casual loading, so an inclusive rate must be converted before it goes in."
+    },
+    {
+      "type": "callout",
+      "label": "Confirm:",
+      "text": "What is the conversion, and is there anywhere I can check the correct ex-loading rate rather than calculating it? This came up repeatedly during rate verification as a source of confusion."
+    },
+    {
+      "type": "h1",
+      "text": "The one thing worth more than all of these"
+    },
+    {
+      "type": "p",
+      "text": "Run the next fortnight yourself, start to finish, with her sitting beside you rather than driving. Not watching her do it again — you doing it, with her available to catch mistakes."
+    },
+    {
+      "type": "callout",
+      "label": "Do this while she is still here.",
+      "text": "Every question above assumes you will hit the problem alone and need the answer in advance. A supervised dry run surfaces the things nobody thought to ask about, including the ones she does out of habit and would never think to mention. If you only get one more session with her, make it this rather than another demonstration."
+    },
+    {
+      "type": "p",
+      "text": "Take this document into that session and fill in the answers as they come up naturally. Anything still blank at the end is what to ask directly."
+    },
+    {
+      "type": "next",
+      "text": "Send the completed document back and I will fold the answers into the relevant manuals."
+    }
   ]
 }
