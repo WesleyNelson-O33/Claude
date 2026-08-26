@@ -1,0 +1,18 @@
+{
+  "grid_00004.jpg": {
+    "out": "01-overtime-category-triggered.png",
+    "blur": [[1018, 238, 1218, 682], [1136, 108, 1262, 128]]
+  },
+  "grid_00009.jpg": {
+    "out": "02-copy-notes-before-changing.png",
+    "blur": [[52, 178, 1258, 260], [1018, 322, 1218, 682], [1136, 108, 1262, 128]]
+  },
+  "grid_00016.jpg": {
+    "out": "03-timesheet-daily-durations.png",
+    "blur": [[50, 358, 162, 678], [1136, 106, 1262, 126]]
+  },
+  "grid_00031.jpg": {
+    "out": "04-hours-corrected-to-80.png",
+    "blur": [[52, 178, 1258, 342], [1018, 408, 1218, 682], [1136, 108, 1262, 128]]
+  }
+}

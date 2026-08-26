@@ -1,0 +1,60 @@
+{
+  "eyebrow": "PAYROLL PROCESSING",
+  "title": "Part 4 — Reconciling Timesheets (continued)",
+  "subtitle": "Corporate Technology Services  ·  Employment Hero Payroll  ·  Salaried employee scenario",
+  "runningHead": "Payroll Processing — Part 4: Reconciling Timesheets (continued)",
+  "screenshotDir": "manuals/screenshots/part4",
+  "output": "manuals/Payroll Processing - Part 4 - Reconciling Timesheets (continued).docx",
+  "blocks": [
+    { "type": "h1", "text": "About this guide" },
+    { "type": "p", "text": "This guide continues the reconciliation work begun in Part 3. Part 3 covers the standard scenarios you meet on most fortnights — casual, part-time and full-time employees. This guide works through one that falls outside those: a salaried employee whose overtime category was triggered automatically when it should not have been." },
+    { "type": "p", "text": "The scenario is worth understanding even if it is not on your current pay run, because the underlying trap — losing the notes when you change a category — applies to every correction you make in a pay run." },
+
+    { "type": "step", "number": 1, "title": "Recognise an incorrectly triggered overtime category" },
+    { "type": "p", "text": "Employment Hero applies award conditions automatically. One of these flags any shift starting less than ten hours after the previous one ended, and reclassifies those hours into a higher-paid break category." },
+    { "type": "p", "text": "In the example, an employee finished at 8:00pm on 10 August and started again at 5:30am on 11 August. That gap is under ten hours, so Employment Hero moved the affected hours into the category shown below." },
+    { "type": "shot", "file": "01-overtime-category-triggered.png", "caption": "Figure 1 — Rows reclassified as 'Permanent - Less than 10 hrs break' sitting alongside normal 'Permanent Ordinary Hours'. Rates and amounts are blurred in this guide." },
+    { "type": "callout", "label": "Salaried employees are not eligible.", "text": "Because CTS pays above award, a salaried employee does not attract this overtime. The category applies a substantially higher hourly rate, so leaving it in place overpays them. These rows must be changed back to Permanent Ordinary Hours." },
+    { "type": "p", "text": "Check the employment type before acting. This correction applies to salaried employees — it is not a blanket rule for everyone the break condition flags." },
+
+    { "type": "step", "number": 2, "title": "Copy the notes before you change anything" },
+    { "type": "p", "text": "This is the step that catches people out, and there is no undo for it." },
+    { "type": "callout", "label": "Changing the category wipes the notes.", "text": "The moment you change the category on a row, Employment Hero overwrites whatever was in that row's Notes field. Copy the note text out first, change the category, then paste it back. If you change the category first, the note is gone and you will have to reconstruct it from the timesheet." },
+    { "type": "shot", "file": "02-copy-notes-before-changing.png", "caption": "Figure 2 — Selecting the Notes text to copy before touching the category dropdown. Names, rates and amounts are blurred in this guide." },
+    { "type": "p", "text": "For each affected row, work in this order:" },
+    { "type": "bullet", "text": "Select and copy the contents of the Notes field" },
+    { "type": "bullet", "text": "Change the category dropdown to Permanent Ordinary Hours" },
+    { "type": "bullet", "text": "Paste the note back into the Notes field" },
+    { "type": "bullet", "text": "Confirm the hours on the row are still correct" },
+    { "type": "p", "text": "Repeat for every row carrying the break category. In the example there were four." },
+
+    { "type": "step", "number": 3, "title": "Re-check the total hours against the timesheets" },
+    { "type": "p", "text": "Once the categories are corrected the employee's total will often sit below the expected 80 hours for a full-time fortnight. The reclassification changes how hours were captured, so they need checking against the source." },
+    { "type": "p", "text": "Open the employee's timesheets for the period and work through the days that are actually longer than eight hours — those are where the discrepancies sit." },
+    { "type": "shot", "file": "03-timesheet-daily-durations.png", "caption": "Figure 3 — Timesheet Approval showing each day's real duration, including breaks. The employee name is blurred in this guide." },
+    { "type": "p", "text": "Compare each of those days against what the pay run captured, and correct the hours where they differ. In the example the pay run had captured eight hours for 12 August where the timesheet showed ten, and two later days were each short by an hour or more." },
+    { "type": "callout", "label": "Work to the expected total.", "text": "Keep correcting until the total reaches the hours the employee is contracted for across the fortnight — 80 for a full-time employee. If you cannot reconcile to that figure, stop and investigate rather than adjusting a number to make it balance." },
+
+    { "type": "step", "number": 4, "title": "Confirm the corrected total and check leave" },
+    { "type": "p", "text": "With the categories fixed and the hours corrected, the employee's line should show the expected total and every row should sit on the ordinary hours rate." },
+    { "type": "shot", "file": "04-hours-corrected-to-80.png", "caption": "Figure 4 — The same employee after correction: 80 hours, all rows on Permanent Ordinary Hours. Names, rates and amounts are blurred in this guide." },
+    { "type": "p", "text": "Then check whether any leave was taken during the period, and populate the spreadsheet if so." },
+    { "type": "callout", "label": "Leave taken, not leave accrued.", "text": "These are different things and only one matters here. Leave accrued is what the employee earned over the period and needs no action. Leave taken is what they actually used, and that does need populating. In the example there was leave accrued but none taken, so no entry was required." },
+
+    { "type": "step", "number": 5, "title": "Check pay run inclusions" },
+    { "type": "p", "text": "Finally, check the employee's pay run inclusion settings for any standing arrangements — most commonly a superannuation salary sacrifice." },
+    { "type": "p", "text": "These carry nominated start and end dates, and they must match what the employee set out on their nominated form. In the example the sacrifice ran from 15 June through to the end of the financial year." },
+    { "type": "callout", "label": "Check the dates, not just the amount.", "text": "A salary sacrifice that has passed its nominated end date but is still active will keep deducting. Confirm the arrangement is still within its nominated period for the fortnight you are processing." },
+
+    { "type": "h1", "text": "Checklist" },
+    { "type": "p", "text": "For each employee flagged with an out-of-the-ordinary condition:" },
+    { "type": "bullet", "text": "The employment type has been confirmed before applying any correction" },
+    { "type": "bullet", "text": "Notes were copied before any category was changed, and pasted back afterwards" },
+    { "type": "bullet", "text": "Every incorrectly triggered row has been returned to Permanent Ordinary Hours" },
+    { "type": "bullet", "text": "Total hours reconcile to the employee's contracted hours for the fortnight" },
+    { "type": "bullet", "text": "Any leave taken during the period has been populated in the spreadsheet" },
+    { "type": "bullet", "text": "Pay run inclusions are active only within their nominated dates" },
+
+    { "type": "next", "text": "Part 5 — Reconciling & Balancing the Pay Run." }
+  ]
+}

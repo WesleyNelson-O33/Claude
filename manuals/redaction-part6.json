@@ -1,0 +1,18 @@
+{
+  "grid_00001.jpg": {
+    "out": "01-finalise-pay-run.png",
+    "blur": [[54, 424, 1258, 684], [1136, 108, 1262, 128]]
+  },
+  "grid_00018.jpg": {
+    "out": "02-commbiz-import-aba-file.png",
+    "blur": [[538, 130, 1052, 161]]
+  },
+  "grid_00096.jpg": {
+    "out": "03-finalised-pay-run-actions.png",
+    "blur": [[58, 241, 322, 259], [54, 500, 1258, 684], [1136, 108, 1262, 128]]
+  },
+  "grid_00106.jpg": {
+    "out": "04-reports-saved.png",
+    "blur": [[298, 464, 1200, 694], [84, 177, 292, 196]]
+  }
+}
