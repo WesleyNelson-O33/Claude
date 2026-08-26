@@ -125,6 +125,41 @@ function keyValueTable(rows) {
 
 const spacer = () => new Paragraph({ spacing: { after: 200 }, children: [] });
 
+/** Numbered questions with a blank cell beside each one to write the answer in. */
+function questionTable(items, startNumber) {
+  const numWidth = 620;
+  const qWidth = 4400;
+  const aWidth = CONTENT_DXA - numWidth - qWidth;
+  const cell = (children, width, fill) => new TableCell({
+    width: { size: width, type: WidthType.DXA },
+    shading: { type: ShadingType.CLEAR, fill },
+    margins: { top: 110, bottom: 110, left: 140, right: 140 },
+    children,
+  });
+  const text = (t, bold, color) => new Paragraph({
+    children: [new TextRun({ text: t, bold, size: 20, color })],
+  });
+  const header = new TableRow({
+    tableHeader: true,
+    children: [
+      cell([text('#', true, 'FFFFFF')], numWidth, ACCENT),
+      cell([text('Question', true, 'FFFFFF')], qWidth, ACCENT),
+      cell([text('Answer', true, 'FFFFFF')], aWidth, ACCENT),
+    ],
+  });
+  const rows = items.map((question, index) => {
+    const fill = index % 2 ? 'FFFFFF' : 'F7F9FC';
+    return new TableRow({
+      children: [
+        cell([text(String(startNumber + index), true)], numWidth, fill),
+        cell([text(question, false)], qWidth, fill),
+        cell([new Paragraph({ children: [] }), new Paragraph({ children: [] })], aWidth, fill),
+      ],
+    });
+  });
+  return new Table({ columnWidths: [numWidth, qWidth, aWidth], rows: [header, ...rows] });
+}
+
 function titleBlock(spec, nested) {
   if (nested) {
     // In the master the part title is the top-level heading, so it must carry
@@ -197,6 +232,9 @@ function renderSpec(spec, { nested = false, root = '.', counter } = {}) {
         break;
       case 'table':
         out.push(keyValueTable(block.rows), spacer());
+        break;
+      case 'questions':
+        out.push(questionTable(block.items, block.start || 1), spacer());
         break;
       case 'next':
         out.push(new Paragraph({
