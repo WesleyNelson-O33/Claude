@@ -1,0 +1,22 @@
+{
+  "grid_00018.jpg": {
+    "out": "01-approve-timesheets-compare-roster.png",
+    "blur": [[862, 248, 1240, 272], [50, 508, 165, 672], [1145, 107, 1268, 127]]
+  },
+  "grid_00060.jpg": {
+    "out": "02-roster-comparison-differences.png",
+    "blur": [[50, 330, 165, 630], [1145, 107, 1268, 127]]
+  },
+  "grid_00054.jpg": {
+    "out": "03-award-clause-62-breaks.png",
+    "blur": []
+  },
+  "grid_00042.jpg": {
+    "out": "04-work-type-working-during-meal-break.png",
+    "blur": [[456, 183, 626, 206], [862, 216, 1240, 238], [50, 498, 140, 518], [1145, 107, 1268, 127]]
+  },
+  "grid_00012.jpg": {
+    "out": "05-casual-ordinary-hours-pay-run.png",
+    "blur": [[1010, 175, 1250, 240], [52, 515, 1265, 674], [1145, 108, 1268, 128]]
+  }
+}

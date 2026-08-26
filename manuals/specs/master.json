@@ -1,0 +1,22 @@
+{
+  "eyebrow": "CORPORATE TECHNOLOGY SERVICES",
+  "title": "Payroll Processing Manual",
+  "subtitle": "Employment Hero Payroll  ·  Fortnightly cycle  ·  Complete series",
+  "runningHead": "CTS Payroll Processing Manual",
+  "output": "manuals/Payroll Processing Manual - Complete.docx",
+  "intro": [
+    "Payroll at CTS runs on a fortnightly cycle. This manual covers that cycle end to end, from collecting payroll notes through to uploading the payment file and filing the records.",
+    "The eight parts are also published as standalone guides, so a new starter can be given only the sections that apply to them. Both are generated from the same source, so they always agree.",
+    "Reconciliation is split three ways because the rules differ by employment type. Check an employee's type before applying any rule — the same hours are treated differently for a casual and a salaried employee."
+  ],
+  "parts": [
+    "manuals/specs/part1.json",
+    "manuals/specs/part2.json",
+    "manuals/specs/part3a.json",
+    "manuals/specs/part3b.json",
+    "manuals/specs/part3c.json",
+    "manuals/specs/part4.json",
+    "manuals/specs/part5.json",
+    "manuals/specs/part6.json"
+  ]
+}

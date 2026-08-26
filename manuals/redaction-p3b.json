@@ -1,0 +1,14 @@
+{
+  "grid_00110.jpg": {
+    "out": "01-cts-overtime-matrix.png",
+    "blur": []
+  },
+  "grid_00080.jpg": {
+    "out": "02-permanent-ordinary-hours-til.png",
+    "blur": [[1030, 180, 1250, 674], [1145, 108, 1268, 128]]
+  },
+  "grid_00112.jpg": {
+    "out": "03-pay-run-employee-list.png",
+    "blur": [[52, 280, 1265, 674], [1145, 108, 1268, 128]]
+  }
+}

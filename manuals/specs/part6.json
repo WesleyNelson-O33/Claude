@@ -285,5 +285,6 @@
       "type": "next",
       "text": "This completes the fortnightly payroll cycle. The next fortnight begins again at Part 1 — Payroll Prep."
     }
-  ]
+  ],
+  "toc": true
 }

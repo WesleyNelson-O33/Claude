@@ -1,0 +1,94 @@
+{
+  "eyebrow": "PAYROLL PROCESSING",
+  "title": "Part 3a — Reconciling Casual Timesheets",
+  "subtitle": "Corporate Technology Services  ·  Employment Hero Payroll  ·  Live Performance Award",
+  "runningHead": "Payroll Processing — Part 3a: Reconciling Casual Timesheets",
+  "screenshotDir": "manuals/screenshots/part3a",
+  "output": "manuals/Payroll Processing - Part 3a - Reconciling Casual Timesheets.docx",
+  "toc": true,
+  "blocks": [
+    { "type": "h1", "text": "About this guide" },
+    { "type": "p", "text": "Reconciling timesheets is the longest stage of the fortnight. It is covered by three guides, because the rules differ sharply depending on who you are looking at:" },
+    { "type": "bullet", "text": "Part 3a (this guide) — casual employees, governed by the Live Performance Award" },
+    { "type": "bullet", "text": "Part 3b — salaried and full-time employees, governed by the internal CTS Overtime Matrix" },
+    { "type": "bullet", "text": "Part 3c — employees needing manual handling, including part-timers who do not clock in" },
+    { "type": "p", "text": "Work through the pay run in alphabetical order and pick up whichever guide applies to the employee in front of you. Check the Employment Type column before applying any rule — the same hours are treated differently for a casual and a salaried employee." },
+    { "type": "callout", "label": "The award is the authority.", "text": "Casual entitlements come from the Live Performance Award, not from what Employment Hero calculates. Employment Hero gets it wrong often enough that you must check rather than assume. Keep the award open in a tab while you work." },
+
+    { "type": "h1", "text": "Where the information comes from" },
+    { "type": "p", "text": "Three sources between them tell you what an employee actually worked:" },
+    { "type": "table", "rows": [
+      ["Shared calendar", "What was scheduled across the business for the fortnight"],
+      ["Approved timesheets", "A snapshot of total hours per employee for the fortnight"],
+      ["Rostering", "Each team's roster — Production, Banquet, CBA support and Deloitte support each keep their own"]
+    ]},
+    { "type": "p", "text": "In the rostering view, group by business and hide employees with no shifts. That tells you who was rostered for the period and lets you verify the times they actually logged." },
+    { "type": "callout", "label": "Ad hoc contracts have no roster.", "text": "Some contracts — PwC Australia and payment networks among them — do not run a roster at all. For those employees the timesheets are the only source, and the hours are verified by the approving manager instead." },
+
+    { "type": "step", "number": 1, "title": "Compare the timesheet against the roster" },
+    { "type": "p", "text": "Open the employee's timesheets for the fortnight and use Compare with roster. Employment Hero then shows the rostered line directly beneath the actual line for each shift." },
+    { "type": "shot", "file": "01-approve-timesheets-compare-roster.png", "caption": "Approve Timesheets for a single employee, with Compare with roster available. Employee names are blurred in this guide." },
+    { "type": "p", "text": "Read the result as follows:" },
+    { "type": "bullet", "text": "A tick on the left means the rostered and actual times reconcile — nothing to do" },
+    { "type": "bullet", "text": "A warning sign means there is a difference, and the view highlights exactly what differs" },
+    { "type": "shot", "file": "02-roster-comparison-differences.png", "caption": "The comparison view with differences highlighted against the rostered line. Employee names are blurred in this guide." },
+    { "type": "p", "text": "Most differences are one of two kinds, and neither is a problem in itself:" },
+    { "type": "table", "rows": [
+      ["Break length", "Rostered for an hour, took half an hour. Common and expected."],
+      ["Cost centre", "Worked across two cost centres rather than the one rostered — for example moving from one event to another mid-shift."]
+    ]},
+    { "type": "callout", "label": "Cost centre splits do not matter here.", "text": "The production manager splits shifts by where the person actually worked, and will have checked it before approving. What you are verifying is that the total hours reconcile — if they were rostered 7 to 4, the actual hours should also come to 7 to 4." },
+
+    { "type": "step", "number": 2, "title": "Check for weekly overtime above 38 hours" },
+    { "type": "p", "text": "Under the Live Performance Award, a casual working more than 38 hours in a week attracts overtime on the excess, paid at 1.75. The award sets this out at clause 63." },
+    { "type": "p", "text": "Look at the fortnight one week at a time — the threshold is weekly, not fortnightly. A casual can work 41 hours in the first week and 32 in the second and still be owed overtime on the first week's three hours." },
+    { "type": "callout", "label": "Employment Hero does not always catch this.", "text": "It sometimes captures the overtime automatically and sometimes does not, with no obvious reason for the difference. Always check the weekly totals yourself rather than trusting the pay run." },
+    { "type": "p", "text": "To correct it, use Actions › Add earnings and choose the casual overtime category at 1.75. Copy the notes from the row above so the record stays consistent, then reduce the ordinary hours by the same amount." },
+    { "type": "shot", "file": "05-casual-ordinary-hours-pay-run.png", "caption": "Casual Ordinary Hours rows in the pay run, with the Leave Accrued and Notes sections beneath. Rates and amounts are blurred in this guide." },
+    { "type": "callout", "label": "The total must not change.", "text": "You are re-splitting hours, not adding them. Forty hours becomes 38 at ordinary plus 2 at 1.75 — the total stays at 40. If your total moves, something is wrong." },
+
+    { "type": "step", "number": 3, "title": "Check for daily overtime above 8 hours" },
+    { "type": "p", "text": "Separately from the weekly threshold, anything worked beyond eight hours in a single day is overtime. Work through the days that run long and check each one against the timesheet." },
+    { "type": "p", "text": "Where a manager has approved overtime there will be an attachment on the timesheet. Open it — under the current overtime procedure the manager must record why the overtime was approved, whether it is chargeable to a client, and whether it is being paid as time in lieu or at a penalty rate." },
+    { "type": "callout", "label": "Read the attachment carefully.", "text": "The attachment tells you which portion of the shift is overtime, not the whole shift. If someone was rostered 7 to 5 and worked 7 to 5, the first eight hours are still ordinary hours and only the excess attracts the penalty." },
+
+    { "type": "step", "number": 4, "title": "Do not pay both daily and weekly overtime" },
+    { "type": "p", "text": "Employment Hero will sometimes trigger overtime twice for the same hours — once for a day over eight hours, and again for the week exceeding 38." },
+    { "type": "callout", "label": "Pay one, not both.", "text": "The award does not require both to be paid for the same hours. Choose either the daily or the weekly calculation and delete the other. Paying both is double-dipping and overpays the employee." },
+    { "type": "p", "text": "After deleting the duplicate, confirm the total hours still match what the employee actually worked." },
+
+    { "type": "step", "number": 5, "title": "Check meal breaks" },
+    { "type": "p", "text": "This is the rule that causes the most trouble, and it has two distinct thresholds." },
+    { "type": "shot", "file": "03-award-clause-62-breaks.png", "caption": "Live Performance Award clause 62, setting out the break entitlements for weekly and casual employees." },
+    { "type": "table", "rows": [
+      ["More than 4 hours", "Entitled to a minimum meal break of 30 minutes (clause 62.2)"],
+      ["More than 5 continuous hours with no suitable break", "The period that should have been the meal interval is paid at 200% of the minimum hourly rate (clause 62.1c)"]
+    ]},
+    { "type": "callout", "label": "Employment Hero silently removes the half hour.", "text": "If a casual works more than four hours and no meal break is recorded, Employment Hero deducts 30 minutes automatically. The employee worked that time and must be paid for it — so the shift will be short unless you correct it." },
+    { "type": "p", "text": "The fix is to set the work type on the timesheet, not to add half an hour to the pay run. Setting the work type makes the record accurate and lets Employment Hero apply the right treatment:" },
+    { "type": "bullet", "text": "Exclude the employee from the pay run" },
+    { "type": "bullet", "text": "Go to Approved timesheets and Undo the affected timesheet — only the shift that needs editing" },
+    { "type": "bullet", "text": "Change its status back to Submitted, then edit it" },
+    { "type": "bullet", "text": "Set the Work Type to Working During Meal Break" },
+    { "type": "bullet", "text": "Approve the timesheet again and add the employee back to the pay run" },
+    { "type": "shot", "file": "04-work-type-working-during-meal-break.png", "caption": "Editing a timesheet and searching the Work Type list for the meal break categories. Names and locations are blurred in this guide." },
+    { "type": "callout", "label": "The work type does not mean the whole shift.", "text": "Setting Working During Meal Break does not pay the entire shift at a penalty. It captures the half hour that would otherwise have been removed. Its real importance is on longer shifts — past five hours the award's 200% provision applies, and without the work type Employment Hero will not calculate it." },
+    { "type": "p", "text": "So the same missing break produces different outcomes depending on shift length. A four-and-a-half hour shift simply recovers its half hour. A six-hour shift crosses the five-hour threshold and attracts the penalty as well." },
+
+    { "type": "step", "number": 6, "title": "Update the spreadsheet" },
+    { "type": "p", "text": "Once the pay run is right for that employee, transfer the result into the timesheet spreadsheet — ordinary hours in Normal Hours, and any overtime into the matching multiplier column." },
+    { "type": "p", "text": "Mark a pay rate green once you have verified it. Green means checked this fortnight, so anything left unhighlighted still needs looking at when you verify rates in Part 5." },
+
+    { "type": "h1", "text": "Checklist" },
+    { "type": "p", "text": "For each casual employee:" },
+    { "type": "bullet", "text": "Timesheets compared against the roster, and any differences understood" },
+    { "type": "bullet", "text": "Each week checked separately for hours above 38" },
+    { "type": "bullet", "text": "Each day checked for hours above eight, with the manager's attachment read where present" },
+    { "type": "bullet", "text": "No hours paid at both daily and weekly overtime" },
+    { "type": "bullet", "text": "Missing meal breaks corrected using the work type, not a manual adjustment" },
+    { "type": "bullet", "text": "Total hours unchanged by any re-split of ordinary and overtime" },
+    { "type": "bullet", "text": "Hours transferred to the spreadsheet and the rate marked green once verified" },
+
+    { "type": "next", "text": "Part 3b — Reconciling Salaried & Full-Time Timesheets." }
+  ]
+}
