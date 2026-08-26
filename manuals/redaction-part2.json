@@ -1,0 +1,18 @@
+{
+  "grid_00001.jpg": {
+    "out": "01-b1-fortnight-cell.png",
+    "blur": [[26, 414, 202, 644], [278, 414, 492, 644]]
+  },
+  "grid_00002.jpg": {
+    "out": "02-lookup-pay-periods.png",
+    "blur": [[598, 243, 956, 312]]
+  },
+  "grid_00008.jpg": {
+    "out": "03-create-pay-run-form.png",
+    "blur": [[1138, 106, 1268, 126]]
+  },
+  "grid_00017.jpg": {
+    "out": "04-pay-run-created.png",
+    "blur": [[54, 328, 1258, 686], [1138, 108, 1262, 128]]
+  }
+}
