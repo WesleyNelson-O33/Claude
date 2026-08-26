@@ -125,6 +125,39 @@ function keyValueTable(rows) {
 
 const spacer = () => new Paragraph({ spacing: { after: 200 }, children: [] });
 
+/** A question with the recording and words it came from, for citing in a meeting. */
+function sourcedQuestions(items) {
+  const out = [];
+  for (const item of items) {
+    out.push(new Paragraph({
+      spacing: { before: 280, after: 60 },
+      children: [
+        new TextRun({ text: `${item.n}.  `, bold: true, size: 22, color: ACCENT }),
+        new TextRun({ text: item.q, bold: true, size: 22 }),
+      ],
+    }));
+    out.push(new Paragraph({
+      spacing: { after: item.quote ? 60 : 120 },
+      children: [new TextRun({ text: item.source, size: 18, color: MUTED, italics: true })],
+    }));
+    if (item.quote) {
+      out.push(new Paragraph({
+        indent: { left: 340 },
+        spacing: { after: item.note ? 60 : 120 },
+        border: { left: { style: BorderStyle.SINGLE, size: 12, color: 'D0D7E5', space: 10 } },
+        children: [new TextRun({ text: `\u201c${item.quote}\u201d`, size: 20, italics: true })],
+      }));
+    }
+    if (item.note) {
+      out.push(new Paragraph({
+        spacing: { after: 120 },
+        children: [new TextRun({ text: item.note, size: 20 })],
+      }));
+    }
+  }
+  return out;
+}
+
 /** Numbered questions with a blank cell beside each one to write the answer in. */
 function questionTable(items, startNumber) {
   const numWidth = 620;
@@ -235,6 +268,9 @@ function renderSpec(spec, { nested = false, root = '.', counter } = {}) {
         break;
       case 'questions':
         out.push(questionTable(block.items, block.start || 1), spacer());
+        break;
+      case 'sourced':
+        out.push(...sourcedQuestions(block.items));
         break;
       case 'next':
         out.push(new Paragraph({
