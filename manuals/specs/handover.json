@@ -124,11 +124,15 @@
       "text": "The timesheet spreadsheet"
     },
     {
+      "type": "callout",
+      "label": "Public Holiday and Jury Leave columns.",
+      "text": "These are used only when someone is actually on jury duty or takes the leave type the column covers. They sit unused in most fortnights, so an empty column is not a sign that something has been missed."
+    },
+    {
       "type": "questions",
       "start": 23,
       "items": [
         "The total hours column does not handle leave without pay correctly — this was found during recording and left unresolved. Has it been fixed, and if not what is the manual workaround?",
-        "When are the Public Holiday and Jury Leave columns used, and where do those hours come from?",
         "The Rate Check column shows #VALUE! against some employees. Is that expected, or does it indicate a problem?",
         "Does green highlighting mean 'rate verified this fortnight' or 'rate was changed'? Both readings came up, and I want to use it consistently."
       ]
@@ -144,7 +148,7 @@
     },
     {
       "type": "questions",
-      "start": 27,
+      "start": 26,
       "items": [
         "What happens when the Monday of the processing week, or the Tuesday pay date, falls on a public holiday?",
         "How do I know a given fortnight is the last pay run of the month for bonus leave accrual, particularly when a fortnight straddles month end?",
@@ -157,7 +161,7 @@
     },
     {
       "type": "questions",
-      "start": 30,
+      "start": 29,
       "items": [
         "Where are bonus leave letters stored, and who issues them? Accruals are blocked until a letter is signed.",
         "What is the process when an employee queries their pay after pay day?",
