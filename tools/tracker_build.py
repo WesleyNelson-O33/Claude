@@ -115,9 +115,10 @@ tbl = Table(displayName='tblRevenue', ref=f'A1:{L(len(HDRS))}{LAST}')
 tbl.tableStyleInfo = TableStyleInfo(name='TableStyleLight1', showRowStripes=False, showColumnStripes=False)
 ds.add_table(tbl)
 
-for rng, formula in ((f'B2:B{LAST}', '=Lists!$D$4:$D$7'), (f'D2:D{LAST}', '=Lists!$F$4:$F$10'),
-                     (f'E2:E{LAST}', '=Lists!$H$4:$H$7'), (f'V2:W{LAST}', '=Lists!$J$4:$J$5')):
-    dv = DataValidation(type='list', formula1=formula, allow_blank=True, showErrorMessage=True)
+for rng, formula in ((f'B2:B{LAST}', 'Lists!$D$4:$D$7'), (f'D2:D{LAST}', 'Lists!$F$4:$F$10'),
+                     (f'E2:E{LAST}', 'Lists!$H$4:$H$7'), (f'V2:W{LAST}', 'Lists!$J$4:$J$5')):
+    dv = DataValidation(type='list', formula1=formula, allow_blank=True,
+                        showErrorMessage=True, showInputMessage=True)
     dv.error = 'Pick a value from the list on the Lists tab.'
     ds.add_data_validation(dv); dv.add(rng)
 
@@ -149,7 +150,7 @@ for i in range(12):
     m = 7 + i; y = 2026 + (m - 1) // 12; m = (m - 1) % 12 + 1
     dsh.cell(r, 1, datetime.datetime(y, m, 1)).number_format = 'mmm-yy'
     for ci in range(2, 6):
-        dsh.cell(r, ci, f'=SUMIFS(Data!$L$2:$L$200000,Data!$B$2:$B$20000,{L(ci)}$2,'
+        dsh.cell(r, ci, f'=SUMIFS(Data!$L$2:$L$20000,Data!$B$2:$B$20000,{L(ci)}$2,'
                         f'Data!$C$2:$C$20000,">="&$A{r},Data!$C$2:$C$20000,"<"&EDATE($A{r},1))')
     dsh.cell(r, 6, f'=SUM($B{r}:$E{r})')
     dsh.cell(r, 8, f'=IF($G{r}="","",IF(ABS($F{r}-$G{r})<0.99,"Reconciled",$F{r}-$G{r}))')
@@ -181,10 +182,10 @@ hdrow(dsh, 22, ['Source', 'Total in tracker', 'In FY27 months', 'No date',
 for i, s in enumerate(['Support', 'Production', 'Consulting', 'WIP']):
     r = 23 + i
     dsh.cell(r, 1, s)
-    dsh.cell(r, 2, f'=SUMIF(Data!$B$2:$B$20000,$A{r},Data!$L$2:$L$200000)')
-    dsh.cell(r, 3, f'=SUMIFS(Data!$L$2:$L$200000,Data!$B$2:$B$20000,$A{r},Data!$O$2:$O$20000,"In FY27")')
-    dsh.cell(r, 4, f'=SUMIFS(Data!$L$2:$L$200000,Data!$B$2:$B$20000,$A{r},Data!$O$2:$O$20000,"No date")')
-    dsh.cell(r, 5, f'=SUMIFS(Data!$L$2:$L$200000,Data!$B$2:$B$20000,$A{r},Data!$O$2:$O$20000,"Outside FY27")')
+    dsh.cell(r, 2, f'=SUMIF(Data!$B$2:$B$20000,$A{r},Data!$L$2:$L$20000)')
+    dsh.cell(r, 3, f'=SUMIFS(Data!$L$2:$L$20000,Data!$B$2:$B$20000,$A{r},Data!$O$2:$O$20000,"In FY27")')
+    dsh.cell(r, 4, f'=SUMIFS(Data!$L$2:$L$20000,Data!$B$2:$B$20000,$A{r},Data!$O$2:$O$20000,"No date")')
+    dsh.cell(r, 5, f'=SUMIFS(Data!$L$2:$L$20000,Data!$B$2:$B$20000,$A{r},Data!$O$2:$O$20000,"Outside FY27")')
     dsh.cell(r, 6, f'=IF(ABS($B{r}-SUM($C{r}:$E{r}))<0.01,"OK","Check")')
 dsh.cell(27, 1, 'Total')
 for ci in range(2, 6): dsh.cell(27, ci, f'=SUM({L(ci)}23:{L(ci)}26)')
@@ -212,13 +213,13 @@ ck['A2'].font = Font(F, 9, italic=True, color='555555')
 hdrow(ck, 4, ['#', 'What is being checked', 'Records', 'Value', 'Status', 'What to do'])
 CHECKS = [
  ('Records with no date',
-  '=COUNTIF(Data!$O$2:$O$20000,"No date")', '=SUMIF(Data!$O$2:$O$20000,"No date",Data!$L$2:$L$200000)',
+  '=COUNTIF(Data!$O$2:$O$20000,"No date")', '=SUMIF(Data!$O$2:$O$20000,"No date",Data!$L$2:$L$20000)',
   'Filter Date Check on the Data tab to "No date" and fill the dates in. Until you do, this money appears in no month.'),
  ('Records dated outside FY 2026-27',
-  '=COUNTIF(Data!$O$2:$O$20000,"Outside FY27")', '=SUMIF(Data!$O$2:$O$20000,"Outside FY27",Data!$L$2:$L$200000)',
+  '=COUNTIF(Data!$O$2:$O$20000,"Outside FY27")', '=SUMIF(Data!$O$2:$O$20000,"Outside FY27",Data!$L$2:$L$20000)',
   'Real dates from another financial year. Decide whether they belong in this tracker at all, or move them to the FY26 file.'),
  ('WIP jobs that have also been invoiced',
-  '=COUNTIF(Data!$P$2:$P$20000,"Job already invoiced")', '=SUMIF(Data!$P$2:$P$20000,"Job already invoiced",Data!$L$2:$L$200000)',
+  '=COUNTIF(Data!$P$2:$P$20000,"Job already invoiced")', '=SUMIF(Data!$P$2:$P$20000,"Job already invoiced",Data!$L$2:$L$20000)',
   'Filter Duplicate Check on the Data tab. Each of these needs a reversing WIP entry, or it is double counted.'),
  ('Departments not on the master list',
   '=SUMPRODUCT((Data!$D$2:$D$20000<>"")*ISNA(MATCH(Data!$D$2:$D$20000,Lists!$F$4:$F$10,0)))', '',
@@ -238,7 +239,7 @@ for i, (what, cnt, val, todo) in enumerate(CHECKS):
     ck.cell(r, 1, i + 1); ck.cell(r, 2, what)
     if cnt: ck.cell(r, 3, cnt)
     if val: ck.cell(r, 4, val).number_format = MONEY
-    ck.cell(r, 5, f'=IF(N($C{r})+ROUND(N($D{r}),2)=0,"OK","Review")')
+    ck.cell(r, 5, f'=IF(AND(N($C{r})=0,ROUND(N($D{r}),2)=0),"OK","Review")')
     ck.cell(r, 6, todo)
     for ci in range(1, 7):
         c = ck.cell(r, ci); c.font = Font(F, 10); c.border = box
