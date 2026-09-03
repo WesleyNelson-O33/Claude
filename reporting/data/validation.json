@@ -1,0 +1,25 @@
+{
+  "source": "Xero P&L via connector, accrual basis, pulled 2026-09-03",
+  "organisation": "Corporate Technology Services Pty Ltd",
+  "currency": "AUD",
+  "periods": {
+    "FY26": {
+      "start": "2025-07-01", "end": "2026-06-30",
+      "total_income": 6113186.03,
+      "total_cost_of_sales": 3497093.83,
+      "gross_profit": 2616092.20,
+      "total_other_income": 13413.68,
+      "total_expenses": 2380879.16,
+      "net_profit": 248626.72
+    },
+    "2025-07": {
+      "start": "2025-07-01", "end": "2025-07-31",
+      "total_income": 320808.06,
+      "total_cost_of_sales": 180001.36,
+      "gross_profit": 140806.70,
+      "total_other_income": 346.61,
+      "total_expenses": 210455.67,
+      "net_profit": -69302.36
+    }
+  }
+}
