@@ -25,7 +25,10 @@ def read_wav(path):
 
 
 def timestamp(seconds):
-    return f"{int(seconds) // 60:02d}:{int(seconds) % 60:02d}"
+    seconds = int(seconds)
+    if seconds >= 3600:
+        return f"{seconds // 3600}:{(seconds % 3600) // 60:02d}:{seconds % 60:02d}"
+    return f"{seconds // 60:02d}:{seconds % 60:02d}"
 
 
 def main():

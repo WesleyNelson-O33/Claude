@@ -1,7 +1,7 @@
 {
   "eyebrow": "PAYROLL PROCESSING",
   "title": "Part 7: Terminations & Out-of-Cycle Pay Runs",
-  "subtitle": "Corporate Technology Services  ·  Employment Hero Payroll & HR  ·  Outside the fortnightly cycle",
+  "subtitle": "Corporate Technology Services  \u00b7  Employment Hero Payroll & HR  \u00b7  Outside the fortnightly cycle",
   "runningHead": "Payroll Processing, Part 7: Terminations & Out-of-Cycle Pay Runs",
   "screenshotDir": "manuals/screenshots/part7",
   "output": "manuals/Payroll Processing - Part 7 - Terminations and Out-of-Cycle Pay Runs.docx",
@@ -14,6 +14,11 @@
     {
       "type": "p",
       "text": "Parts 1 to 6 cover the fortnightly cycle. This guide covers a pay run that sits outside it: a small, ad hoc pay run created for one or two people, usually because someone has resigned and their final pay cannot wait for the next fortnight."
+    },
+    {
+      "type": "callout",
+      "label": "Where this comes from.",
+      "text": "Everything in this guide was recorded live in Video 7, Day 5 tasks - Reporting Graphs and HOD Meeting preps. A resignation was processed on camera from start to finish, so unlike the situations in the handover document, this one is not reconstructed."
     },
     {
       "type": "p",
@@ -35,7 +40,7 @@
     },
     {
       "type": "p",
-      "text": "To remove someone, open their row and use Actions › Exclude from pay run. Keep going until only the people you meant to pay are left."
+      "text": "To remove someone, open their row and use Actions \u203a Exclude from pay run. Keep going until only the people you meant to pay are left."
     },
     {
       "type": "shot",
@@ -44,7 +49,7 @@
     },
     {
       "type": "p",
-      "text": "If you need to put someone back in, use Pay Run Actions › Add payees and type their name, as in Part 3c."
+      "text": "If you need to put someone back in, use Pay Run Actions \u203a Add payees and type their name, as in Part 3c."
     },
     {
       "type": "step",
@@ -65,7 +70,7 @@
     },
     {
       "type": "bullet",
-      "text": "Actions › Add expense only offers to enter it by hand"
+      "text": "Actions \u203a Add expense only offers to enter it by hand"
     },
     {
       "type": "bullet",
@@ -97,7 +102,7 @@
     },
     {
       "type": "p",
-      "text": "With the employee's row open, go to Actions › Terminate. A dialog appears asking for two things."
+      "text": "With the employee's row open, go to Actions \u203a Terminate. A dialog appears asking for two things."
     },
     {
       "type": "shot",
@@ -242,7 +247,7 @@
     },
     {
       "type": "bullet",
-      "text": "In Employment Hero Payroll, go to Payroll Settings › Locations"
+      "text": "In Employment Hero Payroll, go to Payroll Settings \u203a Locations"
     },
     {
       "type": "bullet",
