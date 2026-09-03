@@ -1,0 +1,4 @@
+.pbi/
+**/localSettings.json
+*.abf
+**/cache.abf

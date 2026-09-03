@@ -1,0 +1,14 @@
+model Model
+	culture: en-AU
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	discourageImplicitMeasures: true
+	sourceQueryCulture: en-AU
+
+ref table Dim_Date
+ref table Dim_Employee
+ref table Dim_Job
+ref table Dim_PayType
+ref table Fact_Timesheet
+ref table Fact_Capacity
+ref table _Measures
+

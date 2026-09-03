@@ -1,0 +1,29 @@
+relationship 'Fact_Timesheet to Dim_Date'
+	fromColumn: Fact_Timesheet.'Date Key'
+	toColumn: Dim_Date.'Date Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Fact_Timesheet to Dim_Employee'
+	fromColumn: Fact_Timesheet.'Employee Key'
+	toColumn: Dim_Employee.'Employee Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Fact_Timesheet to Dim_Job'
+	fromColumn: Fact_Timesheet.'Job No'
+	toColumn: Dim_Job.'Job No'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Fact_Timesheet to Dim_PayType'
+	fromColumn: Fact_Timesheet.'Pay Type Key'
+	toColumn: Dim_PayType.'Pay Type Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Fact_Capacity to Dim_Date'
+	fromColumn: Fact_Capacity.'Date Key'
+	toColumn: Dim_Date.'Date Key'
+	crossFilteringBehavior: oneDirection
+
+relationship 'Fact_Capacity to Dim_Employee'
+	fromColumn: Fact_Capacity.'Employee Key'
+	toColumn: Dim_Employee.'Employee Key'
+	crossFilteringBehavior: oneDirection

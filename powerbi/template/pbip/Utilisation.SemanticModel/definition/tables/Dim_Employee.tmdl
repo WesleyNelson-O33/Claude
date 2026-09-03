@@ -1,0 +1,103 @@
+table Dim_Employee
+
+	column 'Employee Key'
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: Employee Key
+
+	column 'Employee Id'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Employee Id
+
+	column 'Employee Name'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Employee Name
+
+	column 'Person Group'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Person Group
+
+	column 'Employment Type'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Employment Type
+
+	column 'First Seen'
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: First Seen
+
+	column 'Last Seen'
+		dataType: dateTime
+		summarizeBy: none
+		sourceColumn: Last Seen
+
+	column Rows
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: Rows
+
+	column Hours
+		dataType: double
+		isHidden
+		summarizeBy: sum
+		sourceColumn: Hours
+
+	column 'Utilisation Scope'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Utilisation Scope
+
+	column 'Standard Weekly Hours'
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Standard Weekly Hours
+
+	column FTE
+		dataType: double
+		summarizeBy: none
+		sourceColumn: FTE
+
+	column 'Target Utilisation %'
+		dataType: double
+		summarizeBy: none
+		sourceColumn: Target Utilisation %
+
+	column 'NEEDS REVIEW'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: NEEDS REVIEW
+
+	column 'Is Casual'
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: Is Casual
+
+	partition Dim_Employee = m
+		mode: import
+		source =
+			let
+			    Src      = Csv.Document(File.Contents(Text.TrimEnd(MappingFolderPath,"\") & "\map_employees.csv"),
+			                            [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+			    Head     = Table.PromoteHeaders(Src, [PromoteAllScalars=true]),
+			    Typed    = Table.TransformColumnTypes(Head, {
+			                  {"Employee Key", type text}, {"Employee Id", type text}, {"Employee Name", type text},
+			                  {"Person Group", type text}, {"Employment Type", type text},
+			                  {"First Seen", type date}, {"Last Seen", type date},
+			                  {"Utilisation Scope", type text}, {"Standard Weekly Hours", type number},
+			                  {"FTE", type number}, {"Target Utilisation %", type number}}, "en-AU"),
+			    // sensible defaults so the model works before every cell is filled in
+			    D1 = Table.ReplaceValue(Typed, null, "Delivery", Replacer.ReplaceValue, {"Utilisation Scope"}),
+			    D2 = Table.ReplaceValue(D1,    null, 38,         Replacer.ReplaceValue, {"Standard Weekly Hours"}),
+			    D3 = Table.ReplaceValue(D2,    null, 1,          Replacer.ReplaceValue, {"FTE"}),
+			    D4 = Table.ReplaceValue(D3,    null, 0,          Replacer.ReplaceValue, {"Target Utilisation %"}),
+			    IsCasual = Table.AddColumn(D4, "Is Casual", each Text.Lower([Employment Type]) = "casual", type logical),
+			    Keep     = Table.SelectRows(IsCasual, each [Employee Key] <> null and [Employee Key] <> ""),
+			    Unique   = Table.Distinct(Keep, {"Employee Key"})
+			in
+			    Unique

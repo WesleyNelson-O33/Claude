@@ -1,0 +1,61 @@
+table Dim_PayType
+
+	column 'Pay Type'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Pay Type
+
+	column 'Pay Type Trimmed'
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Pay Type Trimmed
+
+	column Category
+		dataType: string
+		summarizeBy: none
+		sourceColumn: Category
+
+	column 'Counts Toward Capacity'
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: Counts Toward Capacity
+
+	column Rows
+		dataType: int64
+		summarizeBy: none
+		sourceColumn: Rows
+
+	column Hours
+		dataType: double
+		summarizeBy: sum
+		sourceColumn: Hours
+
+	column 'Pay Type Key'
+		dataType: string
+		isHidden
+		summarizeBy: none
+		sourceColumn: Pay Type Key
+
+	column 'Counts Toward Capacity Flag'
+		dataType: boolean
+		summarizeBy: none
+		sourceColumn: Counts Toward Capacity Flag
+
+	partition Dim_PayType = m
+		mode: import
+		source =
+			let
+			    Src   = Csv.Document(File.Contents(Text.TrimEnd(MappingFolderPath,"\") & "\map_paytypes.csv"),
+			                         [Delimiter=",", Encoding=65001, QuoteStyle=QuoteStyle.Csv]),
+			    Head  = Table.PromoteHeaders(Src, [PromoteAllScalars=true]),
+			    Typed = Table.TransformColumnTypes(Head, {
+			               {"Pay Type", type text}, {"Pay Type Trimmed", type text},
+			               {"Category", type text}, {"Counts Toward Capacity", type text}}, "en-AU"),
+			    Key   = Table.AddColumn(Typed, "Pay Type Key",
+			               each Text.Upper(Text.Combine(List.Select(Text.Split(Text.Trim([Pay Type])," "), each _ <> ""), " ")), type text),
+			    Flag  = Table.AddColumn(Key, "Counts Toward Capacity Flag",
+			               each Text.Lower(Text.Trim([Counts Toward Capacity])) = "yes", type logical),
+			    Uniq  = Table.Distinct(Flag, {"Pay Type Key"})
+			in
+			    Uniq

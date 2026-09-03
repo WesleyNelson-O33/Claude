@@ -1,0 +1,201 @@
+table _Measures
+
+	/// Every timesheet hour, including leave and public holidays.
+	measure 'Total Hours' = SUM ( Fact_Timesheet[Hours] )
+		formatString: #,0.0
+
+	/// Hours on jobs classified Chargeable.
+	measure 'Chargeable Hours' = SUM ( Fact_Timesheet[Chargeable Hours] )
+		formatString: #,0.0
+
+	/// Chargeable hours at ordinary time. This is the utilisation numerator - overtime sits outside the ratio.
+	measure 'Chargeable Hours (Ordinary)' = CALCULATE ( [Chargeable Hours], Dim_PayType[Category] = "Ordinary" )
+		formatString: #,0.0
+
+	/// Ordinary worked hours that were not chargeable. Excludes leave, public holidays and overtime.
+	measure 'Non-Chargeable Hours' = CALCULATE ( [Total Hours] - [Chargeable Hours], Dim_PayType[Category] = "Ordinary" )
+		formatString: #,0.0
+
+	measure 'Leave Hours' = CALCULATE ( [Total Hours], Dim_PayType[Category] = "Leave" )
+		formatString: #,0.0
+
+	measure 'Public Holiday Hours' = CALCULATE ( [Total Hours], Dim_PayType[Category] = "Public Holiday" )
+		formatString: #,0.0
+
+	/// Reported beside the ratio, never inside it. Overtime is excluded from both the numerator and the denominator.
+	measure 'Overtime Hours' = CALCULATE ( [Total Hours], Dim_PayType[Category] = "Overtime" )
+		formatString: #,0.0
+
+	/// Actual work. Excludes leave, public holidays and overtime.
+	measure 'Worked Hours' = [Chargeable Hours (Ordinary)] + [Non-Chargeable Hours]
+		formatString: #,0.0
+
+	/// Contracted hours for permanents, on working days they were employed.
+	measure 'Permanent Capacity Hours' = SUM ( Fact_Capacity[Capacity Hours] )
+		formatString: #,0.0
+
+	/// For a casual, capacity is the hours you engaged them for. You carry no idle cost for a casual you did not call in.
+	measure 'Casual Capacity Hours' = CALCULATE ( [Worked Hours], Dim_Employee[Is Casual] = TRUE () )
+		formatString: #,0.0
+
+	measure 'Capacity Hours' = [Permanent Capacity Hours] + [Casual Capacity Hours]
+		formatString: #,0.0
+
+	/// Capacity less leave taken. Public holidays are NOT subtracted again - they are already excluded from Fact_Capacity.
+	measure 'Available Hours' = ```
+		VAR Cap = [Capacity Hours]
+		VAR Lv = [Leave Hours]
+		RETURN MAX ( Cap - Lv, 0 )
+		```
+		formatString: #,0.0
+
+	/// HEADLINE. Delivery staff only, casuals included. Overhead staff are excluded from the ratio but their hours are still reported.
+	measure 'Utilisation %' = ```
+		DIVIDE (
+		    CALCULATE ( [Chargeable Hours (Ordinary)], Dim_Employee[Utilisation Scope] = "Delivery" ),
+		    CALCULATE ( [Available Hours],   Dim_Employee[Utilisation Scope] = "Delivery" )
+		)
+		```
+		formatString: 0.0%
+
+	/// Every person including overhead roles. Materially lower - use for capacity planning, not performance.
+	measure 'Utilisation % (All Staff)' = DIVIDE ( [Chargeable Hours (Ordinary)], [Available Hours] )
+		formatString: 0.0%
+
+	/// Of the work actually done, how much was chargeable. Immune to timesheet-completion gaps.
+	measure 'Billable Mix %' = DIVIDE ( [Chargeable Hours (Ordinary)], [Worked Hours] )
+		formatString: 0.0%
+
+	measure 'Productive %' = DIVIDE ( [Worked Hours], [Available Hours] )
+		formatString: 0.0%
+
+	/// Availability-weighted, so a part-timer moves the group target in proportion to their capacity.
+	measure 'Target Utilisation %' = ```
+		DIVIDE (
+		    SUMX ( Dim_Employee, [Available Hours] * Dim_Employee[Target Utilisation %] ),
+		    SUMX ( Dim_Employee, [Available Hours] )
+		)
+		```
+		formatString: 0.0%
+
+	measure 'Target Chargeable Hours' = SUMX ( Dim_Employee, [Available Hours] * Dim_Employee[Target Utilisation %] )
+		formatString: #,0.0
+
+	/// Percentage POINTS above or below target, not a percentage change.
+	measure 'Utilisation vs Target (pp)' = [Utilisation %] - [Target Utilisation %]
+		formatString: +0.0;-0.0;0.0
+
+	/// How much of the work is carried by casual labour.
+	measure 'Casual Share of Delivered Hours' = DIVIDE ( CALCULATE ( [Worked Hours], Dim_Employee[Is Casual] = TRUE () ), [Worked Hours] )
+		formatString: 0.0%
+
+	/// Paying casuals to do internal work is the expensive failure mode. Casual utilisation is ~100% by construction and tells you nothing.
+	measure 'Casual Non-Chargeable %' = CALCULATE ( DIVIDE ( [Non-Chargeable Hours], [Worked Hours] ), Dim_Employee[Is Casual] = TRUE () )
+		formatString: 0.0%
+
+	/// Rolling 13 weeks. Trend this, not a single fortnight.
+	measure 'Utilisation % R13W' = ```
+		VAR W = DATESINPERIOD ( Dim_Date[Date], MAX ( Dim_Date[Date] ), -91, DAY )
+		RETURN DIVIDE (
+		    CALCULATE ( [Chargeable Hours (Ordinary)], W, Dim_Employee[Utilisation Scope] = "Delivery" ),
+		    CALCULATE ( [Available Hours],  W, Dim_Employee[Utilisation Scope] = "Delivery" )
+		)
+		```
+		formatString: 0.0%
+
+	/// Australian financial year to date, written without TOTALYTD's locale-sensitive year-end argument.
+	measure 'Utilisation % FYTD' = ```
+		VAR FYc = MAX ( Dim_Date[FY] )
+		VAR LastD = MAX ( Dim_Date[Date] )
+		RETURN CALCULATE ( [Utilisation %], REMOVEFILTERS ( Dim_Date ), Dim_Date[FY] = FYc, Dim_Date[Date] <= LastD )
+		```
+		formatString: 0.0%
+
+	/// The monthly movement. Chargeable hours on date-coded project jobs. Recurring onsite contracts are billed monthly and never accrue.
+	measure 'WIP Hours Added' = CALCULATE ( [Chargeable Hours], Dim_Job[Billing Basis Final] = "Project" )
+		formatString: #,0.0
+
+	/// Cumulative chargeable hours booked to open project jobs. NOT unbilled hours until Last Fully Billed Date is populated - label it 'hours booked to date'.
+	measure 'WIP Hours to Date' = ```
+		CALCULATE (
+		    [Chargeable Hours],
+		    Dim_Job[Billing Basis Final] = "Project",
+		    REMOVEFILTERS ( Dim_Date ),
+		    Dim_Date[Date] <= MAX ( Dim_Date[Date] )
+		)
+		```
+		formatString: #,0.0
+
+	/// The true balance: chargeable hours since the job was last fully billed. Populate Last Fully Billed Date in map_jobs.csv from the month the job's dollar balance on the WIP schedule returns to zero.
+	measure 'Unbilled WIP Hours' = ```
+		SUMX (
+		    VALUES ( Dim_Job[Job No] ),
+		    VAR LastBilled = CALCULATE ( MAX ( Dim_Job[Last Fully Billed Date] ) )
+		    VAR Basis      = CALCULATE ( SELECTEDVALUE ( Dim_Job[Billing Basis Final] ) )
+		    VAR UpTo       = MAX ( Dim_Date[Date] )
+		    RETURN
+		        IF ( Basis <> "Project", 0,
+		            CALCULATE ( [Chargeable Hours], REMOVEFILTERS ( Dim_Date ),
+		                Dim_Date[Date] <= UpTo,
+		                Dim_Date[Date] > IF ( ISBLANK ( LastBilled ), DATE(1900,1,1), LastBilled ) ) )
+		)
+		```
+		formatString: #,0.0
+
+	/// Should be zero. Timesheet lines that cannot be attributed to any job.
+	measure 'Hours With No Job Number' = CALCULATE ( [Total Hours], ISBLANK ( Fact_Timesheet[Job No] ) )
+		formatString: #,0.0
+
+	/// Should be zero. Hours whose Employee Id / Name pair is not in map_employees.csv.
+	measure 'Unmatched Employee Hours' = CALCULATE ( [Total Hours], ISBLANK ( Fact_Timesheet[Employee Key] ) )
+		formatString: #,0.0
+
+	/// Should be zero. A job was used on a timesheet but is missing from map_jobs.csv.
+	measure 'Unmapped Job Hours' = SUMX ( FILTER ( Fact_Timesheet, NOT ISBLANK ( Fact_Timesheet[Job No] ) && ISBLANK ( RELATED ( Dim_Job[Job No] ) ) ), Fact_Timesheet[Hours] )
+		formatString: #,0.0
+
+	/// Should be zero.
+	measure 'Unmapped Pay Type Hours' = SUMX ( FILTER ( Fact_Timesheet, ISBLANK ( RELATED ( Dim_PayType[Pay Type Key] ) ) ), Fact_Timesheet[Hours] )
+		formatString: #,0.0
+
+	/// Materially below 100% means missing timesheets, not low utilisation. Answer this before drawing any conclusion from Utilisation %.
+	measure 'Timesheet Coverage %' = DIVIDE ( [Worked Hours] + [Leave Hours], [Permanent Capacity Hours] )
+		formatString: 0.0%
+
+	/// Read this before the utilisation number. A partial month against a full-month denominator is what made August 2026 read 50.2% when July read 72.6%.
+	measure 'Last Timesheet Date' = MAX ( Fact_Timesheet[Work Date] )
+		formatString: 0
+
+	measure 'Data Age (days)' = ```
+		VAR L = [Last Timesheet Date]
+		RETURN IF ( ISBLANK ( L ), BLANK (), INT ( TODAY () - L ) )
+		```
+		formatString: #,0
+
+	/// Compare against Working Days In Period. If it is lower, you are looking at a partial month.
+	measure 'Working Days With Data' = CALCULATE ( DISTINCTCOUNT ( Fact_Timesheet[Date Key] ), Dim_Date[Is Weekday] = TRUE () )
+		formatString: #,0
+
+	measure 'Working Days In Period' = CALCULATE ( COUNTROWS ( Dim_Date ), Dim_Date[Is Weekday] = TRUE () )
+		formatString: #,0
+
+	measure 'Data Quality Flag' = ```
+		VAR I =
+		    IF ( [Hours With No Job Number] > 0, 1, 0 )
+		  + IF ( [Unmatched Employee Hours] > 0, 1, 0 )
+		  + IF ( [Unmapped Job Hours] > 0, 1, 0 )
+		  + IF ( [Working Days With Data] < [Working Days In Period], 1, 0 )
+		RETURN IF ( I = 0, "OK", I & " issue(s) - see Data Quality page" )
+		```
+		formatString: 0
+
+	column placeholder
+		dataType: int64
+		isHidden
+		summarizeBy: none
+		sourceColumn: placeholder
+
+	partition _Measures = m
+		mode: import
+		source =
+			let Source = #table({"placeholder"},{{1}}) in Source
