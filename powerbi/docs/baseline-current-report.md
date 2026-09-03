@@ -318,3 +318,104 @@ separate project. One flag on `Dim_Job` plus two measures.
 **How do you know how many hours of a job have already been billed?** Everything else
 is settled. Without an answer the balance column is "hours booked to date"; with one it
 becomes a true unbilled-hours balance.
+
+---
+
+# July 2026 comparison — the August number is an artefact
+
+Reviewed `July_2026_Utilisation_Report.xlsx` and `202607_WIP.xlsx`.
+
+| | July 2026 | August 2026 |
+|---|---|---|
+| Weekdays with timesheet data | 23 of 23 | 15 of 21 |
+| Workable hours used as denominator | 3,946 | 3,946 |
+| Chargeable hours on the report | 2,863.59 | 1,980.25 |
+| **Published utilisation** | **72.6%** | **50.2%** |
+
+**Identical denominators in two months of different length.** July genuinely has 23
+weekdays so `=23*8` was correct; August has 21 and the formula was copied without
+changing it. Every capacity cell in July's column H is byte-for-byte identical to
+August's, plugs included (`=23*8+0.05`, `=23*8-0.05`, `=23*5.130434`, `=23*2.52173913`).
+
+The 22-point fall is a partial month against a stale day count. Nothing about the
+business changed. The exclusion is consistent across both months: July shows 24 people
+and 2,863.59 chargeable hrs against 58 people and 3,730.59 hrs in raw data — 867 hrs
+left out (23.2%), against August's 826.50 (29.4%).
+
+---
+
+# CORRECTION: the WIP schedule is the wrong open-job test
+
+I recommended scoping WIP hours to "jobs on the WIP schedule" and it was accepted.
+Having compared the July and August schedules, that recommendation was wrong.
+
+```
+August 2026, scoping WIP hours to jobs on the WIP schedule
+  jobs on the Aug schedule                     182
+  of those, balance already zero               146
+  genuinely open (non-zero balance)             36
+  chargeable hours booked to them in Aug     39.58   <- 1.4% of the month
+```
+
+Structural reason: that schedule is GL 11300 Prepaid Revenue, the **liability** side —
+jobs invoiced ahead of delivery. It is not a list of jobs carrying unbilled work, and
+the two populations barely overlap.
+
+**What the two months did establish:** 18 jobs ran their balance to zero during August,
+including several six-figure ones. The schedule remains a valid *billing completion*
+signal for jobs on it. It is just not a *scoping* rule.
+
+## The rule that works: job numbering already encodes billing basis
+
+| Format | Aug chargeable hrs | Jobs | What they are |
+|---|---|---|---|
+| `<=5 digits` legacy | 1,692.08 | 19 | Resident onsite contracts billed monthly (DTTL MEL Tech, DTTL SYD Technician, DTTL Melb Tech 2, Bank West Contract, DTTL ADL Onsite). **No project WIP.** |
+| `7-8 digits` date-coded | 926.42 | 45 | Event/project jobs numbered by event date (`26043001` = 30 Apr 2026). **These accrue WIP.** |
+| No job number | 188.25 | - | Unallocatable, fix at source. |
+
+**August WIP hours = 926.42**, not 39.58.
+
+`Job Group` does NOT give you this — Support alone splits 1,691.58 recurring against
+289.75 project.
+
+Do not leave this as a digit count. Use the format to populate a real `Billing Basis`
+field on the job record once, then maintain the field.
+
+## D14 (High) — Job List is stale
+
+```
+Aug-26 jobs used: 89   (46 of them long-format project jobs)
+  in Lookup   (live job table, 30,189 rows):  89 of 89  -  46 of 46 long-format
+  in Job List (883-row analysis table):       33 of 89  -   0 of 46 long-format
+```
+
+Correcting an earlier note: `Job List` is **not** the reliable chargeable flag. Its
+`Charge` column is filled on all 883 rows but contains none of the date-coded project
+jobs currently being worked. The live job table is `Lookup`, which is what the raw
+data's chargeable classification already points at.
+
+**Build `Dim_Job` from `Lookup`**, carry the useful analysis columns (Sector, Client
+Group, Client Category) across as attributes, retire the 883-row sheet.
+
+## Revised measures
+
+```dax
+WIP Hours Added =                       -- monthly movement. Aug 2026 = 926.42 hrs
+    CALCULATE( [Chargeable Hours], Dim_Job[Billing Basis] = "Project" )
+
+WIP Hours to Date =                     -- cumulative effort on project jobs
+    CALCULATE( [Chargeable Hours],
+               Dim_Job[Billing Basis] = "Project",
+               REMOVEFILTERS( Dim_Date ),
+               Dim_Date[Date] <= MAX( Dim_Date[Date] ) )
+
+Unbilled WIP Hours =                    -- true balance, using the schedule's zero-out
+    CALCULATE( [Chargeable Hours],
+               Dim_Job[Billing Basis] = "Project",
+               REMOVEFILTERS( Dim_Date ),
+               Dim_Date[Date] > MAX( Dim_Job[Last Fully Billed Date] ),
+               Dim_Date[Date] <= MAX( Dim_Date[Date] ) )
+```
+
+`Last Fully Billed Date` comes from the month in which the job's dollar balance on the
+WIP schedule returns to zero — demonstrated working across the Jul/Aug pair.
