@@ -92,3 +92,130 @@ Excluding the three people with broken capacity factors: 45.1% -> 54.6% -> 79.7%
    chargeable hours.
 2. Is overtime above capacity or inside it? 10+ overtime pay types at loadings
    1.25-2.0. Recommendation: hold it out of the ratio and report it beside.
+
+---
+
+# Decisions settled
+
+## 1. Casuals are IN the company utilisation figure
+
+Casual capacity = **hours engaged** (chargeable + non-chargeable), not 8h x days
+attended. You carry no idle cost for a casual you did not call in.
+
+August 2026 on 15 working days of data:
+
+| Scope | People | Chargeable | Capacity | Utilisation |
+|---|---|---|---|---|
+| As published today | 23 | 1,980 | 3,946 | 50.2% |
+| Delivery staff, permanents only | 25 | 2,104 | 2,858 | 73.6% |
+| **Delivery staff, casuals in** | **50** | **2,796** | **3,598** | **77.7%** |
+| Everyone incl Management/Finance/Admin | 58 | 2,807 | 4,398 | 63.8% |
+
+**Correction to the earlier estimate.** The 80-88% quoted before this decision used
+the workbook's own per-person capacity factors, three of which are reverse-engineered
+plugs (D6). On a consistent 8h-per-working-day basis the figure is 73.6% permanent,
+77.7% with casuals.
+
+**Be clear-eyed about what this measures.** Casuals sit at 98.9% under this definition
+(100.0% Support, 98.8% Production) because 26 casuals logged 692.25 chargeable and only
+57.25 non-chargeable hours. Their capacity and their chargeable work are nearly the same
+number by construction. Consequences:
+
+- Including casuals lifts the company figure ~4 points and will keep doing so as the
+  casual share grows, with no change in anyone's performance.
+- A utilisation target for casuals is meaningless. Do not set one.
+- Report two casual-specific measures beside the headline instead:
+  `Casual Share of Delivered Hours` and `Casual Non-Chargeable %`.
+
+## 2. Overtime sits OUTSIDE the ratio
+
+Excluded from both numerator and denominator, reported as its own measure. Already
+implemented in the kit as `Above-Capacity Hours` via
+`Dim_WorkType[Counts Toward Capacity Flag] = FALSE()` - move this to `Dim_PayType`
+for this business, since overtime is a pay type here, not a job attribute.
+
+---
+
+# 3. WIP extension: hours not charged to customers
+
+Source reviewed: `202608_WIP.xlsx` - a deferred revenue schedule, GL 11300
+"Prepaid Revenue", per job, month by month, in dollars. 452 job rows, 191 distinct
+job numbers, 155 columns.
+
+## The join works
+
+132 job numbers appear in both the timesheet data and the WIP schedule. `Job No` is a
+genuine shared key.
+
+## "Hours not charged" is three different numbers
+
+| | Treatment |
+|---|---|
+| **a.** Chargeable hours delivered, not yet invoiced | **The WIP number.** Contract asset / accrued revenue. |
+| **b.** Chargeable hours beyond what the job will recover | Write-off. Not an asset. Margin story, belongs on the utilisation report. |
+| **c.** Non-chargeable hours (9000-series codes) | Overhead, expensed. Never WIP. |
+
+The current report only separates (c). Splitting (a) from (b) is the actual work.
+
+## August 2026 join result
+
+```
+                  on jobs in WIP    on jobs NOT in WIP
+chargeable              708.83              2,097.92
+non-chargeable           38.75              1,164.33
+public holiday            0.00                  8.00
+```
+
+Most of the 2,097.92 is resident onsite / managed-service work (DTTL Melb Tech,
+DTTL SYD Technician, CBA Brisbane Onsite) billed monthly on contract, which correctly
+generates no project WIP. Nothing in the data distinguishes those from a project job
+that has been missed.
+
+**188.25 hours in August carry no job number at all** - 4.7% of the month.
+
+## Three blockers
+
+1. **No charge-out rate exists in either workbook.** `Base Hourly` in the timesheet
+   extract is a *pay type*, not a rate. Decide whether WIP is carried at cost or at
+   charge-out rate - an accounting policy question that changes both the number and
+   the disclosure.
+2. **No billing basis per job.** Recurring / fixed price / time and materials. Only
+   the latter two generate WIP. The `Job Type` column in `Job List` exists and is empty.
+3. **Invoices are hand-maintained** across 155 columns. Should come from Xero on the
+   same job key.
+
+## Measures once those exist
+
+```dax
+Delivered Value =
+    SUMX( Fact_Timesheet,
+          Fact_Timesheet[Chargeable Hours] * RELATED( Dim_Rate[Charge Rate] ) )
+
+Invoiced to Date =
+    CALCULATE( SUM( Fact_Invoice[Amount] ), Dim_Date[Date] <= MAX( Dim_Date[Date] ) )
+
+Unbilled WIP =                                  -- contract asset
+    CALCULATE( MAX( [Delivered Value] - [Invoiced to Date], 0 ),
+               Dim_Job[Billing Basis] IN { "Fixed Price", "Time and Materials" } )
+
+Overbilled =                                    -- contract liability, = GL 11300
+    CALCULATE( MAX( [Invoiced to Date] - [Delivered Value], 0 ),
+               Dim_Job[Billing Basis] IN { "Fixed Price", "Time and Materials" } )
+```
+
+The schedule supplied is the **liability** side (most balances negative - invoiced
+ahead of delivery). The hours question is the **asset** side. Report both together or
+the movement will never reconcile to the GL.
+
+## Sequencing
+
+Build the utilisation model first. The WIP extension is a separate project: it needs a
+rate card, a billing basis on 745 jobs, and an invoice feed - the first two are
+decisions, not engineering. `Fact_Invoice` hangs off the same `Dim_Job` and `Dim_Date`,
+so there is no rework in doing utilisation first.
+
+## Still open
+
+- Are Management, Finance and Admin inside the chargeable ratio? (77.7% -> 63.8%)
+- WIP at cost or at charge-out rate?
+- Who assigns billing basis to 745 jobs, and who maintains it for new jobs?
