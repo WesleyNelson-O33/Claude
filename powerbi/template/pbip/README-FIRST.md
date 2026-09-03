@@ -1,102 +1,86 @@
-# Utilisation — semantic model for Power BI
+# Utilisation report — complete project
 
-## Read this first
+Everything is in this one zip. No folder swapping.
 
-The last attempt failed with `Cannot find file 'version.json'`. That error is worth
-understanding, because it is good news: **Power BI parsed the semantic model fine.** It
-fell over reading the *report* definition — the PBIR scaffolding, which is the one part
-I cannot verify from here.
+## Setup
 
-So there are two routes below. **Route A is reliable** — it lets Power BI Desktop
-generate the report scaffolding itself, which is the only thing it knows how to write
-correctly, and supplies only the semantic model, which is already proven to parse.
+1. **Delete the old `Utilisationpbip` folder** in `C:\Utilisation\` (and the old zip).
+2. **Extract this zip** into `C:\Utilisation\`. It does not matter if Windows creates a
+   subfolder — the project reads your data by absolute path, so it works either way.
+3. **Double-click `Utilisation.pbip`.**
+4. **Refresh.** First load reads 47,000 timesheet rows out of the workbook — give it a
+   minute or two.
 
-## Route A — the one that will work
-
-1. Open Power BI Desktop. **File > New.**
-2. **File > Save as** > change "Save as type" to **Power BI project files (.pbip)**.
-   Save it as **`Utilisation`** into `C:\Utilisation\`.
-   (Name it exactly `Utilisation` — it has to match the model name.)
-
-   Desktop creates:
-   ```
-   C:\Utilisation\
-       Utilisation.pbip
-       Utilisation.Report\           <- Desktop's own, valid, leave it alone
-       Utilisation.SemanticModel\
-   ```
-
-3. **Close Power BI Desktop.**
-
-4. In `C:\Utilisation\Utilisation.SemanticModel\`, **delete the `definition` folder**
-   Desktop just made, and copy in the `definition` folder from this zip
-   (`Utilisation.SemanticModel\definition`) in its place.
-
-   Leave Desktop's `definition.pbism` and `.platform` exactly as they are — only the
-   `definition` folder gets swapped.
-
-5. Put your data alongside:
-   ```
-   C:\Utilisation\
-       August_2026_Utilisation_Report.xlsx
-       mapping\                      <- the three CSVs from this zip
-   ```
-
-6. **Double-click `Utilisation.pbip`.** Set the four parameters, refresh, and
-   File > Save As > `.pbix` if you want a single file.
+**No parameters to set.** They are already pointed at the paths that work on your machine:
 
 | Parameter | Value |
 |---|---|
-| `UtilWorkbookPath` | `C:\Utilisation\August_2026_Utilisation_Report.xlsx` |
-| `MappingFolderPath` | `C:\Utilisation\mapping` (no trailing backslash) |
-| `FY_Start_Year` | `2024` |
-| `FY_End_Year` | `2027` |
+| `UtilWorkbookPath` | `C:\Utilisation\August 2026 Utilisation Report.xlsx` |
+| `MappingFolderPath` | `C:\Utilisation` |
+| `FY_Start_Year` | 2024 |
+| `FY_End_Year` | 2027 |
 
-## Route B — try the project as shipped
+Your workbook and the three CSVs stay exactly where they are in `C:\Utilisation\`. A copy
+of the CSVs is in the `mapping` folder here only in case you ever lose the originals —
+you do not need to move them.
 
-I have added a `version.json` to the report definition, which is the file the error
-named. I could not verify its exact contents — Microsoft's schema host and every blog
-documenting it are blocked from where I am working — so this is a best guess.
+If you later tidy the CSVs into `C:\Utilisation\mapping\`, change `MappingFolderPath`
+to match. Nothing else changes.
 
-Unzip to `C:\Utilisation\` and double-click `Utilisation.pbip`. If it opens, you saved
-yourself five minutes. If it throws the same class of error, use Route A and do not
-spend a third attempt on it.
+## What is in it
 
-## What you are getting either way
+7 tables, 36 measures, 6 relationships, 5 pages, 39 visuals.
 
-7 tables, 36 measures, 6 relationships, 4 parameters.
+**Summary** — Month Year and Person Group slicers, five cards (Utilisation %, variance in
+points, chargeable hours, available hours, coverage %), rolling 13-week trend against
+target, utilisation by team, hours mix, chargeable by job group, overtime, casual share,
+and the data quality flag.
 
-```
-Fact_Timesheet  ──  Dim_Date, Dim_Employee, Dim_Job, Dim_PayType
-Fact_Capacity   ──  Dim_Date, Dim_Employee
-```
+**By person** — one table, worst first. Coverage % sits beside utilisation on purpose:
+answer "did they fill in a timesheet" before drawing any conclusion.
 
-Report pages are yours to build in the UI — `powerbi/docs/report-pages.md` has the
-spec. Visual layout is the part that is not reliably hand-authorable, which is exactly
-what this error demonstrated.
+**Where the time went** — non-chargeable hours by job, overtime by person, and a
+category × month matrix.
 
-## Before you trust a number
+**WIP hours** — hours added, hours to date, unbilled, and a job-level table keyed on job
+number so it drops beside your dollar schedule.
+
+**Data quality** — the four zero-target cards, the working-days pair that catches a
+partial month, coverage by person, and the pay type mapping check.
+
+Month Year is synced across all five pages. Pick August once and it applies everywhere.
+
+## Read the Data quality page first
 
 Four cards, all should read zero:
 
-- `Hours With No Job Number` — 188.25 for August as things stand
-- `Unmatched Employee Hours`
+- `Hours With No Job Number` — expect about 188.25 for August
+- `Unmatched Employee Hours` — **this is the one that matters.** It tests whether the
+  employee-ID-plus-name resolution held. Above zero means someone's hours are unattributed.
 - `Unmapped Job Hours`
 - `Unmapped Pay Type Hours`
 
-And this pair tells you the month is complete:
+And the pair that would have stopped the 50.2% going out:
 
-- `Working Days With Data` vs `Working Days In Period` — 15 against 21 is August 2026
+- `Working Days With Data` vs `Working Days In Period` — 15 against 21 for August 2026
+
+## Two things that look wrong but are not
+
+- **`Utilisation vs Target (pp)`** reads oddly until you set real targets in
+  `map_employees.csv`. Everyone currently has a group default (Support 0.88,
+  Production 0.65, Consulting 0.50, Overhead 0).
+- **`Unbilled WIP Hours`** equals `WIP Hours to Date` until `Last Fully Billed Date` is
+  filled in. By design — see the baseline assessment.
 
 ## Still needs a human
 
 - **`map_employees.csv`** — `Standard Weekly Hours` is 38 for everyone. Fix the
   part-timers. 12 rows carry `NEEDS REVIEW`, three of them employee IDs with two
-  different people on overlapping dates.
-- **`map_jobs.csv`** — `Last Fully Billed Date` is blank. Fill it from the month each
-  job's WIP dollar balance returns to zero.
+  different people booking time on overlapping dates.
+- **`map_jobs.csv`** — `Last Fully Billed Date` is blank.
 
-## If Route A also fails
+## If a visual comes up blank
 
-`SETUP.md` one folder up: six M queries to paste, then `measures.csx` in Tabular
-Editor. 45 minutes, no format guessing, certain to work.
+Valid JSON does not guarantee a rendered visual. Click the empty one, check the Fields
+well, and send me its name from the Selection pane. Each visual is its own file, so I fix
+that one and nothing else moves.

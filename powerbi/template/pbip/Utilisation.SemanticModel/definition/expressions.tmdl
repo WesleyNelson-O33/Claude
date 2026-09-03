@@ -1,6 +1,6 @@
-expression UtilWorkbookPath = "C:\\Utilisation\\August_2026_Utilisation_Report.xlsx" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+expression UtilWorkbookPath = "C:\\Utilisation\\August 2026 Utilisation Report.xlsx" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
 
-expression MappingFolderPath = "C:\\Utilisation\\mapping" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
+expression MappingFolderPath = "C:\\Utilisation" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]
 
 expression FY_Start_Year = 2024 meta [IsParameterQuery=true, Type="Number", IsParameterQueryRequired=true]
 

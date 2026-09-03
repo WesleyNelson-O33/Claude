@@ -72,8 +72,8 @@ w(os.path.join(DEF, "model.tmdl"), "\n".join(model) + "\n")
 
 # ---------------------------------------------------------------- parameters
 ex = []
-for name, val, ptype in [("UtilWorkbookPath", r"C:\Utilisation\August_2026_Utilisation_Report.xlsx", "Text"),
-                         ("MappingFolderPath", r"C:\Utilisation\mapping", "Text"),
+for name, val, ptype in [("UtilWorkbookPath", r"C:\Utilisation\August 2026 Utilisation Report.xlsx", "Text"),
+                         ("MappingFolderPath", r"C:\Utilisation", "Text"),
                          ("FY_Start_Year", 2024, "Number"),
                          ("FY_End_Year", 2027, "Number")]:
     lit = '"%s"' % str(val).replace("\\", "\\\\") if ptype == "Text" else str(val)
