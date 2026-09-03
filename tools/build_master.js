@@ -45,6 +45,20 @@ for (const line of master.intro || []) {
   }));
 }
 
+if (master.structure) {
+  children.push(new Paragraph({
+    spacing: { before: 240, after: 140 },
+    children: [new TextRun({ text: 'How this manual is organised', bold: true, size: 28, color: lib.ACCENT })],
+  }));
+  children.push(lib.keyValueTable(master.structure));
+  for (const line of master.structureNotes || []) {
+    children.push(new Paragraph({
+      spacing: { before: 160, after: 120 },
+      children: [new TextRun({ text: line, size: 22 })],
+    }));
+  }
+}
+
 children.push(...lib.contentsPage('Contents'));
 
 // One shared counter so figures number continuously across the whole book.

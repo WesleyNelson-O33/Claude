@@ -337,6 +337,6 @@ function sectionShell(runningHead, children) {
 }
 
 module.exports = {
-  renderSpec, contentsPage, sectionShell,
+  renderSpec, contentsPage, sectionShell, keyValueTable,
   BULLET_NUMBERING, DEFAULT_STYLES, ACCENT, MUTED,
 };
