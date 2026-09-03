@@ -1,0 +1,292 @@
+// ============================================================================
+// UTILISATION REPORT - DAX MEASURE LIBRARY
+// Paste these one at a time into Power BI (Modelling > New measure).
+// Suggested home table: a dedicated empty table called _Measures.
+//
+// Read README section 5 before changing any of the denominators. The
+// numerator is easy; the denominator is where utilisation reports go wrong.
+// ============================================================================
+
+
+// ---------------------------------------------------------------------------
+// 1. BASE HOUR MEASURES  (numerators)
+// ---------------------------------------------------------------------------
+
+Total Hours =
+SUM ( Fact_Timesheet[Hours] )
+// Format: 0.0
+
+Billable Hours =
+CALCULATE (
+    [Total Hours],
+    Dim_WorkType[Utilisation Category] = "Billable"
+)
+// Format: 0.0
+
+Non-Billable Hours =
+CALCULATE (
+    [Total Hours],
+    Dim_WorkType[Utilisation Category] = "Non-Billable"
+)
+
+Leave Hours =
+CALCULATE (
+    [Total Hours],
+    Dim_WorkType[Utilisation Category] = "Leave"
+)
+
+Public Holiday Hours =
+CALCULATE (
+    [Total Hours],
+    Dim_WorkType[Utilisation Category] = "Public Holiday"
+)
+
+Worked Hours =
+// Everything that is actual work: billable + non-billable. Excludes leave.
+[Billable Hours] + [Non-Billable Hours]
+
+Above-Capacity Hours =
+// Overtime and similar - hours worked ON TOP of contracted capacity.
+// Kept out of the denominator so overtime cannot push utilisation past 100%
+// for the wrong reason. It is reported separately instead.
+CALCULATE (
+    [Total Hours],
+    Dim_WorkType[Counts Toward Capacity Flag] = FALSE ()
+)
+
+
+// ---------------------------------------------------------------------------
+// 2. CAPACITY MEASURES  (denominators)
+// ---------------------------------------------------------------------------
+
+Capacity Hours =
+SUM ( Fact_Capacity[Capacity Hours] )
+// Contracted hours for days the person was employed, with public holidays
+// already zeroed out in the Fact_Capacity query.
+
+Available Hours =
+// Capacity less leave actually taken. This is the standard utilisation
+// denominator: "hours the person was genuinely available to work".
+//
+// NOTE: Public holidays are NOT subtracted here - Fact_Capacity already set
+// them to zero. Subtracting again would double-count and inflate utilisation.
+VAR Cap   = [Capacity Hours]
+VAR Leave = [Leave Hours]
+RETURN
+    MAX ( Cap - Leave, 0 )
+
+Unavailable Hours =
+[Leave Hours] + [Public Holiday Hours]
+
+
+// ---------------------------------------------------------------------------
+// 3. THE UTILISATION RATIOS
+// Pick ONE as your headline number and be consistent. Reporting all three
+// side by side to a board is how you end up arguing about definitions
+// instead of performance.
+// ---------------------------------------------------------------------------
+
+Utilisation % =
+// HEADLINE. Billable work as a share of the time the person was available.
+// Leave and public holidays neither help nor hurt this number.
+DIVIDE ( [Billable Hours], [Available Hours] )
+// Format: 0.0%
+
+Utilisation % (Gross) =
+// Billable work as a share of full contracted capacity. Taking leave
+// DROPS this number. Use it for capacity planning, not for judging people.
+DIVIDE ( [Billable Hours], [Capacity Hours] )
+// Format: 0.0%
+
+Productive % =
+// All timesheeted work (billable + non-billable) over available hours.
+// Should sit close to 100%. If it does not, people are not filling in
+// timesheets - fix that before you trust Utilisation %.
+DIVIDE ( [Worked Hours], [Available Hours] )
+// Format: 0.0%
+
+Billable Mix % =
+// Of the work that was actually done, how much was billable.
+// Immune to timesheet-completion problems, so it is the honest number
+// to look at while your data quality is still settling down.
+DIVIDE ( [Billable Hours], [Worked Hours] )
+// Format: 0.0%
+
+
+// ---------------------------------------------------------------------------
+// 4. TARGETS AND VARIANCE
+// ---------------------------------------------------------------------------
+
+Target Utilisation % =
+// Availability-weighted average target. A part-timer or a mid-month starter
+// pulls the group target correctly rather than counting as a whole person.
+DIVIDE (
+    SUMX ( Dim_Employee, [Available Hours] * Dim_Employee[Target Utilisation %] ),
+    SUMX ( Dim_Employee, [Available Hours] )
+)
+// Format: 0.0%
+
+Target Billable Hours =
+SUMX ( Dim_Employee, [Available Hours] * Dim_Employee[Target Utilisation %] )
+// Format: 0.0
+
+Utilisation vs Target (pp) =
+// Percentage POINTS above/below target, not a percentage change.
+[Utilisation %] - [Target Utilisation %]
+// Format: +0.0;-0.0;0.0  then append " pp" in the visual header
+
+Billable Hours vs Target =
+[Billable Hours] - [Target Billable Hours]
+// Format: +0.0;-0.0;0.0
+
+Utilisation Status =
+SWITCH (
+    TRUE (),
+    ISBLANK ( [Available Hours] ) || [Available Hours] = 0, "No capacity",
+    ISBLANK ( [Utilisation %] ),                            "No timesheets",
+    [Utilisation %] >= [Target Utilisation %],              "On or above target",
+    [Utilisation %] >= [Target Utilisation %] - 0.05,       "Within 5pp of target",
+                                                            "Below target"
+)
+
+Utilisation Status Colour =
+SWITCH (
+    [Utilisation Status],
+    "On or above target",    "#1B7F5F",
+    "Within 5pp of target",  "#B07D1A",
+    "Below target",          "#B03A2E",
+                             "#8A8A8A"
+)
+// Use this in Conditional formatting > Font colour > Field value
+
+
+// ---------------------------------------------------------------------------
+// 5. TIME INTELLIGENCE
+// Written without TOTALYTD's year-end-date argument on purpose - that
+// argument is parsed against the file's locale and silently misbehaves on
+// an Australian financial year. Filtering the FY column is locale-proof.
+// ---------------------------------------------------------------------------
+
+Billable Hours FYTD =
+VAR CurrentFY  = MAX ( Dim_Date[FY] )
+VAR LastDate   = MAX ( Dim_Date[Date] )
+RETURN
+    CALCULATE (
+        [Billable Hours],
+        REMOVEFILTERS ( Dim_Date ),
+        Dim_Date[FY] = CurrentFY,
+        Dim_Date[Date] <= LastDate
+    )
+
+Available Hours FYTD =
+VAR CurrentFY  = MAX ( Dim_Date[FY] )
+VAR LastDate   = MAX ( Dim_Date[Date] )
+RETURN
+    CALCULATE (
+        [Available Hours],
+        REMOVEFILTERS ( Dim_Date ),
+        Dim_Date[FY] = CurrentFY,
+        Dim_Date[Date] <= LastDate
+    )
+
+Utilisation % FYTD =
+DIVIDE ( [Billable Hours FYTD], [Available Hours FYTD] )
+// Format: 0.0%
+
+Utilisation % R13W =
+// Rolling 13 weeks (91 days) ending on the last date in context.
+// This is the number to trend - a single fortnight is far too noisy to
+// draw a conclusion from.
+VAR Window =
+    DATESINPERIOD ( Dim_Date[Date], MAX ( Dim_Date[Date] ), -91, DAY )
+RETURN
+    DIVIDE (
+        CALCULATE ( [Billable Hours],  Window ),
+        CALCULATE ( [Available Hours], Window )
+    )
+// Format: 0.0%
+
+Utilisation % LY =
+CALCULATE ( [Utilisation %], SAMEPERIODLASTYEAR ( Dim_Date[Date] ) )
+
+Utilisation % YoY (pp) =
+[Utilisation %] - [Utilisation % LY]
+
+
+// ---------------------------------------------------------------------------
+// 6. HEADCOUNT
+// ---------------------------------------------------------------------------
+
+Active Headcount =
+CALCULATE (
+    DISTINCTCOUNT ( Fact_Capacity[Employee Key] ),
+    Fact_Capacity[Capacity Hours] > 0
+)
+
+Headcount With Timesheets =
+DISTINCTCOUNT ( Fact_Timesheet[Employee Key] )
+
+FTE in Period =
+// Capacity in the period expressed as full-time equivalents, using a
+// 38-hour week. Change 38 if your standard week differs.
+VAR WorkingDays = CALCULATE ( COUNTROWS ( Dim_Date ), Dim_Date[Is Weekday] = TRUE () )
+RETURN
+    DIVIDE ( [Capacity Hours], WorkingDays * ( 38 / 5 ) )
+// Format: 0.0
+
+
+// ---------------------------------------------------------------------------
+// 7. DATA QUALITY - PUT THESE ON THE REPORT, NOT IN A DRAWER
+// Every one of these should read zero. When one does not, the utilisation
+// number on the same page is wrong, and you want to see that immediately.
+// ---------------------------------------------------------------------------
+
+Unmapped Work Type Hours =
+CALCULATE (
+    [Total Hours],
+    Dim_WorkType[Utilisation Category] = "UNMAPPED"
+)
+// > 0 means someone created a new Work Type in Employment Hero and nobody
+// classified it. Those hours are currently counted as neither billable nor
+// leave, so Utilisation % is understated.
+
+Unmatched Employee Hours =
+SUMX (
+    FILTER ( Fact_Timesheet, ISBLANK ( RELATED ( Dim_Employee[Employee Key] ) ) ),
+    Fact_Timesheet[Hours]
+)
+// > 0 means timesheets exist for someone missing from employee-targets.csv.
+// Their hours are in the numerator but they have no capacity in the
+// denominator, which inflates group utilisation.
+
+Employees With Capacity But No Timesheets =
+VAR WithCap =
+    CALCULATETABLE (
+        VALUES ( Fact_Capacity[Employee Key] ),
+        Fact_Capacity[Capacity Hours] > 0
+    )
+VAR WithTs = VALUES ( Fact_Timesheet[Employee Key] )
+RETURN
+    COUNTROWS ( EXCEPT ( WithCap, WithTs ) )
+
+Timesheet Coverage % =
+// Worked + leave as a share of contracted capacity. Anything materially
+// below 100% means missing timesheets, not low utilisation.
+DIVIDE ( [Worked Hours] + [Leave Hours], [Capacity Hours] )
+// Format: 0.0%
+
+Last Timesheet Date =
+MAX ( Fact_Timesheet[Work Date] )
+
+Data Age (days) =
+VAR Latest = [Last Timesheet Date]
+RETURN
+    IF ( ISBLANK ( Latest ), BLANK (), INT ( TODAY () - Latest ) )
+
+Data Quality Flag =
+VAR Issues =
+    ( IF ( [Unmapped Work Type Hours] > 0, 1, 0 ) )
+    + ( IF ( [Unmatched Employee Hours] > 0, 1, 0 ) )
+    + ( IF ( COALESCE ( [Timesheet Coverage %], 0 ) < 0.95, 1, 0 ) )
+RETURN
+    IF ( Issues = 0, "OK", Issues & " issue(s) - see Data Quality page" )

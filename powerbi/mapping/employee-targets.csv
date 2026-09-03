@@ -1,0 +1,5 @@
+Employee External ID,Employee Name,Team,Role,Standard Weekly Hours,FTE,Target Utilisation %,Employment Type,Start Date,End Date,State
+E001,EXAMPLE - replace this file,Delivery,Consultant,38,1.0,0.75,Full Time,2024-07-01,,QLD
+E002,EXAMPLE - replace this file,Delivery,Senior Consultant,38,1.0,0.70,Full Time,2023-01-15,,QLD
+E003,EXAMPLE - replace this file,Delivery,Manager,38,1.0,0.45,Full Time,2022-03-01,,NSW
+E004,EXAMPLE - replace this file,Admin,Payroll Officer,30.4,0.8,0.00,Part Time,2025-02-10,,QLD

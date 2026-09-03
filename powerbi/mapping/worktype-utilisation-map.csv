@@ -1,0 +1,17 @@
+Work Type,Utilisation Category,Counts Toward Capacity,Notes
+Ordinary Hours,Billable,Yes,Default billable bucket - split this out if you have client codes
+Client Work,Billable,Yes,
+Billable Travel,Billable,Yes,Only if you actually invoice travel
+Overtime,Billable,No,Overtime is worked ABOVE capacity - see README section 6
+Working During Meal Break,Billable,No,Award-driven; sits above rostered capacity
+Training,Non-Billable,Yes,
+Internal Meeting,Non-Billable,Yes,
+Admin,Non-Billable,Yes,
+Business Development,Non-Billable,Yes,
+Unbillable Travel,Non-Billable,Yes,
+Annual Leave,Leave,Yes,Removed from the denominator by [Available Hours]
+Personal/Carers Leave,Leave,Yes,
+Long Service Leave,Leave,Yes,
+Leave Without Pay,Leave,Yes,
+Public Holiday,Public Holiday,Yes,Removed from the denominator by [Available Hours]
+Jury Leave,Leave,Yes,
