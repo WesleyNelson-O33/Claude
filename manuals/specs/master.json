@@ -1,12 +1,12 @@
 {
   "eyebrow": "CORPORATE TECHNOLOGY SERVICES",
   "title": "Payroll Processing Manual",
-  "subtitle": "Employment Hero Payroll  ·  Fortnightly cycle  ·  Complete series",
+  "subtitle": "Employment Hero Payroll  \u00b7  Fortnightly cycle  \u00b7  Complete series",
   "runningHead": "CTS Payroll Processing Manual",
   "output": "manuals/Payroll Processing Manual - Complete.docx",
   "intro": [
     "Payroll at CTS runs on a fortnightly cycle. This manual covers that cycle end to end, from collecting payroll notes through to uploading the payment file and filing the records.",
-    "The seven parts are also published as standalone guides, so a new starter can be given only the sections that apply to them. Both are generated from the same source, so they always agree."
+    "The eight parts are also published as standalone guides, so a new starter can be given only the sections that apply to them. Both are generated from the same source, so they always agree."
   ],
   "parts": [
     "manuals/specs/part1.json",
@@ -15,7 +15,8 @@
     "manuals/specs/part3b.json",
     "manuals/specs/part3c.json",
     "manuals/specs/part5.json",
-    "manuals/specs/part6.json"
+    "manuals/specs/part6.json",
+    "manuals/specs/part7.json"
   ],
   "structure": [
     [
@@ -45,10 +46,15 @@
     [
       "Part 6",
       "Finalisation & Bank Upload  (from Video 6)"
+    ],
+    [
+      "Part 7",
+      "Terminations & Out-of-Cycle Pay Runs  (from the Reporting recording)"
     ]
   ],
   "structureNotes": [
     "There is no Part 4, and nothing is missing. Video 4 worked through a correction to a salaried employee, so its material sits at the end of Part 3b alongside the rest of the salaried guidance rather than in a guide of its own. The part numbers otherwise follow the source recordings, so a step here can always be traced back to the video it came from.",
-    "Reconciliation is split three ways because the rules differ sharply by employment type. Check an employee's type before applying any rule: the same hours are treated differently for a casual and a salaried employee."
+    "Reconciliation is split three ways because the rules differ sharply by employment type. Check an employee's type before applying any rule: the same hours are treated differently for a casual and a salaried employee.",
+    "Parts 1 to 6 are the fortnightly cycle, in the order you work through it. Part 7 sits outside that cycle: it covers an ad hoc pay run created for a single person, which is how a resignation is paid out. Read it when you need it rather than every fortnight."
   ]
 }

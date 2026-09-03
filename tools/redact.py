@@ -4,9 +4,12 @@ Regions are declared per source frame in a JSON spec so the same redaction
 can be re-applied if frames are re-extracted:
 
     {"grid_00010.jpg": {"out": "02-payroll-notes.png",
-                        "blur": [[596, 386, 1270, 660]]}}
+                        "blur": [[596, 386, 1270, 660]],
+                        "crop": [0, 0, 1113, 676]}}
 
 Boxes are [left, top, right, bottom] in pixels against the extracted frame.
+The optional "crop" trims the frame after blurring, which is how the webcam
+column on a call recording is removed rather than blurred.
 """
 import argparse
 import json
@@ -17,7 +20,7 @@ from PIL import Image, ImageFilter
 BLUR_RADIUS = 14
 
 
-def redact(src, boxes):
+def redact(src, boxes, crop=None):
     image = Image.open(src).convert("RGB")
     for left, top, right, bottom in boxes:
         left, top = max(0, left), max(0, top)
@@ -31,6 +34,8 @@ def redact(src, boxes):
         patch = patch.resize((max(1, patch.width // 12), max(1, patch.height // 12)))
         patch = patch.resize((right - left, bottom - top), Image.NEAREST)
         image.paste(patch.filter(ImageFilter.GaussianBlur(BLUR_RADIUS)), (left, top))
+    if crop:
+        image = image.crop(tuple(crop))
     return image
 
 
@@ -50,7 +55,7 @@ def main():
         src = frames / name
         if not src.exists():
             raise SystemExit(f"missing frame: {src}")
-        image = redact(src, entry.get("blur", []))
+        image = redact(src, entry.get("blur", []), entry.get("crop"))
         dest = outdir / entry["out"]
         image.save(dest)
         print(f"{name} -> {dest.name}  ({len(entry.get('blur', []))} regions)")

@@ -1,7 +1,7 @@
 {
   "eyebrow": "PAYROLL PROCESSING",
   "title": "Handover: Questions & Scenarios",
-  "subtitle": "Corporate Technology Services  ·  To work through before the current payroll officer goes on leave",
+  "subtitle": "Corporate Technology Services  \u00b7  To work through before the current payroll officer goes on leave",
   "runningHead": "Payroll Handover: Questions & Scenarios",
   "screenshotDir": "manuals/screenshots/part1",
   "output": "manuals/Payroll Handover - Questions and Scenarios.docx",
@@ -76,7 +76,7 @@
     },
     {
       "type": "p",
-      "text": "These simply did not occur during the fortnight that was filmed. Each is common enough that it will come up, and none can be inferred from what was recorded."
+      "text": "These did not occur during the fortnights that were filmed. Each is common enough that it will come up, and none can be inferred from what was recorded. Question 11 is the exception: a termination has since been found on camera, so it has been narrowed to the parts that recording does not answer."
     },
     {
       "type": "callout",
@@ -84,10 +84,15 @@
       "text": "There is no parental leave policy and it is unpaid. Staff take it as either annual leave or leave without pay. Where it is taken as leave without pay, follow Part 3c - including the rounding rule, which pushes a short day back up to eight hours for salaried staff and will overpay them if it is not corrected."
     },
     {
+      "type": "callout",
+      "label": "Terminations are now documented.",
+      "text": "A full termination is worked through in the seventh recording, and it is written up as Part 7 of the manual: the ad hoc pay run, the termination date and reason, the unused leave payout lines, and the cross-check against Employment Hero HR. Read Part 7 before the meeting, so question 11 only has to cover what is still open."
+    },
+    {
       "type": "questions",
       "start": 11,
       "items": [
-        "How is a termination handled? Final pay, unused annual leave payout, time in lieu balance, and what changes on the last pay run.",
+        "On a termination, annual leave and time in lieu were paid out and long service leave was not. At what point does long service leave become payable, and is there anything else that changes for a redundancy rather than a resignation? Is unworked notice ever paid, and does HR need anything from me such as a separation certificate?",
         "The Create Pay Run screen has an 'Include terminated employees' checkbox that we always leave unticked. When would it need ticking?",
         "Employment Hero self-onboarding already collects the tax declaration and super choice. Beyond that, is there anything else you request from a new starter before their first pay? Does it differ by employment type - casual, part-time, full-time - or do we work from what they entered themselves?",
         "What do I do if I find an error after the pay run is finalised and super has been paid?",

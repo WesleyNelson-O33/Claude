@@ -1,0 +1,317 @@
+{
+  "eyebrow": "PAYROLL PROCESSING",
+  "title": "Part 7: Terminations & Out-of-Cycle Pay Runs",
+  "subtitle": "Corporate Technology Services  ·  Employment Hero Payroll & HR  ·  Outside the fortnightly cycle",
+  "runningHead": "Payroll Processing, Part 7: Terminations & Out-of-Cycle Pay Runs",
+  "screenshotDir": "manuals/screenshots/part7",
+  "output": "manuals/Payroll Processing - Part 7 - Terminations and Out-of-Cycle Pay Runs.docx",
+  "toc": true,
+  "blocks": [
+    {
+      "type": "h1",
+      "text": "About Part 7"
+    },
+    {
+      "type": "p",
+      "text": "Parts 1 to 6 cover the fortnightly cycle. This guide covers a pay run that sits outside it: a small, ad hoc pay run created for one or two people, usually because someone has resigned and their final pay cannot wait for the next fortnight."
+    },
+    {
+      "type": "p",
+      "text": "The mechanics are the same as a normal pay run. What is different is that you strip the pay run back to the people you actually need, you process the termination inside it, and you check the leave payout carefully before finalising."
+    },
+    {
+      "type": "callout",
+      "label": "A termination is the least forgiving thing in payroll.",
+      "text": "It is the last payment the employee will ever receive from CTS, and it pays out leave balances that can run into thousands of dollars. Getting it wrong is expensive in both directions. Work through it slowly."
+    },
+    {
+      "type": "step",
+      "number": 1,
+      "title": "Create the pay run and strip it back"
+    },
+    {
+      "type": "p",
+      "text": "Create the pay run exactly as in Part 2. Employment Hero will pull in whoever it finds, which is usually more people than you want."
+    },
+    {
+      "type": "p",
+      "text": "To remove someone, open their row and use Actions › Exclude from pay run. Keep going until only the people you meant to pay are left."
+    },
+    {
+      "type": "shot",
+      "file": "01-termination-pay-run-with-expense.png",
+      "caption": "An out-of-cycle pay run with two payees and a single expense line. Employee names are blurred in this guide."
+    },
+    {
+      "type": "p",
+      "text": "If you need to put someone back in, use Pay Run Actions › Add payees and type their name, as in Part 3c."
+    },
+    {
+      "type": "step",
+      "number": 2,
+      "title": "Understand what will not come in: late expenses"
+    },
+    {
+      "type": "p",
+      "text": "Expenses only import into a pay run if they were submitted before the cut-off for that fortnight. Anything uploaded after the cut-off, on the 25th for example, will not be picked up, and there is no way to force it."
+    },
+    {
+      "type": "p",
+      "text": "It is worth knowing why, because it looks like something you have done wrong:"
+    },
+    {
+      "type": "bullet",
+      "text": "Adding the employee as a payee does not bring the expense with them"
+    },
+    {
+      "type": "bullet",
+      "text": "Actions › Add expense only offers to enter it by hand"
+    },
+    {
+      "type": "bullet",
+      "text": "Entering it by hand risks the same expense importing again in the next pay run, and paying it twice"
+    },
+    {
+      "type": "callout",
+      "label": "Leave it and process it next fortnight.",
+      "text": "This is the established process and has been since 2024. A late expense goes into the following pay run. Say so plainly to whoever submitted it; do not part-process one late expense, because you will then be asked why theirs went through and someone else's did not."
+    },
+    {
+      "type": "step",
+      "number": 3,
+      "title": "Read the warnings before you terminate"
+    },
+    {
+      "type": "p",
+      "text": "A warning triangle beside an employee's name means Employment Hero wants to tell you something. The message itself is not on the row: scroll to the top of the page and open the warnings tab there."
+    },
+    {
+      "type": "callout",
+      "label": "The usual warning is harmless.",
+      "text": "On an out-of-cycle pay run the common warning is that PAYG has already been calculated for the fortnight, because the employee has already been paid once in that period. That is expected and correct. Read it, satisfy yourself that is what it says, then carry on."
+    },
+    {
+      "type": "step",
+      "number": 4,
+      "title": "Terminate the employee"
+    },
+    {
+      "type": "p",
+      "text": "With the employee's row open, go to Actions › Terminate. A dialog appears asking for two things."
+    },
+    {
+      "type": "shot",
+      "file": "02-terminate-employee-dialog.png",
+      "caption": "The Terminate employee dialog, with the termination date and reason. The employee name is blurred in this guide."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Termination date",
+          "The employee's last day worked, not the date of the pay run"
+        ],
+        [
+          "Termination reason",
+          "Voluntary cessation for a resignation"
+        ],
+        [
+          "Redundancy / ETP",
+          "Left unticked unless the departure genuinely is a redundancy"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "The date drives the money.",
+      "text": "Employment Hero adjusts the default earnings automatically from the termination date, so the date is not just a record. Confirm the last day worked before you save, rather than correcting it afterwards."
+    },
+    {
+      "type": "p",
+      "text": "Click Save. The employee's row then reopens with the termination details at the top and two new sections beneath."
+    },
+    {
+      "type": "step",
+      "number": 5,
+      "title": "Check the unused leave payout"
+    },
+    {
+      "type": "p",
+      "text": "This is the part worth slowing down for. Employment Hero has worked out what to pay out, and you are checking its answer rather than producing one."
+    },
+    {
+      "type": "shot",
+      "file": "03-unused-leave-payout.png",
+      "caption": "The termination earnings and the Leave Taken section, with pay out ticked against annual leave and time in lieu. Rates and amounts are blurred in this guide."
+    },
+    {
+      "type": "p",
+      "text": "Two things appear. First, under Earnings, one line per entitlement being paid out:"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Unused leave payment (normal termination)",
+          "The annual leave payout; units are hours, at the employee's hourly rate"
+        ],
+        [
+          "Unused Leave Payment (Type O)",
+          "The time in lieu payout, entered the same way"
+        ],
+        [
+          "Location",
+          "Set on both lines to the employee's usual cost centre, so the cost lands in the right place"
+        ],
+        [
+          "Notes",
+          "Label each line, for example 'Annual Leave payout' and 'Time In Lieu Taken payout'"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Second, under Leave Taken, every leave category the employee holds, each showing its available balance and a Pay out tick box. Only the entitlements actually payable on termination are ticked."
+    },
+    {
+      "type": "callout",
+      "label": "Not every balance gets paid out.",
+      "text": "Annual leave and time in lieu are paid out. Personal and carer's leave is not, and neither is family and domestic violence leave. Long service leave depends on how long the employee has been here. Ticking one of these by mistake pays out money that is not owed, and it can be a very large amount."
+    },
+    {
+      "type": "callout",
+      "label": "Cross-check the balances in HR before finalising.",
+      "text": "Payroll and Employment Hero HR each hold a leave balance and they should agree. Open HR, go to the People's list, select the employee, and scroll down to their leave balances. The annual leave and time in lieu figures should match the payout lines exactly. Do this before you finalise, not after."
+    },
+    {
+      "type": "step",
+      "number": 6,
+      "title": "Finalise and check the date paid"
+    },
+    {
+      "type": "p",
+      "text": "Finalise the pay run as in Part 6. Before confirming, check the date paid is today's date."
+    },
+    {
+      "type": "callout",
+      "label": "The date paid is what the bank acts on.",
+      "text": "Whatever date you set here is the date the payment is processed once the file is uploaded to CommBiz. For a final pay this matters more than usual, because the employee is expecting it and no longer has a manager to chase it for them."
+    },
+    {
+      "type": "p",
+      "text": "Then download the payment file and upload it to CommBiz exactly as described in Part 6."
+    },
+    {
+      "type": "step",
+      "number": 7,
+      "title": "Send the breakdown to the approver"
+    },
+    {
+      "type": "p",
+      "text": "Duncan asks for a breakdown alongside the approval, but he does not want the whole pay run. He wants the total line."
+    },
+    {
+      "type": "p",
+      "text": "Collapse the employee rows so only the totals row is showing: total hours, gross earnings, PAYG and net. Screenshot that one line and include it with the payment approval email, along with the bank screenshot described in Part 6."
+    },
+    {
+      "type": "callout",
+      "label": "Take the screenshot after finalising.",
+      "text": "Finalise first, then collapse and screenshot. Taking it beforehand risks sending a figure that then changes."
+    },
+    {
+      "type": "step",
+      "number": 8,
+      "title": "File the records"
+    },
+    {
+      "type": "p",
+      "text": "An out-of-cycle pay run is filed the same way as a fortnightly one: the payment file, the reports and the related emails all go into the payroll folder for the period. Save them at the time rather than leaving them in Downloads."
+    },
+    {
+      "type": "h1",
+      "text": "Related: giving a casual access to a cost centre"
+    },
+    {
+      "type": "p",
+      "text": "This comes up often enough to belong somewhere, and it is not part of any pay run. A production manager asks for a casual to be made available on a cost centre they do not normally work, usually because that casual is covering for someone."
+    },
+    {
+      "type": "p",
+      "text": "Most cost centres are set to be available to everyone, so nothing needs doing. Casuals are the exception: they have to be enabled individually."
+    },
+    {
+      "type": "bullet",
+      "text": "In Employment Hero Payroll, go to Payroll Settings › Locations"
+    },
+    {
+      "type": "bullet",
+      "text": "Search for the cost centre and check whether it is available to all; if it is, there is nothing to do"
+    },
+    {
+      "type": "bullet",
+      "text": "Otherwise open the individual employee, go to their Locations, tick the cost centre and save"
+    },
+    {
+      "type": "p",
+      "text": "Once saved, the manager can allocate that person to that cost centre."
+    },
+    {
+      "type": "callout",
+      "label": "Do this on the payroll side, not in HR.",
+      "text": "There is a locations setting in Employment Hero HR too, but it only lets you select a single cost centre, which is not what is being asked for. Cost centres live on the payroll side."
+    },
+    {
+      "type": "h1",
+      "text": "Checklist"
+    },
+    {
+      "type": "p",
+      "text": "A termination pay run is ready to finalise when:"
+    },
+    {
+      "type": "bullet",
+      "text": "The pay run contains only the people it is meant to pay"
+    },
+    {
+      "type": "bullet",
+      "text": "Any late expenses have been left out and the person who submitted them has been told they go in next fortnight"
+    },
+    {
+      "type": "bullet",
+      "text": "Every warning has been opened and understood"
+    },
+    {
+      "type": "bullet",
+      "text": "The termination date is the last day worked and the reason is correct"
+    },
+    {
+      "type": "bullet",
+      "text": "Redundancy / ETP is ticked only if the departure really is a redundancy"
+    },
+    {
+      "type": "bullet",
+      "text": "Pay out is ticked against annual leave and time in lieu, and nothing else that should not be paid out"
+    },
+    {
+      "type": "bullet",
+      "text": "Both payout lines carry the employee's cost centre and a note describing them"
+    },
+    {
+      "type": "bullet",
+      "text": "The payout hours match the balances shown in Employment Hero HR"
+    },
+    {
+      "type": "bullet",
+      "text": "The date paid is today's date"
+    },
+    {
+      "type": "bullet",
+      "text": "The collapsed totals line has been screenshotted and sent with the approval email"
+    },
+    {
+      "type": "next",
+      "text": "Part 7 sits outside the fortnightly cycle. The cycle itself begins again at Part 1: Payroll Prep."
+    }
+  ]
+}

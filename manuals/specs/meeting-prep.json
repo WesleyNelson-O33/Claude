@@ -1,7 +1,7 @@
 {
   "eyebrow": "PAYROLL HANDOVER",
   "title": "Meeting Prep: Where Each Question Came From",
-  "subtitle": "Corporate Technology Services  ·  Sources for the handover questions  ·  For use in the handover meeting",
+  "subtitle": "Corporate Technology Services  \u00b7  Sources for the handover questions  \u00b7  For use in the handover meeting",
   "runningHead": "Payroll Handover: Meeting Prep",
   "screenshotDir": "manuals/screenshots/part1",
   "output": "manuals/Payroll Handover - Meeting Prep.docx",
@@ -26,7 +26,7 @@
     },
     {
       "type": "p",
-      "text": "Some questions have no quote at all. That is the point of them: the situation never came up across six recordings and more than ninety minutes of footage, so there is nothing to cite. Those are marked as not covered."
+      "text": "Some questions have no quote at all. That is the point of them: the situation never came up across seven recordings and more than two hours of footage, so there is nothing to cite. Those are marked as not covered."
     },
     {
       "type": "h1",
@@ -88,7 +88,7 @@
         {
           "n": 3,
           "q": "Is there anything else I will need a login for that has not come up yet?",
-          "source": "General: across all six recordings",
+          "source": "General: across all seven recordings",
           "note": "The recordings show Employment Hero payroll, Employment Hero HR, the Y drive, Outlook, CommBiz and Excel. This asks whether anything else is involved that simply did not appear."
         }
       ]
@@ -104,7 +104,7 @@
           "n": 4,
           "q": "Graham approves the pay run and Duncan approves the payment. Who covers each of them if they are away?",
           "source": "Video: Payroll Processing Part 6 (Finalisation & Bank Upload) at 00:00 and at 08:52",
-          "quote": "We can then now finalize the pay run just by clicking this button here. The approver would be Graham. … So I'm going to send this to Duncan, CC Graham, Danica, accounts.",
+          "quote": "We can then now finalize the pay run just by clicking this button here. The approver would be Graham. \u2026 So I'm going to send this to Duncan, CC Graham, Danica, accounts.",
           "note": "Two named people at two different points, and no alternate mentioned for either."
         },
         {
@@ -157,9 +157,10 @@
       "items": [
         {
           "n": 11,
-          "q": "How do I handle a termination? Final pay, unused annual leave, time in lieu balance.",
-          "source": "Not covered in any recording",
-          "note": "A resigning employee is mentioned in passing during rate verification in Video 5, \"he's the one who resigned\", but no termination is ever processed on camera."
+          "q": "On a termination, what makes long service leave payable, what changes for a redundancy, and is unworked notice ever paid?",
+          "source": "Video: Reporting, at 09:48, 10:16, 11:12 and 11:40",
+          "note": "The termination itself is now fully covered, and is written up as Part 7 of the manual. What the recording does not explain is why long service leave sat on screen with a balance and was left unticked while annual leave and time in lieu were paid out. Redundancy is visible only as an unticked Redundancy / ETP box, and notice is never mentioned. Those three are what is left to ask.",
+          "quote": "Actions. Yeah, and then you can terminate. ... The termination reason is voluntary. ... He's got unused leave payment of annual leave and also time in lieu, which is fine. So 160.46. The only thing I would triple check is if you toggle into HR ... scroll down just to double check his annual leave balance is actually 160.46."
         },
         {
           "n": 12,
@@ -215,7 +216,7 @@
           "n": 18,
           "q": "Can we confirm the no meal break penalty rate, and where it sits in the award?",
           "source": "Video: Payroll Processing Part 3 (Reconciling Timesheets) at 39:12, 39:40 and 40:08",
-          "quote": "The no meal break is actually at penalty times two. If I'm not mistaken, 37.5 times two. Actually, no, it's not. … 2.25 I think. … You just had a look at the award then to confirm that? Sorry, no, I calculated on my own.",
+          "quote": "The no meal break is actually at penalty times two. If I'm not mistaken, 37.5 times two. Actually, no, it's not. \u2026 2.25 I think. \u2026 You just had a look at the award then to confirm that? Sorry, no, I calculated on my own.",
           "note": "Stated three different ways in a minute and confirmed as calculated rather than read from the award. This is the single rule I would most want verified before you use it."
         },
         {
@@ -258,7 +259,7 @@
           "n": 23,
           "q": "Has the leave without pay issue in the total hours column been sorted? If not, what do I do by hand?",
           "source": "Video: Payroll Processing Part 3 (Reconciling Timesheets), from 54:36 to 59:44",
-          "quote": "It doesn't capture column S. … There's a reason that we would have done that at the time, isn't there? … Let's not, because we're wasting the recording time on this, so let's just leave it and we'll come back to it.",
+          "quote": "It doesn't capture column S. \u2026 There's a reason that we would have done that at the time, isn't there? \u2026 Let's not, because we're wasting the recording time on this, so let's just leave it and we'll come back to it.",
           "note": "This runs for five minutes on camera and is explicitly parked unresolved. It affects any employee with leave without pay, so it will affect you."
         },
         {
@@ -271,7 +272,7 @@
           "n": 25,
           "q": "Does green mean 'I have checked this rate' or 'this rate changed'?",
           "source": "Video: Payroll Processing Part 3 (Reconciling Timesheets) at 11:40 and 12:08, and Payroll Processing Part 5 (Reconciling & Balancing Payrun) at 34:32",
-          "quote": "The green denotes that the pay rate has been updated. … Okay, is that correct? Well, I actually don't know; this is the template that you created, I haven't changed it at all. … If they're green that means that we did them last week, so they should be fine.",
+          "quote": "The green denotes that the pay rate has been updated. \u2026 Okay, is that correct? Well, I actually don't know; this is the template that you created, I haven't changed it at all. \u2026 If they're green that means that we did them last week, so they should be fine.",
           "note": "Described as 'updated' in one recording and 'checked last week' in another. Since you will be relying on the colour to know what still needs verifying, it matters which it means."
         }
       ]
@@ -287,21 +288,21 @@
           "n": 26,
           "q": "What happens if the Monday of processing week, or the Tuesday pay date, falls on a public holiday?",
           "source": "Video: Payroll Processing Part 1 (Payroll Prep) at 00:00, and Payroll Processing Part 2 (Creating New Pay Run) at 00:56",
-          "quote": "Usually the payroll prep, I like to start it on the Friday before the actual Monday of the payroll processing. … Date the pay run will be paid is always the Tuesday of the payroll processing week.",
+          "quote": "Usually the payroll prep, I like to start it on the Friday before the actual Monday of the payroll processing. \u2026 Date the pay run will be paid is always the Tuesday of the payroll processing week.",
           "note": "The whole schedule is anchored to a Monday and a Tuesday. Neither recording covers what shifts when one of those is a public holiday."
         },
         {
           "n": 27,
           "q": "How do I know a fortnight is the last pay run of the month for bonus leave? Especially when it crosses the end of a month.",
           "source": "Video: Payroll Processing Part 5 (Reconciling & Balancing Payrun) at 21:00 and 22:52",
-          "quote": "Because this is the last pay run for the month, we also need to accrue for bonus leave. … So we always accrue a month ahead of the new month.",
+          "quote": "Because this is the last pay run for the month, we also need to accrue for bonus leave. \u2026 So we always accrue a month ahead of the new month.",
           "note": "Nothing in Employment Hero or the spreadsheet flags this. It is remembered, and a fortnight straddling month end makes it ambiguous."
         },
         {
           "n": 28,
           "q": "How long before pay day does the money need to be in the account?",
           "source": "Video: Payroll Processing Part 6 (Finalisation & Bank Upload), from 02:48 to 05:36",
-          "quote": "So now that's uploaded, I just need to double check if there's enough funds in the account. … So I just need to transfer 10K.",
+          "quote": "So now that's uploaded, I just need to double check if there's enough funds in the account. \u2026 So I just need to transfer 10K.",
           "note": "The transfer is made on the spot during the recording, so the lead time it actually needs is never established."
         }
       ]
@@ -317,7 +318,7 @@
           "n": 29,
           "q": "Where are the bonus leave letters kept, and who issues them?",
           "source": "Video: Payroll Processing Part 5 (Reconciling & Balancing Payrun) at 22:52 and 23:20",
-          "quote": "Isaac, I can't accrue it yet because we haven't issued him a letter. … So once you've issued the letter, I can always backtrace.",
+          "quote": "Isaac, I can't accrue it yet because we haven't issued him a letter. \u2026 So once you've issued the letter, I can always backtrace.",
           "note": "Accrual is blocked until a letter is signed, and at the time of recording there were several outstanding. You would inherit those."
         },
         {
@@ -331,14 +332,14 @@
           "n": 31,
           "q": "Are there any staff with unusual arrangements I should know about before I meet them in a pay run?",
           "source": "Video: Payroll Processing Part 5 (Reconciling & Balancing Payrun) at 00:00, and Payroll Processing Part 3 (Reconciling Timesheets) at 27:32",
-          "quote": "The only thing that is not included automatically in the payroll timesheets is [her], because she doesn't clock in and out. … Blake has a preset pre-tax deduction for salary sacrifice technology.",
+          "quote": "The only thing that is not included automatically in the payroll timesheets is [her], because she doesn't clock in and out. \u2026 Blake has a preset pre-tax deduction for salary sacrifice technology.",
           "note": "At least three arrangements surface only because they happened to come up: an employee on fixed hours who does not clock in, a technology salary sacrifice, and a superannuation salary sacrifice. There may be others."
         },
         {
           "n": 32,
           "q": "Is there anything you do out of habit that is not written down anywhere?",
           "source": "General: the reason for asking",
-          "note": "Across the six recordings she repeatedly checks things without saying why, and refers to prior conversations the camera did not capture. This question is the catch-all for whatever that turns out to be."
+          "note": "Across the seven recordings she repeatedly checks things without saying why, and refers to prior conversations the camera did not capture. This question is the catch-all for whatever that turns out to be."
         }
       ]
     },
