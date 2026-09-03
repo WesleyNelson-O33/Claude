@@ -1,29 +1,49 @@
-# Utilisation — Power BI Project (PBIP)
+# Utilisation — semantic model for Power BI
 
-## Open it
+## Read this first
 
-1. Unzip this folder somewhere sensible, e.g. `C:\Utilisation\`.
-2. Put your files where the parameters expect them:
+The last attempt failed with `Cannot find file 'version.json'`. That error is worth
+understanding, because it is good news: **Power BI parsed the semantic model fine.** It
+fell over reading the *report* definition — the PBIR scaffolding, which is the one part
+I cannot verify from here.
 
-```
-C:\Utilisation\
-    August_2026_Utilisation_Report.xlsx
-    mapping\
-        map_employees.csv
-        map_jobs.csv
-        map_paytypes.csv
-    Utilisation.pbip              <- double-click this
-    Utilisation.SemanticModel\
-    Utilisation.Report\
-```
+So there are two routes below. **Route A is reliable** — it lets Power BI Desktop
+generate the report scaffolding itself, which is the only thing it knows how to write
+correctly, and supplies only the semantic model, which is already proven to parse.
 
-3. **Double-click `Utilisation.pbip`.** Power BI Desktop opens the project.
-   (Requires Desktop from roughly 2024 onward. If the .pbip option is greyed out,
-   turn on File > Options and settings > Options > Preview features >
-   "Power BI Project (.pbip) save option".)
+## Route A — the one that will work
 
-4. It will ask for the four parameters, or you set them via
-   Transform data > Manage Parameters:
+1. Open Power BI Desktop. **File > New.**
+2. **File > Save as** > change "Save as type" to **Power BI project files (.pbip)**.
+   Save it as **`Utilisation`** into `C:\Utilisation\`.
+   (Name it exactly `Utilisation` — it has to match the model name.)
+
+   Desktop creates:
+   ```
+   C:\Utilisation\
+       Utilisation.pbip
+       Utilisation.Report\           <- Desktop's own, valid, leave it alone
+       Utilisation.SemanticModel\
+   ```
+
+3. **Close Power BI Desktop.**
+
+4. In `C:\Utilisation\Utilisation.SemanticModel\`, **delete the `definition` folder**
+   Desktop just made, and copy in the `definition` folder from this zip
+   (`Utilisation.SemanticModel\definition`) in its place.
+
+   Leave Desktop's `definition.pbism` and `.platform` exactly as they are — only the
+   `definition` folder gets swapped.
+
+5. Put your data alongside:
+   ```
+   C:\Utilisation\
+       August_2026_Utilisation_Report.xlsx
+       mapping\                      <- the three CSVs from this zip
+   ```
+
+6. **Double-click `Utilisation.pbip`.** Set the four parameters, refresh, and
+   File > Save As > `.pbix` if you want a single file.
 
 | Parameter | Value |
 |---|---|
@@ -32,11 +52,17 @@ C:\Utilisation\
 | `FY_Start_Year` | `2024` |
 | `FY_End_Year` | `2027` |
 
-5. Refresh. It reads 47,000 timesheet rows out of the Excel workbook — give it a minute.
+## Route B — try the project as shipped
 
-6. **File > Save As > `Utilisation.pbix`** if you want a single-file version.
+I have added a `version.json` to the report definition, which is the file the error
+named. I could not verify its exact contents — Microsoft's schema host and every blog
+documenting it are blocked from where I am working — so this is a best guess.
 
-## What is in it
+Unzip to `C:\Utilisation\` and double-click `Utilisation.pbip`. If it opens, you saved
+yourself five minutes. If it throws the same class of error, use Route A and do not
+spend a third attempt on it.
+
+## What you are getting either way
 
 7 tables, 36 measures, 6 relationships, 4 parameters.
 
@@ -45,40 +71,32 @@ Fact_Timesheet  ──  Dim_Date, Dim_Employee, Dim_Job, Dim_PayType
 Fact_Capacity   ──  Dim_Date, Dim_Employee
 ```
 
-Five empty report pages are set up — Summary, By person, Where the time went,
-WIP hours, Data quality. Build the visuals in the UI following
-`powerbi/docs/report-pages.md`; visual layout is not reliably hand-authorable.
+Report pages are yours to build in the UI — `powerbi/docs/report-pages.md` has the
+spec. Visual layout is the part that is not reliably hand-authorable, which is exactly
+what this error demonstrated.
 
-## Do this before you trust a number
+## Before you trust a number
 
-Put these four measures on a page as cards. All should read zero:
+Four cards, all should read zero:
 
 - `Hours With No Job Number` — 188.25 for August as things stand
 - `Unmatched Employee Hours`
 - `Unmapped Job Hours`
 - `Unmapped Pay Type Hours`
 
-And this pair tells you whether the month is complete:
+And this pair tells you the month is complete:
 
-- `Working Days With Data` vs `Working Days In Period`
-
-15 against 21 is what August 2026 looks like. That is the check that would have
-stopped the 50.2% going out.
+- `Working Days With Data` vs `Working Days In Period` — 15 against 21 is August 2026
 
 ## Still needs a human
 
-- **`map_employees.csv`** — `Standard Weekly Hours` defaults to 38 for everyone.
-  Fix the part-timers. `NEEDS REVIEW` is set on 12 rows, three of which are employee
-  IDs with two different people booking time on overlapping dates.
+- **`map_employees.csv`** — `Standard Weekly Hours` is 38 for everyone. Fix the
+  part-timers. 12 rows carry `NEEDS REVIEW`, three of them employee IDs with two
+  different people on overlapping dates.
 - **`map_jobs.csv`** — `Last Fully Billed Date` is blank. Fill it from the month each
-  job's dollar balance on the WIP schedule returns to zero, and `Unbilled WIP Hours`
-  becomes a true balance instead of hours booked to date.
+  job's WIP dollar balance returns to zero.
 
-## If it will not open
+## If Route A also fails
 
-The manual path is in `SETUP.md` one folder up: six M queries to paste, then
-`measures.csx` in Tabular Editor for the measures and relationships. About 45 minutes
-and it is certain to work.
-
-Tell me the exact error text either way — "unable to open" alone does not tell me
-which part it rejected.
+`SETUP.md` one folder up: six M queries to paste, then `measures.csx` in Tabular
+Editor. 45 minutes, no format guessing, certain to work.

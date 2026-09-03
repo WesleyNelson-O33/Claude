@@ -143,6 +143,12 @@ for t in TABLES:
 # ---------------------------------------------------------------- report
 PAGES = ["Summary", "By person", "Where the time went", "WIP hours", "Data quality"]
 ids = []
+# PBIR requires a version.json in the definition folder. Desktop reported
+# "Cannot find file 'version.json'" without it. Exact contents unverified -
+# if the project still will not open, use the folder-swap route in README-FIRST.
+wj(os.path.join(RP, "definition", "version.json"), {
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/versionMetadata/1.0.0/schema.json",
+  "version": "1.0"})
 wj(os.path.join(RP, "definition", "report.json"), {
   "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/1.0.0/schema.json",
   "themeCollection": {"baseTheme": {"name": "CY24SU06", "reportVersionAtImport": "5.55",
