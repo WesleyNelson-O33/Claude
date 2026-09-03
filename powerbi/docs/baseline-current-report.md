@@ -219,3 +219,102 @@ so there is no rework in doing utilisation first.
 - Are Management, Finance and Admin inside the chargeable ratio? (77.7% -> 63.8%)
 - WIP at cost or at charge-out rate?
 - Who assigns billing basis to 745 jobs, and who maintains it for new jobs?
+
+---
+
+# Decisions settled (round 2)
+
+## Non-delivery staff: scope per PERSON, not per group
+
+Non-delivery staff sit outside the headline ratio and report as overhead, but some
+managers do bill. So scope is a flag on the employee record, not a Person Group rule.
+
+August 2026, non-delivery staff:
+
+| Name | Group | Chargeable | Non-chargeable | Leave |
+|---|---|---|---|---|
+| Jordan SEXTY | Management | 7.50 | 92.50 | 20.00 |
+| Duncan LUGSTEIN | Management | 3.25 | 116.00 | 0.00 |
+| Gianmaria Yao | Management | 0.00 | 106.50 | 12.00 |
+| Graham Cherry | Management | 0.00 | 120.00 | 0.00 |
+| Emelda Waiya | Finance | 0.00 | 72.00 | 16.00 |
+| Danica Nelson | Finance | 0.00 | 22.25 | 1.75 |
+| Premila LUGSTEIN | Admin | 0.00 | 40.00 | 0.00 |
+| Isabella NIKODINOVSKI | Admin (casual) | 0.00 | 9.50 | 0.00 |
+
+Putting Duncan and Jordan in the headline denominator at full capacity drags August
+from **77.7% to 73.5%** on 10.75 chargeable hours. That 4.2-point drop is not a
+delivery signal.
+
+**Rule:** `Dim_Employee[Utilisation Scope]` = `Delivery` | `Overhead`, set per person.
+
+- Overhead staff stay out of the headline denominator; their chargeable hours are still
+  captured and reported, so nothing disappears.
+- Managers who bill get a personal target on the by-person page.
+- Review threshold: if a manager's chargeable share runs above ~25% for two quarters,
+  move them to `Delivery` with a real target. Neither Duncan (2.7%) nor Jordan (6.3%)
+  is close on August's figures.
+
+## WIP: hours only
+
+Removes the charge-rate blocker outright, and the cost-vs-charge-rate policy question.
+
+**Open-job test (settled):** a job accrues WIP hours while it is on the WIP schedule
+(191 jobs). Already maintained, one place to maintain, and it disposes of the
+billing-basis problem too - the recurring onsite contracts are not on the schedule so
+they never accrue.
+
+**Both movement and balance (settled).** The movement is exact. The balance has an
+honest limit:
+
+- `Invoice Month` is populated on **1 of 452 rows**, so there is nothing to work back
+  from.
+- The balance available today is **chargeable hours booked to the job to date**, not
+  unbilled hours. Label the column that way on the report. Do not call it "unbilled".
+- Closing the gap: (1) reset accumulation when the job's dollar balance returns to zero
+  - no new data, inherits the reliability of 155 hand-maintained columns; (2) invoice
+  feed from Xero on the job key - the durable fix, do it after the utilisation model
+  is running.
+
+### Measures
+
+```dax
+WIP Hours Added =                       -- monthly movement, exact, available today
+    CALCULATE( [Chargeable Hours], Dim_Job[On WIP Schedule] = TRUE() )
+
+WIP Hours to Date =                     -- cumulative effort on open jobs
+    CALCULATE( [Chargeable Hours],      -- NOT unbilled hours until the reset exists
+               Dim_Job[On WIP Schedule] = TRUE(),
+               REMOVEFILTERS( Dim_Date ),
+               Dim_Date[Date] <= MAX( Dim_Date[Date] ) )
+
+Unbilled WIP Hours =                    -- the true balance, once a reset date exists
+    CALCULATE( [Chargeable Hours],
+               Dim_Job[On WIP Schedule] = TRUE(),
+               REMOVEFILTERS( Dim_Date ),
+               Dim_Date[Date] > MAX( Dim_Job[Last Fully Billed Date] ),
+               Dim_Date[Date] <= MAX( Dim_Date[Date] ) )
+
+Hours With No Job Number =              -- 188.25 hrs in August, 4.7% of the month
+    CALCULATE( [Total Hours], ISBLANK( Fact_Timesheet[Job No] ) )
+```
+
+Output: one table - job number, client, department, hours added this month, hours to
+date, last fully billed date. Drops beside the dollar schedule on the same job key.
+
+**Sequencing changed.** Hours-only makes WIP a fifth page in the same build, not a
+separate project. One flag on `Dim_Job` plus two measures.
+
+## Data checks that fell out of this
+
+- `Job Type` in `Job List` is filled on 173 of 883 jobs and holds service types
+  (AV, Onsite Support, Video), not billing bases - it is not the column to reuse.
+- `Charge` in `Job List` is filled 883/883. That is the reliable chargeable flag.
+- `Department` is filled 882/883.
+- No job open/closed status exists anywhere - hence the WIP schedule as the open test.
+
+# Only question still open
+
+**How do you know how many hours of a job have already been billed?** Everything else
+is settled. Without an answer the balance column is "hours booked to date"; with one it
+becomes a true unbilled-hours balance.
