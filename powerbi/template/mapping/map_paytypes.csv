@@ -1,0 +1,53 @@
+Pay Type,Pay Type Trimmed,Category,Counts Toward Capacity,Rows,Hours
+Annual Leave Taken,Annual Leave Taken,Leave,Yes,1203,8619.57
+ ,,Ordinary,Yes,798,2851.25
+Personal/Carer's Leave Taken,Personal/Carer's Leave Taken,Leave,Yes,516,3259.0
+Time in lieu taken,Time in lieu taken,Leave,Yes,458,1576.75
+ - Public Holiday,- Public Holiday,Public Holiday,No,403,3031.25
+Leave without pay taken,Leave without pay taken,Leave,Yes,314,2256.5
+  - Public Holiday,- Public Holiday,Public Holiday,No,182,1309.5
+Casual - Overtime x 1.75,Casual - Overtime x 1.75,Overtime,No,150,201.25
+Bonus Leave Taken,Bonus Leave Taken,Leave,Yes,58,564.0
+- Overtime x 1.75,- Overtime x 1.75,Overtime,No,45,32.0
+Permanent - Overtime x 1.5,Permanent - Overtime x 1.5,Overtime,No,42,98.5
+ - Overtime x1.5,- Overtime x1.5,Overtime,No,36,140.5
+Permanent - Overtime x1.5,Permanent - Overtime x1.5,Overtime,No,22,60.0
+Permanent - Overtime x1.25,Permanent - Overtime x1.25,Overtime,No,21,46.75
+Unused leave payment (normal termination),Unused leave payment (normal termination),Leave,Yes,20,1184.4
+Casual - Overtime x 2,Casual - Overtime x 2,Overtime,No,15,29.75
+Casual working through meal break,Casual working through meal break,Overtime,No,14,7.0
+ - Overtime x2,- Overtime x2,Overtime,No,12,82.0
+Compassionate Leave Taken,Compassionate Leave Taken,Leave,Yes,8,64.0
+Unused Leave Payment (Type O),Unused Leave Payment (Type O),Leave,Yes,8,104.75
+ - Overtime x 1.75,- Overtime x 1.75,Overtime,No,8,4.25
+- Overtime x 2,- Overtime x 2,Overtime,No,8,5.18
+Backpay,Backpay,Other Payment,No,8,0.0
+- Overtime x 1.5,- Overtime x 1.5,Overtime,No,7,14.5
+ - Public Holiday ,- Public Holiday,Public Holiday,No,7,53.0
+- Overtime x1.25,- Overtime x1.25,Overtime,No,7,9.0
+Back Payment,Back Payment,Other Payment,No,6,45.0
+Casual - Sunday,Casual - Sunday,Ordinary,Yes,6,23.0
+Permanent - Sunday,Permanent - Sunday,Ordinary,Yes,5,20.5
+ - Overtime x1.25,- Overtime x1.25,Overtime,No,4,6.0
+Casual No Meal Break,Casual No Meal Break,Overtime,No,4,5.0
+Community Service Leave Taken,Community Service Leave Taken,Leave,Yes,3,12.5
+Permanent working through meal break,Permanent working through meal break,Overtime,No,3,10.75
+Permanent - Overtime x 2,Permanent - Overtime x 2,Overtime,No,3,4.0
+Adhoc,Adhoc,Ordinary,Yes,2,8.0
+Back pay for incorrect rate,Back pay for incorrect rate,Ordinary,Yes,2,0.0
+Casual - Overtime x 1.75 - Back pay for incorrect rate,Casual - Overtime x 1.75 - Back pay for incorrect rate,Overtime,No,2,0.0
+Back pay ,Back pay,Ordinary,Yes,2,0.0
+Permanent - Less than 10 hrs break,Permanent - Less than 10 hrs break,Ordinary,Yes,2,5.25
+Old rate,Old rate,Ordinary,Yes,2,-152.0
+New rate,New rate,Ordinary,Yes,2,152.0
+Backpay - Old rate,Backpay - Old rate,Other Payment,No,2,-25.5
+Backpay - New rate fro 1 July 2026,Backpay - New rate fro 1 July 2026,Other Payment,No,2,25.5
+Back payment - Gross (superable),Back payment - Gross (superable),Other Payment,No,1,1.0
+Overpayment,Overpayment,Other Payment,No,1,7.0
+ Leave without pay taken,Leave without pay taken,Leave,Yes,1,8.0
+ - Sunday,- Sunday,Ordinary,Yes,1,4.0
+- Sunday,- Sunday,Ordinary,Yes,1,4.0
+Ad-hoc,Ad-hoc,Ordinary,Yes,1,-11.22
+eba,eba,Ordinary,Yes,1,38.78
+Permanent - Overtime x2,Permanent - Overtime x2,Overtime,No,1,1.75
+Permanent - Overtime x1.25 (Backpay),Permanent - Overtime x1.25 (Backpay),Overtime,No,1,0.5
