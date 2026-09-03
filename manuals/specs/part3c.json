@@ -1,70 +1,226 @@
 {
   "eyebrow": "PAYROLL PROCESSING",
-  "title": "Part 3c — Employees Needing Manual Handling",
+  "title": "Part 3c: Employees Needing Manual Handling",
   "subtitle": "Corporate Technology Services  ·  Employment Hero Payroll & HR  ·  Exception cases",
-  "runningHead": "Payroll Processing — Part 3c: Employees Needing Manual Handling",
+  "runningHead": "Payroll Processing, Part 3c: Employees Needing Manual Handling",
   "screenshotDir": "manuals/screenshots/part3c",
   "output": "manuals/Payroll Processing - Part 3c - Employees Needing Manual Handling.docx",
   "toc": true,
   "blocks": [
-    { "type": "h1", "text": "About this guide" },
-    { "type": "p", "text": "Parts 3a and 3b cover employees whose hours flow into the pay run on their own. This guide covers the ones that do not — people who are missing from the pay run entirely, or whose hours cannot be taken at face value." },
-    { "type": "callout", "label": "These are easy to miss.", "text": "Everyone in Parts 3a and 3b appears in the pay run, so working through it top to bottom finds them. The employees in this guide can be absent altogether. Nothing prompts you — you have to know to look." },
-
-    { "type": "step", "number": 1, "title": "Part-time employees who do not clock in" },
-    { "type": "p", "text": "Some part-time employees do not clock in and out at all. Instead there is a rule against their login setting fixed hours for the fortnight — 40 hours rather than a full-timer's 80." },
-    { "type": "p", "text": "Because there are no timesheets, they are not picked up when the pay run imports timesheets, and they will not appear in it. Add them manually:" },
-    { "type": "bullet", "text": "In the pay run, go to Pay Run Actions › Add payees" },
-    { "type": "bullet", "text": "Type the employee's name and select them" },
-    { "type": "bullet", "text": "Their fixed hours populate automatically from the rule on their login" },
-    { "type": "shot", "file": "01-add-payee-to-pay-run.png", "caption": "Adding a payee to the pay run, with the confirmation that the payee has been added. Names and pay figures are blurred in this guide." },
-    { "type": "callout", "label": "Always check the rate.", "text": "The hours populate automatically but the rate does not always come through correctly. Verify it against the employee's profile before moving on — this is a recurring problem, not a one-off." },
-
-    { "type": "step", "number": 2, "title": "New starters" },
-    { "type": "p", "text": "A new starter will appear in the pay run, because they have timesheets, but they will not be in the timesheet spreadsheet — it was copied from a template created before they joined." },
-    { "type": "p", "text": "Add them into the spreadsheet in alphabetical position, with their hourly rate taken from their contract." },
-    { "type": "callout", "label": "Use the ex-loading rate.", "text": "For casual new starters, the rate in the spreadsheet is the rate excluding casual loading. A contract quoting a rate inclusive of loading needs converting before it goes in, or every calculation downstream will be overstated." },
-
-    { "type": "step", "number": 3, "title": "Employees with no timesheets this fortnight" },
-    { "type": "p", "text": "Occasionally someone worked a shift that was never captured — they did not clock in, so there was no timesheet, so they are not in the pay run at all. These usually surface when the employee emails about a missed pay." },
-    { "type": "p", "text": "The shift may belong to an earlier fortnight. That is still handled in the current pay run:" },
-    { "type": "bullet", "text": "Pay Run Actions › Add payees, and add the employee" },
-    { "type": "bullet", "text": "Import timesheets, choosing the option that covers unpaid timesheets rather than this pay period" },
-    { "type": "bullet", "text": "Select only the shifts that belong to the period being corrected" },
-    { "type": "bullet", "text": "Delete anything else the import brings in" },
-    { "type": "callout", "label": "This is the one time you use the second import option.", "text": "Part 2 warns you to always import Timesheets for this pay period. This is the exception — recovering a missed shift needs the unpaid timesheets option. Delete every row it brings in except the ones you are correcting, and check the employee's total afterwards." },
-
-    { "type": "step", "number": 4, "title": "Leave without pay" },
-    { "type": "p", "text": "Leave without pay cannot be entered in payroll directly. It is created in Employment Hero HR and then synced across, so it has to be done in the right order." },
-    { "type": "p", "text": "First, exclude the employee from the pay run. Then in Employment Hero HR, go to Time & Leave Management and create a leave request on their behalf:" },
-    { "type": "shot", "file": "02-create-leave-request-lwop.png", "caption": "Creating a leave request on an employee's behalf in Employment Hero HR, with the category set to Leave Without Pay. The employee name is blurred in this guide." },
-    { "type": "table", "rows": [
-      ["Personnel", "The employee taking the leave"],
-      ["Leave category", "Leave Without Pay"],
-      ["From / To", "The dates affected — check these carefully against the timesheet"]
-    ]},
-    { "type": "p", "text": "Once approved in HR, return to payroll. A purple banner appears at the top of the employee's timesheets. Click it, update the time to reflect the actual hours, and add the cost centre." },
-    { "type": "callout", "label": "The aeroplane icon confirms the sync.", "text": "Leave that has come through from HR shows an aeroplane icon against it. If you do not see one, the leave has not synced and the pay run will still be wrong." },
-    { "type": "p", "text": "Then add the employee back into the pay run and re-import their timesheets." },
-
-    { "type": "step", "number": 5, "title": "Watch the rounding rule against leave without pay" },
-    { "type": "p", "text": "For salaried employees the 8-hour rounding rule described in Part 3b interacts badly with leave without pay, and this is where it is easiest to overpay someone." },
-    { "type": "callout", "label": "The rule rounds the short day back up.", "text": "If an employee starts late and takes the missing time as leave without pay, the rounding rule will still record eight hours for that day. The unpaid time has to be deducted manually — otherwise you pay them for hours they took without pay." },
-    { "type": "p", "text": "Work out the deduction from the actual times rather than the recorded day. Add together the unpaid periods across the fortnight and take the total off the hours figure, then confirm the employee's total matches what they actually worked." },
-
-    { "type": "h1", "text": "Known issue" },
-    { "type": "p", "text": "The spreadsheet's total hours column does not currently handle leave without pay correctly — the leave without pay column is deliberately excluded from the total hours figure but is needed for the dollar value, and the two do not reconcile cleanly." },
-    { "type": "callout", "label": "Check this by hand for now.", "text": "This was identified during training and left unresolved. Until it is fixed, verify the total hours manually for any employee with leave without pay in the fortnight, rather than trusting the spreadsheet total." },
-
-    { "type": "h1", "text": "Checklist" },
-    { "type": "p", "text": "Before treating the pay run as complete:" },
-    { "type": "bullet", "text": "Every part-time employee who does not clock in has been added manually, with their rate checked" },
-    { "type": "bullet", "text": "New starters have been added to the spreadsheet at the ex-loading rate" },
-    { "type": "bullet", "text": "Any reported missed shifts from earlier periods have been recovered and the surplus rows deleted" },
-    { "type": "bullet", "text": "Leave without pay has been created in HR, synced, and shows the aeroplane icon" },
-    { "type": "bullet", "text": "Rounded-up days have been corrected for anyone with leave without pay" },
-    { "type": "bullet", "text": "Total hours verified by hand where leave without pay applies" },
-
-    { "type": "next", "text": "Part 4 — Reconciling Timesheets (continued), which works through a salaried employee whose overtime category was triggered in error." }
+    {
+      "type": "h1",
+      "text": "About this guide"
+    },
+    {
+      "type": "p",
+      "text": "Parts 3a and 3b cover employees whose hours flow into the pay run on their own. This guide covers the ones that do not: people who are missing from the pay run entirely, or whose hours cannot be taken at face value."
+    },
+    {
+      "type": "callout",
+      "label": "These are easy to miss.",
+      "text": "Everyone in Parts 3a and 3b appears in the pay run, so working through it top to bottom finds them. The employees in this guide can be absent altogether. Nothing prompts you; you have to know to look."
+    },
+    {
+      "type": "step",
+      "number": 1,
+      "title": "Part-time employees who do not clock in"
+    },
+    {
+      "type": "p",
+      "text": "Some part-time employees do not clock in and out at all. Instead there is a rule against their login setting fixed hours for the fortnight, 40 hours rather than a full-timer's 80."
+    },
+    {
+      "type": "p",
+      "text": "Because there are no timesheets, they are not picked up when the pay run imports timesheets, and they will not appear in it. Add them manually:"
+    },
+    {
+      "type": "bullet",
+      "text": "In the pay run, go to Pay Run Actions › Add payees"
+    },
+    {
+      "type": "bullet",
+      "text": "Type the employee's name and select them"
+    },
+    {
+      "type": "bullet",
+      "text": "Their fixed hours populate automatically from the rule on their login"
+    },
+    {
+      "type": "shot",
+      "file": "01-add-payee-to-pay-run.png",
+      "caption": "Adding a payee to the pay run, with the confirmation that the payee has been added. Names and pay figures are blurred in this guide."
+    },
+    {
+      "type": "callout",
+      "label": "Always check the rate.",
+      "text": "The hours populate automatically but the rate does not always come through correctly. Verify it against the employee's profile before moving on; this is a recurring problem, not a one-off."
+    },
+    {
+      "type": "step",
+      "number": 2,
+      "title": "New starters"
+    },
+    {
+      "type": "p",
+      "text": "A new starter will appear in the pay run, because they have timesheets, but they will not be in the timesheet spreadsheet; it was copied from a template created before they joined."
+    },
+    {
+      "type": "p",
+      "text": "Add them into the spreadsheet in alphabetical position, with their hourly rate taken from their contract."
+    },
+    {
+      "type": "callout",
+      "label": "Use the ex-loading rate.",
+      "text": "For casual new starters, the rate in the spreadsheet is the rate excluding casual loading. A contract quoting a rate inclusive of loading needs converting before it goes in, or every calculation downstream will be overstated."
+    },
+    {
+      "type": "step",
+      "number": 3,
+      "title": "Employees with no timesheets this fortnight"
+    },
+    {
+      "type": "p",
+      "text": "Occasionally someone worked a shift that was never captured: they did not clock in, so there was no timesheet, so they are not in the pay run at all. These usually surface when the employee emails about a missed pay."
+    },
+    {
+      "type": "p",
+      "text": "The shift may belong to an earlier fortnight. That is still handled in the current pay run:"
+    },
+    {
+      "type": "bullet",
+      "text": "Pay Run Actions › Add payees, and add the employee"
+    },
+    {
+      "type": "bullet",
+      "text": "Import timesheets, choosing the option that covers unpaid timesheets rather than this pay period"
+    },
+    {
+      "type": "bullet",
+      "text": "Select only the shifts that belong to the period being corrected"
+    },
+    {
+      "type": "bullet",
+      "text": "Delete anything else the import brings in"
+    },
+    {
+      "type": "callout",
+      "label": "This is the one time you use the second import option.",
+      "text": "Part 2 warns you to always import Timesheets for this pay period. This is the exception: recovering a missed shift needs the unpaid timesheets option. Delete every row it brings in except the ones you are correcting, and check the employee's total afterwards."
+    },
+    {
+      "type": "step",
+      "number": 4,
+      "title": "Leave without pay"
+    },
+    {
+      "type": "p",
+      "text": "Leave without pay cannot be entered in payroll directly. It is created in Employment Hero HR and then synced across, so it has to be done in the right order."
+    },
+    {
+      "type": "p",
+      "text": "First, exclude the employee from the pay run. Then in Employment Hero HR, go to Time & Leave Management and create a leave request on their behalf:"
+    },
+    {
+      "type": "shot",
+      "file": "02-create-leave-request-lwop.png",
+      "caption": "Creating a leave request on an employee's behalf in Employment Hero HR, with the category set to Leave Without Pay. The employee name is blurred in this guide."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Personnel",
+          "The employee taking the leave"
+        ],
+        [
+          "Leave category",
+          "Leave Without Pay"
+        ],
+        [
+          "From / To",
+          "The dates affected; check these carefully against the timesheet"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Once approved in HR, return to payroll. A purple banner appears at the top of the employee's timesheets. Click it, update the time to reflect the actual hours, and add the cost centre."
+    },
+    {
+      "type": "callout",
+      "label": "The aeroplane icon confirms the sync.",
+      "text": "Leave that has come through from HR shows an aeroplane icon against it. If you do not see one, the leave has not synced and the pay run will still be wrong."
+    },
+    {
+      "type": "p",
+      "text": "Then add the employee back into the pay run and re-import their timesheets."
+    },
+    {
+      "type": "step",
+      "number": 5,
+      "title": "Watch the rounding rule against leave without pay"
+    },
+    {
+      "type": "p",
+      "text": "For salaried employees the 8-hour rounding rule described in Part 3b interacts badly with leave without pay, and this is where it is easiest to overpay someone."
+    },
+    {
+      "type": "callout",
+      "label": "The rule rounds the short day back up.",
+      "text": "If an employee starts late and takes the missing time as leave without pay, the rounding rule will still record eight hours for that day. The unpaid time has to be deducted manually; otherwise you pay them for hours they took without pay."
+    },
+    {
+      "type": "p",
+      "text": "Work out the deduction from the actual times rather than the recorded day. Add together the unpaid periods across the fortnight and take the total off the hours figure, then confirm the employee's total matches what they actually worked."
+    },
+    {
+      "type": "h1",
+      "text": "Known issue"
+    },
+    {
+      "type": "p",
+      "text": "The spreadsheet's total hours column does not currently handle leave without pay correctly: the leave without pay column is deliberately excluded from the total hours figure but is needed for the dollar value, and the two do not reconcile cleanly."
+    },
+    {
+      "type": "callout",
+      "label": "Check this by hand for now.",
+      "text": "This was identified during training and left unresolved. Until it is fixed, verify the total hours manually for any employee with leave without pay in the fortnight, rather than trusting the spreadsheet total."
+    },
+    {
+      "type": "h1",
+      "text": "Checklist"
+    },
+    {
+      "type": "p",
+      "text": "Before treating the pay run as complete:"
+    },
+    {
+      "type": "bullet",
+      "text": "Every part-time employee who does not clock in has been added manually, with their rate checked"
+    },
+    {
+      "type": "bullet",
+      "text": "New starters have been added to the spreadsheet at the ex-loading rate"
+    },
+    {
+      "type": "bullet",
+      "text": "Any reported missed shifts from earlier periods have been recovered and the surplus rows deleted"
+    },
+    {
+      "type": "bullet",
+      "text": "Leave without pay has been created in HR, synced, and shows the aeroplane icon"
+    },
+    {
+      "type": "bullet",
+      "text": "Rounded-up days have been corrected for anyone with leave without pay"
+    },
+    {
+      "type": "bullet",
+      "text": "Total hours verified by hand where leave without pay applies"
+    },
+    {
+      "type": "next",
+      "text": "Part 4: Reconciling Timesheets (continued), which works through a salaried employee whose overtime category was triggered in error."
+    }
   ]
 }

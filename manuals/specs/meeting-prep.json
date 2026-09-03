@@ -1,8 +1,8 @@
 {
   "eyebrow": "PAYROLL HANDOVER",
-  "title": "Meeting Prep — Where Each Question Came From",
+  "title": "Meeting Prep: Where Each Question Came From",
   "subtitle": "Corporate Technology Services  ·  Sources for the handover questions  ·  For use in the handover meeting",
-  "runningHead": "Payroll Handover — Meeting Prep",
+  "runningHead": "Payroll Handover: Meeting Prep",
   "screenshotDir": "manuals/screenshots/part1",
   "output": "manuals/Payroll Handover - Meeting Prep.docx",
   "toc": true,
@@ -17,12 +17,12 @@
     },
     {
       "type": "p",
-      "text": "Take it into the meeting. If she asks where a question came from, you can point at the moment in her own recording rather than paraphrasing — which makes the conversation about the answer rather than about whether the question is fair."
+      "text": "Take it into the meeting. If she asks where a question came from, you can point at the moment in her own recording rather than paraphrasing, which makes the conversation about the answer rather than about whether the question is fair."
     },
     {
       "type": "callout",
       "label": "About the quotes.",
-      "text": "These come from automatic transcription of the recordings, so occasional wording will be slightly off — 'fortnight' sometimes comes through as 'Fortnite', for instance. The timestamps are exact, so anything disputed can be checked against the video directly."
+      "text": "These come from automatic transcription of the recordings, so occasional wording will be slightly off: 'fortnight' sometimes comes through as 'Fortnite', for instance. The timestamps are exact, so anything disputed can be checked against the video directly."
     },
     {
       "type": "p",
@@ -82,13 +82,13 @@
         {
           "n": 2,
           "q": "Who requests CommBiz access, and how long does it take to come through?",
-          "source": "Follows from question 1 — never discussed",
+          "source": "Follows from question 1, never discussed",
           "note": "Worth asking early. If it takes a week to provision, that needs starting now rather than on prep day."
         },
         {
           "n": 3,
           "q": "Is there anything else I will need a login for that has not come up yet?",
-          "source": "General — across all six recordings",
+          "source": "General: across all six recordings",
           "note": "The recordings show Employment Hero payroll, Employment Hero HR, the Y drive, Outlook, CommBiz and Excel. This asks whether anything else is involved that simply did not appear."
         }
       ]
@@ -110,21 +110,21 @@
         {
           "n": 5,
           "q": "Can one person do both approvals if the other is unavailable?",
-          "source": "Follows from question 4 — never discussed",
+          "source": "Follows from question 4, never discussed",
           "note": "This may be deliberate separation of duties rather than habit. Worth knowing which, before you need to ask someone to cover."
         },
         {
           "n": 6,
           "q": "If a manager has not approved timesheets by prep day, who do I chase, and when do I escalate?",
           "source": "Video: Payroll Processing Part 1 (Payroll Prep), at 02:48",
-          "quote": "Check if anything under the status Submitted is still pending — that means you can't start the payroll process yet.",
+          "quote": "Check if anything under the status Submitted is still pending; that means you can't start the payroll process yet.",
           "note": "The recording establishes this as a hard gate but never covers what to do when the gate stays shut."
         },
         {
           "n": 7,
           "q": "Who settles a disputed overtime form?",
           "source": "Video: Payroll Processing Part 3 (Reconciling Timesheets), at 42:28",
-          "quote": "But he ticked no in the chargeable section. I think this should have been yes. — Should have been yes. — Yeah. So we'll need to add that. We'll need to let Mitch know to edit the attachment.",
+          "quote": "But he ticked no in the chargeable section. I think this should have been yes. - Should have been yes. - Yeah. So we'll need to add that. We'll need to let Mitch know to edit the attachment.",
           "note": "You both disagreed with the manager's classification. It was resolved by going back to him, but there is no stated process for when he disagrees."
         },
         {
@@ -159,7 +159,7 @@
           "n": 11,
           "q": "How do I handle a termination? Final pay, unused annual leave, time in lieu balance.",
           "source": "Not covered in any recording",
-          "note": "A resigning employee is mentioned in passing during rate verification in Video 5 — \"he's the one who resigned\" — but no termination is ever processed on camera."
+          "note": "A resigning employee is mentioned in passing during rate verification in Video 5, \"he's the one who resigned\", but no termination is ever processed on camera."
         },
         {
           "n": 12,
@@ -172,7 +172,7 @@
           "n": 13,
           "q": "Employment Hero self-onboarding already collects the tax declaration and super choice. Beyond that, is there anything else you request from a new starter before their first pay? Does it differ by employment type?",
           "source": "Video: Payroll Processing Part 3 (Reconciling Timesheets) at 41:04",
-          "quote": "Charlotte Owens is a new starter, so this would not appear in the spreadsheet, so we actually need to add her in. Her rate is 45 an hour — this is the ex loading.",
+          "quote": "Charlotte Owens is a new starter, so this would not appear in the spreadsheet, so we actually need to add her in. Her rate is 45 an hour; this is the ex loading.",
           "note": "The recording covers adding a new starter to the spreadsheet, but nothing about what payroll needs from them beforehand."
         },
         {
@@ -180,7 +180,7 @@
           "q": "What do I do if I find a mistake after the pay run is finalised and super has been paid?",
           "source": "Video: Payroll Processing Part 6 (Finalisation & Bank Upload), on screen at 15:58",
           "quote": "This pay run cannot be unlocked because automated super payments have been made.",
-          "note": "That message appears in the finalised pay run. Video 5 shows corrections being made as back pays in the following fortnight, so that appears to be the route — but it is never stated as the rule."
+          "note": "That message appears in the finalised pay run. Video 5 shows corrections being made as back pays in the following fortnight, so that appears to be the route, but it is never stated as the rule."
         },
         {
           "n": 15,
@@ -209,13 +209,13 @@
           "q": "When Employment Hero triggers both daily overtime and weekly overtime for the same casual, which one do I keep? Is there a rule, or is it a judgement call?",
           "source": "Video: Payroll Processing Part 3 (Reconciling Timesheets) at 30:48",
           "quote": "Based on the Live Performance Award, we are not obligated to pay both of them at the same time. We can choose to pay one of them, whether it's the per day or the end of the week. So we shouldn't double dip on it.",
-          "note": "This is the clearest judgement call in the recordings. She chose one, but the basis for choosing is never given — and it changes what someone gets paid."
+          "note": "This is the clearest judgement call in the recordings. She chose one, but the basis for choosing is never given, and it changes what someone gets paid."
         },
         {
           "n": 18,
           "q": "Can we confirm the no meal break penalty rate, and where it sits in the award?",
           "source": "Video: Payroll Processing Part 3 (Reconciling Timesheets) at 39:12, 39:40 and 40:08",
-          "quote": "The no meal break is actually at penalty times two. If I'm not mistaken, 37.5 times two. Actually, no, it's not. … 2.25 I think. … You just had a look at the award then to confirm that? Sorry, no — I calculated on my own.",
+          "quote": "The no meal break is actually at penalty times two. If I'm not mistaken, 37.5 times two. Actually, no, it's not. … 2.25 I think. … You just had a look at the award then to confirm that? Sorry, no, I calculated on my own.",
           "note": "Stated three different ways in a minute and confirmed as calculated rather than read from the award. This is the single rule I would most want verified before you use it."
         },
         {
@@ -236,7 +236,7 @@
           "q": "Is there an overtime matrix for part time staff? The one on file says full time.",
           "source": "Video: Payroll Processing Part 3 (Reconciling Timesheets) at 27:04, and the document on screen",
           "quote": "We do have our own overtime matrix, which then is followed based on the category, whether it's within 80 hours, less than 80 hours, or greater than 80 hours.",
-          "note": "The document itself is headed 'CTS Overtime Matrix — Full Time Staff'. Part-time staff are never discussed in relation to it."
+          "note": "The document itself is headed 'CTS Overtime Matrix - Full Time Staff'. Part-time staff are never discussed in relation to it."
         },
         {
           "n": 22,
@@ -271,7 +271,7 @@
           "n": 25,
           "q": "Does green mean 'I have checked this rate' or 'this rate changed'?",
           "source": "Video: Payroll Processing Part 3 (Reconciling Timesheets) at 11:40 and 12:08, and Payroll Processing Part 5 (Reconciling & Balancing Payrun) at 34:32",
-          "quote": "The green denotes that the pay rate has been updated. … Okay, is that correct? Well, I actually don't know — this is the template that you created, I haven't changed it at all. … If they're green that means that we did them last week, so they should be fine.",
+          "quote": "The green denotes that the pay rate has been updated. … Okay, is that correct? Well, I actually don't know; this is the template that you created, I haven't changed it at all. … If they're green that means that we did them last week, so they should be fine.",
           "note": "Described as 'updated' in one recording and 'checked last week' in another. Since you will be relying on the colour to know what still needs verifying, it matters which it means."
         }
       ]
@@ -317,7 +317,7 @@
           "n": 29,
           "q": "Where are the bonus leave letters kept, and who issues them?",
           "source": "Video: Payroll Processing Part 5 (Reconciling & Balancing Payrun) at 22:52 and 23:20",
-          "quote": "Isaac — I can't accrue it yet because we haven't issued him a letter. … So once you've issued the letter, I can always backtrace.",
+          "quote": "Isaac, I can't accrue it yet because we haven't issued him a letter. … So once you've issued the letter, I can always backtrace.",
           "note": "Accrual is blocked until a letter is signed, and at the time of recording there were several outstanding. You would inherit those."
         },
         {
@@ -325,7 +325,7 @@
           "q": "What happens when someone queries their pay after pay day?",
           "source": "Video: Payroll Processing Part 5 (Reconciling & Balancing Payrun) at 09:20",
           "quote": "The reason why we captured this one now in terms of this pay run is because the employee emailed us about a missed pay.",
-          "note": "The recording shows the fix but not the process around it — who responds, how quickly, and whether anyone needs to approve a correction."
+          "note": "The recording shows the fix but not the process around it: who responds, how quickly, and whether anyone needs to approve a correction."
         },
         {
           "n": 31,
@@ -337,7 +337,7 @@
         {
           "n": 32,
           "q": "Is there anything you do out of habit that is not written down anywhere?",
-          "source": "General — the reason for asking",
+          "source": "General: the reason for asking",
           "note": "Across the six recordings she repeatedly checks things without saying why, and refers to prior conversations the camera did not capture. This question is the catch-all for whatever that turns out to be."
         }
       ]
@@ -352,23 +352,23 @@
     },
     {
       "type": "bullet",
-      "text": "Question 18 — the meal break penalty rate, which was calculated rather than checked"
+      "text": "Question 18: the meal break penalty rate, which was calculated rather than checked"
     },
     {
       "type": "bullet",
-      "text": "Question 17 — which overtime to keep when both trigger, which is a judgement call with no stated basis"
+      "text": "Question 17: which overtime to keep when both trigger, which is a judgement call with no stated basis"
     },
     {
       "type": "bullet",
-      "text": "Question 23 — the unresolved leave without pay problem in the spreadsheet"
+      "text": "Question 23: the unresolved leave without pay problem in the spreadsheet"
     },
     {
       "type": "bullet",
-      "text": "Questions 4 and 8 — who approves and who you escalate to when the usual people are unavailable"
+      "text": "Questions 4 and 8: who approves and who you escalate to when the usual people are unavailable"
     },
     {
       "type": "bullet",
-      "text": "Question 10 — the Employment Hero support contact"
+      "text": "Question 10: the Employment Hero support contact"
     },
     {
       "type": "p",

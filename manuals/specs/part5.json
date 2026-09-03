@@ -1,97 +1,315 @@
 {
   "eyebrow": "PAYROLL PROCESSING",
-  "title": "Part 5 — Reconciling & Balancing the Pay Run",
+  "title": "Part 5: Reconciling & Balancing the Pay Run",
   "subtitle": "Corporate Technology Services  ·  Employment Hero Payroll  ·  Fortnightly cycle",
-  "runningHead": "Payroll Processing — Part 5: Reconciling & Balancing the Pay Run",
+  "runningHead": "Payroll Processing, Part 5: Reconciling & Balancing the Pay Run",
   "screenshotDir": "manuals/screenshots/part5",
   "output": "manuals/Payroll Processing - Part 5 - Reconciling and Balancing the Pay Run.docx",
   "toc": true,
   "blocks": [
-    { "type": "h1", "text": "About this guide" },
-    { "type": "p", "text": "By this stage every employee's hours have been reconciled through Parts 3a to 4. This guide covers everything that remains before the pay run can be finalised: applying the payroll notes, accruing bonus leave, verifying pay rates, and balancing the pay run against the spreadsheet." },
-    { "type": "p", "text": "Work through it in order. Balancing comes last for a reason — every earlier step changes the numbers you are balancing to." },
-    { "type": "callout", "label": "Do not skip to balancing.", "text": "It is tempting to check the totals early. Applying a single back pay afterwards throws the balance out again, so you will only have to redo it. Get everything in first, then balance once." },
-
-    { "type": "step", "number": 1, "title": "Add anyone still missing from the pay run" },
-    { "type": "p", "text": "Before applying adjustments, confirm everyone who should be paid is actually in the pay run. Employees who do not clock in will not be there, and neither will anyone recovering a shift from an earlier fortnight." },
-    { "type": "p", "text": "Part 3c covers both cases in full. Add them now, so that the totals you balance against are complete." },
-
-    { "type": "step", "number": 2, "title": "Apply the payroll notes" },
-    { "type": "p", "text": "The payroll notes collated back in Part 1 now get applied to the pay run. They fall into four kinds, each handled differently." },
-
-    { "type": "h2", "text": "Back pay for an incorrect rate" },
-    { "type": "p", "text": "Where someone was paid at the wrong rate in an earlier fortnight, do not calculate the difference by hand. Enter it as two lines and let Employment Hero do the arithmetic:" },
-    { "type": "bullet", "text": "Actions › Add earnings — enter the hours as a negative at the old, incorrect rate" },
-    { "type": "bullet", "text": "Actions › Add earnings again — enter the same hours as a positive at the correct rate" },
-    { "type": "shot", "file": "02-back-pay-rate-reversal.png", "caption": "Entering a rate reversal against an employee, with the reason recorded in the Notes field. Rates and amounts are blurred in this guide." },
-    { "type": "p", "text": "Write the reason in the notes on both lines, naming the fortnight being corrected. Then record the net difference in the back pay column of the spreadsheet." },
-    { "type": "callout", "label": "The cost centre does not matter here.", "text": "A rate reversal affects the dollar value, not where the cost lands. Pick a sensible cost centre and move on rather than working it out precisely." },
-
-    { "type": "h2", "text": "Back pay for leave that was never captured" },
-    { "type": "p", "text": "Where leave was approved but never made it into a pay run — usually because the approver did not click through the banner on the timesheet — the shifts may already exist in Employment Hero." },
-    { "type": "p", "text": "In that case use Import Timesheets, choose the unpaid timesheets option, and select only the dates being corrected. Delete every other row the import brings in, then check the employee's total afterwards." },
-
-    { "type": "h2", "text": "Time in lieu adjustments" },
-    { "type": "p", "text": "Time in lieu is adjusted through Actions, using Accrue leave to add and Adjust leave to remove. Label each entry with the reason, such as an incorrect accrual being reversed." },
-    { "type": "callout", "label": "Untick the option that affects pay.", "text": "When adjusting leave down, make sure the setting that applies the adjustment to the dollar value is unticked. Leaving it ticked deducts the value from the employee's pay as well as their balance, which is not what an accrual correction should do." },
-
-    { "type": "h2", "text": "Per diem" },
-    { "type": "p", "text": "Per diem is paid to employees travelling during the fortnight, and is normally paid before the travel date rather than after." },
-    { "type": "table", "rows": [
-      ["CTS rate", "$75 per night — this is the rate to use"],
-      ["Award rate", "Substantially lower and set per meal. CTS pays its own rate instead."],
-      ["How to enter it", "Use units multiplied by nights rather than a single combined figure"]
-    ]},
-    { "type": "callout", "label": "You will usually know about travel already.", "text": "Travel is normally booked by you, so it will show on the credit card. The production manager will also flag team members travelling, and the shared calendar confirms it." },
-
-    { "type": "step", "number": 3, "title": "Accrue bonus leave — last pay run of the month only" },
-    { "type": "p", "text": "Bonus leave is accrued once a month, in the last pay run of that month, and always a month ahead. It is tracked manually in a separate spreadsheet, so nothing prompts you to do it." },
-    { "type": "shot", "file": "03-bonus-leave-tracker.png", "caption": "The bonus leave tracker, listing staff anniversaries and the days accrued against each month. Employee names are blurred in this guide." },
-    { "type": "p", "text": "The tracker records service length and eligibility date for each employee, with a row per month. Entries are days, not hours. Read the colours as follows:" },
-    { "type": "table", "rows": [
-      ["Green", "The bonus leave has been used"],
-      ["No highlight", "Accrued but not yet used"],
-      ["Yellow", "The employee's anniversary date — a new entitlement year begins"]
-    ]},
-    { "type": "p", "text": "For each employee with an entry against the coming month, use Actions › Accrue leave, choose the bonus leave category, and label it with the month and year. A day is eight hours." },
-    { "type": "callout", "label": "No accrual without a signed letter.", "text": "An employee is not accrued bonus leave until their letter has been issued and signed. Where a letter is outstanding, mark it on the tracker and leave the accrual — it can be backdated once the letter is in place." },
-    { "type": "p", "text": "Entitlement grows with service, so the tracker needs extending as people pass each milestone. Because it is maintained by hand, open it any time bonus leave is involved rather than assuming it is current." },
-
-    { "type": "step", "number": 4, "title": "Verify pay rates" },
-    { "type": "p", "text": "Before balancing, every pay rate in the spreadsheet needs checking against the rate increase spreadsheet. Anyone absent from that spreadsheet has had no change, so their existing rate stands." },
-    { "type": "p", "text": "For salaried employees the hourly rate is derived from the annual salary:" },
-    { "type": "table", "rows": [
-      ["Formula", "Annual salary ÷ 1.12 ÷ 52 ÷ 40"],
-      ["The ÷ 1.12", "Removes superannuation — the spreadsheet holds rates excluding super"],
-      ["Then ÷ 52 ÷ 40", "Converts the annual figure to an hourly rate, which is how Employment Hero calculates it"]
-    ]},
-    { "type": "callout", "label": "Check whether a quoted rate includes super or loading.", "text": "Rates get quoted three ways — inclusive of super, inclusive of casual loading, or bare. The spreadsheet wants the rate excluding both. Most reconciliation errors at this step come from comparing two figures that are not on the same basis." },
-    { "type": "callout", "label": "Some rates do not flow through from HR.", "text": "A known Employment Hero fault means a rate updated in HR sometimes fails to reach payroll, leaving the old rate in place — often flagged with a warning icon on the employee. Override the rate manually for the current pay run, and check whether earlier fortnights were underpaid. If they were, that is a back pay to add under Step 2." },
-    { "type": "p", "text": "Mark each rate green once verified. Colour anything you could not verify differently so it is picked up next fortnight rather than being assumed correct." },
-
-    { "type": "step", "number": 5, "title": "Balance the pay run" },
-    { "type": "p", "text": "Balancing compares the spreadsheet against Employment Hero on two figures: total hours and total dollar value. The spreadsheet carries a checksum row that does the comparison for you." },
-    { "type": "shot", "file": "04-checksum-balancing.png", "caption": "The checksum rows at the foot of the timesheet spreadsheet. Hours agree at zero while the dollar value is still out. Names and rates are blurred in this guide." },
-    { "type": "p", "text": "Enter the Employment Hero figures against the per EH Payroll row and read the checksums beneath:" },
-    { "type": "table", "rows": [
-      ["Hours checksum at 0.00", "Total hours agree — the reconciliation work in Parts 3a to 4 is complete"],
-      ["Dollar checksum not zero", "Hours are right but a rate or multiplier is wrong somewhere"]
-    ]},
-    { "type": "p", "text": "Hours almost always balance first, because that is what the earlier parts were reconciling. A dollar variance with balanced hours means the hours are in the right place but at least one is being paid at the wrong rate." },
-    { "type": "p", "text": "To find it, read gross earnings employee by employee from the spreadsheet against the pay run. It is tedious but reliable, and the variance is usually a single employee. Filtering out rows already agreeing narrows it quickly." },
-    { "type": "callout", "label": "An overtime rate is the usual culprit.", "text": "When hours balance but dollars do not, check overtime rates before ordinary rates. An overtime multiplier applied to a stale base rate produces a small variance that is easy to overlook and hard to spot in the totals." },
-    { "type": "p", "text": "Work the variance down to zero. A residual of a cent or two from rounding is acceptable; anything larger has a cause worth finding." },
-
-    { "type": "h1", "text": "Checklist" },
-    { "type": "p", "text": "The pay run is ready to finalise when:" },
-    { "type": "bullet", "text": "Everyone who should be paid is in the pay run, including those who do not clock in" },
-    { "type": "bullet", "text": "Every payroll note has been applied — back pays, leave corrections, time in lieu adjustments and per diem" },
-    { "type": "bullet", "text": "Bonus leave has been accrued, if this is the last pay run of the month" },
-    { "type": "bullet", "text": "Every pay rate has been verified and marked, with unverified rates flagged" },
-    { "type": "bullet", "text": "Rates that failed to sync from HR have been overridden and any resulting back pay added" },
-    { "type": "bullet", "text": "The hours checksum reads zero" },
-    { "type": "bullet", "text": "The dollar checksum reads zero, or within a couple of cents of rounding" },
-
-    { "type": "next", "text": "Part 6 — Finalisation & Bank Upload." }
+    {
+      "type": "h1",
+      "text": "About this guide"
+    },
+    {
+      "type": "p",
+      "text": "By this stage every employee's hours have been reconciled through Parts 3a to 4. This guide covers everything that remains before the pay run can be finalised: applying the payroll notes, accruing bonus leave, verifying pay rates, and balancing the pay run against the spreadsheet."
+    },
+    {
+      "type": "p",
+      "text": "Work through it in order. Balancing comes last for a reason: every earlier step changes the numbers you are balancing to."
+    },
+    {
+      "type": "callout",
+      "label": "Do not skip to balancing.",
+      "text": "It is tempting to check the totals early. Applying a single back pay afterwards throws the balance out again, so you will only have to redo it. Get everything in first, then balance once."
+    },
+    {
+      "type": "step",
+      "number": 1,
+      "title": "Add anyone still missing from the pay run"
+    },
+    {
+      "type": "p",
+      "text": "Before applying adjustments, confirm everyone who should be paid is actually in the pay run. Employees who do not clock in will not be there, and neither will anyone recovering a shift from an earlier fortnight."
+    },
+    {
+      "type": "p",
+      "text": "Part 3c covers both cases in full. Add them now, so that the totals you balance against are complete."
+    },
+    {
+      "type": "step",
+      "number": 2,
+      "title": "Apply the payroll notes"
+    },
+    {
+      "type": "p",
+      "text": "The payroll notes collated back in Part 1 now get applied to the pay run. They fall into four kinds, each handled differently."
+    },
+    {
+      "type": "h2",
+      "text": "Back pay for an incorrect rate"
+    },
+    {
+      "type": "p",
+      "text": "Where someone was paid at the wrong rate in an earlier fortnight, do not calculate the difference by hand. Enter it as two lines and let Employment Hero do the arithmetic:"
+    },
+    {
+      "type": "bullet",
+      "text": "Actions › Add earnings: enter the hours as a negative at the old, incorrect rate"
+    },
+    {
+      "type": "bullet",
+      "text": "Actions › Add earnings again: enter the same hours as a positive at the correct rate"
+    },
+    {
+      "type": "shot",
+      "file": "02-back-pay-rate-reversal.png",
+      "caption": "Entering a rate reversal against an employee, with the reason recorded in the Notes field. Rates and amounts are blurred in this guide."
+    },
+    {
+      "type": "p",
+      "text": "Write the reason in the notes on both lines, naming the fortnight being corrected. Then record the net difference in the back pay column of the spreadsheet."
+    },
+    {
+      "type": "callout",
+      "label": "The cost centre does not matter here.",
+      "text": "A rate reversal affects the dollar value, not where the cost lands. Pick a sensible cost centre and move on rather than working it out precisely."
+    },
+    {
+      "type": "h2",
+      "text": "Back pay for leave that was never captured"
+    },
+    {
+      "type": "p",
+      "text": "Where leave was approved but never made it into a pay run, usually because the approver did not click through the banner on the timesheet; the shifts may already exist in Employment Hero."
+    },
+    {
+      "type": "p",
+      "text": "In that case use Import Timesheets, choose the unpaid timesheets option, and select only the dates being corrected. Delete every other row the import brings in, then check the employee's total afterwards."
+    },
+    {
+      "type": "h2",
+      "text": "Time in lieu adjustments"
+    },
+    {
+      "type": "p",
+      "text": "Time in lieu is adjusted through Actions, using Accrue leave to add and Adjust leave to remove. Label each entry with the reason, such as an incorrect accrual being reversed."
+    },
+    {
+      "type": "callout",
+      "label": "Untick the option that affects pay.",
+      "text": "When adjusting leave down, make sure the setting that applies the adjustment to the dollar value is unticked. Leaving it ticked deducts the value from the employee's pay as well as their balance, which is not what an accrual correction should do."
+    },
+    {
+      "type": "h2",
+      "text": "Per diem"
+    },
+    {
+      "type": "p",
+      "text": "Per diem is paid to employees travelling during the fortnight, and is normally paid before the travel date rather than after."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "CTS rate",
+          "$75 per night; this is the rate to use"
+        ],
+        [
+          "Award rate",
+          "Substantially lower and set per meal. CTS pays its own rate instead."
+        ],
+        [
+          "How to enter it",
+          "Use units multiplied by nights rather than a single combined figure"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "You will usually know about travel already.",
+      "text": "Travel is normally booked by you, so it will show on the credit card. The production manager will also flag team members travelling, and the shared calendar confirms it."
+    },
+    {
+      "type": "step",
+      "number": 3,
+      "title": "Accrue bonus leave: last pay run of the month only"
+    },
+    {
+      "type": "p",
+      "text": "Bonus leave is accrued once a month, in the last pay run of that month, and always a month ahead. It is tracked manually in a separate spreadsheet, so nothing prompts you to do it."
+    },
+    {
+      "type": "shot",
+      "file": "03-bonus-leave-tracker.png",
+      "caption": "The bonus leave tracker, listing staff anniversaries and the days accrued against each month. Employee names are blurred in this guide."
+    },
+    {
+      "type": "p",
+      "text": "The tracker records service length and eligibility date for each employee, with a row per month. Entries are days, not hours. Read the colours as follows:"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Green",
+          "The bonus leave has been used"
+        ],
+        [
+          "No highlight",
+          "Accrued but not yet used"
+        ],
+        [
+          "Yellow",
+          "The employee's anniversary date; a new entitlement year begins"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "For each employee with an entry against the coming month, use Actions › Accrue leave, choose the bonus leave category, and label it with the month and year. A day is eight hours."
+    },
+    {
+      "type": "callout",
+      "label": "No accrual without a signed letter.",
+      "text": "An employee is not accrued bonus leave until their letter has been issued and signed. Where a letter is outstanding, mark it on the tracker and leave the accrual; it can be backdated once the letter is in place."
+    },
+    {
+      "type": "p",
+      "text": "Entitlement grows with service, so the tracker needs extending as people pass each milestone. Because it is maintained by hand, open it any time bonus leave is involved rather than assuming it is current."
+    },
+    {
+      "type": "step",
+      "number": 4,
+      "title": "Verify pay rates"
+    },
+    {
+      "type": "p",
+      "text": "Before balancing, every pay rate in the spreadsheet needs checking against the rate increase spreadsheet. Anyone absent from that spreadsheet has had no change, so their existing rate stands."
+    },
+    {
+      "type": "p",
+      "text": "For salaried employees the hourly rate is derived from the annual salary:"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Formula",
+          "Annual salary ÷ 1.12 ÷ 52 ÷ 40"
+        ],
+        [
+          "The ÷ 1.12",
+          "Removes superannuation; the spreadsheet holds rates excluding super"
+        ],
+        [
+          "Then ÷ 52 ÷ 40",
+          "Converts the annual figure to an hourly rate, which is how Employment Hero calculates it"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "Check whether a quoted rate includes super or loading.",
+      "text": "Rates get quoted three ways: inclusive of super, inclusive of casual loading, or bare. The spreadsheet wants the rate excluding both. Most reconciliation errors at this step come from comparing two figures that are not on the same basis."
+    },
+    {
+      "type": "callout",
+      "label": "Some rates do not flow through from HR.",
+      "text": "A known Employment Hero fault means a rate updated in HR sometimes fails to reach payroll, leaving the old rate in place, often flagged with a warning icon on the employee. Override the rate manually for the current pay run, and check whether earlier fortnights were underpaid. If they were, that is a back pay to add under Step 2."
+    },
+    {
+      "type": "p",
+      "text": "Mark each rate green once verified. Colour anything you could not verify differently so it is picked up next fortnight rather than being assumed correct."
+    },
+    {
+      "type": "step",
+      "number": 5,
+      "title": "Balance the pay run"
+    },
+    {
+      "type": "p",
+      "text": "Balancing compares the spreadsheet against Employment Hero on two figures: total hours and total dollar value. The spreadsheet carries a checksum row that does the comparison for you."
+    },
+    {
+      "type": "shot",
+      "file": "04-checksum-balancing.png",
+      "caption": "The checksum rows at the foot of the timesheet spreadsheet. Hours agree at zero while the dollar value is still out. Names and rates are blurred in this guide."
+    },
+    {
+      "type": "p",
+      "text": "Enter the Employment Hero figures against the per EH Payroll row and read the checksums beneath:"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Hours checksum at 0.00",
+          "Total hours agree; the reconciliation work in Parts 3a to 4 is complete"
+        ],
+        [
+          "Dollar checksum not zero",
+          "Hours are right but a rate or multiplier is wrong somewhere"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Hours almost always balance first, because that is what the earlier parts were reconciling. A dollar variance with balanced hours means the hours are in the right place but at least one is being paid at the wrong rate."
+    },
+    {
+      "type": "p",
+      "text": "To find it, read gross earnings employee by employee from the spreadsheet against the pay run. It is tedious but reliable, and the variance is usually a single employee. Filtering out rows already agreeing narrows it quickly."
+    },
+    {
+      "type": "callout",
+      "label": "An overtime rate is the usual culprit.",
+      "text": "When hours balance but dollars do not, check overtime rates before ordinary rates. An overtime multiplier applied to a stale base rate produces a small variance that is easy to overlook and hard to spot in the totals."
+    },
+    {
+      "type": "p",
+      "text": "Work the variance down to zero. A residual of a cent or two from rounding is acceptable; anything larger has a cause worth finding."
+    },
+    {
+      "type": "h1",
+      "text": "Checklist"
+    },
+    {
+      "type": "p",
+      "text": "The pay run is ready to finalise when:"
+    },
+    {
+      "type": "bullet",
+      "text": "Everyone who should be paid is in the pay run, including those who do not clock in"
+    },
+    {
+      "type": "bullet",
+      "text": "Every payroll note has been applied: back pays, leave corrections, time in lieu adjustments and per diem"
+    },
+    {
+      "type": "bullet",
+      "text": "Bonus leave has been accrued, if this is the last pay run of the month"
+    },
+    {
+      "type": "bullet",
+      "text": "Every pay rate has been verified and marked, with unverified rates flagged"
+    },
+    {
+      "type": "bullet",
+      "text": "Rates that failed to sync from HR have been overridden and any resulting back pay added"
+    },
+    {
+      "type": "bullet",
+      "text": "The hours checksum reads zero"
+    },
+    {
+      "type": "bullet",
+      "text": "The dollar checksum reads zero, or within a couple of cents of rounding"
+    },
+    {
+      "type": "next",
+      "text": "Part 6: Finalisation & Bank Upload."
+    }
   ]
 }

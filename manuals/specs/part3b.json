@@ -1,70 +1,223 @@
 {
   "eyebrow": "PAYROLL PROCESSING",
-  "title": "Part 3b — Reconciling Salaried & Full-Time Timesheets",
+  "title": "Part 3b: Reconciling Salaried & Full-Time Timesheets",
   "subtitle": "Corporate Technology Services  ·  Employment Hero Payroll  ·  CTS Overtime Matrix",
-  "runningHead": "Payroll Processing — Part 3b: Reconciling Salaried & Full-Time Timesheets",
+  "runningHead": "Payroll Processing, Part 3b: Reconciling Salaried & Full-Time Timesheets",
   "screenshotDir": "manuals/screenshots/part3b",
   "output": "manuals/Payroll Processing - Part 3b - Reconciling Salaried and Full-Time Timesheets.docx",
   "toc": true,
   "blocks": [
-    { "type": "h1", "text": "About this guide" },
-    { "type": "p", "text": "This guide covers salaried and full-time employees. It is the second of the three reconciliation guides — Part 3a covers casuals, and Part 3c covers employees who need manual handling." },
-    { "type": "callout", "label": "Different rules entirely.", "text": "Full-time and salaried staff are not treated under the Live Performance Award. CTS pays above award and applies its own overtime matrix instead. Applying casual award rules to a salaried employee will produce the wrong pay." },
-
-    { "type": "step", "number": 1, "title": "Start from the 80-hour rule" },
-    { "type": "p", "text": "A full-time employee's fortnight should come to exactly 80 hours, unless there is approved overtime that has been pre-approved by their manager." },
-    { "type": "p", "text": "That figure is the anchor for everything else in this guide. If the total is not 80, something needs finding — and it is usually the rounding rule below rather than a genuine shortfall." },
-
-    { "type": "step", "number": 2, "title": "Understand the 8-hour rounding rule" },
-    { "type": "p", "text": "There is a preset rule in the Employment Hero back end that caps each salaried employee's captured hours at eight per day. It was created when CTS migrated from ADP to Employment Hero and applies to salaried employees only." },
-    { "type": "callout", "label": "It rounds in both directions.", "text": "The rule does not simply cap long days. It also rounds short days up. If someone works less than eight hours on a day, Employment Hero will still record eight. This is the single biggest source of confusion when a total does not reconcile." },
-    { "type": "p", "text": "The practical consequence is that the pay run total and the real timesheet total can differ even when nothing is wrong. So you cannot reconcile from the pay run alone — you have to open the timesheets and compare day by day." },
-    { "type": "p", "text": "Work through the days that ran longer than eight hours and check what the pay run actually captured for each. Where it captured eight and the timesheet shows more, add the difference back." },
-    { "type": "shot", "file": "02-permanent-ordinary-hours-til.png", "caption": "Permanent Ordinary Hours rows for a salaried employee, including a Time in lieu taken row. Rates and amounts are blurred in this guide." },
-    { "type": "callout", "label": "Managers sometimes balance days themselves.", "text": "A manager may deliberately put four hours over on one day and four hours under on another so the fortnight still comes to 80. Before chasing a shortfall, check the week-ending view to see whether it has already been balanced out elsewhere in the fortnight." },
-
-    { "type": "step", "number": 3, "title": "Apply the CTS Overtime Matrix" },
-    { "type": "p", "text": "Where overtime is genuinely payable, the rate comes from the internal CTS Overtime Matrix rather than the award. The matrix is held in the HR Resource Library on SharePoint." },
-    { "type": "shot", "file": "01-cts-overtime-matrix.png", "caption": "The CTS Overtime Matrix for full-time staff, with its legend." },
-    { "type": "p", "text": "Reading the matrix takes two pieces of information — which row the shift falls into, and which column applies to the fortnight:" },
-    { "type": "table", "rows": [
-      ["Row", "The nature of the shift: normal weekday, weekend (WE), before 5am or after 10pm (5 10), more than 12 hours in a day (>12), public holiday (PH), or a combination"],
-      ["Column", "Whether the fortnight is at or under 80 hours or above it, and whether the client is paying a higher rate than normal for the work"],
-      ["The $ columns", "Mean the work is chargeable to the client at a higher rate — not simply that money is involved"]
-    ]},
-    { "type": "p", "text": "So a shift worked between 10pm and 10:45pm, in a fortnight within 80 hours, chargeable to the client, falls in the 5 10 row against the chargeable column — giving 1.25." },
-    { "type": "p", "text": "To apply it, use Actions › Add earnings and pick the matching category, such as permanent overtime at 1.25. Copy across the notes so the reason is recorded against the entry." },
-
-    { "type": "step", "number": 4, "title": "Record time in lieu taken" },
-    { "type": "p", "text": "Time in lieu taken is a form of leave, and must be populated in the In Lieu Taken column of the spreadsheet rather than left in ordinary hours." },
-    { "type": "callout", "label": "The rest calculates itself.", "text": "Once you populate the leave columns, the remaining ordinary hours follow automatically — the formula takes 80 hours and subtracts whatever you have entered across columns F to S. Do not type the ordinary hours in by hand." },
-    { "type": "p", "text": "Where an employee accrues and takes time in lieu within the same fortnight and the two cancel out, the totals will still reconcile. Even so, record it properly and add a note explaining the offset, so that someone reading the fortnight later can see what happened." },
-
-    { "type": "step", "number": 5, "title": "Check pay run inclusions" },
-    { "type": "p", "text": "Salaried employees often carry standing arrangements set up in their employee profile under pay run inclusions — most commonly a pre-tax salary sacrifice for technology, or a superannuation salary sacrifice." },
-    { "type": "shot", "file": "03-pay-run-employee-list.png", "caption": "The pay run employee list, from which each employee's detail is opened. Names and pay figures are blurred in this guide." },
-    { "type": "p", "text": "These deduct automatically each fortnight and stop on their own, so they need checking rather than adjusting. There are two ways they can be set to end:" },
-    { "type": "table", "rows": [
-      ["By amount", "The deduction stops once the nominated total has been reached. Preferred for technology salary sacrifice."],
-      ["By date", "The deduction stops on a set date. Preferred for superannuation salary sacrifice."]
-    ]},
-    { "type": "callout", "label": "Check it is still within its nominated period.", "text": "An arrangement that has passed its end date but is still active will keep deducting. Confirm against what the employee set out on their nominated form." },
-
-    { "type": "step", "number": 6, "title": "Apply any back pay from the payroll notes" },
-    { "type": "p", "text": "Where the payroll notes from Part 1 record a back pay for this employee, add it now using Actions › Add earnings with the category the overtime matrix gives you, and copy the note across so the reason travels with the entry." },
-    { "type": "p", "text": "Record the same back pay in the spreadsheet against the employee, in the back pay column on the right." },
-
-    { "type": "h1", "text": "Checklist" },
-    { "type": "p", "text": "For each salaried or full-time employee:" },
-    { "type": "bullet", "text": "The fortnight reconciles to 80 hours, or the excess is approved overtime" },
-    { "type": "bullet", "text": "Days over eight hours checked against the timesheet, not just the pay run" },
-    { "type": "bullet", "text": "Short days checked for the rounding rule rounding them up to eight" },
-    { "type": "bullet", "text": "The week-ending view checked before chasing an apparent shortfall" },
-    { "type": "bullet", "text": "Any overtime rated from the CTS Overtime Matrix, not the award" },
-    { "type": "bullet", "text": "Time in lieu taken recorded in the leave column, with ordinary hours left to the formula" },
-    { "type": "bullet", "text": "Pay run inclusions still within their nominated amount or date" },
-    { "type": "bullet", "text": "Any back pay from the payroll notes added and recorded in the spreadsheet" },
-
-    { "type": "next", "text": "Part 3c — Employees Needing Manual Handling." }
+    {
+      "type": "h1",
+      "text": "About this guide"
+    },
+    {
+      "type": "p",
+      "text": "This guide covers salaried and full-time employees. It is the second of the three reconciliation guides: Part 3a covers casuals, and Part 3c covers employees who need manual handling."
+    },
+    {
+      "type": "callout",
+      "label": "Different rules entirely.",
+      "text": "Full-time and salaried staff are not treated under the Live Performance Award. CTS pays above award and applies its own overtime matrix instead. Applying casual award rules to a salaried employee will produce the wrong pay."
+    },
+    {
+      "type": "step",
+      "number": 1,
+      "title": "Start from the 80-hour rule"
+    },
+    {
+      "type": "p",
+      "text": "A full-time employee's fortnight should come to exactly 80 hours, unless there is approved overtime that has been pre-approved by their manager."
+    },
+    {
+      "type": "p",
+      "text": "That figure is the anchor for everything else in this guide. If the total is not 80, something needs finding, and it is usually the rounding rule below rather than a genuine shortfall."
+    },
+    {
+      "type": "step",
+      "number": 2,
+      "title": "Understand the 8-hour rounding rule"
+    },
+    {
+      "type": "p",
+      "text": "There is a preset rule in the Employment Hero back end that caps each salaried employee's captured hours at eight per day. It was created when CTS migrated from ADP to Employment Hero and applies to salaried employees only."
+    },
+    {
+      "type": "callout",
+      "label": "It rounds in both directions.",
+      "text": "The rule does not simply cap long days. It also rounds short days up. If someone works less than eight hours on a day, Employment Hero will still record eight. This is the single biggest source of confusion when a total does not reconcile."
+    },
+    {
+      "type": "p",
+      "text": "The practical consequence is that the pay run total and the real timesheet total can differ even when nothing is wrong. So you cannot reconcile from the pay run alone; you have to open the timesheets and compare day by day."
+    },
+    {
+      "type": "p",
+      "text": "Work through the days that ran longer than eight hours and check what the pay run actually captured for each. Where it captured eight and the timesheet shows more, add the difference back."
+    },
+    {
+      "type": "shot",
+      "file": "02-permanent-ordinary-hours-til.png",
+      "caption": "Permanent Ordinary Hours rows for a salaried employee, including a Time in lieu taken row. Rates and amounts are blurred in this guide."
+    },
+    {
+      "type": "callout",
+      "label": "Managers sometimes balance days themselves.",
+      "text": "A manager may deliberately put four hours over on one day and four hours under on another so the fortnight still comes to 80. Before chasing a shortfall, check the week-ending view to see whether it has already been balanced out elsewhere in the fortnight."
+    },
+    {
+      "type": "step",
+      "number": 3,
+      "title": "Apply the CTS Overtime Matrix"
+    },
+    {
+      "type": "p",
+      "text": "Where overtime is genuinely payable, the rate comes from the internal CTS Overtime Matrix rather than the award. The matrix is held in the HR Resource Library on SharePoint."
+    },
+    {
+      "type": "shot",
+      "file": "01-cts-overtime-matrix.png",
+      "caption": "The CTS Overtime Matrix for full-time staff, with its legend."
+    },
+    {
+      "type": "p",
+      "text": "Reading the matrix takes two pieces of information: which row the shift falls into, and which column applies to the fortnight:"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Row",
+          "The nature of the shift: normal weekday, weekend (WE), before 5am or after 10pm (5 10), more than 12 hours in a day (>12), public holiday (PH), or a combination"
+        ],
+        [
+          "Column",
+          "Whether the fortnight is at or under 80 hours or above it, and whether the client is paying a higher rate than normal for the work"
+        ],
+        [
+          "The $ columns",
+          "Mean the work is chargeable to the client at a higher rate, not simply that money is involved"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "So a shift worked between 10pm and 10:45pm, in a fortnight within 80 hours, chargeable to the client, falls in the 5 10 row against the chargeable column, giving 1.25."
+    },
+    {
+      "type": "p",
+      "text": "To apply it, use Actions › Add earnings and pick the matching category, such as permanent overtime at 1.25. Copy across the notes so the reason is recorded against the entry."
+    },
+    {
+      "type": "step",
+      "number": 4,
+      "title": "Record time in lieu taken"
+    },
+    {
+      "type": "p",
+      "text": "Time in lieu taken is a form of leave, and must be populated in the In Lieu Taken column of the spreadsheet rather than left in ordinary hours."
+    },
+    {
+      "type": "callout",
+      "label": "The rest calculates itself.",
+      "text": "Once you populate the leave columns, the remaining ordinary hours follow automatically: the formula takes 80 hours and subtracts whatever you have entered across columns F to S. Do not type the ordinary hours in by hand."
+    },
+    {
+      "type": "p",
+      "text": "Where an employee accrues and takes time in lieu within the same fortnight and the two cancel out, the totals will still reconcile. Even so, record it properly and add a note explaining the offset, so that someone reading the fortnight later can see what happened."
+    },
+    {
+      "type": "step",
+      "number": 5,
+      "title": "Check pay run inclusions"
+    },
+    {
+      "type": "p",
+      "text": "Salaried employees often carry standing arrangements set up in their employee profile under pay run inclusions, most commonly a pre-tax salary sacrifice for technology, or a superannuation salary sacrifice."
+    },
+    {
+      "type": "shot",
+      "file": "03-pay-run-employee-list.png",
+      "caption": "The pay run employee list, from which each employee's detail is opened. Names and pay figures are blurred in this guide."
+    },
+    {
+      "type": "p",
+      "text": "These deduct automatically each fortnight and stop on their own, so they need checking rather than adjusting. There are two ways they can be set to end:"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "By amount",
+          "The deduction stops once the nominated total has been reached. Preferred for technology salary sacrifice."
+        ],
+        [
+          "By date",
+          "The deduction stops on a set date. Preferred for superannuation salary sacrifice."
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "Check it is still within its nominated period.",
+      "text": "An arrangement that has passed its end date but is still active will keep deducting. Confirm against what the employee set out on their nominated form."
+    },
+    {
+      "type": "step",
+      "number": 6,
+      "title": "Apply any back pay from the payroll notes"
+    },
+    {
+      "type": "p",
+      "text": "Where the payroll notes from Part 1 record a back pay for this employee, add it now using Actions › Add earnings with the category the overtime matrix gives you, and copy the note across so the reason travels with the entry."
+    },
+    {
+      "type": "p",
+      "text": "Record the same back pay in the spreadsheet against the employee, in the back pay column on the right."
+    },
+    {
+      "type": "h1",
+      "text": "Checklist"
+    },
+    {
+      "type": "p",
+      "text": "For each salaried or full-time employee:"
+    },
+    {
+      "type": "bullet",
+      "text": "The fortnight reconciles to 80 hours, or the excess is approved overtime"
+    },
+    {
+      "type": "bullet",
+      "text": "Days over eight hours checked against the timesheet, not just the pay run"
+    },
+    {
+      "type": "bullet",
+      "text": "Short days checked for the rounding rule rounding them up to eight"
+    },
+    {
+      "type": "bullet",
+      "text": "The week-ending view checked before chasing an apparent shortfall"
+    },
+    {
+      "type": "bullet",
+      "text": "Any overtime rated from the CTS Overtime Matrix, not the award"
+    },
+    {
+      "type": "bullet",
+      "text": "Time in lieu taken recorded in the leave column, with ordinary hours left to the formula"
+    },
+    {
+      "type": "bullet",
+      "text": "Pay run inclusions still within their nominated amount or date"
+    },
+    {
+      "type": "bullet",
+      "text": "Any back pay from the payroll notes added and recorded in the spreadsheet"
+    },
+    {
+      "type": "next",
+      "text": "Part 3c: Employees Needing Manual Handling."
+    }
   ]
 }

@@ -1,8 +1,8 @@
 {
   "eyebrow": "PAYROLL PROCESSING",
-  "title": "Part 6 — Finalisation & Bank Upload",
+  "title": "Part 6: Finalisation & Bank Upload",
   "subtitle": "Corporate Technology Services  ·  Employment Hero, CommBiz  ·  Fortnightly cycle",
-  "runningHead": "Payroll Processing — Part 6: Finalisation & Bank Upload",
+  "runningHead": "Payroll Processing, Part 6: Finalisation & Bank Upload",
   "screenshotDir": "manuals/screenshots/part6",
   "output": "manuals/Payroll Processing - Part 6 - Finalisation and Bank Upload.docx",
   "blocks": [
@@ -30,7 +30,7 @@
     },
     {
       "type": "p",
-      "text": "In the pay run, check the header details once more — pay period and paid date — then click Finalise Pay Run. Set the approver to Graham and confirm."
+      "text": "In the pay run, check the header details once more, pay period and paid date, then click Finalise Pay Run. Set the approver to Graham and confirm."
     },
     {
       "type": "shot",
@@ -76,18 +76,18 @@
         ],
         [
           "Set File as Modifiable",
-          "Tick it — it costs nothing and leaves room to correct the file if needed"
+          "Tick it; it costs nothing and leaves room to correct the file if needed"
         ]
       ]
     },
     {
       "type": "p",
-      "text": "Click Import File. To see the imported file you need to click through the confirmation and then back out — it does not appear immediately. Check the total on the confirmation screen matches the pay run, then Submit, Confirm, and OK."
+      "text": "Click Import File. To see the imported file you need to click through the confirmation and then back out; it does not appear immediately. Check the total on the confirmation screen matches the pay run, then Submit, Confirm, and OK."
     },
     {
       "type": "step",
       "number": 3,
-      "title": "Check there are enough funds — including super"
+      "title": "Check there are enough funds, including super"
     },
     {
       "type": "p",
@@ -112,7 +112,7 @@
     },
     {
       "type": "bullet",
-      "text": "Any other payments due to leave the account in the next day or two — check for scheduled items such as a BAS payment"
+      "text": "Any other payments due to leave the account in the next day or two; check for scheduled items such as a BAS payment"
     },
     {
       "type": "p",
@@ -121,11 +121,11 @@
     {
       "type": "callout",
       "label": "Leave a 20K buffer.",
-      "text": "Transfer enough to cover payroll and super and still leave roughly $20,000 in the account. To see what is coming, run the transaction group list across the payroll dates — from the day before the pay date through to the pay date itself."
+      "text": "Transfer enough to cover payroll and super and still leave roughly $20,000 in the account. To see what is coming, run the transaction group list across the payroll dates, from the day before the pay date through to the pay date itself."
     },
     {
       "type": "p",
-      "text": "Make the transfer from the savings account. Use a description that will still make sense when it flows through to Xero — 'MT payroll' works, where MT is money transfer. The wording is free text, but it should be recognisable later."
+      "text": "Make the transfer from the savings account. Use a description that will still make sense when it flows through to Xero: 'MT payroll' works, where MT is money transfer. The wording is free text, but it should be recognisable later."
     },
     {
       "type": "step",
@@ -161,11 +161,11 @@
     {
       "type": "callout",
       "label": "Creating the batch does not send it.",
-      "text": "Creating a super batch does not submit anything to the clearing house — you still have to validate and confirm it separately. If you create one by mistake you can delete it. Once the batch exists the button changes to Review Super Payment, which is how you can tell it worked even if the screen appears not to have loaded."
+      "text": "Creating a super batch does not submit anything to the clearing house; you still have to validate and confirm it separately. If you create one by mistake you can delete it. Once the batch exists the button changes to Review Super Payment, which is how you can tell it worked even if the screen appears not to have loaded."
     },
     {
       "type": "p",
-      "text": "Employment Hero can be slow here and gives little indication it is working. If it will not load at all, super can be processed the following day — it does not have to happen in the same sitting as the pay run."
+      "text": "Employment Hero can be slow here and gives little indication it is working. If it will not load at all, super can be processed the following day; it does not have to happen in the same sitting as the pay run."
     },
     {
       "type": "step",
@@ -185,7 +185,7 @@
         ],
         [
           "Pay run audit",
-          "Pay run › Reports › Audit report — tick everything on the left, Run report, download as Excel"
+          "Pay run › Reports › Audit report; tick everything on the left, Run report, download as Excel"
         ],
         [
           "ABA file",
@@ -193,11 +193,11 @@
         ],
         [
           "Leave balances",
-          "Reports › Leave Balances — run to the pay period end date, Excel"
+          "Reports › Leave Balances; run to the pay period end date, Excel"
         ],
         [
           "Leave liability",
-          "Reports › Leave Liability — run to the pay period end date, Excel"
+          "Reports › Leave Liability; run to the pay period end date, Excel"
         ]
       ]
     },
@@ -217,7 +217,7 @@
     {
       "type": "callout",
       "label": "File everything for the fortnight together.",
-      "text": "Anything relating to the fortnight — the bank file, the reports, the emails behind an adjustment — belongs in that fortnight's folder. It costs a moment now and saves a great deal when someone queries a pay six months later."
+      "text": "Anything relating to the fortnight, the bank file, the reports, the emails behind an adjustment, belongs in that fortnight's folder. It costs a moment now and saves a great deal when someone queries a pay six months later."
     },
     {
       "type": "step",
@@ -283,7 +283,7 @@
     },
     {
       "type": "next",
-      "text": "This completes the fortnightly payroll cycle. The next fortnight begins again at Part 1 — Payroll Prep."
+      "text": "This completes the fortnightly payroll cycle. The next fortnight begins again at Part 1: Payroll Prep."
     }
   ],
   "toc": true

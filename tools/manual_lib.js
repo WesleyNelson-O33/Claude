@@ -71,7 +71,7 @@ function shot(dir, file, caption, figureNumber) {
       alignment: AlignmentType.CENTER,
       spacing: { after: 240 },
       children: [new TextRun({
-        text: `Figure ${figureNumber} — ${caption}`,
+        text: `Figure ${figureNumber}: ${caption}`,
         italics: true, size: 18, color: MUTED,
       })],
     }),

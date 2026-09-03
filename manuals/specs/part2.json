@@ -1,8 +1,8 @@
 {
   "eyebrow": "PAYROLL PROCESSING",
-  "title": "Part 2 — Creating a New Pay Run",
+  "title": "Part 2: Creating a New Pay Run",
   "subtitle": "Corporate Technology Services  ·  Employment Hero Payroll  ·  Fortnightly cycle",
-  "runningHead": "Payroll Processing — Part 2: Creating a New Pay Run",
+  "runningHead": "Payroll Processing, Part 2: Creating a New Pay Run",
   "screenshotDir": "manuals/screenshots/part2",
   "output": "manuals/Payroll Processing - Part 2 - Creating a New Pay Run.docx",
   "blocks": [
@@ -16,7 +16,7 @@
     },
     {
       "type": "p",
-      "text": "Do not start here. Part 1 must be complete first — in particular, every timesheet must be approved. Creating a pay run over unapproved timesheets means deleting it and starting again."
+      "text": "Do not start here. Part 1 must be complete first; in particular, every timesheet must be approved. Creating a pay run over unapproved timesheets means deleting it and starting again."
     },
     {
       "type": "step",
@@ -29,7 +29,7 @@
     },
     {
       "type": "p",
-      "text": "B1 is a data validation dropdown — click the cell and choose the period number from the list rather than typing a value in."
+      "text": "B1 is a data validation dropdown; click the cell and choose the period number from the list rather than typing a value in."
     },
     {
       "type": "shot",
@@ -82,11 +82,11 @@
         ],
         [
           "Pay period starting",
-          "Pre-filled — confirm it matches your fortnight (8/08/2026 in the example)"
+          "Pre-filled: confirm it matches your fortnight (8/08/2026 in the example)"
         ],
         [
           "Pay period ending",
-          "Pre-filled — confirm it matches your fortnight (21/08/2026 in the example)"
+          "Pre-filled: confirm it matches your fortnight (21/08/2026 in the example)"
         ],
         [
           "Date pay run will be paid",
@@ -94,14 +94,14 @@
         ],
         [
           "Import Timesheets",
-          "Always the first option — Timesheets for this pay period"
+          "Always the first option: Timesheets for this pay period"
         ]
       ]
     },
     {
       "type": "callout",
       "label": "The import option is the one to get right.",
-      "text": "Choose Timesheets for this pay period, never All unpaid timesheets. The second option sweeps up unpaid timesheets from outside the fortnight, which pulls the wrong periods into your pay run. In the example the difference is 665 timesheets versus 788 — 123 that do not belong."
+      "text": "Choose Timesheets for this pay period, never All unpaid timesheets. The second option sweeps up unpaid timesheets from outside the fortnight, which pulls the wrong periods into your pay run. In the example the difference is 665 timesheets versus 788, 123 that do not belong."
     },
     {
       "type": "p",
@@ -109,7 +109,7 @@
     },
     {
       "type": "p",
-      "text": "Employment Hero takes a few moments to perform its calculations — the wait is normal and scales with the size of the pay run."
+      "text": "Employment Hero takes a few moments to perform its calculations; the wait is normal and scales with the size of the pay run."
     },
     {
       "type": "step",
@@ -127,7 +127,7 @@
     },
     {
       "type": "p",
-      "text": "Check the payee count at the top left before going further — it reads 1 - 54 of 54 total payees in the example. If that number looks wrong for the fortnight, stop and investigate rather than working through the pay run."
+      "text": "Check the payee count at the top left before going further; it reads 1 - 54 of 54 total payees in the example. If that number looks wrong for the fortnight, stop and investigate rather than working through the pay run."
     },
     {
       "type": "callout",
@@ -164,7 +164,7 @@
     },
     {
       "type": "bullet",
-      "text": "Timesheets for this pay period was selected — not All unpaid timesheets"
+      "text": "Timesheets for this pay period was selected, not All unpaid timesheets"
     },
     {
       "type": "bullet",
@@ -172,7 +172,7 @@
     },
     {
       "type": "next",
-      "text": "Part 3a — Reconciling Casual Timesheets, the first of three guides covering reconciliation. Parts 3b and 3c cover salaried staff and the cases needing manual handling."
+      "text": "Part 3a: Reconciling Casual Timesheets, the first of three guides covering reconciliation. Parts 3b and 3c cover salaried staff and the cases needing manual handling."
     }
   ]
 }

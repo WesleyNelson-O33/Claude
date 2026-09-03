@@ -1,8 +1,8 @@
 {
   "eyebrow": "PAYROLL PROCESSING",
-  "title": "Handover — Questions & Scenarios",
+  "title": "Handover: Questions & Scenarios",
   "subtitle": "Corporate Technology Services  ·  To work through before the current payroll officer goes on leave",
-  "runningHead": "Payroll Handover — Questions & Scenarios",
+  "runningHead": "Payroll Handover: Questions & Scenarios",
   "screenshotDir": "manuals/screenshots/part1",
   "output": "manuals/Payroll Handover - Questions and Scenarios.docx",
   "toc": true,
@@ -13,7 +13,7 @@
     },
     {
       "type": "p",
-      "text": "The training manuals capture what the recordings show. This document captures what they do not — the gaps, the judgement calls, and the situations that never came up on camera."
+      "text": "The training manuals capture what the recordings show. This document captures what they do not: the gaps, the judgement calls, and the situations that never came up on camera."
     },
     {
       "type": "p",
@@ -30,7 +30,7 @@
     },
     {
       "type": "h1",
-      "text": "Priority 1 — Ask before she leaves"
+      "text": "Priority 1: Ask before she leaves"
     },
     {
       "type": "h2",
@@ -38,7 +38,7 @@
     },
     {
       "type": "p",
-      "text": "Most access is already in place — Employment Hero payroll and HR, the Y drive, the bonus leave tracker and the rate increase spreadsheet. CommBiz is the one piece still outstanding, and it has been confirmed that it does not need an eToken. Chase it early: access requests take time and you cannot pay anyone without it."
+      "text": "Most access is already in place: Employment Hero payroll and HR, the Y drive, the bonus leave tracker and the rate increase spreadsheet. CommBiz is the one piece still outstanding, and it has been confirmed that it does not need an eToken. Chase it early: access requests take time and you cannot pay anyone without it."
     },
     {
       "type": "questions",
@@ -64,7 +64,7 @@
         "Graham approves the pay run finalisation and Duncan approves the payment in CommBiz. Who is the backup for each if they are on leave or unreachable?",
         "Can one person do both approvals if the other is unavailable, or does that break a separation-of-duties rule?",
         "If a manager has not approved timesheets by prep day, who do I chase and how hard do I push before escalating?",
-        "Who arbitrates a disputed overtime attachment? In Part 3 a manager ticked 'not chargeable' where you both thought it should have been chargeable — what is the process for resolving that?",
+        "Who arbitrates a disputed overtime attachment? In Part 3 a manager ticked 'not chargeable' where you both thought it should have been chargeable. What is the process for resolving that?",
         "If something goes wrong on pay day and neither Duncan nor Graham is available, who is my escalation?",
         "Who should I tell that I am now running payroll, so managers know where to send approvals and queries?",
         "Employment Hero has a support and consultation process for payroll. Who is our contact there, and how do I reach them if something goes wrong mid pay run?"
@@ -97,7 +97,7 @@
     },
     {
       "type": "h1",
-      "text": "Priority 2 — Confirm the rules"
+      "text": "Priority 2: Confirm the rules"
     },
     {
       "type": "h2",
@@ -111,12 +111,12 @@
       "type": "questions",
       "start": 17,
       "items": [
-        "When Employment Hero triggers both daily overtime (over 8 hours) and weekly overtime (over 38 hours) for the same casual, which do I keep? The recording says 'we can choose to pay one of them' — is there a rule, or is it judgement, and what should I default to?",
+        "When Employment Hero triggers both daily overtime (over 8 hours) and weekly overtime (over 38 hours) for the same casual, which do I keep? The recording says 'we can choose to pay one of them'. Is there a rule, or is it judgement, and what should I default to?",
         "The no-meal-break penalty was described as 2.25 with some hesitation, and calculated rather than read from the award. Can we confirm the correct multiplier and where it sits in the award?",
         "What is the casual loading percentage, and which spreadsheet columns hold the rate excluding loading versus including it?",
         "Are there casual penalty rates for weekends or public holidays, and how would they show up in a pay run?",
         "The overtime matrix on file is headed 'FULL TIME STAFF'. Is there an equivalent for part-time employees, or are they treated another way?",
-        "What exactly makes work 'chargeable to the client' for the matrix's dollar columns — is that always the manager's call, or is there a rule I can apply?"
+        "What exactly makes work 'chargeable to the client' for the matrix's dollar columns. Is that always the manager's call, or is there a rule I can apply?"
       ]
     },
     {
@@ -132,7 +132,7 @@
       "type": "questions",
       "start": 23,
       "items": [
-        "The total hours column does not handle leave without pay correctly — this was found during recording and left unresolved. Has it been fixed, and if not what is the manual workaround?",
+        "The total hours column does not handle leave without pay correctly; this was found during recording and left unresolved. Has it been fixed, and if not what is the manual workaround?",
         "The Rate Check column shows #VALUE! against some employees. Is that expected, or does it indicate a problem?",
         "Does green highlighting mean 'rate verified this fortnight' or 'rate was changed'? Both readings came up, and I want to use it consistently."
       ]
@@ -157,7 +157,7 @@
     },
     {
       "type": "h1",
-      "text": "Priority 3 — Worth having"
+      "text": "Priority 3: Worth having"
     },
     {
       "type": "questions",
@@ -175,11 +175,11 @@
     },
     {
       "type": "p",
-      "text": "For each of these, my reading of the manuals is given first. Ask her to confirm or correct it — that is faster than an open question, and the disagreements are where the real knowledge is."
+      "text": "For each of these, my reading of the manuals is given first. Ask her to confirm or correct it; that is faster than an open question, and the disagreements are where the real knowledge is."
     },
     {
       "type": "h2",
-      "text": "Scenario 1 — Timesheets are still unapproved on prep day"
+      "text": "Scenario 1: Timesheets are still unapproved on prep day"
     },
     {
       "type": "p",
@@ -192,7 +192,7 @@
     },
     {
       "type": "h2",
-      "text": "Scenario 2 — The pay run will not balance"
+      "text": "Scenario 2: The pay run will not balance"
     },
     {
       "type": "p",
@@ -205,7 +205,7 @@
     },
     {
       "type": "h2",
-      "text": "Scenario 3 — An error is found after finalising"
+      "text": "Scenario 3: An error is found after finalising"
     },
     {
       "type": "p",
@@ -214,11 +214,11 @@
     {
       "type": "callout",
       "label": "Confirm:",
-      "text": "Is a back pay next fortnight always the answer, or are there errors that need fixing immediately — an underpayment, or something affecting a termination? Who decides?"
+      "text": "Is a back pay next fortnight always the answer, or are there errors that need fixing immediately: an underpayment, or something affecting a termination? Who decides?"
     },
     {
       "type": "h2",
-      "text": "Scenario 4 — There is not enough money in the account"
+      "text": "Scenario 4: There is not enough money in the account"
     },
     {
       "type": "p",
@@ -231,7 +231,7 @@
     },
     {
       "type": "h2",
-      "text": "Scenario 5 — Duncan has not approved by pay date"
+      "text": "Scenario 5: Duncan has not approved by pay date"
     },
     {
       "type": "p",
@@ -244,7 +244,7 @@
     },
     {
       "type": "h2",
-      "text": "Scenario 6 — An employee reports a missed shift from two fortnights ago"
+      "text": "Scenario 6: An employee reports a missed shift from two fortnights ago"
     },
     {
       "type": "p",
@@ -257,7 +257,7 @@
     },
     {
       "type": "h2",
-      "text": "Scenario 7 — Employment Hero is unavailable on processing day"
+      "text": "Scenario 7: Employment Hero is unavailable on processing day"
     },
     {
       "type": "p",
@@ -270,7 +270,7 @@
     },
     {
       "type": "h2",
-      "text": "Scenario 8 — A new starter's contract quotes a rate including loading"
+      "text": "Scenario 8: A new starter's contract quotes a rate including loading"
     },
     {
       "type": "p",

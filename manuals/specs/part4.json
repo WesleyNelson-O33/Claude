@@ -1,8 +1,8 @@
 {
   "eyebrow": "PAYROLL PROCESSING",
-  "title": "Part 4 — Reconciling Timesheets (continued)",
+  "title": "Part 4: Reconciling Timesheets (continued)",
   "subtitle": "Corporate Technology Services  ·  Employment Hero Payroll  ·  Salaried employee scenario",
-  "runningHead": "Payroll Processing — Part 4: Reconciling Timesheets (continued)",
+  "runningHead": "Payroll Processing, Part 4: Reconciling Timesheets (continued)",
   "screenshotDir": "manuals/screenshots/part4",
   "output": "manuals/Payroll Processing - Part 4 - Reconciling Timesheets (continued).docx",
   "blocks": [
@@ -12,11 +12,11 @@
     },
     {
       "type": "p",
-      "text": "This guide continues the reconciliation work covered by Parts 3a, 3b and 3c — casuals, salaried staff, and the employees needing manual handling. It follows on from Part 3b in particular, working through a salaried employee whose overtime category was triggered automatically when it should not have been."
+      "text": "This guide continues the reconciliation work covered by Parts 3a, 3b and 3c: casuals, salaried staff, and the employees needing manual handling. It follows on from Part 3b in particular, working through a salaried employee whose overtime category was triggered automatically when it should not have been."
     },
     {
       "type": "p",
-      "text": "The scenario is worth understanding even if it is not on your current pay run, because the underlying trap — losing the notes when you change a category — applies to every correction you make in a pay run."
+      "text": "The scenario is worth understanding even if it is not on your current pay run, because the underlying trap, losing the notes when you change a category, applies to every correction you make in a pay run."
     },
     {
       "type": "step",
@@ -43,7 +43,7 @@
     },
     {
       "type": "p",
-      "text": "Check the employment type before acting. This correction applies to salaried employees — it is not a blanket rule for everyone the break condition flags."
+      "text": "Check the employment type before acting. This correction applies to salaried employees; it is not a blanket rule for everyone the break condition flags."
     },
     {
       "type": "step",
@@ -99,7 +99,7 @@
     },
     {
       "type": "p",
-      "text": "Open the employee's timesheets for the period and work through the days that are actually longer than eight hours — those are where the discrepancies sit."
+      "text": "Open the employee's timesheets for the period and work through the days that are actually longer than eight hours; those are where the discrepancies sit."
     },
     {
       "type": "shot",
@@ -113,7 +113,7 @@
     {
       "type": "callout",
       "label": "Work to the expected total.",
-      "text": "Keep correcting until the total reaches the hours the employee is contracted for across the fortnight — 80 for a full-time employee. If you cannot reconcile to that figure, stop and investigate rather than adjusting a number to make it balance."
+      "text": "Keep correcting until the total reaches the hours the employee is contracted for across the fortnight, 80 for a full-time employee. If you cannot reconcile to that figure, stop and investigate rather than adjusting a number to make it balance."
     },
     {
       "type": "step",
@@ -145,7 +145,7 @@
     },
     {
       "type": "p",
-      "text": "Finally, check the employee's pay run inclusion settings for any standing arrangements — most commonly a superannuation salary sacrifice."
+      "text": "Finally, check the employee's pay run inclusion settings for any standing arrangements, most commonly a superannuation salary sacrifice."
     },
     {
       "type": "p",
@@ -190,7 +190,7 @@
     },
     {
       "type": "next",
-      "text": "Part 5 — Reconciling & Balancing the Pay Run."
+      "text": "Part 5: Reconciling & Balancing the Pay Run."
     }
   ]
 }
