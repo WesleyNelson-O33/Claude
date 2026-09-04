@@ -1,0 +1,35 @@
+{
+  "eyebrow": "CORPORATE TECHNOLOGY SERVICES",
+  "title": "Monthly Reporting Manual",
+  "subtitle": "Xero and Excel  ·  Monthly cycle  ·  Complete series",
+  "runningHead": "CTS Monthly Reporting Manual",
+  "output": "manuals/Monthly Reporting Manual - Complete.docx",
+  "intro": [
+    "Monthly reporting turns a month of Xero data into the financial pack the management team reads. This manual covers that cycle end to end, from the first paste out of Xero through to the commentary that goes with the charts.",
+    "The three parts are also published as standalone guides. Both are generated from the same source, so they always agree."
+  ],
+  "parts": [
+    "manuals/specs/report1.json",
+    "manuals/specs/report2.json",
+    "manuals/specs/report3.json"
+  ],
+  "structure": [
+    [
+      "Part 1",
+      "The P&L Analysis File: raw data, checks, departmental allocation, budget links"
+    ],
+    [
+      "Part 2",
+      "The Graphs File: charts, labour hours, full time equivalents, top clients"
+    ],
+    [
+      "Part 3",
+      "The Management Report: sales forecast against actual, and the commentary"
+    ]
+  ],
+  "structureNotes": [
+    "The order matters. Finish the P&L Analysis file completely before opening the graphs file, and finish the graphs file before writing the commentary. Each stage feeds the next, so going back to correct an earlier one means redoing the work that followed it.",
+    "Everything here was recorded live in Video 7, Day 5 tasks - Reporting Graphs and HOD Meeting preps. Where the recording shows something being worked out or corrected on camera, this manual says so rather than presenting it as settled.",
+    "Several steps are still done by hand: the legal fees split, the budget column links, the labour hours, the client name matching and the sales forecast. Those are marked clearly, because they are where the mistakes happen and they are the first candidates for automation."
+  ]
+}

@@ -1,0 +1,320 @@
+{
+  "eyebrow": "MONTHLY REPORTING",
+  "title": "Part 3: The Management Report",
+  "subtitle": "Corporate Technology Services  ·  Commentary and sales forecast  ·  Monthly cycle",
+  "runningHead": "Monthly Reporting, Part 3: The Management Report",
+  "screenshotDir": "manuals/screenshots/report3",
+  "output": "manuals/Monthly Reporting - Part 3 - The Management Report.docx",
+  "toc": true,
+  "blocks": [
+    {
+      "type": "h1",
+      "text": "About Part 3"
+    },
+    {
+      "type": "p",
+      "text": "The charts are built. What remains is the part that carries the judgement: comparing actual revenue against what each department said it would do, and writing the commentary that goes with it."
+    },
+    {
+      "type": "p",
+      "text": "This is the most manual stage of the month, and the one where knowing what normal looks like matters more than knowing where the buttons are."
+    },
+    {
+      "type": "step",
+      "number": 1,
+      "title": "Update the sales forecast against actual"
+    },
+    {
+      "type": "p",
+      "text": "Each department has a sales forecast that was set as their budget. Every month you go in and record what actually happened next to it."
+    },
+    {
+      "type": "bullet",
+      "text": "Unhide the columns so you can see the month you are working on"
+    },
+    {
+      "type": "bullet",
+      "text": "Change that month's label from budget to actual"
+    },
+    {
+      "type": "bullet",
+      "text": "Enter the achieved figures, client by client"
+    },
+    {
+      "type": "bullet",
+      "text": "Highlight what you have entered manually, in the colour already used, so the next person can see it was typed rather than calculated"
+    },
+    {
+      "type": "callout",
+      "label": "Close is good enough.",
+      "text": "It does not have to reconcile to the cent. Work in progress revenue forms part of the P&L but is not invoiced to a client, so an exact tie back is not possible. Being close is the standard here."
+    },
+    {
+      "type": "h1",
+      "text": "Department by department"
+    },
+    {
+      "type": "p",
+      "text": "Each department is populated differently, and they get harder in this order."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Onsite",
+          "Budgeted per role, not per client. A line such as a team leader position is that person's revenue charged to the client."
+        ],
+        [
+          "Consulting",
+          "Straightforward. Usually a short list, and you already know from the revenue meeting which clients are in it."
+        ],
+        [
+          "Production",
+          "The hardest. Production and video are separate, so it takes the longest. Leave it until last."
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "For onsite, where several roles are billed inside a single invoice, open that invoice in Xero and check whether there was a deduction against the role before you record it."
+    },
+    {
+      "type": "p",
+      "text": "For production, any client with revenue who is not already listed goes into the new business lines. Rather than adding a row per client, everything unlisted is grouped into one line."
+    },
+    {
+      "type": "callout",
+      "label": "Why the revenue tracker cannot just be linked.",
+      "text": "The tracker records revenue per client. The onsite budget records it per role, so the two do not line up. On top of that, one client can run several events in a month, and each has to be added to the tracker by hand anyway. Linking it would not remove the manual work, only move it."
+    },
+    {
+      "type": "callout",
+      "label": "Check work in progress for the licence clients.",
+      "text": "Some consulting revenue comes from licences rather than invoices, and it usually stays the same each month. Confirm the amount against the work in progress tracker rather than assuming last month's figure still holds."
+    },
+    {
+      "type": "step",
+      "number": 2,
+      "title": "Write the commentary"
+    },
+    {
+      "type": "p",
+      "text": "The commentary explains the variance rather than restating it. Much of it you will already know, because you have just spent the morning reconciling the revenue."
+    },
+    {
+      "type": "p",
+      "text": "You can use AI to draft it from the report, and that is a reasonable shortcut, but two cautions apply."
+    },
+    {
+      "type": "bullet",
+      "text": "Explain what kind of business this is first, or the analysis will be generic"
+    },
+    {
+      "type": "bullet",
+      "text": "Filter what comes back; use what is actually true and leave the rest"
+    },
+    {
+      "type": "callout",
+      "label": "One change management has asked for.",
+      "text": "For consulting, where revenue did not come in, say whether the deal was lost or simply moved to a later month. You will not know which, so ask Jordan. A message is enough; the revenue meeting is too late in the cycle for it to help."
+    },
+    {
+      "type": "callout",
+      "label": "Compare dollars, not percentages.",
+      "text": "Where you are comparing against last year, management prefer dollar value against dollar value. Percentages read as more precise than they are."
+    },
+    {
+      "type": "h1",
+      "text": "What normal looks like"
+    },
+    {
+      "type": "p",
+      "text": "This is the part that is hardest to pick up from a spreadsheet, and it is what tells you whether a number is worth a comment."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Support and managed services",
+          "Always profitable. Gross margin sits around 45 per cent, net profit above 10 per cent."
+        ],
+        [
+          "Production",
+          "Very seasonal. Gross margin should be 55 per cent or better; in the 40s is worth investigating, usually equipment or labour."
+        ],
+        [
+          "Integration",
+          "Gross margin should be at least 15 per cent. Net profit is skewed by how few people work in it."
+        ],
+        [
+          "Consulting",
+          "Frequently below budget. A loss in most months is normal, not a red flag."
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "The production calendar is worth learning, because it explains most of what you will see:"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "August and September",
+          "Results season. Should be profitable; if not, that is worth a comment."
+        ],
+        [
+          "October to December",
+          "The peak, driven by annual general meeting season. Their most profitable quarter."
+        ],
+        [
+          "December and January",
+          "Quiet"
+        ],
+        [
+          "February",
+          "Picks up again"
+        ],
+        [
+          "March",
+          "Quiet"
+        ],
+        [
+          "May and June",
+          "The peak for integration and consulting, as the financial year closes"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "A department beating budget is not always good news about the budget.",
+      "text": "One department came in well above budget because they had understated what was in their pipeline. If actuals run consistently far above budget, that is worth raising, because the budget is what everything else is measured against."
+    },
+    {
+      "type": "h1",
+      "text": "The other commentary sections"
+    },
+    {
+      "type": "p",
+      "text": "A few charts each want a particular kind of note against them."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Operating costs",
+          "Highlight anything unusual for the month: a company event, a one off IT purchase. They want the outliers called out."
+        ],
+        [
+          "Overheads breakdown",
+          "Rent and IT both rose against last year, so those two are being tracked for consistency."
+        ],
+        [
+          "Top clients",
+          "Four headings every time: revenue increased, revenue decreased, new to the list, dropped off the list. Always against last year."
+        ],
+        [
+          "Support engagement mix",
+          "The percentage of revenue direct to client against subcontracted. The direct clients have been stable for some time."
+        ]
+      ]
+    },
+    {
+      "type": "step",
+      "number": 3,
+      "title": "The utilisation section"
+    },
+    {
+      "type": "p",
+      "text": "The monthly utilisation view does not tell you much, so it goes in the report but gets passed over quickly. The rolling twelve months is what the meeting looks at."
+    },
+    {
+      "type": "p",
+      "text": "Negative figures mean someone is under their target: chargeable time in the mid forties against a target of around sixty five. That is genuinely under target, not a reporting artefact."
+    },
+    {
+      "type": "callout",
+      "label": "Read a small negative before flagging it.",
+      "text": "For a team whose hours are almost all chargeable, a small negative usually just means they took leave that month. A sustained gap is the one worth raising."
+    },
+    {
+      "type": "callout",
+      "label": "Watch for people changing department.",
+      "text": "When someone moves permanently from one department to another, they should drop off the old department's list because it is a pivot table. Check that they actually have. If they are still showing in the old team, remove them."
+    },
+    {
+      "type": "step",
+      "number": 4,
+      "title": "Show budget alongside actual"
+    },
+    {
+      "type": "p",
+      "text": "Management have asked for a change going forward. Rather than hiding the budget column once the actual is in, show both."
+    },
+    {
+      "type": "p",
+      "text": "So for an August report they want July actual, August actual, and August budget side by side."
+    },
+    {
+      "type": "callout",
+      "label": "This is manual.",
+      "text": "In the budget file, copy the column across, label it with the month, and type the figures in from the P&L. Then update the year to date tab to include it. Repeat every month."
+    },
+    {
+      "type": "p",
+      "text": "You can show it as budget against actual, or as budget against last year. Showing all three at once is a lot of numbers on one page, so it is a judgement call."
+    },
+    {
+      "type": "h1",
+      "text": "Checklist"
+    },
+    {
+      "type": "p",
+      "text": "The management report is ready when:"
+    },
+    {
+      "type": "bullet",
+      "text": "Every department's forecast tab shows the month as actual, with the figures entered and highlighted"
+    },
+    {
+      "type": "bullet",
+      "text": "Onsite roles have been checked against the underlying invoices for deductions"
+    },
+    {
+      "type": "bullet",
+      "text": "Unlisted new clients have been grouped into the new business line"
+    },
+    {
+      "type": "bullet",
+      "text": "Licence based consulting revenue has been confirmed against work in progress"
+    },
+    {
+      "type": "bullet",
+      "text": "Missing consulting revenue is marked as lost or deferred, confirmed with Jordan"
+    },
+    {
+      "type": "bullet",
+      "text": "Unusual operating costs are called out"
+    },
+    {
+      "type": "bullet",
+      "text": "Top clients carries all four headings against last year"
+    },
+    {
+      "type": "bullet",
+      "text": "Margins have been sense checked against what normal looks like for each department"
+    },
+    {
+      "type": "bullet",
+      "text": "Anyone who has changed department has dropped off their old utilisation list"
+    },
+    {
+      "type": "bullet",
+      "text": "The budget column is shown alongside the actual, not hidden"
+    },
+    {
+      "type": "next",
+      "text": "This completes the monthly reporting cycle. The next month begins again at Part 1: The P&L Analysis File."
+    }
+  ]
+}

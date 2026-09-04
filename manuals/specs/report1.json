@@ -1,0 +1,582 @@
+{
+  "eyebrow": "MONTHLY REPORTING",
+  "title": "Part 1: The P&L Analysis File",
+  "subtitle": "Corporate Technology Services  \u00b7  Xero and Excel  \u00b7  Monthly cycle",
+  "runningHead": "Monthly Reporting, Part 1: The P&L Analysis File",
+  "screenshotDir": "manuals/screenshots/report1",
+  "output": "manuals/Monthly Reporting - Part 1 - The P&L Analysis File.docx",
+  "toc": true,
+  "blocks": [
+    {
+      "type": "h1",
+      "text": "About Part 1"
+    },
+    {
+      "type": "p",
+      "text": "Monthly reporting runs on two spreadsheets. This guide covers the first of them, the P&L Analysis file. It is where the raw data from Xero lands, where overheads get allocated across departments, and where every check lives."
+    },
+    {
+      "type": "p",
+      "text": "Part 2 covers the graphs file. Part 3 covers the management report and the commentary."
+    },
+    {
+      "type": "callout",
+      "label": "Finish this file before you open the graphs file.",
+      "text": "Do all the checks, all the reclassifications, and any corrections in Xero first. Only when you are happy with every figure here do you copy anything into the graphs file. Working the other way round means handling everything twice."
+    },
+    {
+      "type": "h1",
+      "text": "What is in the file"
+    },
+    {
+      "type": "p",
+      "text": "The tabs fall into three groups: raw data you paste in, checks that tell you whether the paste worked, and allocation tabs that split overheads across departments."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "GL code database",
+          "Every account we have. Fixed. Nothing to maintain, not even at a new financial year."
+        ],
+        [
+          "Xero P&L",
+          "A paste of the profit and loss report out of Xero"
+        ],
+        [
+          "GL transactions",
+          "A paste of the detailed account transactions report out of Xero"
+        ],
+        [
+          "Revenue Summary",
+          "The pivot that feeds the top clients pie chart"
+        ],
+        [
+          "2. CTS PL",
+          "Reconciliation check against the P&L"
+        ],
+        [
+          "3. CTS PL - No OI",
+          "The same check without other income and interest expense"
+        ],
+        [
+          "4. PL Per Department",
+          "The month, allocated by department"
+        ],
+        [
+          "5. PL Per Department Excl OI",
+          "The month, allocated, excluding other income. This is the reporting one."
+        ],
+        [
+          "6. YTD PL Per Department",
+          "Year to date, allocated"
+        ],
+        [
+          "7. YTD PL Per Dept Excl OI",
+          "Year to date, excluding other income"
+        ],
+        [
+          "8. Qtrly PL Per Dept - No OI",
+          "The quarter, excluding other income"
+        ]
+      ]
+    },
+    {
+      "type": "step",
+      "number": 1,
+      "title": "Paste the Xero P&L"
+    },
+    {
+      "type": "p",
+      "text": "Run the profit and loss report in Xero for the months you need, download it, and paste it into the Xero P&L tab."
+    },
+    {
+      "type": "callout",
+      "label": "Re-paste every prior month, not just the new one.",
+      "text": "Do not feed the new month off the previous month's figures. Paste the whole year to date again each time. Earlier months can move: an Aware Super adjustment retrospectively changed a July figure, and anyone working off the old paste would never have seen it."
+    },
+    {
+      "type": "p",
+      "text": "So in August you paste July and August. In September you paste July, August and September, and so on."
+    },
+    {
+      "type": "p",
+      "text": "The row headings down the side should already match what is in the tab, but check them anyway in case an account has been added or renamed."
+    },
+    {
+      "type": "callout",
+      "label": "The rule the team works to.",
+      "text": "If something needs changing, it goes into the current month with a note, rather than being adjusted backwards. Prior months should not normally move. When one does, it is worth knowing why."
+    },
+    {
+      "type": "step",
+      "number": 2,
+      "title": "Run and paste the GL transactions"
+    },
+    {
+      "type": "p",
+      "text": "This tab is the detailed version of the P&L, one row per transaction. It comes from a saved custom report in Xero called Account transactions for P&L analysis."
+    },
+    {
+      "type": "p",
+      "text": "To find it, go to All Reports and then Custom. It is worth favouriting it, along with the profit and loss report, so you are not hunting for it every month."
+    },
+    {
+      "type": "shot",
+      "file": "01-xero-account-transactions-report.png",
+      "caption": "The Account Transactions for P&L Analysis report in Xero, favourited, run from 1 July. Transaction amounts are blurred in this guide."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Date range",
+          "Year to date, from 1 July. Every month, not just the new month."
+        ],
+        [
+          "Sort by",
+          "Account code. It comes out in random order otherwise."
+        ],
+        [
+          "Order you want",
+          "4 for revenue, then 5 for cost of sales, then 6 for overheads"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Download it. It comes out looking almost exactly like the spreadsheet tab, so it is mostly a straight copy and paste."
+    },
+    {
+      "type": "callout",
+      "label": "Convert to number first.",
+      "text": "The download carries a warning marker on the values. Convert the column to number before pasting, or the totals will not add up."
+    },
+    {
+      "type": "p",
+      "text": "When pasting, take the source columns across to the matching columns up to L in the tab. Leave out two things:"
+    },
+    {
+      "type": "bullet",
+      "text": "The index column, which is a different shade of blue"
+    },
+    {
+      "type": "bullet",
+      "text": "The columns further right that contain formulas"
+    },
+    {
+      "type": "step",
+      "number": 3,
+      "title": "Fix the Stripe fee rows"
+    },
+    {
+      "type": "p",
+      "text": "After pasting you will see gaps, mostly near the bottom, where rows have no department and no cost centre. These are the Stripe fees."
+    },
+    {
+      "type": "p",
+      "text": "It happens because Xero splits a card payment three ways: credit card income, credit card expense, and the payment itself. The credit card expense never gets a cost centre."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Department",
+          "Admin"
+        ],
+        [
+          "Cost centre",
+          "CTS"
+        ]
+      ]
+    },
+    {
+      "type": "shot",
+      "file": "02-stripe-fees-admin-cts.png",
+      "caption": "Filling the department column down to 9000 - OFFICE / ADMIN [CTS] across the fee rows in the raw data file. Contact names are blurred in this guide."
+    },
+    {
+      "type": "callout",
+      "label": "Do not try to allocate these properly.",
+      "text": "In principle each fee belongs to whichever department earned the income. In practice the amounts are cents to a few dollars, and working out which is which takes far longer than it is worth. Set them all to Admin and CTS and move on. The fees then get split three ways with everything else in Admin."
+    },
+    {
+      "type": "step",
+      "number": 4,
+      "title": "Fill in the missing contacts"
+    },
+    {
+      "type": "p",
+      "text": "The top clients pie chart is built from the Contact column. When an invoice is raised in Xero the contact comes through automatically, but a manual journal has no contact at all, so those rows arrive blank."
+    },
+    {
+      "type": "p",
+      "text": "Filter to the manual journals and type the contacts in. The description on the row will usually tell you who it is for. Xero often autocompletes once you start typing."
+    },
+    {
+      "type": "callout",
+      "label": "Revenue only.",
+      "text": "You only need contacts on the revenue rows, the 4 codes. Once the codes start with 5 you are into cost of sales, and top clients are only tracked for revenue."
+    },
+    {
+      "type": "callout",
+      "label": "Every client must be spelled one way.",
+      "text": "This feeds a pivot table, so one client has to be one name. All the Commonwealth Bank variants become Commonwealth Bank of Australia, not separate rows for Brisbane, Melbourne and the rest. If you leave them split, the pie chart shows the same client several times and understates them all."
+    },
+    {
+      "type": "p",
+      "text": "Do this editing in the raw data file before you paste, rather than in the analysis file. That way the analysis file only ever receives clean data."
+    },
+    {
+      "type": "step",
+      "number": 5,
+      "title": "Refresh the Revenue Summary pivot"
+    },
+    {
+      "type": "p",
+      "text": "The Revenue Summary tab holds a pivot table built off the GL transactions. It is set up with contact and amount, and filters for account type, year, quarter and cost centre."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Account type filter",
+          "Income, so cost of sales is excluded"
+        ],
+        [
+          "Quarter filter",
+          "Set to the quarter you are reporting"
+        ],
+        [
+          "Cost centre filter",
+          "Used when you want a single department rather than the whole company"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "Ignore the stray Q3 rows.",
+      "text": "The quarter formula is dragged to the bottom of the column, and blank rows below the data default to Q3. If you are working in Q1 the Q1 figures are still correct. It is untidy, not wrong."
+    },
+    {
+      "type": "step",
+      "number": 6,
+      "title": "Read the reconciliation checks"
+    },
+    {
+      "type": "p",
+      "text": "Tabs 2 and 3 reconcile the detailed data dump back to the P&L. If they say TRUE, the paste worked and there is nothing to do."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Tab 2",
+          "Reconciles the data dump against the P&L, including other income and interest expense"
+        ],
+        [
+          "Tab 3",
+          "The same reconciliation with interest received and interest expense stripped out"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "If tab 2 balances you can assume tab 3 does too. The only difference between them is the interest lines."
+    },
+    {
+      "type": "callout",
+      "label": "A FALSE is usually rounding.",
+      "text": "Check the reference is pointing at the right cell first. If the cell reference is right and the difference is tiny, it is a rounding artefact: a figure carrying seventeen decimal places. Round it and the check turns TRUE. This happens now and again for no obvious reason."
+    },
+    {
+      "type": "step",
+      "number": 7,
+      "title": "Update the allocation tabs"
+    },
+    {
+      "type": "p",
+      "text": "Tabs 4 to 8 are where overheads get pushed out across the departments. They cover three periods:"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Tabs 4 and 5",
+          "The month. You must change the date on these two so the data pulls for the right month."
+        ],
+        [
+          "Tabs 6 and 7",
+          "Year to date. Nothing to change; they capture everything automatically."
+        ],
+        [
+          "Tab 8",
+          "The quarter. Toggle it between Q1 and Q4."
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Within each period there are two versions:"
+    },
+    {
+      "type": "bullet",
+      "text": "Per department including other income and other expense"
+    },
+    {
+      "type": "bullet",
+      "text": "Per department excluding other income and other expense"
+    },
+    {
+      "type": "callout",
+      "label": "The excluding version is the one that matters.",
+      "text": "The tabs that exclude other income are what goes into the graphs file and into the report. They are highlighted in a different colour so you can pick them out. Every graph should reference those, not the including version."
+    },
+    {
+      "type": "shot",
+      "file": "03-pl-analysis-allocation-tabs.png",
+      "caption": "The allocation tabs, with the split basis against each row and the TRUE checks at the top. Figures are blurred in this guide."
+    },
+    {
+      "type": "p",
+      "text": "The date cells you have to change each month are highlighted too. If the check on the tab already says TRUE, there is nothing more to do."
+    },
+    {
+      "type": "h1",
+      "text": "How the allocation actually works"
+    },
+    {
+      "type": "p",
+      "text": "The left of each allocation tab is raw data. The right is where it gets allocated out. Anything sitting in Admin is split across the departments using preset percentages, pulled in with an XLOOKUP."
+    },
+    {
+      "type": "p",
+      "text": "There is not one split. There are three, and each overhead row is labelled with the one that applies to it. You can see the label against every row on the allocation tab."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "3 Way",
+          "Split roughly evenly three ways, near enough a third each"
+        ],
+        [
+          "Staff",
+          "Split by headcount, so it follows where the people actually are"
+        ],
+        [
+          "Office Dept",
+          "Weighted heavily to one department, for costs that mostly belong there"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "The percentages themselves live in the budget file, set against three groups: production and video, onsite, and consulting and integration."
+    },
+    {
+      "type": "shot",
+      "file": "04-budget-overhead-split.png",
+      "caption": "The three split bases and their percentages in the budget file, with the forecast columns running across. Budget figures are blurred in this guide."
+    },
+    {
+      "type": "p",
+      "text": "So a payroll processing fee sitting in Admin is divided out according to whichever of the three bases its row is labelled with."
+    },
+    {
+      "type": "callout",
+      "label": "The staff split follows headcount, and consulting is nearly empty.",
+      "text": "On the staff basis, consulting and integration together carry only a fraction of the overhead, because almost nobody is employed there. The day someone is hired into consulting, that percentage has to be changed by hand. Nothing will prompt you, and until it is changed consulting will carry almost none of the overhead it should."
+    },
+    {
+      "type": "callout",
+      "label": "Do not change the split mid-year.",
+      "text": "If management wants to revisit the overhead split, that is a decision for the management team, and it should take effect at a new financial year. Changing it in December means the six months already reported were built on a different split and no longer compare. Be firm about this when it comes up, because it will."
+    },
+    {
+      "type": "p",
+      "text": "The split only exists inside these spreadsheets. Nothing needs changing in Xero to match it."
+    },
+    {
+      "type": "step",
+      "number": 8,
+      "title": "Add the legal fees split by hand"
+    },
+    {
+      "type": "p",
+      "text": "There is one GL code for legal fees, but the report separates it in two, so this part is manual every month."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Eastern Bell",
+          "The actual lawyers. Whatever has been spent, if anything."
+        ],
+        [
+          "Employsure",
+          "Fixed at $800 a month on a contract, and always there"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "The Employsure amount is a locked-in retainer, so it appears in Xero under repeating bills. The bill counter there tells you how many are left to come."
+    },
+    {
+      "type": "callout",
+      "label": "The figure is cumulative, and this is easy to get wrong.",
+      "text": "On the month tab you enter $800. On the year to date tab you enter the running total, so $1,600 after two months. On the quarter tab you enter $2,400 for three months. Enter $800 on the year to date tab by mistake and the tab goes out of balance."
+    },
+    {
+      "type": "p",
+      "text": "If you forget it entirely, the check on that tab turns FALSE. Put the amount in and it turns TRUE again. The same trigger exists on every tab, so a mistake here does get caught."
+    },
+    {
+      "type": "p",
+      "text": "Any other legal spend is populated by hand against whichever department it belongs to. Duncan will normally advise where it should be coded."
+    },
+    {
+      "type": "step",
+      "number": 9,
+      "title": "Re-point the budget links"
+    },
+    {
+      "type": "p",
+      "text": "The budget figures live in a separate file, Budgets and Forecast FY27. The analysis file reads a column out of it, and that column has to be moved along by one every month."
+    },
+    {
+      "type": "callout",
+      "label": "Hard code the previous month first.",
+      "text": "Changing the formula changes the earlier month too, because they share the reference. Hard code last month's figures before you re-point anything, or you will lose them."
+    },
+    {
+      "type": "p",
+      "text": "Then move the reference along one column. Going from July to August, that is H to I on the main tab. The departmental tabs each sit one column apart:"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Onsite",
+          "F becomes G"
+        ],
+        [
+          "Consulting",
+          "G becomes H"
+        ],
+        [
+          "Production",
+          "H becomes I"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "Leave the grey cells alone.",
+      "text": "The grey cells are totals. Change every reference except those."
+    },
+    {
+      "type": "p",
+      "text": "You know you have done it correctly when the check cell reads zero. If it is out, one reference has been missed."
+    },
+    {
+      "type": "callout",
+      "label": "The budget must be split the same way as the actuals.",
+      "text": "The budget P&L is split across departments using exactly the same percentages as the actual P&L. If you change the staff split because someone has been hired into consulting, you have to change it in the budget file as well, or the two will never reconcile."
+    },
+    {
+      "type": "p",
+      "text": "The budget file is worked on in place, month after month, rather than copied fresh each month. Earlier months are preserved because they have been hard coded, and the departmental tabs stay linked."
+    },
+    {
+      "type": "h1",
+      "text": "When a check will not balance"
+    },
+    {
+      "type": "p",
+      "text": "A small variance is harder to find than a large one, because a large one tells you roughly where to look. This is worth knowing before it happens to you."
+    },
+    {
+      "type": "p",
+      "text": "Work it in this order:"
+    },
+    {
+      "type": "bullet",
+      "text": "Check every reference you just changed actually points at the new column"
+    },
+    {
+      "type": "bullet",
+      "text": "Add up the overhead categories in blocks and tick off the ones that agree, to narrow down where the difference lives"
+    },
+    {
+      "type": "bullet",
+      "text": "If the main tab agrees, the variance is in a departmental tab"
+    },
+    {
+      "type": "bullet",
+      "text": "In a departmental tab, look for anything picked up from two places at once"
+    },
+    {
+      "type": "callout",
+      "label": "The trap is double counting a departmental overhead.",
+      "text": "Some costs are coded straight to one department, production insurance for example. A departmental tab should take the share of the overhead split plus that department's own overhead. If instead it references the previous cell, which already includes the same amount, the cost lands twice. This was found on camera and fixed by pointing the formula at the split plus the departmental figure, and locking the row reference so it does not drift when dragged."
+    },
+    {
+      "type": "h1",
+      "text": "Checklist"
+    },
+    {
+      "type": "p",
+      "text": "The P&L Analysis file is finished when:"
+    },
+    {
+      "type": "bullet",
+      "text": "The Xero P&L tab holds every month of the year to date, freshly pasted"
+    },
+    {
+      "type": "bullet",
+      "text": "The GL transactions tab holds the custom report, run from 1 July and sorted by account code"
+    },
+    {
+      "type": "bullet",
+      "text": "Values were converted to number before pasting"
+    },
+    {
+      "type": "bullet",
+      "text": "Every Stripe fee row is set to Admin and CTS"
+    },
+    {
+      "type": "bullet",
+      "text": "Every revenue row has a contact, and each client is spelled one consistent way"
+    },
+    {
+      "type": "bullet",
+      "text": "The Revenue Summary pivot has been refreshed"
+    },
+    {
+      "type": "bullet",
+      "text": "Tabs 2 and 3 read TRUE"
+    },
+    {
+      "type": "bullet",
+      "text": "The month has been changed on tabs 4 and 5, and the quarter on tab 8"
+    },
+    {
+      "type": "bullet",
+      "text": "The Employsure amount is in, cumulative on the year to date and quarter tabs"
+    },
+    {
+      "type": "bullet",
+      "text": "Last month's budget figures were hard coded before the links moved"
+    },
+    {
+      "type": "bullet",
+      "text": "Every budget reference moved on one column, grey cells excepted, and the check reads zero"
+    },
+    {
+      "type": "next",
+      "text": "Part 2: The Graphs File."
+    }
+  ]
+}

@@ -1,0 +1,399 @@
+{
+  "eyebrow": "MONTHLY REPORTING",
+  "title": "Part 2: The Graphs File",
+  "subtitle": "Corporate Technology Services  \u00b7  Excel  \u00b7  Monthly cycle",
+  "runningHead": "Monthly Reporting, Part 2: The Graphs File",
+  "screenshotDir": "manuals/screenshots/report2",
+  "output": "manuals/Monthly Reporting - Part 2 - The Graphs File.docx",
+  "toc": true,
+  "blocks": [
+    {
+      "type": "h1",
+      "text": "About Part 2"
+    },
+    {
+      "type": "p",
+      "text": "Once the P&L Analysis file balances, the graphs file is where the numbers become charts. Most of it is already linked, so the work is smaller than it looks. What it needs is a handful of pastes, a few relinks, and three things that are still worked out by hand."
+    },
+    {
+      "type": "callout",
+      "label": "It is a data dump, and it looks like one.",
+      "text": "The file holds data going back to 2021 and graphs that nobody uses any more. That is deliberate. They were left there by the people who built it, because Duncan occasionally asks for a chart to be reproduced and it is easier to find one than rebuild it. Do not tidy it up."
+    },
+    {
+      "type": "step",
+      "number": 1,
+      "title": "Paste in the three departmental tabs"
+    },
+    {
+      "type": "p",
+      "text": "From the P&L Analysis file, take the per department tabs that exclude other income, the ones highlighted in a different colour, and paste them here."
+    },
+    {
+      "type": "bullet",
+      "text": "The month"
+    },
+    {
+      "type": "bullet",
+      "text": "The year to date"
+    },
+    {
+      "type": "bullet",
+      "text": "The quarter"
+    },
+    {
+      "type": "p",
+      "text": "The front page chart, the one that opens the financial presentation, flows through from the month automatically. Around ninety per cent of everything else in the file is linked to these three pastes."
+    },
+    {
+      "type": "step",
+      "number": 2,
+      "title": "Fill in the employment expenses"
+    },
+    {
+      "type": "p",
+      "text": "One cell is grey rather than linked: employment expenses. It is split two ways, and the split is the point of it."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Departmental staff",
+          "The employment cost that genuinely belongs to that department"
+        ],
+        [
+          "Office staff",
+          "Admin salaries pushed into that department, either by the overhead split or because someone clocked into one of its cost centres"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "The reason for separating them is to see what a department actually costs to run without admin loaded on top. Someone in the management team who works across support, production and consulting will have their salary divided between the three by their timesheets, but they are not part of any of those departments. Their cost belongs in office staff."
+    },
+    {
+      "type": "callout",
+      "label": "This split is only about a year old.",
+      "text": "It was introduced recently, so there is less history behind it than the rest of the file. If a figure looks odd, that is worth remembering."
+    },
+    {
+      "type": "step",
+      "number": 3,
+      "title": "Update the labour hours"
+    },
+    {
+      "type": "p",
+      "text": "One section changes every month and is driven by labour hours, which come straight from the utilisation report."
+    },
+    {
+      "type": "p",
+      "text": "The utilisation data is kept as a separate saved file, because running the full report is slow. It gives you, per department, the number of staff, the cost centres across the top, and hours split between chargeable and non-chargeable."
+    },
+    {
+      "type": "callout",
+      "label": "Filter it to a rolling twelve months.",
+      "text": "Not the month, and not the financial year to date. For a July report you run September through to August of the previous twelve. The whole point is the rolling picture."
+    },
+    {
+      "type": "p",
+      "text": "The file is split by department, and each department has a second tab beside it called Other CC: onsite and onsite Other CC, consulting and consulting Other CC, production and production Other CC. Other CC holds hours a person worked on a cost centre that is not their default one. Someone based in support who picks up consulting work will have those hours land there, and only those hours, not their whole timesheet."
+    },
+    {
+      "type": "shot",
+      "file": "05-labour-hours-other-cc.png",
+      "caption": "The labour hours report, showing the department tabs and their matching Other CC tabs. Employee names are blurred in this guide."
+    },
+    {
+      "type": "h1",
+      "text": "Working out full time equivalents"
+    },
+    {
+      "type": "p",
+      "text": "For each department, add the department's own total hours to its Other CC hours, then divide by the total working hours in a year."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Numerator",
+          "Department total hours plus Other CC hours"
+        ],
+        [
+          "Denominator",
+          "Total working hours in a rolling year"
+        ],
+        [
+          "Where the denominator comes from",
+          "The Days tab in the utilisation report file: working days for the rolling twelve months, multiplied by eight"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "Check this number rather than assuming it.",
+      "text": "The answer should land on either 2,080 or 2,088 hours. The Days tab is also split by state, and it has to be kept up to date as the months roll on, so it is easy to read the wrong row and get a figure that is neither. If your working comes out at something else, go back to the Days tab before you use it."
+    },
+    {
+      "type": "p",
+      "text": "Sense check the result against what you know. Consulting shows almost no full time equivalent in the P&L because the person doing consulting work is a casual engaged ad hoc rather than employed in that department. Production has six full timers but comes out around eight, because of the casuals it engages, and that number moves with how busy they are."
+    },
+    {
+      "type": "callout",
+      "label": "The figure barely moves.",
+      "text": "Month to month the full time equivalent changes by a fraction of a decimal place. If you see it move materially, something is wrong with the hours rather than with the business. When the profitability per employee figure moves, it is almost always the profit that changed, not the headcount."
+    },
+    {
+      "type": "step",
+      "number": 4,
+      "title": "Profitability per employee"
+    },
+    {
+      "type": "p",
+      "text": "This is profit divided by the full time equivalent headcount you just worked out. It gives a figure such as nineteen and a half employees each generating a certain profit."
+    },
+    {
+      "type": "callout",
+      "label": "It is not really per employee.",
+      "text": "There is no true profitability per employee in this report. It is a departmental profit spread across a calculated headcount. It is a recent idea and the person who built it has said openly that a better method would be welcome. Do not present it as more precise than it is."
+    },
+    {
+      "type": "step",
+      "number": 5,
+      "title": "The gross margin scenario chart"
+    },
+    {
+      "type": "p",
+      "text": "One chart asks a hypothetical question: what would the gross profit margin be if departmental employment expenses were treated as cost of sales instead of overhead?"
+    },
+    {
+      "type": "p",
+      "text": "The non chargeable employment cost sitting at the bottom gets moved up into labour, and the margin drops. A gross profit of around forty four per cent might become around forty."
+    },
+    {
+      "type": "callout",
+      "label": "What it is showing.",
+      "text": "It is the margin the business would report if every team were fully utilised, which never actually happens. It is a reference point, not a target."
+    },
+    {
+      "type": "step",
+      "number": 6,
+      "title": "The quarterly charts"
+    },
+    {
+      "type": "p",
+      "text": "The quarterly section pulls automatically from the quarter tab. The work is changing the labels and the ranges, and one thing that is easy to forget."
+    },
+    {
+      "type": "bullet",
+      "text": "Change the quarter label, for example Q4 to July through September"
+    },
+    {
+      "type": "bullet",
+      "text": "Update the matching ranges, which follow the same pattern"
+    },
+    {
+      "type": "bullet",
+      "text": "Relink each quarter one at a time; there is no shortcut here"
+    },
+    {
+      "type": "callout",
+      "label": "Hard code a quarter as soon as it is finished.",
+      "text": "Before you paste the next quarter's data, hard code the one before it. Otherwise the earlier data moves and you will have to redo it. Leave a note on the tab saying it has been updated, meaning hard coded, because it is easy to forget which quarters are safe."
+    },
+    {
+      "type": "p",
+      "text": "If a quarter's profit figure suddenly looks wrong, check whether you are looking at the previous quarter's data that never got hard coded."
+    },
+    {
+      "type": "callout",
+      "label": "Multi-quarter charts wait until Q2.",
+      "text": "The charts that compare several quarters are not worth showing in Q1, because the single quarter is already on the page above. They start being useful from Q2 onwards."
+    },
+    {
+      "type": "step",
+      "number": 7,
+      "title": "The revenue tabs"
+    },
+    {
+      "type": "p",
+      "text": "The older revenue tab is no longer used and does not need updating. On the tab that is used, only the actuals need touching, and they are marked in green so you can find them."
+    },
+    {
+      "type": "p",
+      "text": "The figures are lump sums per department rather than a full breakdown. Production, video, consulting and integration are not separated here; consulting is one number and production is one number."
+    },
+    {
+      "type": "p",
+      "text": "You can link the cells to the P&L Analysis file rather than typing them, but hard code them once the month is done, because the link will otherwise move when you point it at the next month."
+    },
+    {
+      "type": "callout",
+      "label": "Name the file consistently.",
+      "text": "If you link to the P&L Analysis file, keep its name in the same format every month. Change the naming and every link has to be repaired."
+    },
+    {
+      "type": "step",
+      "number": 8,
+      "title": "The running total chart"
+    },
+    {
+      "type": "p",
+      "text": "One chart compares actual against budget as a running total across the year. Each month you add the new month's figures to the total so far."
+    },
+    {
+      "type": "callout",
+      "label": "It has to be a running total.",
+      "text": "If you enter the month on its own the line goes up and down instead of climbing, and it looks wrong immediately. The budget side is already set for the year, so the only thing you update is the actual."
+    },
+    {
+      "type": "p",
+      "text": "It looks odd when you are only two months into the year. That is expected, and it improves as the months build up."
+    },
+    {
+      "type": "step",
+      "number": 9,
+      "title": "The top clients charts"
+    },
+    {
+      "type": "p",
+      "text": "This is the pivot work from Part 1 arriving in the graphs file, and it has a definite order."
+    },
+    {
+      "type": "bullet",
+      "text": "Clear the previous month's contents"
+    },
+    {
+      "type": "bullet",
+      "text": "Paste in the new data from the Revenue Summary pivot"
+    },
+    {
+      "type": "bullet",
+      "text": "Refresh the pivot table here"
+    },
+    {
+      "type": "bullet",
+      "text": "Update the ranking column and drag it down"
+    },
+    {
+      "type": "p",
+      "text": "The ranking is what sorts the chart, and it feeds through automatically because there is an XLOOKUP on either side of it."
+    },
+    {
+      "type": "shot",
+      "file": "06-top-clients-ranking.png",
+      "caption": "The top clients tab: the RANK formula on the left, and the yellow block where the pulled name is matched to the display name. Revenue figures are blurred in this guide."
+    },
+    {
+      "type": "callout",
+      "label": "The yellow cells are the manual bit.",
+      "text": "The name the pivot pulls through has to be matched to the display name shown on the chart. Those are the yellow cells. The display names are stock exchange listing names rather than trading names, which is why they look abbreviated. Where you do not know one, typing the ordinary company name is what has been done before and is perfectly acceptable."
+    },
+    {
+      "type": "p",
+      "text": "Do the same for the quarter, using quarter data, and for the month if you need it. Year to date, quarter and month each have their own place to paste."
+    },
+    {
+      "type": "callout",
+      "label": "Industry and engagement type come from an older file.",
+      "text": "The revenue by segment chart and the engagement type chart in the quarterly report need each client tagged by industry and by type of engagement. That mapping lives in the previous financial year's June file, on a client tab. It is partly out of date, so check anything that looks wrong before reusing it."
+    },
+    {
+      "type": "p",
+      "text": "Finally, repeat the whole top clients exercise per department: once for onsite, once for production, once for consulting."
+    },
+    {
+      "type": "h1",
+      "text": "Charts you can skip"
+    },
+    {
+      "type": "p",
+      "text": "Several charts in the file are no longer used, and the unused ones have red tab colours so you can spot them. Knowing which to skip saves a lot of time."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Sales Revenue Comparison",
+          "Used. Actuals only, marked green."
+        ],
+        [
+          "The older revenue tab",
+          "Not used at all"
+        ],
+        [
+          "Change in Profitability",
+          "Half year and full year only. Marked red because it is usually skipped."
+        ],
+        [
+          "Labour vs Equipment QTR",
+          "Marked red. Use the year to date version instead; the mix barely moves."
+        ],
+        [
+          "Labour vs Equipment YTD",
+          "This is the one to use"
+        ],
+        [
+          "Top Clients YTD, QTR and Month",
+          "All three exist. Year to date is always needed; the others depend on the report."
+        ],
+        [
+          "Onsite revenue versus profitability",
+          "Built when that department was running at a loss. Not relevant while it is profitable."
+        ],
+        [
+          "Expenses trend",
+          "Full financial year only"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "The recurring revenue chart.",
+      "text": "On the labour and equipment pie, the darker the colour the more recurring the revenue: fixed fee support contracts and repeating licence fees. Because it barely moves, the year to date version is the one to use, and the quarterly one is marked so you know to leave it."
+    },
+    {
+      "type": "h1",
+      "text": "Checklist"
+    },
+    {
+      "type": "p",
+      "text": "The graphs file is ready when:"
+    },
+    {
+      "type": "bullet",
+      "text": "The month, year to date and quarter tabs excluding other income have been pasted in"
+    },
+    {
+      "type": "bullet",
+      "text": "Employment expenses are split between departmental staff and office staff"
+    },
+    {
+      "type": "bullet",
+      "text": "Labour hours have been taken from the utilisation report on a rolling twelve months"
+    },
+    {
+      "type": "bullet",
+      "text": "Full time equivalents were calculated against 2,080 or 2,088 hours, checked on the Days tab"
+    },
+    {
+      "type": "bullet",
+      "text": "The previous quarter is hard coded before the new quarter is pasted"
+    },
+    {
+      "type": "bullet",
+      "text": "The running total chart has this month added to the total so far"
+    },
+    {
+      "type": "bullet",
+      "text": "The top clients pivots are refreshed, ranked, and the yellow name cells matched"
+    },
+    {
+      "type": "bullet",
+      "text": "Top clients has been repeated for onsite, production and consulting"
+    },
+    {
+      "type": "next",
+      "text": "Part 3: The Management Report."
+    }
+  ]
+}

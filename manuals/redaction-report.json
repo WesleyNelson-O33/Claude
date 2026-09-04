@@ -1,0 +1,32 @@
+{
+  "grid_00099.jpg": {
+    "out": "01-xero-account-transactions-report.png",
+    "blur": [[540, 510, 668, 594], [28, 107, 1002, 125]],
+    "crop": [0, 0, 1113, 676]
+  },
+  "grid_00106.jpg": {
+    "out": "02-stripe-fees-admin-cts.png",
+    "blur": [[14, 266, 112, 462]],
+    "crop": [0, 0, 1113, 676]
+  },
+  "grid_00151.jpg": {
+    "out": "03-pl-analysis-allocation-tabs.png",
+    "blur": [[28, 332, 376, 602], [478, 332, 878, 602], [956, 332, 1106, 602]],
+    "crop": [0, 0, 1113, 676]
+  },
+  "grid_00190.jpg": {
+    "out": "04-budget-overhead-split.png",
+    "blur": [[732, 314, 1106, 602]],
+    "crop": [0, 0, 1113, 676]
+  },
+  "grid_00288.jpg": {
+    "out": "05-labour-hours-other-cc.png",
+    "blur": [[167, 345, 301, 603]],
+    "crop": [0, 0, 1113, 676]
+  },
+  "grid_00386.jpg": {
+    "out": "06-top-clients-ranking.png",
+    "blur": [[250, 266, 350, 580], [910, 464, 1014, 602]],
+    "crop": [0, 0, 1113, 676]
+  }
+}
