@@ -1,0 +1,407 @@
+{
+  "eyebrow": "PAYROLL",
+  "title": "Payroll, Step by Step",
+  "subtitle": "Corporate Technology Services  \u00b7  Written to be listened to",
+  "runningHead": "Payroll, Step by Step",
+  "screenshotDir": "manuals/screenshots/part1",
+  "output": "manuals/Payroll Step by Step - Listening Version.docx",
+  "toc": true,
+  "blocks": [
+    {
+      "type": "h1",
+      "text": "Before you start"
+    },
+    {
+      "type": "p",
+      "text": "This is the whole payroll fortnight, read out loud, from the first email to the last payslip. Take it one step at a time. Nothing here has to be rushed."
+    },
+    {
+      "type": "p",
+      "text": "You will need three things open. The CTS Accounts mailbox. The Y drive, which is the accounts drive in OneDrive. And Employment Hero."
+    },
+    {
+      "type": "p",
+      "text": "One rule holds the whole thing together. Do the steps in order. Every step changes the numbers that the next step checks. If you jump ahead and then go back, you will do the same work twice."
+    },
+    {
+      "type": "h1",
+      "text": "Step one. Collect the payroll notes as the fortnight goes along"
+    },
+    {
+      "type": "p",
+      "text": "Across the two weeks you will get emails about anything that changes somebody's pay. Back pays. Bonuses. Leave approvals. Questions about a pay slip. Corrections where somebody was paid at the wrong rate."
+    },
+    {
+      "type": "p",
+      "text": "They arrive in two places. Some come to your own inbox. Some come to the CTS Accounts inbox, and those are filed under the Payroll category."
+    },
+    {
+      "type": "p",
+      "text": "Do not leave this until the day you process payroll. Put each one aside as it arrives. Trying to find a fortnight of scattered emails in one sitting is where things get missed."
+    },
+    {
+      "type": "p",
+      "text": "The easiest way is to keep a single draft email open and add each note to it as it comes in. There is a reason for that. When prep is done, those notes go to Duncan or Graham for approval. If they are already in one email, approval is a single send."
+    },
+    {
+      "type": "h1",
+      "text": "Step two. Start prep on the Friday"
+    },
+    {
+      "type": "p",
+      "text": "Payroll prep is a Friday job, not a Monday job. If you leave it until Monday you will be chasing approvals under time pressure, and the timesheet cut off is ten in the morning on the Monday."
+    },
+    {
+      "type": "p",
+      "text": "Open the Y drive. Go to the folder called zero three Payroll. Then zero two Payroll Related. Then Payroll Timesheets. Then the current financial year."
+    },
+    {
+      "type": "p",
+      "text": "Inside that you will find a timesheet template, and a folder for every fortnight. Copy the template into the right fortnight folder. Do not open the template and start typing in it. Always work on your copy."
+    },
+    {
+      "type": "p",
+      "text": "Name it for the fortnight you are paying. If the fortnight ends on the twenty first of August, it covers the eighth of August to the twenty first of August."
+    },
+    {
+      "type": "h1",
+      "text": "Step three. Put the notes into your timesheet copy"
+    },
+    {
+      "type": "p",
+      "text": "Every note goes in the Notes section against the right person. Every single one, even if it does not change their pay. That section is the record of what was raised and why."
+    },
+    {
+      "type": "p",
+      "text": "Then there are columns E to S. Those are the ones that actually drive the money. Normal hours. Time in lieu taken. Public holiday. Annual leave hours. And the overtime columns, which are one point two five, one point five, and one point seven five."
+    },
+    {
+      "type": "p",
+      "text": "Only fill in columns E to S when the item changes the dollar value of somebody's pay. If a note has no effect on the money, it belongs in the Notes section and nowhere else."
+    },
+    {
+      "type": "h1",
+      "text": "Step four. Check every timesheet is approved"
+    },
+    {
+      "type": "p",
+      "text": "This is a gate. You cannot create the pay run while timesheets are still waiting for a manager."
+    },
+    {
+      "type": "p",
+      "text": "In Employment Hero go to Employee Management, then Timesheet Approval. Set the period to the fortnight you are paying. Set the status to Submitted."
+    },
+    {
+      "type": "p",
+      "text": "Now read what comes back. If there are timesheets listed, approvals are still outstanding, and you have to chase them. If the list is empty, everything is approved and you can carry on."
+    },
+    {
+      "type": "p",
+      "text": "There is also a separate warning about missing timesheets. That is a different problem. It lists people who never created a timesheet at all. Follow those up too, because a missing timesheet is still a hole in the pay run."
+    },
+    {
+      "type": "h1",
+      "text": "Step five. Set the period in the spreadsheet"
+    },
+    {
+      "type": "p",
+      "text": "Before you leave the spreadsheet, go to cell B one and set the fortnight period. It is a dropdown, so click it and pick from the list rather than typing."
+    },
+    {
+      "type": "p",
+      "text": "This one is easy to forget, and everything downstream depends on it. If you are not sure which period number you need, the Lookup tab lists every pay period in the year with its start and end dates."
+    },
+    {
+      "type": "h1",
+      "text": "Step six. Create the pay run"
+    },
+    {
+      "type": "p",
+      "text": "In Employment Hero go to Pay Runs and create a new pay run. Most of the form fills itself in, but check four things."
+    },
+    {
+      "type": "p",
+      "text": "The pay schedule should say CTS Fortnight."
+    },
+    {
+      "type": "p",
+      "text": "The pay period start and end dates should match your fortnight."
+    },
+    {
+      "type": "p",
+      "text": "The date the pay run will be paid is always the Tuesday of the week you are processing."
+    },
+    {
+      "type": "p",
+      "text": "And then the important one. Import timesheets. Always choose the first option, which is timesheets for this pay period. Never choose all unpaid timesheets. The second option drags in timesheets from outside your fortnight. In the recorded example that was the difference between six hundred and sixty five timesheets and seven hundred and eighty eight. A hundred and twenty three of them did not belong."
+    },
+    {
+      "type": "p",
+      "text": "Leave the three tick boxes alone unless you have a reason. They are manually add payees, create pay run with empty pays, and include terminated employees."
+    },
+    {
+      "type": "p",
+      "text": "Click create. It takes a moment while Employment Hero does its sums. That wait is normal."
+    },
+    {
+      "type": "p",
+      "text": "When it finishes, look at the payee count in the top left before you do anything else. If that number looks wrong for the fortnight, stop and find out why."
+    },
+    {
+      "type": "p",
+      "text": "And here is the reassuring part. Nothing is committed yet. If you created it with the wrong period or the wrong import option, just delete the pay run and create it again. That is much faster than fixing it person by person."
+    },
+    {
+      "type": "h1",
+      "text": "Step seven. Work down the pay run, person by person"
+    },
+    {
+      "type": "p",
+      "text": "Go through the pay run in alphabetical order. For each person, check what type of employee they are before you apply any rule, because the same hours are treated differently for a casual and for a salaried person."
+    },
+    {
+      "type": "p",
+      "text": "For casuals, the Live Performance Award decides what they get, not what Employment Hero calculates. Keep the award open in a tab."
+    },
+    {
+      "type": "p",
+      "text": "Compare each timesheet against the roster. A tick means the times reconcile. A warning sign means there is a difference, and the view will show you exactly what differs. Most differences are just a shorter break than rostered, or a shift split across two cost centres. Neither of those is a problem. What you are checking is that the total hours add up."
+    },
+    {
+      "type": "p",
+      "text": "Then check for overtime two ways. Anything over thirty eight hours in a week is overtime at one point seven five. Look at each week separately, not the fortnight as a whole. And anything over eight hours in a single day is also overtime."
+    },
+    {
+      "type": "p",
+      "text": "If Employment Hero has triggered both the daily and the weekly overtime for the same hours, pay one, not both. Paying both is double dipping."
+    },
+    {
+      "type": "p",
+      "text": "Then check meal breaks. If a casual works more than four hours and no break is recorded, Employment Hero quietly takes thirty minutes off. They worked that time and must be paid for it. Fix it by setting the work type on the timesheet to working during meal break, not by adding half an hour to the pay run. Past five continuous hours the award adds a penalty on top, and Employment Hero will not calculate that at all unless the work type is set."
+    },
+    {
+      "type": "p",
+      "text": "For salaried staff, the rules come from the CTS overtime matrix instead of the award. Watch the eight hour rounding rule, because it will round a short day back up to a full eight hours."
+    },
+    {
+      "type": "p",
+      "text": "And then there are the people who need handling by hand. Part time staff who do not clock in will not be in the pay run at all, so add them with pay run actions, then add payees. New starters will be in the pay run but not in your spreadsheet, so add them in alphabetical order with the rate from their contract, and use the rate excluding casual loading. Anyone who worked a shift that was never captured also has to be added by hand."
+    },
+    {
+      "type": "h1",
+      "text": "Step eight. Apply the payroll notes"
+    },
+    {
+      "type": "p",
+      "text": "Now the notes you collected go into the pay run."
+    },
+    {
+      "type": "p",
+      "text": "For a back pay where somebody was on the wrong rate, do not work out the difference yourself. Enter it as two lines. Add earnings with the hours as a negative at the old wrong rate. Then add earnings again with the same hours as a positive at the correct rate. Let Employment Hero do the arithmetic. Write the reason in the notes on both lines, and say which fortnight you are correcting."
+    },
+    {
+      "type": "p",
+      "text": "For time in lieu, use accrue leave to add and adjust leave to take away. When you are taking leave away, make sure the setting that applies it to the dollar value is unticked. If you leave it ticked you will take money off their pay as well as hours off their balance, and that is not what you meant."
+    },
+    {
+      "type": "p",
+      "text": "For per diem, the CTS rate is seventy five dollars a night. Enter it as units multiplied by nights."
+    },
+    {
+      "type": "p",
+      "text": "And if this is the last pay run of the month, accrue the bonus leave. That is tracked in a separate spreadsheet, and nothing will prompt you to do it. A day is eight hours. Nobody gets accrued until their letter has been issued and signed."
+    },
+    {
+      "type": "h1",
+      "text": "Step nine. Check the pay rates"
+    },
+    {
+      "type": "p",
+      "text": "Before you balance, check every rate against the rate increase spreadsheet. Anyone who is not on that spreadsheet has had no change, so their existing rate stands."
+    },
+    {
+      "type": "p",
+      "text": "For salaried people, the hourly rate is the annual salary divided by one point one two, then divided by fifty two, then divided by forty. The one point one two takes the superannuation out, because the spreadsheet holds rates excluding super."
+    },
+    {
+      "type": "p",
+      "text": "Be careful here, because rates get quoted three different ways. Including super. Including casual loading. Or bare. The spreadsheet wants the bare rate. Most mistakes at this step come from comparing two numbers that are not on the same basis."
+    },
+    {
+      "type": "p",
+      "text": "There is also a known fault where a rate updated in Employment Hero HR never reaches payroll. You will often see a warning icon on the person. Override the rate by hand for this pay run, then check whether earlier fortnights were underpaid. If they were, that is a back pay."
+    },
+    {
+      "type": "p",
+      "text": "Mark each rate green once you have checked it. Anything left unmarked still needs looking at."
+    },
+    {
+      "type": "h1",
+      "text": "Step ten. Balance the pay run"
+    },
+    {
+      "type": "p",
+      "text": "Balancing compares your spreadsheet against Employment Hero on two numbers. Total hours, and total dollars. The spreadsheet has a checksum row that does the comparison for you."
+    },
+    {
+      "type": "p",
+      "text": "Hours almost always come good first, because that is what all the reconciling was for. If the hours checksum reads zero but the dollars do not, the hours are in the right place but somebody is on the wrong rate."
+    },
+    {
+      "type": "p",
+      "text": "To find it, read gross earnings person by person against the pay run. It is tedious but it works, and it is usually one person. Filter out the rows that already agree and it goes quickly."
+    },
+    {
+      "type": "p",
+      "text": "When hours balance and dollars do not, check overtime rates before ordinary rates. An overtime multiplier sitting on an old base rate makes a small difference that is easy to miss."
+    },
+    {
+      "type": "p",
+      "text": "Work it down to zero. A cent or two of rounding is fine. Anything bigger has a cause worth finding."
+    },
+    {
+      "type": "h1",
+      "text": "Step eleven. Finalise"
+    },
+    {
+      "type": "p",
+      "text": "Stop and be sure before you do this. Once super has been paid against a pay run, Employment Hero will not let you unlock it."
+    },
+    {
+      "type": "p",
+      "text": "Check the header details one more time. Then finalise the pay run and set the approver to Graham. A second person has to log in and approve it. Nothing happens until they do."
+    },
+    {
+      "type": "p",
+      "text": "Once they have approved, refresh the page. The payment file and the reports only appear after the refresh."
+    },
+    {
+      "type": "h1",
+      "text": "Step twelve. Pay it"
+    },
+    {
+      "type": "p",
+      "text": "Download the ABA file. That is the payment instruction the bank reads."
+    },
+    {
+      "type": "p",
+      "text": "In CommBiz go to Payables, then Import, then Import Files. Set the file type to Direct Entry. Choose the ABA file. Tick set file as modifiable, because it costs nothing and leaves you room to fix things."
+    },
+    {
+      "type": "p",
+      "text": "Click import file. To actually see the imported file you have to click through the confirmation and then come back out. It does not appear straight away. Check the total matches the pay run, then submit, confirm, and okay."
+    },
+    {
+      "type": "p",
+      "text": "Now make sure there is enough money in the account. And this is the bit that looks confusing, so here is why. Gross earnings is the number before tax, and it does not include super or PAYG. What actually leaves the account is the net amount in the ABA file, plus super, which is direct debited separately at the same time, plus anything else due to go out in the next day or two."
+    },
+    {
+      "type": "p",
+      "text": "Transfer enough to cover payroll and super and still leave about twenty thousand dollars in the account. Make the transfer from the savings account, and use a description that will still make sense in Xero later. Something like MT payroll, where MT means money transfer."
+    },
+    {
+      "type": "h1",
+      "text": "Step thirteen. Tell people"
+    },
+    {
+      "type": "p",
+      "text": "The payment will not move until Duncan approves it in CommBiz, so tell him it is waiting. This happens two ways and you need both."
+    },
+    {
+      "type": "p",
+      "text": "Send the payroll email to Duncan, copying Graham, Danica and accounts. Put the fortnight ending date in the subject. Attach the production summary, anything else relevant, and a screenshot of the transaction group list."
+    },
+    {
+      "type": "p",
+      "text": "Then post in the payments chat and tag Duncan, to say payroll is in CommBiz for approval."
+    },
+    {
+      "type": "h1",
+      "text": "Step fourteen. Super"
+    },
+    {
+      "type": "p",
+      "text": "From the finalised pay run, click create super payment. Super is direct debited automatically, so there is nothing to pay in CommBiz for it."
+    },
+    {
+      "type": "p",
+      "text": "Creating the batch does not send it. You still have to validate and confirm it separately. If you create one by accident you can delete it. Once the batch exists the button changes to review super payment, which is how you can tell it worked even if the screen looks like it did nothing."
+    },
+    {
+      "type": "p",
+      "text": "Employment Hero can be slow here and gives you very little sign it is working. If it will not load at all, super can be done the next day. It does not have to happen in the same sitting."
+    },
+    {
+      "type": "h1",
+      "text": "Step fifteen. Save the reports"
+    },
+    {
+      "type": "p",
+      "text": "Five files need saving for every fortnight."
+    },
+    {
+      "type": "p",
+      "text": "The payslips, downloaded from the pay run for printing. The pay run audit report, from the pay run under reports, ticking everything on the left and downloading as Excel. The ABA file you already downloaded. The leave balances report. And the leave liability report."
+    },
+    {
+      "type": "p",
+      "text": "The last two come from the Reports menu, not from the pay run. Set both of them to the pay period ending date, not today's date."
+    },
+    {
+      "type": "p",
+      "text": "Move all five out of Downloads and into the folder for that fortnight, along with any emails about the period. It takes a moment now and saves a great deal when somebody queries a pay six months later."
+    },
+    {
+      "type": "h1",
+      "text": "Step sixteen. The next day"
+    },
+    {
+      "type": "p",
+      "text": "Do not publish the payslips yet. Employees are notified the second you do, so this waits until the payment is actually approved."
+    },
+    {
+      "type": "p",
+      "text": "The next day, once you know Duncan has approved it in CommBiz, go back into the pay run and click publish pay slips. That is what tells everybody."
+    },
+    {
+      "type": "p",
+      "text": "Then lodge the pay run with the ATO. That is a separate action from the finalised pay run screen, and it can also be done the next day."
+    },
+    {
+      "type": "h1",
+      "text": "The five things most likely to go wrong"
+    },
+    {
+      "type": "p",
+      "text": "One. Choosing all unpaid timesheets instead of timesheets for this pay period when you create the pay run. Delete it and start again."
+    },
+    {
+      "type": "p",
+      "text": "Two. Forgetting to set the period in cell B one of the spreadsheet."
+    },
+    {
+      "type": "p",
+      "text": "Three. Paying both daily and weekly overtime for the same hours."
+    },
+    {
+      "type": "p",
+      "text": "Four. Leaving the dollar value setting ticked when you adjust leave down, which takes money off somebody's pay by accident."
+    },
+    {
+      "type": "p",
+      "text": "Five. Comparing a rate that includes super against one that does not, when you are checking pay rates."
+    },
+    {
+      "type": "h1",
+      "text": "And finally"
+    },
+    {
+      "type": "p",
+      "text": "If the dollars will not balance and you cannot find it, stop and go back to the hours. Hours balancing first is the normal order. If the hours are right, the money is a rate somewhere, and it is nearly always one person."
+    },
+    {
+      "type": "p",
+      "text": "Take your time. Nothing before finalising is permanent."
+    }
+  ]
+}
