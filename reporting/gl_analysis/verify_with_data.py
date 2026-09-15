@@ -50,7 +50,7 @@ for d in months:
 shutil.copy(SRC, TEST)
 wb = load_workbook(TEST)
 gl, coa, st = wb["GL_Data"], wb["COA_Mapping"], wb["Setup"]
-st["B7"], st["B8"] = CY, PER
+st["B7"], st["B8"], st["B12"] = CY, PER, "GL_Data"
 for i, (name, grp, div) in enumerate(BS):                 # add BS accounts in blank COA rows
     r = 7 + len(ACCOUNTS) + i
     coa.cell(r, 1, name); coa.cell(r, 3, grp); coa.cell(r, 4, div)

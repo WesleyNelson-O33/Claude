@@ -21,6 +21,9 @@ ACCOUNTS = json.loads((ROOT / "data/accounts.json").read_text())
 # ---- capacity -------------------------------------------------------------
 GL_R0, GL_R1 = 8, 5007          # GL_Data data rows
 COA_R0, COA_R1 = 7, 256         # COA_Mapping data rows (250 accounts)
+RAW_R0, RAW_R1 = 17, 12016      # Raw_Paste dump zone (12,000 rows, 20 columns)
+RAW_NCOL = 20
+CLN_R0, CLN_R1 = 6, 12005       # Cleanup rows, one per dump row
 ENG_R0, ENG_R1 = 6, 255         # Data_Engine data rows (aligned 1:1 with COA)
 NACC = COA_R1 - COA_R0 + 1
 
@@ -188,6 +191,18 @@ setup_row(9, "Prior financial year (comparative)", "=$B$7-1", is_input=False)
 setup_row(10, "Current period label", '=TEXT(DATE($B$7-IF(AND($B$6>1,MOD($B$6+$B$8-2,12)+1>=$B$6),1,0),MOD($B$6+$B$8-2,12)+1,1),"MMMM YYYY")', is_input=False)
 setup_row(11, "Prior year comparative label", '=TEXT(DATE($B$9-IF(AND($B$6>1,MOD($B$6+$B$8-2,12)+1>=$B$6),1,0),MOD($B$6+$B$8-2,12)+1,1),"MMMM YYYY")', is_input=False)
 
+setup_row(12, "Data source  ->  which sheet the reports read", "Raw_Paste",
+          note="Raw_Paste = dump your Xero export as-is and let the workbook clean it. "
+               "GL_Data = you have already tidied the data yourself.")
+lbl(st, 12, 3, "Raw_Paste  =  dirty Xero dump, cleaned automatically.   GL_Data  =  tidy data you paste yourself.",
+    size=9, color=MUTED)
+dv_src = DataValidation(type="list", formula1='"Raw_Paste,GL_Data"', allow_blank=False,
+                        showErrorMessage=True, errorTitle="Pick a source",
+                        error="Choose Raw_Paste or GL_Data.")
+st.add_data_validation(dv_src); dv_src.add(st["B12"])
+st.conditional_formatting.add("B12", FormulaRule(formula=['$B$12="Raw_Paste"'],
+                              fill=PatternFill("solid", fgColor="D9E2F3"), font=Font(color="1F3864", bold=True)))
+
 band(st, 13, "2.  RISK FLAG THRESHOLDS", 1, 3)
 setup_row(14, "Materiality floor  ($) - below this a variance is always Low", 5000, MONEY,
           note="Stops a 400% swing on a $80 account being flagged High. Set it to roughly your audit performance materiality, or 0.5% of revenue.")
@@ -223,7 +238,29 @@ st.conditional_formatting.add("B30", FormulaRule(formula=['ROUND($B$30,2)=0'],
 st.conditional_formatting.add("B26", FormulaRule(formula=['$B$26>0'],
                               fill=PatternFill("solid", fgColor=F_HIGH), font=Font(color=T_HIGH, bold=True)))
 
-band(st, 32, "4.  RISK FLAG LOGIC  (read once, then trust the colours)", 1, 3)
+band(st, 32, "3b.  RAW_PASTE CLEANING RESULTS  (only relevant when the source is Raw_Paste)", 1, 3)
+raw_status = [
+    ("Rows found in the dump zone", f'=SUMPRODUCT(--(Cleanup!$E${CLN_R0}:$E${CLN_R1}<>"Blank"))', NUM),
+    ("Transaction lines kept", f'=SUM(Cleanup!$K${CLN_R0}:$K${CLN_R1})', NUM),
+    ("Dropped - account heading rows", f'=COUNTIF(Cleanup!$E${CLN_R0}:$E${CLN_R1},"Heading")', NUM),
+    ("Dropped - subtotal / balance rows", f'=COUNTIF(Cleanup!$E${CLN_R0}:$E${CLN_R1},"Subtotal")', NUM),
+    ("Dropped - lines with no value", f'=COUNTIF(Cleanup!$E${CLN_R0}:$E${CLN_R1},"Nil value")', NUM),
+    ("Dropped - text with no date or amount", f'=COUNTIF(Cleanup!$E${CLN_R0}:$E${CLN_R1},"Text only")', NUM),
+    ("Kept debits", f'=SUMPRODUCT(Cleanup!$K${CLN_R0}:$K${CLN_R1},Cleanup!$C${CLN_R0}:$C${CLN_R1})', MONEY2),
+    ("Kept credits", f'=SUMPRODUCT(Cleanup!$K${CLN_R0}:$K${CLN_R1},Cleanup!$D${CLN_R0}:$D${CLN_R1})', MONEY2),
+    ("Kept debits less credits (must be nil)", '=ROUND($B$39-$B$40,2)', MONEY2),
+    ("Kept lines not mapped to an account", f'=COUNTIF(Cleanup!$Q${CLN_R0}:$Q${CLN_R1},"UNMAPPED")', NUM),
+]
+for i, (label, f, fmt) in enumerate(raw_status):
+    setup_row(33 + i, label, f, fmt, is_input=False)
+st.conditional_formatting.add("B41", FormulaRule(formula=['ROUND($B$41,2)<>0'],
+                              fill=PatternFill("solid", fgColor=F_HIGH), font=Font(color=T_HIGH, bold=True)))
+st.conditional_formatting.add("B41", FormulaRule(formula=['ROUND($B$41,2)=0'],
+                              fill=PatternFill("solid", fgColor=F_LOW), font=Font(color=T_LOW, bold=True)))
+st.conditional_formatting.add("B42", FormulaRule(formula=['$B$42>0'],
+                              fill=PatternFill("solid", fgColor=F_HIGH), font=Font(color=T_HIGH, bold=True)))
+
+band(st, 45, "4.  RISK FLAG LOGIC  (read once, then trust the colours)", 1, 3)
 logic = [
     ("No Activity", "Nil in both the current and comparative period.", F_NA, T_NA),
     ("Low", "Variance is under the materiality floor, or under the Medium % threshold.", F_LOW, T_LOW),
@@ -231,7 +268,7 @@ logic = [
     ("High", "Variance is at or over the High % threshold, OR over the High $ threshold, OR the comparative was nil and the movement is material (a new or ceased account).", F_HIGH, T_HIGH),
 ]
 for i, (flag, desc, fill, font) in enumerate(logic):
-    r = 33 + i
+    r = 46 + i
     c = st.cell(row=r, column=1, value=flag)
     c.font = Font(name=ARIAL, size=10, bold=True, color=font)
     c.fill = PatternFill("solid", fgColor=fill)
@@ -382,6 +419,181 @@ gl.conditional_formatting.add(f"V{GL_R0}:V{GL_R1}", FormulaRule(
     fill=PatternFill("solid", fgColor=F_MED), font=Font(color=T_MED, bold=True)))
 
 # ===========================================================================
+# RAW_PASTE  - dump the Xero export exactly as it comes out
+# ===========================================================================
+rp = sheet("Raw_Paste", "E36C0A")
+title(rp, "Raw Paste  -  dump your Xero export here, exactly as it comes",
+      "No tidying. Leave the title rows, the account headings, the subtotals and the blank lines in. "
+      "Tell it which column is which in the panel below and the Cleanup sheet sorts out the rest.")
+widths(rp, {"A": 30, "B": 26, "C": 4})
+for i in range(3, RAW_NCOL + 1):
+    rp.column_dimensions[CL(i)].width = 18
+
+band(rp, 3, "TELL IT WHICH COLUMN IS WHICH  (count columns from the left of what you pasted: A=1, B=2, C=3 ...)", 1, 8)
+RP_OPTS = [
+    (4,  "Layout of your export", "Section headings",
+     "Section headings = the account name sits on its own row above its transactions (Xero's Account Transactions "
+     "and General Ledger reports). Account in a column = every row carries its own account name (Journal report)."),
+    (5,  "Column holding the account name", 1, "For section-heading layouts this is the column the heading sits in."),
+    (6,  "Column holding the date", 1, "Rows without a readable date are treated as headings or subtotals."),
+    (7,  "Column holding the description", 3, "0 if you do not have one."),
+    (8,  "Column holding the reference / journal no.", 4, "0 if you do not have one."),
+    (9,  "Column holding the contact / payee", 2, "0 if you do not have one."),
+    (10, "Amount layout", "Debit and Credit",
+     "Debit and Credit = two separate columns. Single amount = one signed column, positive is a debit."),
+    (11, "Column holding Debit (or the single amount)", 5, None),
+    (12, "Column holding Credit", 6, "Ignored if you chose Single amount."),
+    (13, "Drop lines that have no value", "Yes",
+     "Yes strips the empty lines Xero pads the report with. This is the setting that saves you deleting rows by hand."),
+    (14, "Strip a leading account code", "Yes",
+     "Turns '200 - Sales' into 'Sales'. Only strips a code that is numeric and at the very start, so an account "
+     "genuinely named like 'Meal & Travel - CONS' is left alone."),
+]
+for r, label, val, note in RP_OPTS:
+    lbl(rp, r, 1, label, size=10)
+    c = rp.cell(row=r, column=2, value=val)
+    inp(c, note)
+    c.alignment = Alignment(horizontal="center")
+    if note:
+        n = rp.cell(row=r, column=3, value=note)
+        n.font = Font(name=ARIAL, size=8, color=MUTED)
+        n.alignment = Alignment(wrap_text=True, vertical="center")
+        rp.merge_cells(start_row=r, start_column=3, end_row=r, end_column=8)
+        rp.row_dimensions[r].height = 26
+for formula1, cells in (('"Section headings,Account in a column"', ["B4"]),
+                        ('"Debit and Credit,Single amount"', ["B10"]),
+                        ('"Yes,No"', ["B13", "B14"])):
+    dv = DataValidation(type="list", formula1=formula1, allow_blank=False, showErrorMessage=True)
+    rp.add_data_validation(dv)
+    for cc in cells:
+        dv.add(rp[cc])
+dv_col = DataValidation(type="whole", operator="between", formula1=0, formula2=RAW_NCOL,
+                        showErrorMessage=True, errorTitle="Column number",
+                        error=f"Enter a column number from 1 to {RAW_NCOL}, or 0 for none.")
+rp.add_data_validation(dv_col)
+for cc in ("B5", "B6", "B7", "B8", "B9", "B11", "B12"):
+    dv_col.add(rp[cc])
+
+band(rp, 16, f"PASTE HERE  -  cell A{RAW_R0}, up to {RAW_R1 - RAW_R0 + 1:,} rows and {RAW_NCOL} columns. "
+             "Paste the whole export including its headings. Nothing here needs deleting.", 1, RAW_NCOL)
+hdr = rp.cell(row=RAW_R0 - 1, column=1, value=f"v  paste starts in this cell  ->  A{RAW_R0}")
+hdr.font = Font(name=ARIAL, size=9, bold=True, color=MUTED)
+
+LAY, ACOL, DCOL = "Raw_Paste!$B$4", "Raw_Paste!$B$5", "Raw_Paste!$B$6"
+DESCC, REFC, CONC = "Raw_Paste!$B$7", "Raw_Paste!$B$8", "Raw_Paste!$B$9"
+AMTL, DRC, CRC = "Raw_Paste!$B$10", "Raw_Paste!$B$11", "Raw_Paste!$B$12"
+DROPNIL, STRIPC = "Raw_Paste!$B$13", "Raw_Paste!$B$14"
+
+# ===========================================================================
+# CLEANUP  - classifies every pasted row and keeps only the real transactions
+# ===========================================================================
+cu = sheet("Cleanup", "404040")
+title(cu, "Cleanup  -  what the workbook made of your dump",
+      "Calculated. One row here for every row in the dump zone. Column E says what each row was judged to be and "
+      "column K says whether it was kept. Nothing here should ever be typed into.")
+CU_HEAD = ["Account text\nas pasted", "Date", "Debit", "Credit", "Row type", "Account\n(code stripped)",
+           "Account applied", "Description", "Reference", "Contact", "Keep", "Acct Idx", "FY", "Per",
+           "Reported Amt", "Match Key", "Status", "Gather key"]
+header(cu, 5, CU_HEAD)
+cu.freeze_panes = "A6"
+widths(cu, {"A": 30, "B": 11, "C": 12, "D": 12, "E": 13, "F": 28, "G": 28, "H": 30,
+            "I": 16, "J": 18, "K": 6, "L": 8, "M": 7, "N": 6, "O": 14, "P": 11, "Q": 16, "R": 10})
+
+for i in range(CLN_R1 - CLN_R0 + 1):
+    r = CLN_R0 + i
+    rr = RAW_R0 + i
+    rng = f"Raw_Paste!$A{rr}:${CL(RAW_NCOL)}{rr}"
+    prev = f"$G{r - 1}" if r > CLN_R0 else '""'
+    has_amt = f'OR(ROUND($C{r},2)<>0,ROUND($D{r},2)<>0)'
+    excl = (f'OR(ISNUMBER(SEARCH("opening balance",$A{r}&" "&$H{r})),'
+            f'ISNUMBER(SEARCH("closing balance",$A{r}&" "&$H{r})),'
+            f'LEFT(LOWER($A{r}),5)="total")')
+    fml = {
+        1:  f'=IF({ACOL}=0,"",IFERROR(TRIM(INDEX({rng},{ACOL})&""),""))',
+        2:  (f'=IF(ISNUMBER(INDEX({rng},{DCOL})),INDEX({rng},{DCOL}),'
+             f'IFERROR(DATEVALUE(INDEX({rng},{DCOL})&""),""))'),
+        3:  (f'=IF({AMTL}="Single amount",MAX(0,IFERROR(N(INDEX({rng},{DRC})),0)),'
+             f'IFERROR(N(INDEX({rng},{DRC})),0))'),
+        4:  (f'=IF({AMTL}="Single amount",MAX(0,-IFERROR(N(INDEX({rng},{DRC})),0)),'
+             f'IF({CRC}=0,0,IFERROR(N(INDEX({rng},{CRC})),0)))'),
+        5:  (f'=IF({excl},"Subtotal",'
+             f'IF(ISNUMBER($B{r}),'
+             f'IF({has_amt},"Transaction",IF({DROPNIL}="Yes","Nil value","Transaction")),'
+             f'IF({has_amt},"Subtotal",'
+             f'IF($A{r}<>"",IF({LAY}="Section headings","Heading","Text only"),"Blank"))))'),
+        6:  (f'=IF($A{r}="","",IF({STRIPC}="Yes",'
+             f'IF(AND(ISNUMBER(IFERROR(VALUE(LEFT($A{r},1)),"x")),ISNUMBER(SEARCH(" - ",$A{r}))),'
+             f'TRIM(MID($A{r},SEARCH(" - ",$A{r})+3,300)),TRIM($A{r})),TRIM($A{r})))'),
+        7:  (f'=IF({LAY}="Section headings",IF($E{r}="Heading",$F{r},{prev}),'
+             f'IF($E{r}="Transaction",$F{r},{prev}))'),
+        8:  f'=IF({DESCC}=0,"",IFERROR(INDEX({rng},{DESCC})&"",""))',
+        9:  f'=IF({REFC}=0,"",IFERROR(INDEX({rng},{REFC})&"",""))',
+        10: f'=IF({CONC}=0,"",IFERROR(INDEX({rng},{CONC})&"",""))',
+        11: f'=IF(AND($E{r}="Transaction",$G{r}<>""),1,0)',
+        12: f'=IF($K{r}=0,0,IFERROR(MATCH($G{r},{COA_A},0),0))',
+        13: f'=IF($K{r}=0,0,IF({B6}=1,YEAR($B{r}),YEAR($B{r})+IF(MONTH($B{r})>={B6},1,0)))',
+        14: f'=IF($K{r}=0,0,MOD(MONTH($B{r})-{B6}+12,12)+1)',
+        15: (f'=IF(OR($K{r}=0,$L{r}=0),0,'
+             f'($C{r}-$D{r})*INDEX(COA_Mapping!$F${COA_R0}:$F${COA_R1},$L{r}))'),
+        16: (f'=IF(OR($K{r}=0,$L{r}=0),0,IF($M{r}={B7},$L{r}*1000+100+$N{r},'
+             f'IF($M{r}={B9},$L{r}*1000+$N{r},0)))'),
+        17: (f'=IF($K{r}=0,"",IF($L{r}=0,"UNMAPPED",'
+             f'IF(AND($M{r}<>{B7},$M{r}<>{B9}),"OUTSIDE FY RANGE","OK")))'),
+        18: (f'={f"INT($R{r - 1})" if r > CLN_R0 else "0"}+$K{r}+IF($K{r}=1,0,0.5)'),
+        19: f'=IF($K{r}=1,$B{r},0)',
+        20: (f'=IF($K{r}=0,"",$G{r}&"|"&TEXT($B{r},"yyyymmdd")&"|"&'
+             f'TEXT($C{r}-$D{r},"0.00"))'),
+        21: f'=IF($K{r}=0,"",COUNTIF($T${CLN_R0}:$T${CLN_R1},$T{r}))',
+    }
+    for col, f in fml.items():
+        c = cu.cell(row=r, column=col, value=f)
+        c.font = Font(name=ARIAL, size=9)
+        if col == 2:
+            c.number_format = DATEF
+        elif col in (3, 4, 15):
+            c.number_format = MONEY2
+        elif col == 19:
+            c.number_format = DATEF
+        elif col in (11, 12, 13, 14, 16, 18, 21):
+            c.number_format = NUM
+
+CU_KEEP = f"Cleanup!$K${CLN_R0}:$K${CLN_R1}"
+cu.conditional_formatting.add(f"A{CLN_R0}:R{CLN_R1}", FormulaRule(
+    formula=[f'$E{CLN_R0}="Transaction"'], fill=PatternFill("solid", fgColor="F2F9F2")))
+cu.conditional_formatting.add(f"A{CLN_R0}:R{CLN_R1}", FormulaRule(
+    formula=[f'AND($E{CLN_R0}="Transaction",$Q{CLN_R0}="UNMAPPED")'],
+    fill=PatternFill("solid", fgColor=F_HIGH), font=Font(color=T_HIGH)))
+cu.conditional_formatting.add(f"E{CLN_R0}:E{CLN_R1}", FormulaRule(
+    formula=[f'OR($E{CLN_R0}="Heading",$E{CLN_R0}="Subtotal")'],
+    fill=PatternFill("solid", fgColor=F_MED), font=Font(color=T_MED)))
+
+# preview of the first kept lines, so the cleaning can be eyeballed before it is trusted
+PV_N, PV_C0 = 150, 23
+band(cu, 3, "PREVIEW  -  the first kept transaction lines, in order", PV_C0, PV_C0 + 6)
+header(cu, 5, ["#", "Date", "Account applied", "Description", "Debit", "Credit", "Status"], start_col=PV_C0)
+for j in range(PV_N):
+    r = CLN_R0 + j
+    k = j + 1
+    src = cu.cell(row=r, column=PV_C0 + 7,
+                  value=f'=IF({k}>Setup!$B$34,"",MATCH({k},Cleanup!$R${CLN_R0}:$R${CLN_R1},1)+{CLN_R0 - 1})')
+    src.font = Font(name=ARIAL, size=8, color="BFBFBF")
+    for m, (col_letter, fmt) in enumerate([("B", DATEF), ("G", None), ("H", None),
+                                           ("C", MONEY2), ("D", MONEY2), ("Q", None)]):
+        c = cu.cell(row=r, column=PV_C0 + 1 + m,
+                    value=f'=IF(${CL(PV_C0 + 7)}{r}="","",INDEX(Cleanup!${col_letter}:${col_letter},'
+                          f'${CL(PV_C0 + 7)}{r}))')
+        c.font = Font(name=ARIAL, size=9)
+        c.border = BOX
+        if fmt:
+            c.number_format = fmt
+    n = cu.cell(row=r, column=PV_C0, value=f'=IF(${CL(PV_C0 + 7)}{r}="","",{k})')
+    n.font = Font(name=ARIAL, size=9)
+    n.border = BOX
+    n.alignment = Alignment(horizontal="center")
+for m, w in enumerate((5, 11, 28, 30, 12, 12, 14, 8)):
+    cu.column_dimensions[CL(PV_C0 + m)].width = w
+
+# ===========================================================================
 # DATA_ENGINE  - account x period aggregation, calculated once
 # ===========================================================================
 en = sheet("Data_Engine", "404040")
@@ -422,6 +634,9 @@ for p in range(24):
 for k in DER.values():
     en.column_dimensions[CL(k)].width = 13
 
+SRC = "Setup!$B$12"
+CU_KEY = f"Cleanup!$P${CLN_R0}:$P${CLN_R1}"
+CU_AMT = f"Cleanup!$O${CLN_R0}:$O${CLN_R1}"
 GL_KEY = f"GL_Data!$S${GL_R0}:$S${GL_R1}"
 GL_AMT = f"GL_Data!$P${GL_R0}:$P${GL_R1}"
 
@@ -446,7 +661,9 @@ for i in range(NACC):
         for c0, key in ((PY_C0, p), (CY_C0, 100 + p)):
             col = c0 + p - 1
             c = en.cell(row=r, column=col,
-                        value=f'=IF($A{r}="",0,SUMIF({GL_KEY},{idx * 1000 + key},{GL_AMT}))')
+                        value=f'=IF($A{r}="",0,IF({SRC}="Raw_Paste",'
+                              f'SUMIF({CU_KEY},{idx * 1000 + key},{CU_AMT}),'
+                              f'SUMIF({GL_KEY},{idx * 1000 + key},{GL_AMT})))')
             c.font = Font(name=ARIAL, size=9)
             c.number_format = MONEY
             c.border = BOX
@@ -949,54 +1166,77 @@ GA, GT = f"GL_Data!$A${GL_R0}:$A${GL_R1}", f"GL_Data!$T${GL_R0}:$T${GL_R1}"
 GI = f"GL_Data!$I${GL_R0}:$I${GL_R1}"
 # raw Dr-Cr: blank cells coerce to 0, so ABS/ROUND/MOD stay safe inside SUMPRODUCT
 GAMT = f"(GL_Data!$G${GL_R0}:$G${GL_R1}-GL_Data!$H${GL_R0}:$H${GL_R1})"
+# cleaned-source equivalents, so a control never reports PASS off an empty sheet
+CD = f"Cleanup!$S${CLN_R0}:$S${CLN_R1}"     # date, numeric, kept rows only (0 elsewhere)
+CC = f"Cleanup!$C${CLN_R0}:$C${CLN_R1}"
+CR2 = f"Cleanup!$D${CLN_R0}:$D${CLN_R1}"
+CK = f"Cleanup!$K${CLN_R0}:$K${CLN_R1}"
+CH = f"Cleanup!$H${CLN_R0}:$H${CLN_R1}"
 CHECKS = [
-    ("C1", "General ledger is in balance (total debits less total credits)",
-     f'=ROUND(SUM(GL_Data!$G${GL_R0}:$G${GL_R1})-SUM(GL_Data!$H${GL_R0}:$H${GL_R1}),2)', "= 0", "eq0", "FAIL", MONEY2,
-     "Your export is incomplete or a column is misaligned. Re-export the full ledger - do not proceed until this is nil."),
+    ("C1", "Source data is in balance (total debits less total credits)",
+     f'=IF({SRC}="Raw_Paste",Setup!$B$41,'
+     f'ROUND(SUM(GL_Data!$G${GL_R0}:$G${GL_R1})-SUM(GL_Data!$H${GL_R0}:$H${GL_R1}),2))', "= 0", "eq0", "FAIL", MONEY2,
+     "Tests whichever source Setup B12 is pointing at. If you dumped a single account rather than the whole ledger "
+     "this will never be nil - that is expected, and the analysis still works, but you lose this control."),
     ("C2", "All GL lines net to nil (double entry intact)",
-     f'=ROUND(SUM({GI}),2)', "= 0", "eq0", "FAIL", MONEY2,
-     "Same cause as C1. If you pasted signed amounts into Debit only, this still needs to be nil overall."),
+     f'=IF({SRC}="Raw_Paste",Setup!$B$41,ROUND(SUM({GI}),2))', "= 0", "eq0", "FAIL", MONEY2,
+     "Same cause as C1. If you pasted signed amounts into one column, this still needs to be nil overall."),
     ("C3", "Every GL line maps to an account in COA_Mapping",
-     f'=COUNTIF({GT},"UNMAPPED")', "= 0", "eq0", "FAIL", NUM,
-     "Filter GL_Data column T for UNMAPPED, copy the account names from column B and add them to COA_Mapping. "
-     "Unmapped lines are excluded from every report."),
+     f'=IF({SRC}="Raw_Paste",Setup!$B$42,COUNTIF({GT},"UNMAPPED"))', "= 0", "eq0", "FAIL", NUM,
+     "Filter the live source for UNMAPPED (Cleanup column Q, or GL_Data column T), copy those account names and add "
+     "them to COA_Mapping. Unmapped lines are silently excluded from every report, so never leave this red."),
     ("C4", "No GL lines with a date but no account name",
-     f'=COUNTIF({GT},"NO ACCOUNT")', "= 0", "eq0", "FAIL", NUM,
-     "Column B is blank on those rows. Fill it in or delete the rows."),
+     f'=IF({SRC}="Raw_Paste",'
+     f'SUMPRODUCT((Cleanup!$E${CLN_R0}:$E${CLN_R1}="Transaction")*(Cleanup!$G${CLN_R0}:$G${CLN_R1}="")),'
+     f'COUNTIF({GT},"NO ACCOUNT"))', "= 0", "eq0", "FAIL", NUM,
+     "Transaction rows the workbook could not attach to an account. On a Raw_Paste dump that means transactions "
+     "appeared before the first account heading - check the account column number on Raw_Paste B5."),
     ("C5", "Data_Engine is still aligned to COA_Mapping",
      f'=SUMPRODUCT(--(Data_Engine!$A${ENG_R0}:$A${ENG_R1}&""<>COA_Mapping!$A${COA_R0}:$A${COA_R1}&""))',
      "= 0", "eq0", "FAIL", NUM,
      "Someone inserted or deleted rows on COA_Mapping. Undo it, or rebuild the workbook. Overwrite rows in place instead."),
     ("C6", "Current reporting period actually has data",
-     f'=COUNTIFS(GL_Data!$J${GL_R0}:$J${GL_R1},{B7},GL_Data!$K${GL_R0}:$K${GL_R1},{B8})', "> 0", "gt0", "FAIL", NUM,
+     f'=IF({SRC}="Raw_Paste",'
+     f'COUNTIFS(Cleanup!$M${CLN_R0}:$M${CLN_R1},{B7},Cleanup!$N${CLN_R0}:$N${CLN_R1},{B8}),'
+     f'COUNTIFS(GL_Data!$J${GL_R0}:$J${GL_R1},{B7},GL_Data!$K${GL_R0}:$K${GL_R1},{B8}))', "> 0", "gt0", "FAIL", NUM,
      "Either the period on Setup is wrong, or that month has not been posted yet. Check Setup cell B8."),
     ("C7", "Prior year comparative is loaded",
-     f'=COUNTIF(GL_Data!$J${GL_R0}:$J${GL_R1},{B9})', "> 0", "gt0", "REVIEW", NUM,
+     f'=IF({SRC}="Raw_Paste",COUNTIF(Cleanup!$M${CLN_R0}:$M${CLN_R1},{B9}),'
+     f'COUNTIF(GL_Data!$J${GL_R0}:$J${GL_R1},{B9}))', "> 0", "gt0", "REVIEW", NUM,
      "Without prior year data every year-on-year variance reads as a new account. Load both years into GL_Data."),
     ("C8", "No GL lines dated outside the two financial years on Setup",
-     f'=COUNTIF({GT},"OUTSIDE FY RANGE")', "= 0", "eq0", "REVIEW", NUM,
+     f'=IF({SRC}="Raw_Paste",COUNTIF(Cleanup!$Q${CLN_R0}:$Q${CLN_R1},"OUTSIDE FY RANGE"),'
+     f'COUNTIF({GT},"OUTSIDE FY RANGE"))', "= 0", "eq0", "REVIEW", NUM,
      "Those lines are ignored by the analysis. Fine if you deliberately loaded three years; a problem if the dates are wrong."),
-    ("C9", "GL row capacity not exceeded",
-     f'=IF(Setup!$B$21>={GL_R1 - GL_R0 + 1},1,0)', "= 0", "eq0", "FAIL", NUM,
-     f"You have filled all {GL_R1 - GL_R0 + 1} rows, so data is probably being cut off. Summarise the GL by month "
-     "before pasting, or extend the formulas by copying the last row down."),
+    ("C9", "Row capacity not exceeded on the live source",
+     f'=IF({SRC}="Raw_Paste",IF(Setup!$B$33>={CLN_R1 - CLN_R0 + 1},1,0),'
+     f'IF(Setup!$B$21>={GL_R1 - GL_R0 + 1},1,0))', "= 0", "eq0", "FAIL", NUM,
+     f"Raw_Paste holds {RAW_R1 - RAW_R0 + 1:,} rows and GL_Data holds {GL_R1 - GL_R0 + 1:,}. If you have filled the "
+     "sheet, data is being cut off. Export in two halves, or run a month-by-account summary report instead of "
+     "transaction detail - month-on-month analysis does not need every line."),
     ("C10", "No possible duplicate journal lines (same account, date and amount)",
-     f'=COUNTIF(GL_Data!$V${GL_R0}:$V${GL_R1},">1")', "= 0", "eq0", "REVIEW", NUM,
+     f'=IF({SRC}="Raw_Paste",COUNTIF(Cleanup!$U${CLN_R0}:$U${CLN_R1},">1"),'
+     f'COUNTIF(GL_Data!$V${GL_R0}:$V${GL_R1},">1"))', "= 0", "eq0", "REVIEW", NUM,
      "Sort GL_Data by column V. Recurring journals of identical value are legitimate; a double-posted invoice is not."),
     ("C11", "No transactions dated in the future",
-     f'=SUMPRODUCT(({GA}<>"")*({GA}>TODAY()))', "= 0", "eq0", "REVIEW", NUM,
+     f'=IF({SRC}="Raw_Paste",SUMPRODUCT(({CD}>0)*({CD}>TODAY())),'
+     f'SUMPRODUCT(({GA}<>"")*({GA}>TODAY())))', "= 0", "eq0", "REVIEW", NUM,
      "Usually a typed date error (wrong year). Check them before reporting."),
     ("C12", "No weekend postings",
-     f'=SUMPRODUCT(({GA}>0)*(WEEKDAY({GA}+0,2)>5))', "= 0", "info", "REVIEW", NUM,
+     f'=IF({SRC}="Raw_Paste",SUMPRODUCT(({CD}>0)*(WEEKDAY({CD}+0,2)>5)),'
+     f'SUMPRODUCT(({GA}>0)*(WEEKDAY({GA}+0,2)>5)))', "= 0", "info", "REVIEW", NUM,
      "Not wrong in itself, but weekend manual journals are a standard fraud-risk indicator. Check who posted them."),
     ("C13", "No round-dollar postings of $10,000 or more",
-     f'=SUMPRODUCT(({GA}<>"")*(ABS{GAMT}>=10000)*(MOD(ABS{GAMT},1000)=0))', "= 0", "info", "REVIEW", NUM,
+     f'=IF({SRC}="Raw_Paste",SUMPRODUCT(({CD}>0)*(ABS({CC}-{CR2})>=10000)*(MOD(ABS({CC}-{CR2}),1000)=0)),'
+     f'SUMPRODUCT(({GA}<>"")*(ABS{GAMT}>=10000)*(MOD(ABS{GAMT},1000)=0)))', "= 0", "info", "REVIEW", NUM,
      "Large round numbers are usually accruals or estimates. Confirm each one is supported."),
     ("C14", "Every GL line has a description",
-     f'=SUMPRODUCT(({GA}<>"")*(GL_Data!$C${GL_R0}:$C${GL_R1}=""))', "= 0", "info", "REVIEW", NUM,
+     f'=IF({SRC}="Raw_Paste",SUMPRODUCT({CK}*({CH}="")),'
+     f'SUMPRODUCT(({GA}<>"")*(GL_Data!$C${GL_R0}:$C${GL_R1}="")))', "= 0", "info", "REVIEW", NUM,
      "Unexplained journals are the hardest thing to defend at audit. Get narrations added at source."),
     ("C15", "No nil-value GL lines",
-     f'=SUMPRODUCT(({GA}<>"")*(ROUND({GAMT[1:-1]},2)=0))', "= 0", "info", "REVIEW", NUM,
+     f'=IF({SRC}="Raw_Paste",SUMPRODUCT({CK}*(ROUND({CC}-{CR2},2)=0)),'
+     f'SUMPRODUCT(({GA}<>"")*(ROUND({GAMT[1:-1]},2)=0)))', "= 0", "info", "REVIEW", NUM,
      "Harmless but they bloat the file and hide reversals. Consider stripping them from the export."),
     ("C16", "Every mapped account has a valid group",
      f'=COUNTIF(COA_Mapping!$I${COA_R0}:$I${COA_R1},"NO GROUP")+COUNTIF(COA_Mapping!$I${COA_R0}:$I${COA_R1},"BAD GROUP")',
@@ -1010,6 +1250,14 @@ CHECKS = [
      f'+SUMPRODUCT((YoY_Analysis!$P${ENG_R0}:$P${ENG_R1}="High")*(YoY_Analysis!$Q${ENG_R0}:$Q${ENG_R1}=""))',
      "= 0", "eq0", "REVIEW", NUM,
      "This is your sign-off. Every High flag needs an explanation before the pack goes out."),
+    ("C20", "Raw_Paste: the cleaning kept a sensible number of lines",
+     f'=IF({SRC}<>"Raw_Paste",0,IF(Setup!$B$33=0,0,IF(Setup!$B$34/Setup!$B$33<0.3,1,0)))', "= 0", "info", "REVIEW", NUM,
+     "Fewer than 30% of your pasted rows were judged to be transactions. Usually the column numbers on Raw_Paste "
+     "rows 4 to 14 are pointing at the wrong columns. Check the preview on Cleanup before you go further."),
+    ("C21", "Raw_Paste: no pasted rows were left unclassified",
+     f'=IF({SRC}<>"Raw_Paste",0,COUNTIF(Cleanup!$E${CLN_R0}:$E${CLN_R1},"Text only"))', "= 0", "info", "REVIEW", NUM,
+     "Rows with text but no date and no amount that were not treated as account headings. Harmless if they are "
+     "report titles; a problem if they are transactions whose date column was misidentified."),
     ("C19", "Thresholds on Setup are sensible (High % above Medium %)",
      f'=IF({HIP}>{MEDP},0,1)', "= 0", "eq0", "FAIL", NUM,
      "Setup B16 must be greater than B15, otherwise the Medium band never triggers."),
@@ -1095,26 +1343,59 @@ def rd_line(r, left, right, bold=False):
     return r + 1
 
 r = 4
-r = rd_band(r, "HOW TO USE IT  -  four steps, in this order")
+r = rd_band(r, "HOW TO USE IT  -  five steps, in this order")
 for i, (a, b) in enumerate([
     ("Step 1", "Open Setup. Set the financial year (cell B7, the year the FY ENDS) and the reporting period "
                "(cell B8, where 1 = the first month of the FY). For a July year start, period 3 = September. "
                "Check the risk thresholds in B14:B17 suit your business."),
-    ("Step 2", "Open COA_Mapping. Every account in your GL must appear in column A, spelled exactly as it appears "
-               "in the export. It is pre-loaded with your 190 accounts from Xero. Set the Group and Division. "
+    ("Step 2", f"Open Raw_Paste and dump your Xero export into cell A{RAW_R0}, exactly as it comes out. Leave the "
+               "title rows, the account headings, the subtotals and the blank lines in - you do not delete anything. "
+               "Then set the column numbers in the panel on rows 4 to 14 so it knows which column is the date, which "
+               "is the amount, and so on."),
+    ("Step 3", "Open Cleanup and look at the preview block on the right. If those lines look like your transactions, "
+               "the column numbers are right. If they look wrong, go back and fix the numbers on Raw_Paste - that is "
+               "almost always the problem."),
+    ("Step 4", "Open COA_Mapping. Every account name the cleaning found must appear in column A, spelled exactly "
+               "the same. It is pre-loaded with your 190 accounts from Xero. Set the Group and Division. "
                "Overwrite rows in place - never insert or delete rows here."),
-    ("Step 3", "Open GL_Data. Paste your ledger into columns A to H starting at row 8. Everything from column I "
-               "across is formula - do not type in it. Two years of data gives you a real year-on-year comparison."),
-    ("Step 4", "Open Controls. Clear every FAIL before you read anything else. Then Summary, then Exceptions, "
+    ("Step 5", "Open Controls. Clear every FAIL before you read anything else. Then Summary, then Exceptions, "
                "then the two detail sheets."),
 ]):
     r = rd_line(r, a, b)
 
 r += 1
+r = rd_band(r, "THE DIRTY DUMP  -  what it throws away, and what it keeps")
+for a, b in [
+    ("The idea", "You should never have to delete a row by hand. Paste the export whole and the Cleanup sheet decides "
+                 "what each row is. Nothing is hidden: Setup rows 33 to 42 count every row it dropped and why."),
+    ("Kept", "A row with a readable date AND a debit or credit AND an account name it could work out. That is it."),
+    ("Dropped - headings", "Rows with text but no date and no amount. In a Xero Account Transactions or General "
+                           "Ledger export that is the account name sitting above its transactions, so the account "
+                           "is remembered and applied to every line underneath until the next heading."),
+    ("Dropped - subtotals", "Rows with an amount but no date - that is how every Total line behaves - plus anything "
+                            "containing Opening Balance or Closing Balance, and anything starting with Total. "
+                            "These are the rows that would double-count if you left them in."),
+    ("Dropped - empty lines", "Rows with a date but no value, and completely blank rows. This is the setting on "
+                              "Raw_Paste B13 and it is the one that saves you the deleting."),
+    ("Two layouts", "Section headings (Account Transactions, General Ledger - the account is a heading row) or "
+                    "Account in a column (Journal report - every row names its own account). Set it on Raw_Paste B4."),
+    ("Switching source", "Setup B12 chooses which sheet the reports read. Raw_Paste uses the cleaned dump. GL_Data "
+                         "uses the tidy sheet you fill in yourself. Only one is live at a time, so there is no "
+                         "double counting - but check B12 says what you think it says."),
+    ("Check it balances", "Setup B41 is kept debits less kept credits. If you dumped the whole ledger it must be nil. "
+                          "If it is not, the cleaning has taken something it should not have, or missed a column. "
+                          "If you only dumped one account it will not be nil, and that is fine."),
+]:
+    r = rd_line(r, a, b)
+
+r += 1
 r = rd_band(r, "WHAT EACH SHEET IS FOR")
 for a, b in [
-    ("Setup", "Control panel. Financial year, reporting period and the risk thresholds. Yellow cells only."),
-    ("GL_Data", "Where the ledger goes. Columns A-H are yours, I-V are calculated."),
+    ("Setup", "Control panel. Financial year, reporting period, risk thresholds, and which data source is live."),
+    ("Raw_Paste", "The dirty dump zone. Paste the Xero export as-is. Nothing is formatted, nothing needs deleting."),
+    ("Cleanup", "Calculated. Judges every pasted row, carries account headings down, and keeps only real "
+                "transactions. Has a preview so you can check the cleaning before trusting it."),
+    ("GL_Data", "The alternative source, for data you have already tidied. Columns A-H are yours, I-V are calculated."),
     ("COA_Mapping", "Maps each GL account to a reporting group and a division. This is what makes the summary work."),
     ("Lists", "The group master. Sets the sign convention (income shows positive, expenses show positive) and report order."),
     ("Data_Engine", "Calculated. Aggregates the GL once by account and period so the reports are fast. Never type here."),
@@ -1187,8 +1468,13 @@ for a, b in [
                "equals Net Profit Before Tax. Re-map those accounts on COA_Mapping to split them out."),
     ("Balance sheet", "The balance sheet block shows the movement posted in the period, not the closing position. "
                       "Include your opening balance journal in the export if you want positions."),
-    ("Capacity", f"{GL_R1 - GL_R0 + 1} GL rows and {NACC} accounts. If you need more, copy the last formula row down. "
-                 "Control C9 warns you when the rows run out."),
+    ("Capacity", f"Raw_Paste holds {RAW_R1 - RAW_R0 + 1:,} rows, GL_Data holds {GL_R1 - GL_R0 + 1:,}, and there is room "
+                 f"for {NACC} accounts. Control C9 warns you when the rows run out. If a year of transaction detail "
+                 "will not fit, run the Xero report summarised by month instead - month-on-month analysis does not "
+                 "need every individual line, and the workbook will be far quicker."),
+    ("If the cleaning looks wrong", "It is nearly always the column numbers on Raw_Paste rows 4 to 14. Check the "
+                                    "preview on Cleanup first, then Setup rows 33 to 42 to see what was dropped. "
+                                    "Controls C20 and C21 flag the two usual symptoms."),
 ]:
     r = rd_line(r, a, b)
 
@@ -1207,8 +1493,8 @@ rd.row_dimensions[r].height = 40
 # ===========================================================================
 del wb["Sheet"]
 wb.move_sheet("README", offset=-wb.sheetnames.index("README"))
-order = ["README", "Setup", "GL_Data", "COA_Mapping", "Summary", "MoM_Analysis",
-         "YoY_Analysis", "Exceptions", "Controls", "Data_Engine", "Lists"]
+order = ["README", "Setup", "Raw_Paste", "GL_Data", "COA_Mapping", "Summary", "MoM_Analysis",
+         "YoY_Analysis", "Exceptions", "Controls", "Cleanup", "Data_Engine", "Lists"]
 wb._sheets = [wb[n] for n in order]
 
 for ws in wb.worksheets:                      # Arial everywhere, size preserved
