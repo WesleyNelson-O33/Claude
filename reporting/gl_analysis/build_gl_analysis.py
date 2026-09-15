@@ -130,10 +130,12 @@ def lbl(ws, row, col, text, bold=False, size=10, color="000000", indent=0):
 # department rather than being buried inside Admin, so a $2m cost base cannot
 # hide behind an operating division. Change any account on COA_Mapping.
 DEPTS = ["Onsite", "Production", "Video", "Consulting", "Integration",
-         "Admin", "Unallocated", "Overheads"]
+         "Admin", "Unallocated"]
 CORE_GROUPS = ["Income", "Other Income", "Cost of Sales", "Expenses"]
 EXTRA_GROUPS = ["Depreciation & Amortisation", "Finance Costs", "Income Tax Expense"]
-OVERHEAD_DEPT = "Overheads"
+# Overheads report under Admin rather than as a department of their own.
+# Flip this back to "Overheads" (and add it to DEPTS) to split them out again.
+OVERHEAD_DEPT = "Admin"
 
 def _is_overhead(a):
     return a["group"] == "Expenses" and a["division"] == "Unallocated"
@@ -1255,9 +1257,9 @@ r += 1
 for txt in ("Department rows are NET CONTRIBUTION - income less costs. The lines underneath are gross, with income "
             "and costs both positive. 'Other' picks up anything mapped to depreciation, finance or tax so the "
             "department block always ties back to its own total.",
-            "Overheads are the expense accounts with no division - 68 of them on your current mapping. They get "
-            "their own department rather than being buried in Admin. Change any account's Overhead? flag on "
-            "COA_Mapping, or set its Division to Admin if you would rather it sat there.",
+            "Overheads - the expense accounts with no division - report under ADMIN. Admin therefore carries the "
+            "whole indirect cost base, so its contribution is deliberately a large negative: it is the cost of "
+            "running the company, not a trading result. Column K on COA_Mapping shows where each account lands.",
             "The balance sheet block shows the MOVEMENT posted in each period, not the closing position, and stays "
             "nil until you map balance sheet accounts on COA_Mapping."):
     n = sm.cell(row=r, column=1, value=txt)
@@ -1600,9 +1602,9 @@ for a, b in [
     ("Department rows", "NET CONTRIBUTION: income less costs, for that department. The lines underneath are gross, "
                         "with income and costs both shown positive. The 'Other' line on Summary catches anything "
                         "mapped to depreciation, finance or tax so each department block ties to its own total."),
-    ("Overheads", "The expense accounts with no division - 68 of them on your current mapping - report as their own "
-                  "department instead of being buried in Admin. Set the Overhead? flag on COA_Mapping column J to "
-                  "change that account by account, or set an account's Division to Admin to move it there outright."),
+    ("Overheads", "The expense accounts with no division report under ADMIN, flagged Overhead? = Yes on "
+                  "COA_Mapping column J. Column K shows where each account actually lands. Set an account's "
+                  "Overhead? flag to No and give it a Division to move it out to an operating department."),
     ("Block sizes", "Each department and group block has a fixed number of account slots with room to spare. "
                     "Control C22 tells you if an account has nowhere to appear, which happens only if you re-map a "
                     "lot of accounts into one department."),

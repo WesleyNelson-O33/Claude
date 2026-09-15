@@ -84,7 +84,7 @@ print(res.stdout.strip()[:220])
 grp_of = {a["account"]: a["group"] for a in ACCOUNTS}; grp_of["Cash at Bank"] = "Current Assets"
 div_of = {a["account"]: a["division"] for a in ACCOUNTS}; div_of["Cash at Bank"] = "Admin"
 def rdept(acct):
-    return "Overheads" if (grp_of[acct] == "Expenses" and div_of[acct] == "Unallocated") else div_of[acct]
+    return "Admin" if (grp_of[acct] == "Expenses" and div_of[acct] == "Unallocated") else div_of[acct]
 def fyp(d): return d.year + (1 if d.month >= 7 else 0), (d.month - 7) % 12 + 1
 agg = defaultdict(float)
 for d, acct, dr, cr in txns:
@@ -136,7 +136,7 @@ chk("Cost of Sales CY YTD", sm.cell(comp["Cost of Sales"], 9).value, tot(CY, YTD
 chk("Operating Expenses CY YTD", sm.cell(comp["Operating Expenses"], 9).value, tot(CY, YTD, group="Expenses"))
 
 print("\n--- Summary: each department (CY YTD) ---")
-for dept in ["Onsite", "Production", "Video", "Consulting", "Integration", "Admin", "Unallocated", "Overheads"]:
+for dept in ["Onsite", "Production", "Video", "Consulting", "Integration", "Admin", "Unallocated"]:
     d = dept_rows.get(dept)
     if not d:
         print(f"BAD department block missing: {dept}"); fails += 1; continue
@@ -145,11 +145,12 @@ for dept in ["Onsite", "Production", "Video", "Consulting", "Integration", "Admi
     chk(f"{dept}: Direct Expenses", sm.cell(d["Direct Expenses"], 9).value, tot(CY, YTD, dept, "Expenses"))
     chk(f"{dept}: NET CONTRIBUTION", sm.cell(d["__net__"], 9).value, netc(CY, YTD, dept))
 
-print("\n--- Overheads really did take the unallocated expenses ---")
+print("\n--- overheads landed in Admin ---")
 oh = [a for a in ACCOUNTS if a["group"] == "Expenses" and a["division"] == "Unallocated"]
-print(f"    {len(oh)} accounts flagged Overhead;  Overheads YTD expenses "
-      f"{sm.cell(dept_rows['Overheads']['Direct Expenses'], 9).value:,.2f}")
+print(f"    {len(oh)} accounts flagged Overhead, all reporting under Admin")
 chk("Unallocated has no expenses left", sm.cell(dept_rows["Unallocated"]["Direct Expenses"], 9).value, 0.0)
+chk("Admin carries the overheads", sm.cell(dept_rows["Admin"]["Direct Expenses"], 9).value,
+    tot(CY, YTD, "Admin", "Expenses"))
 
 print("\n--- MoM sheet: department and group rows ---")
 cur = None

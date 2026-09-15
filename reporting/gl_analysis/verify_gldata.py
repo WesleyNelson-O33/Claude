@@ -37,7 +37,7 @@ subprocess.run([sys.executable, RECALC, str(TEST), "900"], capture_output=True, 
 
 grp_of = {a["account"]: a["group"] for a in ACCOUNTS}
 div_of = {a["account"]: a["division"] for a in ACCOUNTS}
-def rdept(a): return "Overheads" if (grp_of[a] == "Expenses" and div_of[a] == "Unallocated") else div_of[a]
+def rdept(a): return "Admin" if (grp_of[a] == "Expenses" and div_of[a] == "Unallocated") else div_of[a]
 agg = defaultdict(float)
 for d, acct, *_r, dr, cr in rows:
     fy, per = d.year + (1 if d.month >= 7 else 0), (d.month - 7) % 12 + 1
@@ -69,7 +69,7 @@ print("GL lines loaded:", se["B21"].value, "| FY", se["B7"].value, "period", se[
 chk("company Income YTD", sm.cell(comp["Income"], 9).value, tot(group="Income"))
 chk("company Cost of Sales YTD", sm.cell(comp["Cost of Sales"], 9).value, tot(group="Cost of Sales"))
 chk("company Operating Expenses YTD", sm.cell(comp["Operating Expenses"], 9).value, tot(group="Expenses"))
-for d in ["Onsite", "Consulting", "Admin", "Overheads", "Unallocated"]:
+for d in ["Onsite", "Consulting", "Admin", "Unallocated"]:
     chk(f"{d}: Income YTD", sm.cell(dept_rows[d]["Income"], 9).value, tot(d, "Income"))
     chk(f"{d}: net contribution YTD", sm.cell(dept_rows[d]["__net__"], 9).value, netc(d))
 print("\nRESULT:", "GL_DATA PATH OK" if fails == 0 else f"{fails} PROBLEMS")
