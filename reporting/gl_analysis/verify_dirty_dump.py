@@ -13,7 +13,7 @@ RECALC = "/root/.claude/skills/synced/e9aa5ee9-a99d-40c9-9bb1-cc5bc5010cf8_723c9
 RECALC = str(next(Path("/root/.claude/skills/synced").glob("*/xlsx/scripts/recalc.py")))
 ACCOUNTS = json.loads((HERE.parent / "data/accounts.json").read_text())
 CY, PER, PY = 2027, 3, 2026
-RAW_R0 = 17
+RAW_R0 = 1
 
 months = [dt.date(2025, m, 12) for m in range(7, 13)] + [dt.date(2026, m, 12) for m in range(1, 10)]
 pool = [a for a in ACCOUNTS if a["group"] in ("Income", "Cost of Sales", "Expenses", "Other Income")]
@@ -89,10 +89,10 @@ coa = wb["COA_Mapping"]
 for i, (name, grp, div) in enumerate([("Cash at Bank", "Current Assets", "Admin")]):
     r = 7 + len(ACCOUNTS) + i
     coa.cell(r, 1, name); coa.cell(r, 3, grp); coa.cell(r, 4, div)
-rp["B4"], rp["B5"], rp["B6"] = "Section headings", 1, 1      # account heading and date both in column A
-rp["B7"], rp["B8"], rp["B9"] = 3, 4, 2                        # description, reference, contact
-rp["B10"], rp["B11"], rp["B12"] = "Debit and Credit", 5, 6
-rp["B13"], rp["B14"] = "Yes", "Yes"
+st["B53"], st["B54"], st["B55"] = "Section headings", 1, 1    # account heading and date both in column A
+st["B56"], st["B57"], st["B58"] = 3, 4, 2                      # description, reference, contact
+st["B59"], st["B60"], st["B61"] = "Debit and Credit", 5, 6
+st["B62"], st["B63"] = "Yes", "Yes"
 for i, row in enumerate(dump):
     for j, v in enumerate(row):
         if v is not None:

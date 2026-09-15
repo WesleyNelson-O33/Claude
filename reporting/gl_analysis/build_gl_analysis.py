@@ -21,7 +21,7 @@ ACCOUNTS = json.loads((ROOT / "data/accounts.json").read_text())
 # ---- capacity -------------------------------------------------------------
 GL_R0, GL_R1 = 8, 5007          # GL_Data data rows
 COA_R0, COA_R1 = 7, 256         # COA_Mapping data rows (250 accounts)
-RAW_R0, RAW_R1 = 17, 12016      # Raw_Paste dump zone (12,000 rows, 20 columns)
+RAW_R0, RAW_R1 = 1, 12000       # Raw_Paste dump zone starts at A1 (12,000 rows, 20 columns)
 RAW_NCOL = 20
 CLN_R0, CLN_R1 = 6, 12005       # Cleanup rows, one per dump row
 ENG_R0, ENG_R1 = 6, 255         # Data_Engine data rows (aligned 1:1 with COA)
@@ -422,67 +422,62 @@ gl.conditional_formatting.add(f"V{GL_R0}:V{GL_R1}", FormulaRule(
 # RAW_PASTE  - dump the Xero export exactly as it comes out
 # ===========================================================================
 rp = sheet("Raw_Paste", "E36C0A")
-title(rp, "Raw Paste  -  dump your Xero export here, exactly as it comes",
-      "No tidying. Leave the title rows, the account headings, the subtotals and the blank lines in. "
-      "Tell it which column is which in the panel below and the Cleanup sheet sorts out the rest.")
-widths(rp, {"A": 30, "B": 26, "C": 4})
-for i in range(3, RAW_NCOL + 1):
+# Deliberately bare. Excel refuses to paste a whole-sheet or whole-column selection anywhere
+# except A1, so there is nothing above the data - no title, no headings, no panel. Select all,
+# copy, paste into A1. The column mapping lives on Setup instead.
+rp.sheet_view.showGridLines = True
+for i in range(1, RAW_NCOL + 1):
     rp.column_dimensions[CL(i)].width = 18
 
-band(rp, 3, "TELL IT WHICH COLUMN IS WHICH  (count columns from the left of what you pasted: A=1, B=2, C=3 ...)", 1, 8)
+band(st, 51, "5.  RAW_PASTE COLUMN MAPPING   (count columns from the left of what you pasted: A=1, B=2, C=3 ...)", 1, 3)
+lbl(st, 52, 1, "Paste your Xero export into Raw_Paste cell A1, then set these.", bold=True, size=10, color=NAVY)
 RP_OPTS = [
-    (4,  "Layout of your export", "Section headings",
-     "Section headings = the account name sits on its own row above its transactions (Xero's Account Transactions "
-     "and General Ledger reports). Account in a column = every row carries its own account name (Journal report)."),
-    (5,  "Column holding the account name", 1, "For section-heading layouts this is the column the heading sits in."),
-    (6,  "Column holding the date", 1, "Rows without a readable date are treated as headings or subtotals."),
-    (7,  "Column holding the description", 3, "0 if you do not have one."),
-    (8,  "Column holding the reference / journal no.", 4, "0 if you do not have one."),
-    (9,  "Column holding the contact / payee", 2, "0 if you do not have one."),
-    (10, "Amount layout", "Debit and Credit",
+    (53, "Layout of your export", "Section headings",
+     "Section headings = the account name sits on its own row above its transactions (Xero's General Ledger Detail "
+     "and Account Transactions reports). Account in a column = every row carries its own account name."),
+    (54, "Column holding the account name", 1, "For section-heading layouts, the column the heading sits in."),
+    (55, "Column holding the date", 1, "Rows without a readable date are treated as headings or subtotals."),
+    (56, "Column holding the description", 3, "0 if you do not have one."),
+    (57, "Column holding the reference / journal no.", 4, "0 if you do not have one."),
+    (58, "Column holding the contact / payee", 2, "0 if you do not have one."),
+    (59, "Amount layout", "Debit and Credit",
      "Debit and Credit = two separate columns. Single amount = one signed column, positive is a debit."),
-    (11, "Column holding Debit (or the single amount)", 5, None),
-    (12, "Column holding Credit", 6, "Ignored if you chose Single amount."),
-    (13, "Drop lines that have no value", "Yes",
-     "Yes strips the empty lines Xero pads the report with. This is the setting that saves you deleting rows by hand."),
-    (14, "Strip a leading account code", "Yes",
+    (60, "Column holding Debit (or the single amount)", 5, None),
+    (61, "Column holding Credit", 6, "Ignored if you chose Single amount."),
+    (62, "Drop lines that have no value", "Yes",
+     "Yes strips the empty lines Xero pads the report with. This is the setting that saves you deleting rows."),
+    (63, "Strip a leading account code", "Yes",
      "Turns '200 - Sales' into 'Sales'. Only strips a code that is numeric and at the very start, so an account "
      "genuinely named like 'Meal & Travel - CONS' is left alone."),
 ]
 for r, label, val, note in RP_OPTS:
-    lbl(rp, r, 1, label, size=10)
-    c = rp.cell(row=r, column=2, value=val)
+    lbl(st, r, 1, label, size=10)
+    c = st.cell(row=r, column=2, value=val)
     inp(c, note)
     c.alignment = Alignment(horizontal="center")
     if note:
-        n = rp.cell(row=r, column=3, value=note)
+        n = st.cell(row=r, column=3, value=note)
         n.font = Font(name=ARIAL, size=8, color=MUTED)
-        n.alignment = Alignment(wrap_text=True, vertical="center")
-        rp.merge_cells(start_row=r, start_column=3, end_row=r, end_column=8)
-        rp.row_dimensions[r].height = 26
-for formula1, cells in (('"Section headings,Account in a column"', ["B4"]),
-                        ('"Debit and Credit,Single amount"', ["B10"]),
-                        ('"Yes,No"', ["B13", "B14"])):
+        n.alignment = Alignment(wrap_text=True, vertical="top")
+        st.row_dimensions[r].height = 26
+for formula1, cells in (('"Section headings,Account in a column"', ["B53"]),
+                        ('"Debit and Credit,Single amount"', ["B59"]),
+                        ('"Yes,No"', ["B62", "B63"])):
     dv = DataValidation(type="list", formula1=formula1, allow_blank=False, showErrorMessage=True)
-    rp.add_data_validation(dv)
+    st.add_data_validation(dv)
     for cc in cells:
-        dv.add(rp[cc])
+        dv.add(st[cc])
 dv_col = DataValidation(type="whole", operator="between", formula1=0, formula2=RAW_NCOL,
                         showErrorMessage=True, errorTitle="Column number",
                         error=f"Enter a column number from 1 to {RAW_NCOL}, or 0 for none.")
-rp.add_data_validation(dv_col)
-for cc in ("B5", "B6", "B7", "B8", "B9", "B11", "B12"):
-    dv_col.add(rp[cc])
+st.add_data_validation(dv_col)
+for cc in ("B54", "B55", "B56", "B57", "B58", "B60", "B61"):
+    dv_col.add(st[cc])
 
-band(rp, 16, f"PASTE HERE  -  cell A{RAW_R0}, up to {RAW_R1 - RAW_R0 + 1:,} rows and {RAW_NCOL} columns. "
-             "Paste the whole export including its headings. Nothing here needs deleting.", 1, RAW_NCOL)
-hdr = rp.cell(row=RAW_R0 - 1, column=1, value=f"v  paste starts in this cell  ->  A{RAW_R0}")
-hdr.font = Font(name=ARIAL, size=9, bold=True, color=MUTED)
-
-LAY, ACOL, DCOL = "Raw_Paste!$B$4", "Raw_Paste!$B$5", "Raw_Paste!$B$6"
-DESCC, REFC, CONC = "Raw_Paste!$B$7", "Raw_Paste!$B$8", "Raw_Paste!$B$9"
-AMTL, DRC, CRC = "Raw_Paste!$B$10", "Raw_Paste!$B$11", "Raw_Paste!$B$12"
-DROPNIL, STRIPC = "Raw_Paste!$B$13", "Raw_Paste!$B$14"
+LAY, ACOL, DCOL = "Setup!$B$53", "Setup!$B$54", "Setup!$B$55"
+DESCC, REFC, CONC = "Setup!$B$56", "Setup!$B$57", "Setup!$B$58"
+AMTL, DRC, CRC = "Setup!$B$59", "Setup!$B$60", "Setup!$B$61"
+DROPNIL, STRIPC = "Setup!$B$62", "Setup!$B$63"
 
 # ===========================================================================
 # CLEANUP  - classifies every pasted row and keeps only the real transactions
@@ -1190,7 +1185,7 @@ CHECKS = [
      f'SUMPRODUCT((Cleanup!$E${CLN_R0}:$E${CLN_R1}="Transaction")*(Cleanup!$G${CLN_R0}:$G${CLN_R1}="")),'
      f'COUNTIF({GT},"NO ACCOUNT"))', "= 0", "eq0", "FAIL", NUM,
      "Transaction rows the workbook could not attach to an account. On a Raw_Paste dump that means transactions "
-     "appeared before the first account heading - check the account column number on Raw_Paste B5."),
+     "appeared before the first account heading - check the account column number on Setup B54."),
     ("C5", "Data_Engine is still aligned to COA_Mapping",
      f'=SUMPRODUCT(--(Data_Engine!$A${ENG_R0}:$A${ENG_R1}&""<>COA_Mapping!$A${COA_R0}:$A${COA_R1}&""))',
      "= 0", "eq0", "FAIL", NUM,
@@ -1348,10 +1343,10 @@ for i, (a, b) in enumerate([
     ("Step 1", "Open Setup. Set the financial year (cell B7, the year the FY ENDS) and the reporting period "
                "(cell B8, where 1 = the first month of the FY). For a July year start, period 3 = September. "
                "Check the risk thresholds in B14:B17 suit your business."),
-    ("Step 2", f"Open Raw_Paste and dump your Xero export into cell A{RAW_R0}, exactly as it comes out. Leave the "
-               "title rows, the account headings, the subtotals and the blank lines in - you do not delete anything. "
-               "Then set the column numbers in the panel on rows 4 to 14 so it knows which column is the date, which "
-               "is the amount, and so on."),
+    ("Step 2", "Open Raw_Paste and dump your Xero export into cell A1, exactly as it comes out. The sheet is "
+               "deliberately empty so you can select the whole export, copy, and paste straight into A1 - Excel "
+               "will not let you paste a whole-sheet selection anywhere else. Leave the title rows, the account "
+               "headings, the subtotals and the blank lines in. Then set the column numbers on Setup rows 53 to 63."),
     ("Step 3", "Open Cleanup and look at the preview block on the right. If those lines look like your transactions, "
                "the column numbers are right. If they look wrong, go back and fix the numbers on Raw_Paste - that is "
                "almost always the problem."),
@@ -1376,9 +1371,9 @@ for a, b in [
                             "containing Opening Balance or Closing Balance, and anything starting with Total. "
                             "These are the rows that would double-count if you left them in."),
     ("Dropped - empty lines", "Rows with a date but no value, and completely blank rows. This is the setting on "
-                              "Raw_Paste B13 and it is the one that saves you the deleting."),
-    ("Two layouts", "Section headings (Account Transactions, General Ledger - the account is a heading row) or "
-                    "Account in a column (Journal report - every row names its own account). Set it on Raw_Paste B4."),
+                              "Setup B62 and it is the one that saves you the deleting."),
+    ("Two layouts", "Section headings (General Ledger Detail, Account Transactions - the account is a heading row) "
+                    "or Account in a column (Journal report - every row names its own account). Setup B53."),
     ("Switching source", "Setup B12 chooses which sheet the reports read. Raw_Paste uses the cleaned dump. GL_Data "
                          "uses the tidy sheet you fill in yourself. Only one is live at a time, so there is no "
                          "double counting - but check B12 says what you think it says."),
@@ -1392,7 +1387,8 @@ r += 1
 r = rd_band(r, "WHAT EACH SHEET IS FOR")
 for a, b in [
     ("Setup", "Control panel. Financial year, reporting period, risk thresholds, and which data source is live."),
-    ("Raw_Paste", "The dirty dump zone. Paste the Xero export as-is. Nothing is formatted, nothing needs deleting."),
+    ("Raw_Paste", "The dirty dump zone, starting at A1. Paste the Xero export as-is. Nothing is formatted, "
+                  "nothing needs deleting, and nothing sits above the data to get in the way of a plain paste."),
     ("Cleanup", "Calculated. Judges every pasted row, carries account headings down, and keeps only real "
                 "transactions. Has a preview so you can check the cleaning before trusting it."),
     ("GL_Data", "The alternative source, for data you have already tidied. Columns A-H are yours, I-V are calculated."),
@@ -1472,7 +1468,7 @@ for a, b in [
                  f"for {NACC} accounts. Control C9 warns you when the rows run out. If a year of transaction detail "
                  "will not fit, run the Xero report summarised by month instead - month-on-month analysis does not "
                  "need every individual line, and the workbook will be far quicker."),
-    ("If the cleaning looks wrong", "It is nearly always the column numbers on Raw_Paste rows 4 to 14. Check the "
+    ("If the cleaning looks wrong", "It is nearly always the column numbers on Setup rows 53 to 63. Check the "
                                     "preview on Cleanup first, then Setup rows 33 to 42 to see what was dropped. "
                                     "Controls C20 and C21 flag the two usual symptoms."),
 ]:
