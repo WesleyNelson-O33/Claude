@@ -13,6 +13,7 @@ from openpyxl.utils import get_column_letter as CL
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.formatting.rule import FormulaRule
 from openpyxl.comments import Comment
+from openpyxl.worksheet.properties import Outline
 
 ROOT = Path("/home/user/Claude/reporting")
 OUT = ROOT / "gl_analysis" / "GL Month-on-Month & Year-on-Year Analysis.xlsx"
@@ -111,60 +112,130 @@ def lbl(ws, row, col, text, bold=False, size=10, color="000000", indent=0):
         c.alignment = Alignment(indent=indent)
     return c
 
-# ===========================================================================
-# LISTS  - group master, drives sign convention and report order
+# ---- department reporting plan --------------------------------------------
+# Overheads are the expense accounts with no division. They get their own
+# department rather than being buried inside Admin, so a $2m cost base cannot
+# hide behind an operating division. Change any account on COA_Mapping.
+DEPTS = ["Onsite", "Production", "Video", "Consulting", "Integration",
+         "Admin", "Unallocated", "Overheads"]
+CORE_GROUPS = ["Income", "Other Income", "Cost of Sales", "Expenses"]
+EXTRA_GROUPS = ["Depreciation & Amortisation", "Finance Costs", "Income Tax Expense"]
+OVERHEAD_DEPT = "Overheads"
+
+def _is_overhead(a):
+    return a["group"] == "Expenses" and a["division"] == "Unallocated"
+
+def _rdept(a):
+    return OVERHEAD_DEPT if _is_overhead(a) else a["division"]
+
+_dist = {}
+for _a in ACCOUNTS:
+    _dist[(_rdept(_a), _a["group"])] = _dist.get((_rdept(_a), _a["group"]), 0) + 1
+
+DEPT_PLAN = {}                      # dept -> [(group, slots), ...]
+for _d in DEPTS:
+    _blocks = []
+    for _g in CORE_GROUPS + EXTRA_GROUPS:
+        _n = _dist.get((_d, _g), 0)
+        if _g in CORE_GROUPS or _n > 0:
+            _blocks.append((_g, max(_n + 4, 6)))
+    DEPT_PLAN[_d] = _blocks
+
+MONTH_N = 84                        # rolling month list for the Setup dropdown
+MONTH_START = (2023, 7)
+
+# Setup cell addresses, named once so the layout can move without hunting refs
+S_MONTH, S_MDATE, S_CCY = "Setup!$B$5", "Setup!$B$10", "Setup!$B$19"
+# =========================================================================== LISTS  - group master, departments, month picker, block sizes
 # ===========================================================================
 GROUPS = [
-    # order, group, statement, sign, block
-    (10,  "Income",                    "P&L", -1, "Trading"),
-    (20,  "Cost of Sales",             "P&L",  1, "Trading"),
-    (30,  "Other Income",              "P&L", -1, "Trading"),
-    (40,  "Expenses",                  "P&L",  1, "Trading"),
-    (50,  "Depreciation & Amortisation","P&L", 1, "Below EBITDA"),
-    (60,  "Finance Costs",             "P&L",  1, "Below EBITDA"),
-    (70,  "Income Tax Expense",        "P&L",  1, "Tax"),
-    (80,  "Current Assets",            "BS",   1, "Assets"),
-    (90,  "Non-Current Assets",        "BS",   1, "Assets"),
-    (100, "Current Liabilities",       "BS",  -1, "Liabilities"),
-    (110, "Non-Current Liabilities",   "BS",  -1, "Liabilities"),
-    (120, "Equity",                    "BS",  -1, "Equity"),
+    # order, group, statement, sign, net effect on profit, block
+    (10,  "Income",                     "P&L", -1,  1, "Trading"),
+    (20,  "Cost of Sales",              "P&L",  1, -1, "Trading"),
+    (30,  "Other Income",               "P&L", -1,  1, "Trading"),
+    (40,  "Expenses",                   "P&L",  1, -1, "Trading"),
+    (50,  "Depreciation & Amortisation","P&L",  1, -1, "Below EBITDA"),
+    (60,  "Finance Costs",              "P&L",  1, -1, "Below EBITDA"),
+    (70,  "Income Tax Expense",         "P&L",  1, -1, "Tax"),
+    (80,  "Current Assets",             "BS",   1,  0, "Assets"),
+    (90,  "Non-Current Assets",         "BS",   1,  0, "Assets"),
+    (100, "Current Liabilities",        "BS",  -1,  0, "Liabilities"),
+    (110, "Non-Current Liabilities",    "BS",  -1,  0, "Liabilities"),
+    (120, "Equity",                     "BS",  -1,  0, "Equity"),
 ]
 DIVISIONS = ["Onsite", "Production", "Video", "Consulting", "Integration", "Admin", "Unallocated"]
 
 ls = sheet("Lists", "808080")
-title(ls, "Reference Lists", "Drives the dropdowns, the sign convention and the report order. Edit the group names only if your chart of accounts uses different ones.")
-header(ls, 4, ["Order", "Group", "Statement", "Sign", "Block"])
+title(ls, "Reference Lists",
+      "Drives the dropdowns, the sign convention, the report order and the department layout. "
+      "Sign flips credit balances so income reads positive. Net effect is what the account does to profit.")
+header(ls, 4, ["Order", "Group", "Statement", "Sign", "Net", "Block"])
 for i, g in enumerate(GROUPS):
     r = 5 + i
     for j, v in enumerate(g):
         c = ls.cell(row=r, column=1 + j, value=v)
         c.font = Font(name=ARIAL, size=10)
         c.border = BOX
-        if j == 0 or j == 3:
+        if j in (0, 3, 4):
             c.alignment = Alignment(horizontal="center")
 GRP_R0, GRP_R1 = 5, 4 + len(GROUPS)
 
-header(ls, 20, ["Division / Tracking Category"])
+header(ls, 19, ["Department (report order)"])
+for i, d in enumerate(DEPTS):
+    c = ls.cell(row=20 + i, column=1, value=d)
+    c.font = Font(name=ARIAL, size=10); c.border = BOX
+DEP_R0, DEP_R1 = 20, 19 + len(DEPTS)
+
+header(ls, 31, ["Division (for COA_Mapping)"])
 for i, d in enumerate(DIVISIONS):
-    c = ls.cell(row=21 + i, column=1, value=d)
+    c = ls.cell(row=32 + i, column=1, value=d)
     c.font = Font(name=ARIAL, size=10); c.border = BOX
-DIV_R0, DIV_R1 = 21, 20 + len(DIVISIONS)
+DIV_R0, DIV_R1 = 32, 31 + len(DIVISIONS)
 
-header(ls, 32, ["Risk Flag"])
+header(ls, 42, ["Risk Flag"])
 for i, d in enumerate(["High", "Medium", "Low", "No Activity"]):
-    c = ls.cell(row=33 + i, column=1, value=d)
+    c = ls.cell(row=43 + i, column=1, value=d)
     c.font = Font(name=ARIAL, size=10); c.border = BOX
-widths(ls, {"A": 34, "B": 30, "C": 12, "D": 8, "E": 16})
 
-# ===========================================================================
-# SETUP
+# month picker - label and the real date side by side, so the dropdown is
+# plain text and no locale can mis-parse it
+band(ls, 3, "MONTH PICKER", 8, 9)
+header(ls, 4, ["Month", "Date"], start_col=8)
+_y, _m = MONTH_START
+for i in range(MONTH_N):
+    import datetime as _dt
+    d = _dt.date(_y + (_m - 1 + i) // 12, (_m - 1 + i) % 12 + 1, 1)
+    c = ls.cell(row=5 + i, column=8, value=d.strftime("%b %Y"))
+    c.font = Font(name=ARIAL, size=10); c.border = BOX
+    c2 = ls.cell(row=5 + i, column=9, value=d)
+    c2.number_format = DATEF
+    c2.font = Font(name=ARIAL, size=10); c2.border = BOX
+MTH_R0, MTH_R1 = 5, 4 + MONTH_N
+
+# how many display slots each department/group block has, so a control can
+# tell you when an account has nowhere to appear
+band(ls, 3, "DEPARTMENT BLOCK SIZES", 11, 14)
+header(ls, 4, ["Department", "Group", "Slots"], start_col=11)
+_r = 5
+LIMIT_R0 = _r
+for _d in DEPTS:
+    for _g, _slots in DEPT_PLAN[_d]:
+        for _j, _v in enumerate((_d, _g, _slots)):
+            c = ls.cell(row=_r, column=11 + _j, value=_v)
+            c.font = Font(name=ARIAL, size=9); c.border = BOX
+        ls.cell(row=_r, column=14, value=f"{_d}|{_g}").font = Font(name=ARIAL, size=8, color="BFBFBF")
+        _r += 1
+LIMIT_R1 = _r - 1
+widths(ls, {"A": 34, "B": 30, "C": 12, "D": 8, "E": 8, "F": 16, "H": 14, "I": 14,
+            "K": 16, "L": 28, "M": 8, "N": 30})
+# =========================================================================== SETUP
 # ===========================================================================
 st = sheet("Setup", "1F3864")
 title(st, "Setup & Control Panel",
-      "Yellow cells are the only ones you type into on this sheet. Everything else in the workbook keys off them.")
-widths(st, {"A": 44, "B": 20, "C": 60})
+      "Yellow cells are the only ones you type into. Pick the month you are reporting on and everything else follows.")
+widths(st, {"A": 46, "B": 22, "C": 62})
 
-def setup_row(r, label, value, fmt=None, note=None, is_input=True, formula=False):
+def setup_row(r, label, value, fmt=None, note=None, is_input=True):
     lbl(st, r, 1, label, size=10)
     c = st.cell(row=r, column=2, value=value)
     if is_input:
@@ -178,59 +249,66 @@ def setup_row(r, label, value, fmt=None, note=None, is_input=True, formula=False
         c.number_format = fmt
     return c
 
-band(st, 3, "1.  ENTITY & REPORTING PERIOD", 1, 3)
+band(st, 3, "1.  WHAT AM I REPORTING ON", 1, 3)
 setup_row(4, "Entity name", "Corporate Technology Services Pty Ltd")
-setup_row(5, "Reporting currency", "AUD")
-setup_row(6, "Financial year start month (1 = Jan ... 7 = Jul)", 7,
-          note="Australian standard is 7 (July). Change this if your FY starts elsewhere.")
-setup_row(7, "Current financial year (year it ENDS)", 2027,
-          note="FY27 = 1 Jul 2026 to 30 Jun 2027. Enter 2027, not 27.")
-setup_row(8, "Current reporting period (1 = first month of FY)", 3,
-          note="Period 1 = the FY start month. For a July FY start, period 3 = September.")
-setup_row(9, "Prior financial year (comparative)", "=$B$7-1", is_input=False)
-setup_row(10, "Current period label", '=TEXT(DATE($B$7-IF(AND($B$6>1,MOD($B$6+$B$8-2,12)+1>=$B$6),1,0),MOD($B$6+$B$8-2,12)+1,1),"MMMM YYYY")', is_input=False)
-setup_row(11, "Prior year comparative label", '=TEXT(DATE($B$9-IF(AND($B$6>1,MOD($B$6+$B$8-2,12)+1>=$B$6),1,0),MOD($B$6+$B$8-2,12)+1,1),"MMMM YYYY")', is_input=False)
-
+setup_row(5, "Reporting month", "Jun 2026",
+          note="Pick the month from the dropdown. The financial year and the period number below work themselves "
+               "out from it - you no longer set them by hand.")
+lbl(st, 5, 3, "<-  THIS is the control you change each month. Everything else follows from it.",
+    size=10, color="C00000", bold=True)
+setup_row(6, "Financial year starts in month", 7,
+          note="7 = July, the Australian standard. You set this once and leave it.")
+setup_row(7, "Financial year being reported (year it ENDS)",
+          '=IF($B$10="","",IF($B$6=1,YEAR($B$10),YEAR($B$10)+IF(MONTH($B$10)>=$B$6,1,0)))', NUM, is_input=False)
+setup_row(8, "Period number within that financial year",
+          '=IF($B$10="","",MOD(MONTH($B$10)-$B$6+12,12)+1)', NUM, is_input=False)
+setup_row(9, "Prior financial year (the comparative)", '=IF($B$7="","",$B$7-1)', NUM, is_input=False)
+setup_row(10, "Reporting month as a date",
+          f'=IFERROR(INDEX(Lists!$I${MTH_R0}:$I${MTH_R1},MATCH($B$5,Lists!$H${MTH_R0}:$H${MTH_R1},0)),"")',
+          DATEF, is_input=False)
+setup_row(11, "Comparative month (same month last year)",
+          '=IF($B$10="","",TEXT(DATE(YEAR($B$10)-1,MONTH($B$10),1),"MMM YYYY"))', is_input=False)
 setup_row(12, "Data source  ->  which sheet the reports read", "Raw_Paste",
           note="Raw_Paste = dump your Xero export as-is and let the workbook clean it. "
                "GL_Data = you have already tidied the data yourself.")
-lbl(st, 12, 3, "Raw_Paste  =  dirty Xero dump, cleaned automatically.   GL_Data  =  tidy data you paste yourself.",
+lbl(st, 12, 3, "Raw_Paste = dirty Xero dump, cleaned automatically.   GL_Data = tidy data you paste yourself.",
     size=9, color=MUTED)
-dv_src = DataValidation(type="list", formula1='"Raw_Paste,GL_Data"', allow_blank=False,
-                        showErrorMessage=True, errorTitle="Pick a source",
-                        error="Choose Raw_Paste or GL_Data.")
+dv_mth = DataValidation(type="list", formula1=f"=Lists!$H${MTH_R0}:$H${MTH_R1}", allow_blank=False,
+                        showErrorMessage=True, errorTitle="Pick a month",
+                        error="Choose a month from the list.")
+st.add_data_validation(dv_mth); dv_mth.add(st["B5"])
+dv_src = DataValidation(type="list", formula1='"Raw_Paste,GL_Data"', allow_blank=False, showErrorMessage=True)
 st.add_data_validation(dv_src); dv_src.add(st["B12"])
 st.conditional_formatting.add("B12", FormulaRule(formula=['$B$12="Raw_Paste"'],
                               fill=PatternFill("solid", fgColor="D9E2F3"), font=Font(color="1F3864", bold=True)))
+st.conditional_formatting.add("B10", FormulaRule(formula=['$B$10=""'],
+                              fill=PatternFill("solid", fgColor=F_HIGH), font=Font(color=T_HIGH, bold=True)))
 
 band(st, 13, "2.  RISK FLAG THRESHOLDS", 1, 3)
 setup_row(14, "Materiality floor  ($) - below this a variance is always Low", 5000, MONEY,
-          note="Stops a 400% swing on a $80 account being flagged High. Set it to roughly your audit performance materiality, or 0.5% of revenue.")
+          note="Stops a 400% swing on an $80 account being flagged High. Roughly 0.5% of revenue is a fair start.")
 setup_row(15, "Medium risk threshold  (% variance)", 0.10, PCT)
 setup_row(16, "High risk threshold  (% variance)", 0.25, PCT)
-setup_row(17, "High risk threshold  ($ variance) - overrides the % test", 50000, MONEY,
-          note="Any variance this large is High regardless of percentage.")
-setup_row(18, "Look-back months for the rolling average", 3, NUM, is_input=False,
-          note="Fixed at 3 months in the formulas.")
+setup_row(17, "High risk threshold  ($ variance) - overrides the % test", 50000, MONEY)
+setup_row(18, "Look-back months for the rolling average", 3, NUM, is_input=False)
 lbl(st, 18, 3, "Fixed at 3 in the formulas - shown for reference.", size=9, color=MUTED)
+setup_row(19, "Reporting currency", "AUD")
 
 band(st, 20, "3.  DATA STATUS  (calculated - do not type here)", 1, 3)
 status = [
-    ("GL lines loaded", f'=COUNT(GL_Data!$A${GL_R0}:$A${GL_R1})', NUM),
+    ("GL lines loaded (GL_Data sheet)", f'=COUNT(GL_Data!$A${GL_R0}:$A${GL_R1})', NUM),
     ("GL capacity (rows available)", f'={GL_R1-GL_R0+1}', NUM),
     ("Earliest transaction date", f'=IF($B$21=0,"",MIN(GL_Data!$A${GL_R0}:$A${GL_R1}))', DATEF),
     ("Latest transaction date", f'=IF($B$21=0,"",MAX(GL_Data!$A${GL_R0}:$A${GL_R1}))', DATEF),
     ("Accounts in COA_Mapping", f'=COUNTA(COA_Mapping!$A${COA_R0}:$A${COA_R1})', NUM),
     ("GL lines not mapped to an account", f'=COUNTIF(GL_Data!$T${GL_R0}:$T${GL_R1},"UNMAPPED")', NUM),
-    ("GL lines dated outside FY" + " range", f'=COUNTIF(GL_Data!$T${GL_R0}:$T${GL_R1},"OUTSIDE FY RANGE")', NUM),
+    ("GL lines dated outside FY range", f'=COUNTIF(GL_Data!$T${GL_R0}:$T${GL_R1},"OUTSIDE FY RANGE")', NUM),
     ("Total debits", f'=SUM(GL_Data!$G${GL_R0}:$G${GL_R1})', MONEY2),
     ("Total credits", f'=SUM(GL_Data!$H${GL_R0}:$H${GL_R1})', MONEY2),
-    ("Debits less credits (must be nil)", f'=ROUND($B$28-$B$29,2)', MONEY2),
+    ("Debits less credits (must be nil)", '=ROUND($B$28-$B$29,2)', MONEY2),
 ]
 for i, (label, f, fmt) in enumerate(status):
     setup_row(21 + i, label, f, fmt, is_input=False)
-
-st.cell(row=30, column=2).font = Font(name=ARIAL, size=10, bold=True, color=BLACK_FONT)
 st.conditional_formatting.add("B30", FormulaRule(formula=['ROUND($B$30,2)<>0'],
                               fill=PatternFill("solid", fgColor=F_HIGH), font=Font(color=T_HIGH, bold=True)))
 st.conditional_formatting.add("B30", FormulaRule(formula=['ROUND($B$30,2)=0'],
@@ -253,19 +331,19 @@ raw_status = [
 ]
 for i, (label, f, fmt) in enumerate(raw_status):
     setup_row(33 + i, label, f, fmt, is_input=False)
-st.conditional_formatting.add("B41", FormulaRule(formula=['ROUND($B$41,2)<>0'],
-                              fill=PatternFill("solid", fgColor=F_HIGH), font=Font(color=T_HIGH, bold=True)))
+for cell, bad in (("B41", 'ROUND($B$41,2)<>0'), ("B42", '$B$42>0')):
+    st.conditional_formatting.add(cell, FormulaRule(formula=[bad],
+                                  fill=PatternFill("solid", fgColor=F_HIGH), font=Font(color=T_HIGH, bold=True)))
 st.conditional_formatting.add("B41", FormulaRule(formula=['ROUND($B$41,2)=0'],
                               fill=PatternFill("solid", fgColor=F_LOW), font=Font(color=T_LOW, bold=True)))
-st.conditional_formatting.add("B42", FormulaRule(formula=['$B$42>0'],
-                              fill=PatternFill("solid", fgColor=F_HIGH), font=Font(color=T_HIGH, bold=True)))
 
 band(st, 45, "4.  RISK FLAG LOGIC  (read once, then trust the colours)", 1, 3)
 logic = [
     ("No Activity", "Nil in both the current and comparative period.", F_NA, T_NA),
     ("Low", "Variance is under the materiality floor, or under the Medium % threshold.", F_LOW, T_LOW),
     ("Medium", "Variance is at or over the Medium % threshold and over the materiality floor.", F_MED, T_MED),
-    ("High", "Variance is at or over the High % threshold, OR over the High $ threshold, OR the comparative was nil and the movement is material (a new or ceased account).", F_HIGH, T_HIGH),
+    ("High", "Variance is at or over the High % threshold, OR over the High $ threshold, OR the comparative was nil "
+             "and the movement is material (a new or ceased account).", F_HIGH, T_HIGH),
 ]
 for i, (flag, desc, fill, font) in enumerate(logic):
     r = 46 + i
@@ -280,66 +358,66 @@ for i, (flag, desc, fill, font) in enumerate(logic):
     st.merge_cells(start_row=r, start_column=2, end_row=r, end_column=3)
     st.row_dimensions[r].height = 28
 
-dv_month = DataValidation(type="whole", operator="between", formula1=1, formula2=12,
-                          showErrorMessage=True, errorTitle="Out of range",
-                          error="Enter a whole number from 1 to 12.")
-st.add_data_validation(dv_month)
-dv_month.add(st["B6"]); dv_month.add(st["B8"])
-
-
-# ===========================================================================
-# COA_MAPPING  - the bridge between GL account names and the report
+dv_month = DataValidation(type="whole", operator="between", formula1=1, formula2=12, showErrorMessage=True,
+                          errorTitle="Out of range", error="Enter a whole number from 1 to 12.")
+st.add_data_validation(dv_month); dv_month.add(st["B6"])
+# =========================================================================== COA_MAPPING  - the bridge between GL account names and the report
 # ===========================================================================
 coa = sheet("COA_Mapping", "C00000")
 title(coa, "Chart of Accounts Mapping",
-      "Column A must match the account name in your GL export EXACTLY. Group and Division drive every report. "
-      "Overwrite rows in place - do NOT insert or delete rows, it breaks the link to Data_Engine (Controls check C6 catches this).")
-widths(coa, {"A": 42, "B": 12, "C": 26, "D": 15, "E": 11, "F": 7, "G": 9, "H": 11, "I": 16})
+      "Column A must match the account name in your GL export EXACTLY. Group, Division and Overhead drive every "
+      "report. Overwrite rows in place - do NOT insert or delete rows, it breaks the link to Data_Engine (Controls "
+      "check C5 catches this).")
+widths(coa, {"A": 42, "B": 11, "C": 24, "D": 14, "E": 10, "F": 6, "G": 7, "H": 9, "I": 15, "J": 11, "K": 16})
 header(coa, 6, ["Account (must match GL)", "Code (optional)", "Group", "Division",
-                "Statement", "Sign", "Order", "GL Lines", "Status"])
+                "Statement", "Sign", "Order", "GL Lines", "Status", "Overhead?", "Reports under"])
 coa.freeze_panes = "A7"
+lbl(coa, 5, 10, "you set this", size=8, color=MUTED)
+lbl(coa, 5, 11, "calculated", size=8, color=MUTED)
 
 GRP_RNG = f"Lists!$B${GRP_R0}:$B${GRP_R1}"
 for i in range(NACC):
     r = COA_R0 + i
-    src = ACCOUNTS[i] if i < len(ACCOUNTS) else None
-    a = coa.cell(row=r, column=1, value=(src["account"] if src else None))
+    src_a = ACCOUNTS[i] if i < len(ACCOUNTS) else None
+    a = coa.cell(row=r, column=1, value=(src_a["account"] if src_a else None))
     b = coa.cell(row=r, column=2)
-    c = coa.cell(row=r, column=3, value=(src["group"] if src else None))
-    d = coa.cell(row=r, column=4, value=(src["division"] if src else None))
-    for cell in (a, b, c, d):
+    c = coa.cell(row=r, column=3, value=(src_a["group"] if src_a else None))
+    d = coa.cell(row=r, column=4, value=(src_a["division"] if src_a else None))
+    ov = coa.cell(row=r, column=10, value=("Yes" if (src_a and _is_overhead(src_a)) else ("No" if src_a else None)))
+    for cell in (a, b, c, d, ov):
         cell.font = Font(name=ARIAL, size=9, color=BLUE_FONT)
         cell.fill = INPUT_FILL
         cell.border = BOX
-    e = coa.cell(row=r, column=5, value=f'=IF($A{r}="","",IFERROR(INDEX({GRP_RNG.replace("$B$","$C$")},MATCH($C{r},{GRP_RNG},0)),"?"))')
-    f = coa.cell(row=r, column=6, value=f'=IF($A{r}="","",IFERROR(INDEX({GRP_RNG.replace("$B$","$D$")},MATCH($C{r},{GRP_RNG},0)),1))')
-    g = coa.cell(row=r, column=7, value=f'=IF($A{r}="","",IFERROR(INDEX({GRP_RNG.replace("$B$","$A$")},MATCH($C{r},{GRP_RNG},0)),999))')
+    ov.alignment = Alignment(horizontal="center")
+    e = coa.cell(row=r, column=5, value=f'=IF($A{r}="","",IFERROR(INDEX(Lists!$C${GRP_R0}:$C${GRP_R1},MATCH($C{r},{GRP_RNG},0)),"?"))')
+    f = coa.cell(row=r, column=6, value=f'=IF($A{r}="","",IFERROR(INDEX(Lists!$D${GRP_R0}:$D${GRP_R1},MATCH($C{r},{GRP_RNG},0)),1))')
+    g = coa.cell(row=r, column=7, value=f'=IF($A{r}="","",IFERROR(INDEX(Lists!$A${GRP_R0}:$A${GRP_R1},MATCH($C{r},{GRP_RNG},0)),999))')
     h = coa.cell(row=r, column=8, value=f'=IF($A{r}="","",COUNTIF(GL_Data!$B${GL_R0}:$B${GL_R1},$A{r}))')
     istat = coa.cell(row=r, column=9, value=(
-        f'=IF($A{r}="","",'
-        f'IF($C{r}="","NO GROUP",'
-        f'IF($E{r}="?","BAD GROUP",'
+        f'=IF($A{r}="","",IF($C{r}="","NO GROUP",IF($E{r}="?","BAD GROUP",'
         f'IF($H{r}=0,"No GL activity","Mapped"))))'))
-    for cell in (e, f, g, h, istat):
+    k = coa.cell(row=r, column=11, value=f'=IF($A{r}="","",IF($J{r}="Yes","{OVERHEAD_DEPT}",$D{r}))')
+    for cell in (e, f, g, h, istat, k):
         cell.font = Font(name=ARIAL, size=9, color=GREEN_FONT)
         cell.border = BOX
         cell.alignment = Alignment(horizontal="center")
     h.number_format = NUM
     istat.alignment = Alignment(horizontal="left")
+    k.alignment = Alignment(horizontal="left")
 
-dv_grp = DataValidation(type="list", formula1=f"={GRP_RNG}", allow_blank=True, showErrorMessage=True,
-                        errorTitle="Unknown group", error="Pick a group from the Lists sheet.")
-dv_div = DataValidation(type="list", formula1=f"=Lists!$A${DIV_R0}:$A${DIV_R1}", allow_blank=True, showErrorMessage=False)
-coa.add_data_validation(dv_grp); coa.add_data_validation(dv_div)
-dv_grp.add(f"C{COA_R0}:C{COA_R1}"); dv_div.add(f"D{COA_R0}:D{COA_R1}")
+for f1, rng in ((f"={GRP_RNG}", f"C{COA_R0}:C{COA_R1}"),
+                (f"=Lists!$A${DIV_R0}:$A${DIV_R1}", f"D{COA_R0}:D{COA_R1}"),
+                ('"Yes,No"', f"J{COA_R0}:J{COA_R1}")):
+    dv = DataValidation(type="list", formula1=f1, allow_blank=True, showErrorMessage=False)
+    coa.add_data_validation(dv); dv.add(rng)
 
-coa.conditional_formatting.add(f"A{COA_R0}:I{COA_R1}", FormulaRule(
+coa.conditional_formatting.add(f"A{COA_R0}:K{COA_R1}", FormulaRule(
     formula=[f'AND($A{COA_R0}<>"",OR($I{COA_R0}="NO GROUP",$I{COA_R0}="BAD GROUP"))'],
     fill=PatternFill("solid", fgColor=F_HIGH), font=Font(color=T_HIGH)))
-coa.conditional_formatting.add(f"A{COA_R0}:I{COA_R1}", FormulaRule(
-    formula=[f'AND($A{COA_R0}<>"",$I{COA_R0}="No GL activity")'],
-    fill=GREY_FILL, font=Font(color=T_NA)))
-
+coa.conditional_formatting.add(f"A{COA_R0}:K{COA_R1}", FormulaRule(
+    formula=[f'AND($A{COA_R0}<>"",$I{COA_R0}="No GL activity")'], fill=GREY_FILL, font=Font(color=T_NA)))
+coa.conditional_formatting.add(f"J{COA_R0}:K{COA_R1}", FormulaRule(
+    formula=[f'$J{COA_R0}="Yes"'], fill=PatternFill("solid", fgColor="E2EFDA"), font=Font(color="375623", bold=True)))
 # ===========================================================================
 # GL_DATA  - the paste target
 # ===========================================================================
@@ -589,101 +667,6 @@ for m, w in enumerate((5, 11, 28, 30, 12, 12, 14, 8)):
     cu.column_dimensions[CL(PV_C0 + m)].width = w
 
 # ===========================================================================
-# DATA_ENGINE  - account x period aggregation, calculated once
-# ===========================================================================
-en = sheet("Data_Engine", "404040")
-title(en, "Data Engine  -  account by period aggregation",
-      "Calculated sheet. Every analysis sheet reads from here, so the GL is scanned once instead of "
-      "once per report. Nothing on this sheet should ever be typed into.")
-PY_C0, CY_C0 = 6, 18            # F and R
-DER = {"CY_MTH": 30, "PY_MTH": 31, "CY_PRI": 32, "AVG3": 33,
-       "CY_YTD": 34, "PY_YTD": 35, "PY_FY": 36, "CY_TOT": 37, "ACTIVE": 38}
-SER = f"$F6:$AC6"               # the contiguous 24 month series, PY P1..P12 then CY P1..P12
-
-def month_hdr(fy_ref, p):
-    return (f'=TEXT(DATE({fy_ref}-IF(AND({B6}>1,MOD({B6}+{p}-2,12)+1>={B6}),1,0),'
-            f'MOD({B6}+{p}-2,12)+1,1),"MMM-YY")')
-
-for p in range(1, 13):
-    for c0, fy_ref, key in ((PY_C0, B9, p), (CY_C0, B7, 100 + p)):
-        col = c0 + p - 1
-        en.cell(row=3, column=col, value=p).font = Font(name=ARIAL, size=8, color=MUTED)
-        en.cell(row=4, column=col, value=key).font = Font(name=ARIAL, size=8, color=MUTED)
-        for rr in (3, 4):
-            en.cell(row=rr, column=col).alignment = Alignment(horizontal="center")
-        h = en.cell(row=5, column=col, value=month_hdr(fy_ref, p))
-        h.font = Font(name=ARIAL, size=9, bold=True, color=WHITE)
-        h.fill = HEAD if c0 == CY_C0 else SUBHEAD
-        h.border = BOX
-        h.alignment = Alignment(horizontal="center")
-lbl(en, 3, 1, "period no", size=8, color=MUTED)
-lbl(en, 4, 1, "match key", size=8, color=MUTED)
-lbl(en, 5, 5, "Sign").font = Font(name=ARIAL, size=9, bold=True, color=WHITE)
-header(en, 5, ["Account", "Group", "Statement", "Division", "Sign"], size=9)
-header(en, 5, ["Current\nMonth", "PY Same\nMonth", "CY Prior\nMonth", "Avg Prior\n3 Months",
-               "CY YTD", "PY YTD", "PY Full\nYear", "CY Total", "Active"], start_col=DER["CY_MTH"], size=9)
-en.freeze_panes = "F6"
-widths(en, {"A": 38, "B": 24, "C": 10, "D": 14, "E": 6})
-for p in range(24):
-    en.column_dimensions[CL(PY_C0 + p)].width = 12
-for k in DER.values():
-    en.column_dimensions[CL(k)].width = 13
-
-SRC = "Setup!$B$12"
-CU_KEY = f"Cleanup!$P${CLN_R0}:$P${CLN_R1}"
-CU_AMT = f"Cleanup!$O${CLN_R0}:$O${CLN_R1}"
-GL_KEY = f"GL_Data!$S${GL_R0}:$S${GL_R1}"
-GL_AMT = f"GL_Data!$P${GL_R0}:$P${GL_R1}"
-
-for i in range(NACC):
-    r = ENG_R0 + i
-    cr = COA_R0 + i                      # aligned 1:1 with COA_Mapping
-    idx = i + 1                          # = Acct Idx written by GL_Data column Q
-    meta = {
-        1: f'=IF(COA_Mapping!$A{cr}="","",COA_Mapping!$A{cr})',
-        2: f'=IF($A{r}="","",COA_Mapping!$C{cr})',
-        3: f'=IF($A{r}="","",COA_Mapping!$E{cr})',
-        4: f'=IF($A{r}="","",COA_Mapping!$D{cr})',
-        5: f'=IF($A{r}="",1,COA_Mapping!$F{cr})',
-    }
-    for col, f in meta.items():
-        c = en.cell(row=r, column=col, value=f)
-        c.font = Font(name=ARIAL, size=9, color=GREEN_FONT)
-        c.border = BOX
-        if col == 5:
-            c.alignment = Alignment(horizontal="center")
-    for p in range(1, 13):
-        for c0, key in ((PY_C0, p), (CY_C0, 100 + p)):
-            col = c0 + p - 1
-            c = en.cell(row=r, column=col,
-                        value=f'=IF($A{r}="",0,IF({SRC}="Raw_Paste",'
-                              f'SUMIF({CU_KEY},{idx * 1000 + key},{CU_AMT}),'
-                              f'SUMIF({GL_KEY},{idx * 1000 + key},{GL_AMT})))')
-            c.font = Font(name=ARIAL, size=9)
-            c.number_format = MONEY
-            c.border = BOX
-            if c0 == PY_C0:
-                c.fill = ENGINE_FILL
-    ser = f"$F{r}:$AC{r}"
-    derived = {
-        DER["CY_MTH"]: f'=IF($A{r}="",0,INDEX({ser},12+{B8}))',
-        DER["PY_MTH"]: f'=IF($A{r}="",0,INDEX({ser},{B8}))',
-        DER["CY_PRI"]: f'=IF($A{r}="",0,INDEX({ser},11+{B8}))',
-        DER["AVG3"]:   f'=IF($A{r}="",0,AVERAGE(INDEX({ser},9+{B8}):INDEX({ser},11+{B8})))',
-        DER["CY_YTD"]: f'=IF($A{r}="",0,SUMPRODUCT(($R$3:$AC$3<={B8})*$R{r}:$AC{r}))',
-        DER["PY_YTD"]: f'=IF($A{r}="",0,SUMPRODUCT(($F$3:$Q$3<={B8})*$F{r}:$Q{r}))',
-        DER["PY_FY"]:  f'=IF($A{r}="",0,SUM($F{r}:$Q{r}))',
-        DER["CY_TOT"]: f'=IF($A{r}="",0,SUM($R{r}:$AC{r}))',
-        DER["ACTIVE"]: f'=IF($A{r}="",0,IF(SUMPRODUCT(ABS($F{r}:$AC{r}))>0,1,0))',
-    }
-    for col, f in derived.items():
-        c = en.cell(row=r, column=col, value=f)
-        c.font = Font(name=ARIAL, size=9, bold=(col in (DER["CY_MTH"], DER["CY_YTD"])))
-        c.number_format = NUM if col == DER["ACTIVE"] else MONEY
-        c.border = BOX
-        c.fill = TOTAL_FILL
-
-# ===========================================================================
 # shared flag formula builders
 # ===========================================================================
 MAT, MEDP, HIP, HID = "Setup!$B$14", "Setup!$B$15", "Setup!$B$16", "Setup!$B$17"
@@ -716,160 +699,343 @@ def flag_cell_cf(ws, rng, first_row, col):
             formula=[f'${col}{first_row}="{txt}"'],
             fill=PatternFill("solid", fgColor=fill), font=Font(color=font, bold=True)))
 
+# =========================================================================== DATA_ENGINE  - account x period aggregation, calculated once
 # ===========================================================================
-# MoM_ANALYSIS
-# ===========================================================================
-mm = sheet("MoM_Analysis", "2E75B6")
-title(mm, "Month-on-Month Analysis  -  account level",
-      '=  "Current month "&Setup!$B$10&"  vs prior month.  Rows highlight automatically on the risk flag in column X. '
-      'Column Y is yours to write in."')
-mm["A2"] = ('=IF(Setup!$B$4="","","Current month: "&Setup!$B$10&"   |   Rows highlight automatically on the risk flag '
-            'in column X.   |   Column Y is yours - write the explanation there.")')
-mm["A2"].font = Font(name=ARIAL, size=9, italic=True, color=MUTED)
+en = sheet("Data_Engine", "404040")
+title(en, "Data Engine  -  account by period aggregation",
+      "Calculated sheet. Every analysis sheet reads from here, so the GL is scanned once instead of "
+      "once per report. Nothing on this sheet should ever be typed into.")
+PY_C0, CY_C0 = 6, 18
+DER = {"CY_MTH": 30, "PY_MTH": 31, "CY_PRI": 32, "AVG3": 33,
+       "CY_YTD": 34, "PY_YTD": 35, "PY_FY": 36, "CY_TOT": 37, "ACTIVE": 38,
+       "OVH": 39, "RDEPT": 40, "NETSIGN": 41, "SEQ": 42, "SLOTS": 43, "SHOWN": 44,
+       "MOM_VAR": 45, "MOM_FLAG": 46, "YOY_VAR": 47, "YOY_FLAG": 48,
+       "MOM_KEY": 49, "YOY_KEY": 50}
 
-MM_HEAD = ["Account", "Group", "Division"] + [f"M{p}" for p in range(1, 13)] + \
-          ["YTD", "Current\nMonth", "Prior\nMonth", "Movement\n$", "Movement\n%",
-           "Avg Prior\n3 Months", "Var vs\nAvg $", "Var vs\nAvg %", "Risk\nFlag", "Controller Comment"]
-band(mm, 4, "ACCOUNT & DIMENSIONS", 1, 3)
-band(mm, 4, "MONTHLY ACTUALS  -  CURRENT FINANCIAL YEAR", 4, 15, fill=PatternFill("solid", fgColor="2E75B6"))
-band(mm, 4, "MONTH-ON-MONTH TEST", 16, 23, fill=PatternFill("solid", fgColor="7F6000"))
-band(mm, 4, "REVIEW", 24, 25, fill=PatternFill("solid", fgColor="404040"))
-header(mm, 5, MM_HEAD)
+def month_hdr(fy_ref, p):
+    return (f'=TEXT(DATE({fy_ref}-IF(AND({B6}>1,MOD({B6}+{p}-2,12)+1>={B6}),1,0),'
+            f'MOD({B6}+{p}-2,12)+1,1),"MMM-YY")')
+
 for p in range(1, 13):
-    mm.cell(row=5, column=3 + p, value=month_hdr(B7, p))
-mm.freeze_panes = "D6"
-widths(mm, {"A": 36, "B": 22, "C": 13, "P": 13, "Q": 13, "R": 13, "S": 13, "T": 11,
-            "U": 13, "V": 13, "W": 11, "X": 11, "Y": 40, "Z": 9})
-for p in range(4, 16):
-    mm.column_dimensions[CL(p)].width = 11
+    for c0, fy_ref, key in ((PY_C0, B9, p), (CY_C0, B7, 100 + p)):
+        col = c0 + p - 1
+        en.cell(row=3, column=col, value=p).font = Font(name=ARIAL, size=8, color=MUTED)
+        en.cell(row=4, column=col, value=key).font = Font(name=ARIAL, size=8, color=MUTED)
+        for rr in (3, 4):
+            en.cell(row=rr, column=col).alignment = Alignment(horizontal="center")
+        h = en.cell(row=5, column=col, value=month_hdr(fy_ref, p))
+        h.font = Font(name=ARIAL, size=9, bold=True, color=WHITE)
+        h.fill = HEAD if c0 == CY_C0 else SUBHEAD
+        h.border = BOX
+        h.alignment = Alignment(horizontal="center")
+lbl(en, 3, 1, "period no", size=8, color=MUTED)
+lbl(en, 4, 1, "match key", size=8, color=MUTED)
+header(en, 5, ["Account", "Group", "Statement", "Division", "Sign"], size=9)
+header(en, 5, ["Current\nMonth", "PY Same\nMonth", "CY Prior\nMonth", "Avg Prior\n3 Months",
+               "CY YTD", "PY YTD", "PY Full\nYear", "CY Total", "Active",
+               "Overhead", "Reports\nunder", "Net\nsign", "Seq in\nblock", "Slots", "Shown",
+               "MoM Var $", "MoM Flag", "YoY YTD\nVar $", "YoY Flag", "MoM key", "YoY key"],
+       start_col=DER["CY_MTH"], size=9)
+en.freeze_panes = "F6"
+widths(en, {"A": 38, "B": 24, "C": 10, "D": 14, "E": 6})
+for p in range(24):
+    en.column_dimensions[CL(PY_C0 + p)].width = 12
+for k in DER.values():
+    en.column_dimensions[CL(k)].width = 13
+
+SRC = "Setup!$B$12"
+CU_KEY = f"Cleanup!$P${CLN_R0}:$P${CLN_R1}"
+CU_AMT = f"Cleanup!$O${CLN_R0}:$O${CLN_R1}"
+GL_KEY = f"GL_Data!$S${GL_R0}:$S${GL_R1}"
+GL_AMT = f"GL_Data!$P${GL_R0}:$P${GL_R1}"
+LIM_KEY = f"Lists!$N${LIMIT_R0}:$N${LIMIT_R1}"
+LIM_SLOT = f"Lists!$M${LIMIT_R0}:$M${LIMIT_R1}"
+NET_RNG = f"Lists!$E${GRP_R0}:$E${GRP_R1}"
+GRP_LIST = f"Lists!$B${GRP_R0}:$B${GRP_R1}"
 
 for i in range(NACC):
     r = ENG_R0 + i
-    cells = {
-        1: (f'=IF(Data_Engine!$A{r}="","",Data_Engine!$A{r})', None, GREEN_FONT),
-        2: (f'=IF($A{r}="","",Data_Engine!$B{r})', None, GREEN_FONT),
-        3: (f'=IF($A{r}="","",Data_Engine!$D{r})', None, GREEN_FONT),
-        16: (f'=IF($A{r}="","",Data_Engine!${CL(DER["CY_YTD"])}{r})', MONEY, GREEN_FONT),
-        17: (f'=IF($A{r}="","",Data_Engine!${CL(DER["CY_MTH"])}{r})', MONEY, GREEN_FONT),
-        18: (f'=IF($A{r}="","",Data_Engine!${CL(DER["CY_PRI"])}{r})', MONEY, GREEN_FONT),
-        19: (f'=IF($A{r}="","",$Q{r}-$R{r})', MONEY, BLACK_FONT),
-        20: (pct_formula(r, "S", "R"), PCT, BLACK_FONT),
-        21: (f'=IF($A{r}="","",Data_Engine!${CL(DER["AVG3"])}{r})', MONEY, GREEN_FONT),
-        22: (f'=IF($A{r}="","",$Q{r}-$U{r})', MONEY, BLACK_FONT),
-        23: (pct_formula(r, "V", "U"), PCT, BLACK_FONT),
-        24: (flag_formula(r, "Q", "R", "S"), None, BLACK_FONT),
-        26: (f'=IF($A{r}="",-1E+15,IF(ROUND(ABS($S{r}),0)=0,-1E+15,ABS($S{r})+ROW()/1000000))', NUM, BLACK_FONT),
+    cr = COA_R0 + i
+    idx = i + 1
+    meta = {
+        1: f'=IF(COA_Mapping!$A{cr}="","",COA_Mapping!$A{cr})',
+        2: f'=IF($A{r}="","",COA_Mapping!$C{cr})',
+        3: f'=IF($A{r}="","",COA_Mapping!$E{cr})',
+        4: f'=IF($A{r}="","",COA_Mapping!$D{cr})',
+        5: f'=IF($A{r}="",1,COA_Mapping!$F{cr})',
     }
-    for p in range(1, 13):
-        cells[3 + p] = (f'=IF($A{r}="","",Data_Engine!${CL(CY_C0 + p - 1)}{r})', MONEY, GREEN_FONT)
-    for col, (f, fmt, colr) in cells.items():
-        c = mm.cell(row=r, column=col, value=f)
-        c.font = Font(name=ARIAL, size=9, color=colr, bold=(col in (17, 19, 24)))
+    for col, f in meta.items():
+        c = en.cell(row=r, column=col, value=f)
+        c.font = Font(name=ARIAL, size=9, color=GREEN_FONT)
         c.border = BOX
-        if fmt:
-            c.number_format = fmt
-        if col in (2, 3, 24):
+        if col == 5:
             c.alignment = Alignment(horizontal="center")
-        if col == 26:
-            c.font = Font(name=ARIAL, size=8, color="BFBFBF")
+    for p in range(1, 13):
+        for c0, key in ((PY_C0, p), (CY_C0, 100 + p)):
+            col = c0 + p - 1
+            c = en.cell(row=r, column=col,
+                        value=f'=IF($A{r}="",0,IF({SRC}="Raw_Paste",'
+                              f'SUMIF({CU_KEY},{idx * 1000 + key},{CU_AMT}),'
+                              f'SUMIF({GL_KEY},{idx * 1000 + key},{GL_AMT})))')
+            c.font = Font(name=ARIAL, size=9)
+            c.number_format = MONEY
+            c.border = BOX
+            if c0 == PY_C0:
+                c.fill = ENGINE_FILL
+    ser = f"$F{r}:$AC{r}"
+    D = {CL(v): v for v in DER.values()}
+    derived = {
+        DER["CY_MTH"]: f'=IF($A{r}="",0,INDEX({ser},12+{B8}))',
+        DER["PY_MTH"]: f'=IF($A{r}="",0,INDEX({ser},{B8}))',
+        DER["CY_PRI"]: f'=IF($A{r}="",0,INDEX({ser},11+{B8}))',
+        DER["AVG3"]:   f'=IF($A{r}="",0,AVERAGE(INDEX({ser},9+{B8}):INDEX({ser},11+{B8})))',
+        DER["CY_YTD"]: f'=IF($A{r}="",0,SUMPRODUCT(($R$3:$AC$3<={B8})*$R{r}:$AC{r}))',
+        DER["PY_YTD"]: f'=IF($A{r}="",0,SUMPRODUCT(($F$3:$Q$3<={B8})*$F{r}:$Q{r}))',
+        DER["PY_FY"]:  f'=IF($A{r}="",0,SUM($F{r}:$Q{r}))',
+        DER["CY_TOT"]: f'=IF($A{r}="",0,SUM($R{r}:$AC{r}))',
+        DER["ACTIVE"]: f'=IF($A{r}="",0,IF(SUMPRODUCT(ABS($F{r}:$AC{r}))>0,1,0))',
+        DER["OVH"]:    f'=IF($A{r}="","",COA_Mapping!$J{cr})',
+        DER["RDEPT"]:  f'=IF($A{r}="","",COA_Mapping!$K{cr})',
+        DER["NETSIGN"]: f'=IF($A{r}="",0,IFERROR(INDEX({NET_RNG},MATCH($B{r},{GRP_LIST},0)),0))',
+        DER["SEQ"]:    (f'=IF($A{r}="",0,COUNTIFS(${CL(DER["RDEPT"])}${ENG_R0}:${CL(DER["RDEPT"])}{r},'
+                        f'${CL(DER["RDEPT"])}{r},$B${ENG_R0}:$B{r},$B{r}))'),
+        DER["SLOTS"]:  (f'=IF($A{r}="",0,IFERROR(INDEX({LIM_SLOT},'
+                        f'MATCH(${CL(DER["RDEPT"])}{r}&"|"&$B{r},{LIM_KEY},0)),0))'),
+        DER["SHOWN"]:  (f'=IF($A{r}="",0,IF(AND(${CL(DER["SEQ"])}{r}>0,'
+                        f'${CL(DER["SEQ"])}{r}<=${CL(DER["SLOTS"])}{r}),1,0))'),
+        DER["MOM_VAR"]: f'=IF($A{r}="",0,${CL(DER["CY_MTH"])}{r}-${CL(DER["CY_PRI"])}{r})',
+        DER["MOM_FLAG"]: flag_formula(r, CL(DER["CY_MTH"]), CL(DER["CY_PRI"]), CL(DER["MOM_VAR"])),
+        DER["YOY_VAR"]: f'=IF($A{r}="",0,${CL(DER["CY_YTD"])}{r}-${CL(DER["PY_YTD"])}{r})',
+        DER["YOY_FLAG"]: flag_formula(r, CL(DER["CY_YTD"]), CL(DER["PY_YTD"]), CL(DER["YOY_VAR"])),
+        DER["MOM_KEY"]: (f'=IF($A{r}="",-1E+15,IF(ROUND(ABS(${CL(DER["MOM_VAR"])}{r}),0)=0,-1E+15,'
+                         f'ABS(${CL(DER["MOM_VAR"])}{r})+ROW()/1000000))'),
+        DER["YOY_KEY"]: (f'=IF($A{r}="",-1E+15,IF(ROUND(ABS(${CL(DER["YOY_VAR"])}{r}),0)=0,-1E+15,'
+                         f'ABS(${CL(DER["YOY_VAR"])}{r})+ROW()/1000000))'),
+    }
+    for col, f in derived.items():
+        c = en.cell(row=r, column=col, value=f)
+        c.font = Font(name=ARIAL, size=9)
+        c.border = BOX
+        c.fill = TOTAL_FILL
+        if col in (DER["ACTIVE"], DER["NETSIGN"], DER["SEQ"], DER["SLOTS"], DER["SHOWN"]):
+            c.number_format = NUM
+            c.alignment = Alignment(horizontal="center")
+        elif col in (DER["MOM_KEY"], DER["YOY_KEY"]):
+            c.number_format = NUM
+        elif col in (DER["OVH"], DER["RDEPT"], DER["MOM_FLAG"], DER["YOY_FLAG"]):
+            c.alignment = Alignment(horizontal="center")
+        else:
+            c.number_format = MONEY
+
+ENG_RD = f"Data_Engine!${CL(DER['RDEPT'])}${ENG_R0}:${CL(DER['RDEPT'])}${ENG_R1}"
+ENG_GRP = f"Data_Engine!$B${ENG_R0}:$B${ENG_R1}"
+ENG_NET = f"Data_Engine!${CL(DER['NETSIGN'])}${ENG_R0}:${CL(DER['NETSIGN'])}${ENG_R1}"
+ENG_SEQ = f"Data_Engine!${CL(DER['SEQ'])}${ENG_R0}:${CL(DER['SEQ'])}${ENG_R1}"
+def ecol(k):
+    return f"Data_Engine!${CL(DER[k])}${ENG_R0}:${CL(DER[k])}${ENG_R1}"
+def ecol_letter(k):
+    return CL(DER[k])
+# =========================================================================== MoM_ANALYSIS  - by department, collapsible
+# ===========================================================================
+# --- shared department-block builder ---------------------------------------
+# Level 0 = department (net contribution)   Level 1 = group subtotal
+# Level 2 = the accounts.  Collapsed to level 1 on open; click + to drill in.
+def dept_blocks(ws, first_row, src_col, name_col=1, grp_col=2, dep_col=3):
+    """Lay out the department / group / account skeleton. Returns the row map."""
+    rows = []
+    r = first_row
+    ws.sheet_properties.outlinePr.summaryBelow = False
+    ws.sheet_properties.outlinePr.applyStyles = False
+    for dept in DEPTS:
+        rows.append(("dept", dept, None, None, r))
+        c = ws.cell(row=r, column=name_col, value=f"{dept.upper()}   (net contribution)")
+        c.font = Font(name=ARIAL, size=11, bold=True, color=WHITE)
+        for cc in range(1, src_col + 1):
+            ws.cell(row=r, column=cc).fill = SUBHEAD
+        ws.cell(row=r, column=dep_col, value=dept).font = Font(name=ARIAL, size=9, color=WHITE)
+        ws.row_dimensions[r].height = 17
+        r += 1
+        for group, slots in DEPT_PLAN[dept]:
+            rows.append(("group", dept, group, None, r))
+            g = ws.cell(row=r, column=name_col, value=f"    {group}")
+            g.font = Font(name=ARIAL, size=10, bold=True)
+            for cc in range(1, src_col + 1):
+                ws.cell(row=r, column=cc).fill = BAND
+            ws.cell(row=r, column=grp_col, value=group).font = Font(name=ARIAL, size=9)
+            ws.cell(row=r, column=dep_col, value=dept).font = Font(name=ARIAL, size=9)
+            ws.row_dimensions[r].outlineLevel = 1
+            ws.row_dimensions[r].collapsed = True
+            r += 1
+            for k in range(1, slots + 1):
+                rows.append(("acct", dept, group, k, r))
+                ws.row_dimensions[r].outlineLevel = 2
+                ws.row_dimensions[r].hidden = True
+                src = ws.cell(row=r, column=src_col,
+                              value=f'=SUMPRODUCT(({ENG_RD}="{dept}")*({ENG_GRP}="{group}")'
+                                    f'*({ENG_SEQ}={k})*ROW({ENG_RD}))')
+                src.font = Font(name=ARIAL, size=8, color="BFBFBF")
+                n = ws.cell(row=r, column=name_col,
+                            value=f'=IF(${CL(src_col)}{r}=0,"","        "&INDEX(Data_Engine!$A:$A,${CL(src_col)}{r}))')
+                n.font = Font(name=ARIAL, size=9, color=GREEN_FONT)
+                ws.cell(row=r, column=grp_col,
+                        value=f'=IF(${CL(src_col)}{r}=0,"",INDEX(Data_Engine!$B:$B,${CL(src_col)}{r}))'
+                        ).font = Font(name=ARIAL, size=9, color=GREEN_FONT)
+                ws.cell(row=r, column=dep_col,
+                        value=f'=IF(${CL(src_col)}{r}=0,"",INDEX(Data_Engine!${CL(DER["RDEPT"])}:'
+                              f'${CL(DER["RDEPT"])},${CL(src_col)}{r}))'
+                        ).font = Font(name=ARIAL, size=9, color=GREEN_FONT)
+                r += 1
+        ws.row_dimensions[r].height = 5
+        r += 1
+    return rows, r
+
+def eng_range(col_letter):
+    return f"Data_Engine!${col_letter}${ENG_R0}:${col_letter}${ENG_R1}"
+
+def block_value(kind, dept, group, slot, eng_letter, r, src_col):
+    """The same figure, worked out three ways depending on the row type."""
+    if kind == "acct":
+        return (f'=IF(${CL(src_col)}{r}=0,"",INDEX(Data_Engine!${eng_letter}:${eng_letter},'
+                f'${CL(src_col)}{r}))')
+    if kind == "group":
+        return f'=SUMIFS({eng_range(eng_letter)},{ENG_RD},"{dept}",{ENG_GRP},"{group}")'
+    return f'=SUMPRODUCT(({ENG_RD}="{dept}")*{ENG_NET}*{eng_range(eng_letter)})'
+
+mm = sheet("MoM_Analysis", "2E75B6")
+title(mm, "Month-on-Month Analysis  -  by department")
+mm["A2"] = ('=IF(Setup!$B$4="","","Month on month for "&Setup!$B$5&".   |   Click the + and - buttons on the left to '
+            'open a department up.   |   Department rows are net contribution: income less costs. Group and account '
+            'rows are gross, income and costs both positive.")')
+mm["A2"].font = Font(name=ARIAL, size=9, italic=True, color=MUTED)
+MM_SRC = 26
+band(mm, 4, "LINE", 1, 3)
+band(mm, 4, "MONTHLY ACTUALS  -  CURRENT FINANCIAL YEAR", 4, 15, fill=PatternFill("solid", fgColor="2E75B6"))
+band(mm, 4, "MONTH-ON-MONTH TEST", 16, 23, fill=PatternFill("solid", fgColor="7F6000"))
+band(mm, 4, "REVIEW", 24, 25, fill=PatternFill("solid", fgColor="404040"))
+header(mm, 5, ["Line item", "Group", "Reports under"] + [f"M{p}" for p in range(1, 13)] +
+       ["YTD", "Current\nMonth", "Prior\nMonth", "Movement\n$", "Movement\n%",
+        "Avg Prior\n3 Months", "Var vs\nAvg $", "Var vs\nAvg %", "Risk\nFlag", "Controller Comment"])
+for p in range(1, 13):
+    mm.cell(row=5, column=3 + p, value=month_hdr(B7, p))
+mm.freeze_panes = "D6"
+widths(mm, {"A": 44, "B": 22, "C": 14, "P": 13, "Q": 13, "R": 13, "S": 13, "T": 11,
+            "U": 13, "V": 13, "W": 11, "X": 11, "Y": 34, "Z": 9})
+for p in range(4, 16):
+    mm.column_dimensions[CL(p)].width = 11
+
+mm_rows, MM_END = dept_blocks(mm, 6, MM_SRC)
+MM_R0, MM_R1 = 6, MM_END - 1
+for kind, dept, group, slot, r in mm_rows:
+    bold = kind in ("dept", "group")
+    white = kind == "dept"
+    vals = {}
+    for p in range(1, 13):
+        vals[3 + p] = block_value(kind, dept, group, slot, CL(CY_C0 + p - 1), r, MM_SRC)
+    vals[16] = block_value(kind, dept, group, slot, CL(DER["CY_YTD"]), r, MM_SRC)
+    vals[17] = block_value(kind, dept, group, slot, CL(DER["CY_MTH"]), r, MM_SRC)
+    vals[18] = block_value(kind, dept, group, slot, CL(DER["CY_PRI"]), r, MM_SRC)
+    vals[21] = block_value(kind, dept, group, slot, CL(DER["AVG3"]), r, MM_SRC)
+    blank = f'$A{r}=""'
+    vals[19] = f'=IF({blank},"",$Q{r}-$R{r})'
+    vals[20] = f'=IF({blank},"",IF(ROUND($R{r},2)=0,"n/a",$S{r}/ABS($R{r})))'
+    vals[22] = f'=IF({blank},"",$Q{r}-$U{r})'
+    vals[23] = f'=IF({blank},"",IF(ROUND($U{r},2)=0,"n/a",$V{r}/ABS($U{r})))'
+    vals[24] = flag_formula(r, "Q", "R", "S")
+    for col, f in vals.items():
+        c = mm.cell(row=r, column=col, value=f)
+        c.font = Font(name=ARIAL, size=9, bold=bold, color=(WHITE if white else BLACK_FONT))
+        c.number_format = PCT if col in (20, 23) else MONEY
+        c.border = BOX
+        if col == 24:
+            c.number_format = "General"
+            c.alignment = Alignment(horizontal="center")
     cm = mm.cell(row=r, column=25)
     cm.font = Font(name=ARIAL, size=9, color=BLUE_FONT)
     cm.fill = INPUT_FILL
     cm.border = BOX
     cm.alignment = Alignment(wrap_text=True, vertical="top")
 
-risk_cf(mm, f"A{ENG_R0}:Y{ENG_R1}", "X", ENG_R0)
-flag_cell_cf(mm, f"X{ENG_R0}:X{ENG_R1}", ENG_R0, "X")
-lbl(mm, 4, 26, "helper", size=8, color="BFBFBF")
-
-# ===========================================================================
-# YoY_ANALYSIS
+risk_cf(mm, f"A{MM_R0}:Y{MM_R1}", "X", MM_R0)
+flag_cell_cf(mm, f"X{MM_R0}:X{MM_R1}", MM_R0, "X")
+lbl(mm, 4, MM_SRC, "helper", size=8, color="BFBFBF")
+# =========================================================================== YoY_ANALYSIS  - by department, collapsible
 # ===========================================================================
 yy = sheet("YoY_Analysis", "548235")
-title(yy, "Year-on-Year Analysis  -  account level")
-yy["A2"] = ('=IF(Setup!$B$4="","","Current year to date vs the same period last year.   |   '
-            'Rows highlight on the risk flag in column P (driven by the YTD variance).   |   Column Q is yours.")')
+title(yy, "Year-on-Year Analysis  -  by department")
+yy["A2"] = ('=IF(Setup!$B$4="","",Setup!$B$5&" vs "&Setup!$B$11&", and year to date against last year to date.   |   '
+            'Click the + and - buttons on the left to open a department up.")')
 yy["A2"].font = Font(name=ARIAL, size=9, italic=True, color=MUTED)
-
-band(yy, 4, "ACCOUNT & DIMENSIONS", 1, 3)
+YY_SRC = 19
+band(yy, 4, "LINE", 1, 3)
 band(yy, 4, "CURRENT MONTH vs PRIOR YEAR SAME MONTH", 4, 7, fill=PatternFill("solid", fgColor="548235"))
 band(yy, 4, "YEAR TO DATE vs PRIOR YEAR TO DATE", 8, 11, fill=PatternFill("solid", fgColor="2E75B6"))
 band(yy, 4, "FULL YEAR RUN-RATE", 12, 14, fill=PatternFill("solid", fgColor="7F6000"))
 band(yy, 4, "REVIEW", 15, 17, fill=PatternFill("solid", fgColor="404040"))
-header(yy, 5, ["Account", "Group", "Division",
+header(yy, 5, ["Line item", "Group", "Reports under",
                "CY Month", "PY Same\nMonth", "Var $", "Var %",
                "CY YTD", "PY YTD", "YTD Var $", "YTD Var %",
                "PY Full\nYear", "CY Run-Rate\n(annualised)", "Run-Rate vs\nPY FY %",
                "Movement\nType", "Risk\nFlag", "Controller Comment"])
 yy.freeze_panes = "D6"
-widths(yy, {"A": 36, "B": 22, "C": 13, "D": 13, "E": 13, "F": 13, "G": 11,
+widths(yy, {"A": 44, "B": 22, "C": 14, "D": 13, "E": 13, "F": 13, "G": 11,
             "H": 14, "I": 14, "J": 14, "K": 11, "L": 14, "M": 14, "N": 12,
-            "O": 13, "P": 11, "Q": 40, "R": 9})
+            "O": 13, "P": 11, "Q": 34, "R": 9})
 
-for i in range(NACC):
-    r = ENG_R0 + i
-    cells = {
-        1: (f'=IF(Data_Engine!$A{r}="","",Data_Engine!$A{r})', None, GREEN_FONT),
-        2: (f'=IF($A{r}="","",Data_Engine!$B{r})', None, GREEN_FONT),
-        3: (f'=IF($A{r}="","",Data_Engine!$D{r})', None, GREEN_FONT),
-        4: (f'=IF($A{r}="","",Data_Engine!${CL(DER["CY_MTH"])}{r})', MONEY, GREEN_FONT),
-        5: (f'=IF($A{r}="","",Data_Engine!${CL(DER["PY_MTH"])}{r})', MONEY, GREEN_FONT),
-        6: (f'=IF($A{r}="","",$D{r}-$E{r})', MONEY, BLACK_FONT),
-        7: (pct_formula(r, "F", "E"), PCT, BLACK_FONT),
-        8: (f'=IF($A{r}="","",Data_Engine!${CL(DER["CY_YTD"])}{r})', MONEY, GREEN_FONT),
-        9: (f'=IF($A{r}="","",Data_Engine!${CL(DER["PY_YTD"])}{r})', MONEY, GREEN_FONT),
-        10: (f'=IF($A{r}="","",$H{r}-$I{r})', MONEY, BLACK_FONT),
-        11: (pct_formula(r, "J", "I"), PCT, BLACK_FONT),
-        12: (f'=IF($A{r}="","",Data_Engine!${CL(DER["PY_FY"])}{r})', MONEY, GREEN_FONT),
-        13: (f'=IF($A{r}="","",IF({B8}=0,0,$H{r}/{B8}*12))', MONEY, BLACK_FONT),
-        14: (pct_formula(r, "M", "L").replace(f'$M{r}/ABS($L{r})', f'($M{r}-$L{r})/ABS($L{r})'), PCT, BLACK_FONT),
-        15: (f'=IF($A{r}="","",'
-             f'IF(AND(ROUND($H{r},2)=0,ROUND($I{r},2)=0),"Dormant",'
-             f'IF(ROUND($I{r},2)=0,"New this year",'
-             f'IF(ROUND($H{r},2)=0,"Ceased",'
-             f'IF($J{r}>0,"Increase",IF($J{r}<0,"Decrease","Flat"))))))', None, BLACK_FONT),
-        16: (flag_formula(r, "H", "I", "J"), None, BLACK_FONT),
-        18: (f'=IF($A{r}="",-1E+15,IF(ROUND(ABS($J{r}),0)=0,-1E+15,ABS($J{r})+ROW()/1000000))', NUM, BLACK_FONT),
+yy_rows, YY_END = dept_blocks(yy, 6, YY_SRC)
+YY_R0, YY_R1 = 6, YY_END - 1
+for kind, dept, group, slot, r in yy_rows:
+    bold = kind in ("dept", "group")
+    white = kind == "dept"
+    blank = f'$A{r}=""'
+    vals = {
+        4: block_value(kind, dept, group, slot, CL(DER["CY_MTH"]), r, YY_SRC),
+        5: block_value(kind, dept, group, slot, CL(DER["PY_MTH"]), r, YY_SRC),
+        8: block_value(kind, dept, group, slot, CL(DER["CY_YTD"]), r, YY_SRC),
+        9: block_value(kind, dept, group, slot, CL(DER["PY_YTD"]), r, YY_SRC),
+        12: block_value(kind, dept, group, slot, CL(DER["PY_FY"]), r, YY_SRC),
+        6: f'=IF({blank},"",$D{r}-$E{r})',
+        7: f'=IF({blank},"",IF(ROUND($E{r},2)=0,"n/a",$F{r}/ABS($E{r})))',
+        10: f'=IF({blank},"",$H{r}-$I{r})',
+        11: f'=IF({blank},"",IF(ROUND($I{r},2)=0,"n/a",$J{r}/ABS($I{r})))',
+        13: f'=IF({blank},"",IF({B8}=0,0,$H{r}/{B8}*12))',
+        14: f'=IF({blank},"",IF(ROUND($L{r},2)=0,"n/a",($M{r}-$L{r})/ABS($L{r})))',
+        15: (f'=IF({blank},"",IF(AND(ROUND($H{r},2)=0,ROUND($I{r},2)=0),"Dormant",'
+             f'IF(ROUND($I{r},2)=0,"New this year",IF(ROUND($H{r},2)=0,"Ceased",'
+             f'IF($J{r}>0,"Increase",IF($J{r}<0,"Decrease","Flat"))))))'),
+        16: flag_formula(r, "H", "I", "J"),
     }
-    for col, (f, fmt, colr) in cells.items():
+    for col, f in vals.items():
         c = yy.cell(row=r, column=col, value=f)
-        c.font = Font(name=ARIAL, size=9, color=colr, bold=(col in (8, 10, 16)))
+        c.font = Font(name=ARIAL, size=9, bold=bold, color=(WHITE if white else BLACK_FONT))
+        c.number_format = PCT if col in (7, 11, 14) else MONEY
         c.border = BOX
-        if fmt:
-            c.number_format = fmt
-        if col in (2, 3, 15, 16):
+        if col in (15, 16):
+            c.number_format = "General"
             c.alignment = Alignment(horizontal="center")
-        if col == 18:
-            c.font = Font(name=ARIAL, size=8, color="BFBFBF")
     cm = yy.cell(row=r, column=17)
     cm.font = Font(name=ARIAL, size=9, color=BLUE_FONT)
     cm.fill = INPUT_FILL
     cm.border = BOX
     cm.alignment = Alignment(wrap_text=True, vertical="top")
 
-risk_cf(yy, f"A{ENG_R0}:Q{ENG_R1}", "P", ENG_R0)
-flag_cell_cf(yy, f"P{ENG_R0}:P{ENG_R1}", ENG_R0, "P")
-lbl(yy, 4, 18, "helper", size=8, color="BFBFBF")
-
-# ===========================================================================
-# SUMMARY  - the one page a controller actually reads
+risk_cf(yy, f"A{YY_R0}:Q{YY_R1}", "P", YY_R0)
+flag_cell_cf(yy, f"P{YY_R0}:P{YY_R1}", YY_R0, "P")
+lbl(yy, 4, YY_SRC, "helper", size=8, color="BFBFBF")
+# =========================================================================== SUMMARY  - company first, then each department, collapsible
 # ===========================================================================
 sm = sheet("Summary", "C55A11")
 title(sm, "Financial Controller Summary")
-sm["A2"] = ('=IF(Setup!$B$4="","",Setup!$B$4&"   |   "&Setup!$B$10&"   |   FY"&Setup!$B$7&" vs FY"&Setup!$B$9&"   |   '
-            'all figures "&Setup!$B$5)')
+sm["A2"] = ('=IF(Setup!$B$4="","",Setup!$B$4&"   |   "&Setup!$B$5&"   |   FY"&Setup!$B$7&" vs FY"&Setup!$B$9'
+            '&"   |   all figures "&Setup!$B$19)')
 sm["A2"].font = Font(name=ARIAL, size=10, bold=True, color=MUTED)
+sm.sheet_properties.outlinePr.summaryBelow = False
+sm.sheet_properties.outlinePr.applyStyles = False
 
 SM_R0 = 6
-ENG = "Data_Engine"
-def ER(col):
-    return f"{ENG}!${col}${ENG_R0}:${col}${ENG_R1}"
 BASE = {"B": DER["CY_MTH"], "C": DER["PY_MTH"], "F": DER["CY_PRI"],
         "I": DER["CY_YTD"], "J": DER["PY_YTD"], "M": DER["PY_FY"]}
-DATA_COLS = list("BCDEFGHIJKLM")
-
 band(sm, 4, "", 1, 17, fill=PatternFill("solid", fgColor="FFFFFF"))
-band(sm, 4, f"CURRENT MONTH vs PRIOR YEAR", 2, 5, fill=PatternFill("solid", fgColor="548235"))
+band(sm, 4, "CURRENT MONTH vs PRIOR YEAR", 2, 5, fill=PatternFill("solid", fgColor="548235"))
 band(sm, 4, "CURRENT MONTH vs PRIOR MONTH", 6, 8, fill=PatternFill("solid", fgColor="7F6000"))
 band(sm, 4, "YEAR TO DATE vs PRIOR YEAR TO DATE", 9, 12, fill=PatternFill("solid", fgColor="2E75B6"))
 band(sm, 4, "PY FY", 13, 13, fill=PatternFill("solid", fgColor="808080"))
@@ -879,158 +1045,148 @@ header(sm, 5, ["Line Item", "CY Month", "PY Same\nMonth", "YoY\nVar $", "YoY\nVa
                "CY YTD", "PY YTD", "YTD\nVar $", "YTD\nVar %", "PY Full\nYear",
                "YoY\nFlag", "MoM\nFlag", "Overall\nRisk", "Review Action"])
 sm.freeze_panes = "B6"
-widths(sm, {"A": 38, "N": 10, "O": 10, "P": 10, "Q": 34, "R": 10})
-for c in DATA_COLS:
+widths(sm, {"A": 42, "N": 10, "O": 10, "P": 10, "Q": 30})
+for c in "BCDEFGHIJKLM":
     sm.column_dimensions[c].width = 14
 
-SPEC = [
-    ("sec", "PROFIT & LOSS  -  GROUP SUMMARY"),
-    ("grp", "Income", "Income"),
-    ("grp", "Cost of Sales", "Cost of Sales"),
-    ("calc", "Gross Profit", "{Income}-{Cost of Sales}", True),
-    ("pct", "Gross Margin %", "{Gross Profit}", "{Income}"),
-    ("grp", "Other Income", "Other Income"),
-    ("grp", "Operating Expenses", "Expenses"),
-    ("calc", "EBITDA", "{Gross Profit}+{Other Income}-{Operating Expenses}", True),
-    ("pct", "EBITDA Margin %", "{EBITDA}", "{Income}"),
-    ("grp", "Depreciation & Amortisation", "Depreciation & Amortisation"),
-    ("grp", "Finance Costs", "Finance Costs"),
-    ("calc", "Net Profit Before Tax", "{EBITDA}-{Depreciation & Amortisation}-{Finance Costs}", True),
-    ("grp", "Income Tax Expense", "Income Tax Expense"),
-    ("calc", "Net Profit After Tax", "{Net Profit Before Tax}-{Income Tax Expense}", True),
-    ("pct", "Net Margin %", "{Net Profit After Tax}", "{Income}"),
-    ("blank",),
-    ("sec", "REVENUE BY DIVISION"),
-] + [("div", d, d, "Income") for d in DIVISIONS] + [
-    ("sum", "Total Revenue", "REVENUE BY DIVISION"),
-    ("blank",),
-    ("sec", "GROSS PROFIT BY DIVISION"),
-] + [("divgp", d, d) for d in DIVISIONS] + [
-    ("sum", "Total Gross Profit", "GROSS PROFIT BY DIVISION"),
-    ("blank",),
-    ("sec", "BALANCE SHEET  -  MOVEMENT IN THE PERIOD"),
-    ("grp", "Current Assets", "Current Assets"),
-    ("grp", "Non-Current Assets", "Non-Current Assets"),
-    ("calc", "Total Assets", "{Current Assets}+{Non-Current Assets}", True),
-    ("grp", "Current Liabilities", "Current Liabilities"),
-    ("grp", "Non-Current Liabilities", "Non-Current Liabilities"),
-    ("calc", "Total Liabilities", "{Current Liabilities}+{Non-Current Liabilities}", True),
-    ("calc", "Net Assets", "{Total Assets}-{Total Liabilities}", True),
-    ("grp", "Equity", "Equity"),
-]
-
-rowof = {}
-sect = {}
-r = SM_R0
-cur_sec = None
-for item in SPEC:
-    kind = item[0]
-    if kind == "blank":
-        sm.row_dimensions[r].height = 6
-        r += 1
-        continue
-    if kind == "sec":
-        band(sm, r, item[1], 1, 17)
-        cur_sec = item[1]
-        sect[cur_sec] = [r + 1, r + 1]
-        r += 1
-        continue
-    label = item[1]
-    rowof[label] = r
-    if cur_sec and kind != "sum":
-        sect[cur_sec][1] = r
-    bold = (kind in ("calc", "sum")) and (len(item) < 4 or item[-1] is True or kind == "sum")
-    lab = lbl(sm, r, 1, label, bold=bold, size=10,
-              indent=(0 if kind in ("calc", "sum") else 1))
-
-    base_f = {}
-    if kind == "grp":
-        key = item[2]
-        for col, ec in BASE.items():
-            base_f[col] = f'=SUMIF({ER("B")},"{key}",{ER(CL(ec))})'
-    elif kind == "div":
-        div, grp = item[2], item[3]
-        for col, ec in BASE.items():
-            base_f[col] = (f'=SUMIFS({ER(CL(ec))},{ER("D")},"{div}",'
-                           f'{ER("B")},"{grp}")')
-    elif kind == "divgp":
-        div = item[2]
-        for col, ec in BASE.items():
-            base_f[col] = (f'=SUMIFS({ER(CL(ec))},{ER("D")},"{div}",{ER("B")},"Income")'
-                           f'-SUMIFS({ER(CL(ec))},{ER("D")},"{div}",{ER("B")},"Cost of Sales")')
-    elif kind == "sum":
-        lo, hi = sect[item[2]]
-        for col in BASE:
-            base_f[col] = f'=SUM({col}{lo}:{col}{hi})'
-    elif kind == "calc":
-        expr = item[2]
-        for col in BASE:
-            e = expr
-            for name, rr in rowof.items():
-                e = e.replace("{" + name + "}", f"{col}{rr}")
-            base_f[col] = "=" + e
-    elif kind == "pct":
-        num, den = item[2], item[3]
-        nr = rowof[num.strip("{}")]
-        dr = rowof[den.strip("{}")]
-        for col in BASE:
-            base_f[col] = f'=IF(ROUND({col}{dr},2)=0,"n/a",{col}{nr}/{col}{dr})'
-
-    for col, f in base_f.items():
-        c = sm.cell(row=r, column=ord(col) - 64, value=f)
-        c.font = Font(name=ARIAL, size=10, bold=bold)
-        c.number_format = PCT if kind == "pct" else MONEY
-        c.border = BOX
-
-    if kind == "pct":
-        derived = {
-            "D": f'=IF(OR(ISTEXT($B{r}),ISTEXT($C{r})),"n/a",($B{r}-$C{r})*100)',
-            "E": '=""',
-            "G": f'=IF(OR(ISTEXT($B{r}),ISTEXT($F{r})),"n/a",($B{r}-$F{r})*100)',
-            "H": '=""',
-            "K": f'=IF(OR(ISTEXT($I{r}),ISTEXT($J{r})),"n/a",($I{r}-$J{r})*100)',
-            "L": '=""',
-            "N": f'=IF(ISTEXT($K{r}),"No Activity",IF(ABS($K{r})>=5,"High",IF(ABS($K{r})>=2,"Medium","Low")))',
-            "O": f'=IF(ISTEXT($G{r}),"No Activity",IF(ABS($G{r})>=5,"High",IF(ABS($G{r})>=2,"Medium","Low")))',
-        }
+def sm_derived(r, pct_row=False):
+    if pct_row:
+        d = {"D": f'=IF(OR(ISTEXT($B{r}),ISTEXT($C{r})),"n/a",($B{r}-$C{r})*100)', "E": '=""',
+             "G": f'=IF(OR(ISTEXT($B{r}),ISTEXT($F{r})),"n/a",($B{r}-$F{r})*100)', "H": '=""',
+             "K": f'=IF(OR(ISTEXT($I{r}),ISTEXT($J{r})),"n/a",($I{r}-$J{r})*100)', "L": '=""',
+             "N": f'=IF(ISTEXT($K{r}),"No Activity",IF(ABS($K{r})>=5,"High",IF(ABS($K{r})>=2,"Medium","Low")))',
+             "O": f'=IF(ISTEXT($G{r}),"No Activity",IF(ABS($G{r})>=5,"High",IF(ABS($G{r})>=2,"Medium","Low")))'}
         fmts = {"D": PP, "G": PP, "K": PP}
     else:
-        derived = {
-            "D": f'=$B{r}-$C{r}', "E": f'=IF(ROUND($C{r},2)=0,"n/a",$D{r}/ABS($C{r}))',
-            "G": f'=$B{r}-$F{r}', "H": f'=IF(ROUND($F{r},2)=0,"n/a",$G{r}/ABS($F{r}))',
-            "K": f'=$I{r}-$J{r}', "L": f'=IF(ROUND($J{r},2)=0,"n/a",$K{r}/ABS($J{r}))',
-            "N": (f'=IF(AND(ROUND($I{r},2)=0,ROUND($J{r},2)=0),"No Activity",'
-                  f'IF(ABS($K{r})<{MAT},"Low",IF(ROUND($J{r},2)=0,"High",'
-                  f'IF(OR(ABS($K{r}/$J{r})>={HIP},ABS($K{r})>={HID}),"High",'
-                  f'IF(ABS($K{r}/$J{r})>={MEDP},"Medium","Low")))))'),
-            "O": (f'=IF(AND(ROUND($B{r},2)=0,ROUND($F{r},2)=0),"No Activity",'
-                  f'IF(ABS($G{r})<{MAT},"Low",IF(ROUND($F{r},2)=0,"High",'
-                  f'IF(OR(ABS($G{r}/$F{r})>={HIP},ABS($G{r})>={HID}),"High",'
-                  f'IF(ABS($G{r}/$F{r})>={MEDP},"Medium","Low")))))'),
-        }
+        d = {"D": f'=$B{r}-$C{r}', "E": f'=IF(ROUND($C{r},2)=0,"n/a",$D{r}/ABS($C{r}))',
+             "G": f'=$B{r}-$F{r}', "H": f'=IF(ROUND($F{r},2)=0,"n/a",$G{r}/ABS($F{r}))',
+             "K": f'=$I{r}-$J{r}', "L": f'=IF(ROUND($J{r},2)=0,"n/a",$K{r}/ABS($J{r}))',
+             "N": (f'=IF(AND(ROUND($I{r},2)=0,ROUND($J{r},2)=0),"No Activity",IF(ABS($K{r})<{MAT},"Low",'
+                   f'IF(ROUND($J{r},2)=0,"High",IF(OR(ABS($K{r}/$J{r})>={HIP},ABS($K{r})>={HID}),"High",'
+                   f'IF(ABS($K{r}/$J{r})>={MEDP},"Medium","Low")))))'),
+             "O": (f'=IF(AND(ROUND($B{r},2)=0,ROUND($F{r},2)=0),"No Activity",IF(ABS($G{r})<{MAT},"Low",'
+                   f'IF(ROUND($F{r},2)=0,"High",IF(OR(ABS($G{r}/$F{r})>={HIP},ABS($G{r})>={HID}),"High",'
+                   f'IF(ABS($G{r}/$F{r})>={MEDP},"Medium","Low")))))')}
         fmts = {"D": MONEY, "G": MONEY, "K": MONEY}
-    derived["P"] = (f'=IF(OR($N{r}="High",$O{r}="High"),"High",'
-                    f'IF(OR($N{r}="Medium",$O{r}="Medium"),"Medium",'
-                    f'IF(AND($N{r}="No Activity",$O{r}="No Activity"),"No Activity","Low")))')
-    for col, f in derived.items():
-        c = sm.cell(row=r, column=ord(col) - 64, value=f)
-        c.font = Font(name=ARIAL, size=10, bold=(bold or col == "P"))
+    d["P"] = (f'=IF(OR($N{r}="High",$O{r}="High"),"High",IF(OR($N{r}="Medium",$O{r}="Medium"),"Medium",'
+              f'IF(AND($N{r}="No Activity",$O{r}="No Activity"),"No Activity","Low")))')
+    return d, fmts
+
+def sm_write(r, label, base_f, bold=False, pct_row=False, level=None, white=False, indent=0):
+    c = lbl(sm, r, 1, label, bold=bold, size=(11 if white else 10), indent=indent)
+    if white:
+        c.font = Font(name=ARIAL, size=11, bold=True, color=WHITE)
+    for col, f in base_f.items():
+        cc = sm.cell(row=r, column=ord(col) - 64, value=f)
+        cc.font = Font(name=ARIAL, size=10, bold=bold, color=(WHITE if white else BLACK_FONT))
+        cc.number_format = PCT if pct_row else MONEY
+        cc.border = BOX
+    d, fmts = sm_derived(r, pct_row)
+    for col, f in d.items():
+        cc = sm.cell(row=r, column=ord(col) - 64, value=f)
+        cc.font = Font(name=ARIAL, size=10, bold=(bold or col == "P"), color=(WHITE if white else BLACK_FONT))
         nf = fmts.get(col, PCT if col in ("E", "H", "L") else None)
         if nf:
-            c.number_format = nf
-        c.border = BOX
+            cc.number_format = nf
+        cc.border = BOX
         if col in ("N", "O", "P"):
-            c.alignment = Alignment(horizontal="center")
+            cc.alignment = Alignment(horizontal="center")
     act = sm.cell(row=r, column=17)
     act.font = Font(name=ARIAL, size=9, color=BLUE_FONT)
     act.fill = INPUT_FILL
     act.border = BOX
     act.alignment = Alignment(wrap_text=True, vertical="top")
-    if bold:
-        for col in range(1, 18):
-            cc = sm.cell(row=r, column=col)
-            cc.fill = TOTAL_FILL if col != 17 else INPUT_FILL
+    if white:
+        for col in range(1, 17):
+            sm.cell(row=r, column=col).fill = SUBHEAD
+    elif bold:
+        for col in range(1, 17):
+            sm.cell(row=r, column=col).fill = TOTAL_FILL
+    if level:
+        sm.row_dimensions[r].outlineLevel = level
+    return r + 1
+
+def grp_base(group):
+    return {col: f'=SUMIF({ENG_GRP},"{group}",{eng_range(CL(ec))})' for col, ec in BASE.items()}
+
+def deptgrp_base(dept, group):
+    return {col: f'=SUMIFS({eng_range(CL(ec))},{ENG_RD},"{dept}",{ENG_GRP},"{group}")'
+            for col, ec in BASE.items()}
+
+def deptnet_base(dept):
+    return {col: f'=SUMPRODUCT(({ENG_RD}="{dept}")*{ENG_NET}*{eng_range(CL(ec))})'
+            for col, ec in BASE.items()}
+
+def calc_base(expr, rowof):
+    out = {}
+    for col in BASE:
+        e = expr
+        for name, rr in rowof.items():
+            e = e.replace("{" + name + "}", f"{col}{rr}")
+        out[col] = "=" + e
+    return out
+
+def pct_base(num_r, den_r):
+    return {col: f'=IF(ROUND({col}{den_r},2)=0,"n/a",{col}{num_r}/{col}{den_r})' for col in BASE}
+
+r = SM_R0
+band(sm, r, "COMPANY  -  PROFIT & LOSS", 1, 17); r += 1
+co = {}
+for label, group in (("Income", "Income"), ("Cost of Sales", "Cost of Sales")):
+    co[label] = r; r = sm_write(r, label, grp_base(group), indent=1)
+co["Gross Profit"] = r; r = sm_write(r, "Gross Profit", calc_base("{Income}-{Cost of Sales}", co), bold=True)
+r = sm_write(r, "Gross Margin %", pct_base(co["Gross Profit"], co["Income"]), pct_row=True, indent=1)
+for label, group in (("Other Income", "Other Income"), ("Operating Expenses", "Expenses")):
+    co[label] = r; r = sm_write(r, label, grp_base(group), indent=1)
+co["EBITDA"] = r
+r = sm_write(r, "EBITDA", calc_base("{Gross Profit}+{Other Income}-{Operating Expenses}", co), bold=True)
+r = sm_write(r, "EBITDA Margin %", pct_base(co["EBITDA"], co["Income"]), pct_row=True, indent=1)
+for label, group in (("Depreciation & Amortisation", "Depreciation & Amortisation"),
+                     ("Finance Costs", "Finance Costs")):
+    co[label] = r; r = sm_write(r, label, grp_base(group), indent=1)
+co["Net Profit Before Tax"] = r
+r = sm_write(r, "Net Profit Before Tax",
+             calc_base("{EBITDA}-{Depreciation & Amortisation}-{Finance Costs}", co), bold=True)
+co["Income Tax Expense"] = r; r = sm_write(r, "Income Tax Expense", grp_base("Income Tax Expense"), indent=1)
+co["Net Profit After Tax"] = r
+r = sm_write(r, "Net Profit After Tax", calc_base("{Net Profit Before Tax}-{Income Tax Expense}", co), bold=True)
+r = sm_write(r, "Net Margin %", pct_base(co["Net Profit After Tax"], co["Income"]), pct_row=True, indent=1)
+
+sm.row_dimensions[r].height = 6; r += 1
+band(sm, r, "BY DEPARTMENT  -  click the + and - buttons on the left to open one up", 1, 17); r += 1
+DEPT_ROWS = {}
+for dept in DEPTS:
+    dr = r
+    DEPT_ROWS[dept] = dr
+    r = sm_write(r, f"{dept.upper()}   (net contribution)", deptnet_base(dept), bold=True, white=True)
+    d = {}
+    for label, group in (("Income", "Income"), ("Cost of Sales", "Cost of Sales")):
+        d[label] = r; r = sm_write(r, label, deptgrp_base(dept, group), level=1, indent=2)
+    d["Gross Profit"] = r
+    r = sm_write(r, "Gross Profit", calc_base("{Income}-{Cost of Sales}", d), bold=True, level=1, indent=1)
+    r = sm_write(r, "Gross Margin %", pct_base(d["Gross Profit"], d["Income"]), pct_row=True, level=1, indent=2)
+    for label, group in (("Other Income", "Other Income"), ("Direct Expenses", "Expenses")):
+        d[label] = r; r = sm_write(r, label, deptgrp_base(dept, group), level=1, indent=2)
+    d["dept"] = dr
+    r = sm_write(r, "Other (depreciation, finance, tax)",
+                 calc_base("{dept}-({Gross Profit}+{Other Income}-{Direct Expenses})", d), level=1, indent=2)
+    sm.row_dimensions[r].height = 5
+    sm.row_dimensions[r].outlineLevel = 1
     r += 1
+
+sm.row_dimensions[r].height = 6; r += 1
+band(sm, r, "BALANCE SHEET  -  MOVEMENT IN THE PERIOD", 1, 17); r += 1
+bs = {}
+for label in ("Current Assets", "Non-Current Assets"):
+    bs[label] = r; r = sm_write(r, label, grp_base(label), indent=1)
+bs["Total Assets"] = r
+r = sm_write(r, "Total Assets", calc_base("{Current Assets}+{Non-Current Assets}", bs), bold=True)
+for label in ("Current Liabilities", "Non-Current Liabilities"):
+    bs[label] = r; r = sm_write(r, label, grp_base(label), indent=1)
+bs["Total Liabilities"] = r
+r = sm_write(r, "Total Liabilities", calc_base("{Current Liabilities}+{Non-Current Liabilities}", bs), bold=True)
+r = sm_write(r, "Net Assets", calc_base("{Total Assets}-{Total Liabilities}", bs), bold=True)
+r = sm_write(r, "Equity", grp_base("Equity"), indent=1)
 
 SM_LAST = r - 1
 risk_cf(sm, f"A{SM_R0}:Q{SM_LAST}", "P", SM_R0)
@@ -1038,19 +1194,19 @@ for col in ("N", "O", "P"):
     flag_cell_cf(sm, f"{col}{SM_R0}:{col}{SM_LAST}", SM_R0, col)
 
 r += 1
-band(sm, r, "CONTROLLER REVIEW STATUS", 1, 17)
-r += 1
+band(sm, r, "CONTROLLER REVIEW STATUS", 1, 17); r += 1
 REVIEW = [
-    ("High risk accounts - month on month", f'=COUNTIF(MoM_Analysis!$X${ENG_R0}:$X${ENG_R1},"High")', "review"),
-    ("Medium risk accounts - month on month", f'=COUNTIF(MoM_Analysis!$X${ENG_R0}:$X${ENG_R1},"Medium")', "info"),
-    ("High risk accounts - year on year", f'=COUNTIF(YoY_Analysis!$P${ENG_R0}:$P${ENG_R1},"High")', "review"),
-    ("Medium risk accounts - year on year", f'=COUNTIF(YoY_Analysis!$P${ENG_R0}:$P${ENG_R1},"Medium")', "info"),
-    ("High risk items still without a comment",
-     f'=SUMPRODUCT((MoM_Analysis!$X${ENG_R0}:$X${ENG_R1}="High")*(MoM_Analysis!$Y${ENG_R0}:$Y${ENG_R1}=""))'
-     f'+SUMPRODUCT((YoY_Analysis!$P${ENG_R0}:$P${ENG_R1}="High")*(YoY_Analysis!$Q${ENG_R0}:$Q${ENG_R1}=""))', "must"),
-    ("GL lines not mapped to an account", f'=Setup!$B$26', "must"),
-    ("GL debits less credits (must be nil)", f'=Setup!$B$30', "must"),
-    ("Controls failing on the Controls sheet", f'=COUNTIF(Controls!$E$6:$E$40,"FAIL")', "must"),
+    ("High risk accounts - month on month", f'=COUNTIF({ecol("MOM_FLAG")},"High")', "review"),
+    ("Medium risk accounts - month on month", f'=COUNTIF({ecol("MOM_FLAG")},"Medium")', "info"),
+    ("High risk accounts - year on year", f'=COUNTIF({ecol("YOY_FLAG")},"High")', "review"),
+    ("Medium risk accounts - year on year", f'=COUNTIF({ecol("YOY_FLAG")},"Medium")', "info"),
+    ("High risk lines still without a comment",
+     f'=SUMPRODUCT((MoM_Analysis!$X${MM_R0}:$X${MM_R1}="High")*(MoM_Analysis!$Y${MM_R0}:$Y${MM_R1}=""))'
+     f'+SUMPRODUCT((YoY_Analysis!$P${YY_R0}:$P${YY_R1}="High")*(YoY_Analysis!$Q${YY_R0}:$Q${YY_R1}=""))', "must"),
+    ("Accounts with nowhere to display", f'=SUMPRODUCT(({ecol("ACTIVE")}=1)*({ecol("SHOWN")}=0))', "must"),
+    ("GL lines not mapped to an account", '=IF(Setup!$B$12="Raw_Paste",Setup!$B$42,Setup!$B$26)', "must"),
+    ("Source debits less credits (must be nil)", '=IF(Setup!$B$12="Raw_Paste",Setup!$B$41,Setup!$B$30)', "must"),
+    ("Controls failing on the Controls sheet", '=COUNTIF(Controls!$E$6:$E$40,"FAIL")', "must"),
 ]
 REV_R0 = r
 for label, f, sev in REVIEW:
@@ -1061,91 +1217,85 @@ for label, f, sev in REVIEW:
     c.alignment = Alignment(horizontal="center")
     c.border = BOX
     sev_label = {"must": "Must be cleared", "review": "Review required"}.get(sev, "For information")
-    s = sm.cell(row=r, column=3, value=f'=IF(ROUND($B{r},2)=0,"Clear","{sev_label}")')
-    s.font = Font(name=ARIAL, size=9, bold=True)
-    s.alignment = Alignment(horizontal="center")
-    s.border = BOX
+    s2 = sm.cell(row=r, column=3, value=f'=IF(ROUND($B{r},2)=0,"Clear","{sev_label}")')
+    s2.font = Font(name=ARIAL, size=9, bold=True)
+    s2.alignment = Alignment(horizontal="center")
+    s2.border = BOX
     sm.merge_cells(start_row=r, start_column=3, end_row=r, end_column=5)
     r += 1
 REV_R1 = r - 1
-sm.conditional_formatting.add(f"B{REV_R0}:E{REV_R1}", FormulaRule(
-    formula=[f'$C{REV_R0}="Must be cleared"'], fill=PatternFill("solid", fgColor=F_HIGH), font=Font(color=T_HIGH, bold=True)))
-sm.conditional_formatting.add(f"B{REV_R0}:E{REV_R1}", FormulaRule(
-    formula=[f'$C{REV_R0}="Review required"'], fill=PatternFill("solid", fgColor=F_MED), font=Font(color=T_MED, bold=True)))
-sm.conditional_formatting.add(f"B{REV_R0}:E{REV_R1}", FormulaRule(
-    formula=[f'$C{REV_R0}="Clear"'], fill=PatternFill("solid", fgColor=F_LOW), font=Font(color=T_LOW, bold=True)))
+for txt, fill, font in (("Must be cleared", F_HIGH, T_HIGH), ("Review required", F_MED, T_MED),
+                        ("Clear", F_LOW, T_LOW)):
+    sm.conditional_formatting.add(f"B{REV_R0}:E{REV_R1}", FormulaRule(
+        formula=[f'$C{REV_R0}="{txt}"'], fill=PatternFill("solid", fgColor=fill),
+        font=Font(color=font, bold=True)))
 
 r += 1
-note = sm.cell(row=r, column=1, value=(
-    "Note on EBITDA: your chart of accounts currently maps depreciation, amortisation and interest inside the "
-    "Expenses group, so the EBITDA line above equals Net Profit Before Tax. Re-map those accounts to the "
-    "'Depreciation & Amortisation' and 'Finance Costs' groups on COA_Mapping and the EBITDA line becomes a true EBITDA."))
-note.font = Font(name=ARIAL, size=9, italic=True, color=MUTED)
-note.alignment = Alignment(wrap_text=True, vertical="top")
-sm.merge_cells(start_row=r, start_column=1, end_row=r + 1, end_column=13)
-sm.row_dimensions[r].height = 14
-r += 2
-note2 = sm.cell(row=r, column=1, value=(
-    "Note on the balance sheet block: it shows the MOVEMENT posted in each period, not the closing position. "
-    "It stays nil until you map balance sheet accounts on COA_Mapping. To see closing positions, include your "
-    "opening balance journal in the GL export."))
-note2.font = Font(name=ARIAL, size=9, italic=True, color=MUTED)
-note2.alignment = Alignment(wrap_text=True, vertical="top")
-sm.merge_cells(start_row=r, start_column=1, end_row=r + 1, end_column=13)
-
-# ===========================================================================
-# EXCEPTIONS  - ranked biggest movers, no sorting required
+for txt in ("Department rows are NET CONTRIBUTION - income less costs. The lines underneath are gross, with income "
+            "and costs both positive. 'Other' picks up anything mapped to depreciation, finance or tax so the "
+            "department block always ties back to its own total.",
+            "Overheads are the expense accounts with no division - 68 of them on your current mapping. They get "
+            "their own department rather than being buried in Admin. Change any account's Overhead? flag on "
+            "COA_Mapping, or set its Division to Admin if you would rather it sat there.",
+            "The balance sheet block shows the MOVEMENT posted in each period, not the closing position, and stays "
+            "nil until you map balance sheet accounts on COA_Mapping."):
+    n = sm.cell(row=r, column=1, value=txt)
+    n.font = Font(name=ARIAL, size=9, italic=True, color=MUTED)
+    n.alignment = Alignment(wrap_text=True, vertical="top")
+    sm.merge_cells(start_row=r, start_column=1, end_row=r + 1, end_column=13)
+    r += 3
+# =========================================================================== EXCEPTIONS  - ranked biggest movers, straight off the engine
 # ===========================================================================
 ex = sheet("Exceptions", "C00000")
 title(ex, "Exception Report  -  biggest movers, ranked automatically",
-      "Ranks itself from the analysis sheets. Blank rows simply mean there were fewer movers than slots. "
-      "Columns K and L are working cells - ignore them.")
+      "Ranked from Data_Engine, so it is account level regardless of how the other sheets are grouped. "
+      "Blank rows mean there were fewer movers than slots. Columns K and L are working cells.")
 TOPN = 25
-widths(ex, {"A": 7, "B": 36, "C": 22, "D": 13, "E": 14, "F": 14, "G": 14, "H": 11,
+widths(ex, {"A": 7, "B": 38, "C": 22, "D": 15, "E": 14, "F": 14, "G": 14, "H": 11,
             "I": 11, "J": 3, "K": 14, "L": 9})
 
-def exception_block(start_row, heading, src, sort_col, cols, flag_col):
+def exception_block(start_row, heading, key, cols, flag_key):
     band(ex, start_row, heading, 1, 9)
-    header(ex, start_row + 1, ["Rank", "Account", "Group", "Division"] + cols + ["Risk Flag"])
+    header(ex, start_row + 1, ["Rank", "Account", "Group", "Reports under"] + cols + ["Risk Flag"])
     r0 = start_row + 2
-    srng = f"{src}!${sort_col}${ENG_R0}:${sort_col}${ENG_R1}"
+    srng = ecol(key)
     for k in range(TOPN):
         r = r0 + k
         ex.cell(row=r, column=11, value=f'=LARGE({srng},{k + 1})').font = Font(name=ARIAL, size=8, color="BFBFBF")
-        ex.cell(row=r, column=12, value=f'=IF($K{r}<0,"",MATCH($K{r},{srng},0))').font = Font(name=ARIAL, size=8, color="BFBFBF")
+        ex.cell(row=r, column=12,
+                value=f'=IF($K{r}<0,"",MATCH($K{r},{srng},0))').font = Font(name=ARIAL, size=8, color="BFBFBF")
         rank = ex.cell(row=r, column=1, value=f'=IF($K{r}<0,"",{k + 1})')
         rank.alignment = Alignment(horizontal="center")
-        src_cols = ["A", "B", "C"] + [c[0] for c in SRC_MAP[src]] + [flag_col]  # C = Division on both analysis sheets
-        for j, sc in enumerate(src_cols):
+        rank.font = Font(name=ARIAL, size=9)
+        rank.border = BOX
+        src_cols = [("A", None), ("B", None), (CL(DER["RDEPT"]), None)] + COLMAP[key] + [(CL(DER[flag_key]), None)]
+        for j, (sc, fmt) in enumerate(src_cols):
             c = ex.cell(row=r, column=2 + j,
-                        value=f'=IF($K{r}<0,"",INDEX({src}!${sc}${ENG_R0}:${sc}${ENG_R1},$L{r}))')
+                        value=f'=IF($K{r}<0,"",INDEX(Data_Engine!${sc}${ENG_R0}:${sc}${ENG_R1},$L{r}))')
             c.font = Font(name=ARIAL, size=9, color=GREEN_FONT)
             c.border = BOX
-            if j >= 3:
-                fmt = SRC_MAP[src][j - 3][1] if j - 3 < len(SRC_MAP[src]) else None
-                if fmt:
-                    c.number_format = fmt
+            if fmt:
+                c.number_format = fmt
             if j == len(src_cols) - 1:
                 c.alignment = Alignment(horizontal="center")
                 c.font = Font(name=ARIAL, size=9, bold=True)
-        rank.font = Font(name=ARIAL, size=9)
-        rank.border = BOX
+        pct = ex.cell(row=r, column=9, value=f'=IF($A{r}="","",IF(ROUND($F{r},2)=0,"n/a",$G{r}/ABS($F{r})))')
+        pct.number_format = PCT
+        pct.font = Font(name=ARIAL, size=9)
+        pct.border = BOX
     risk_cf(ex, f"A{r0}:I{r0 + TOPN - 1}", "I", r0)
     flag_cell_cf(ex, f"I{r0}:I{r0 + TOPN - 1}", r0, "I")
     return r0 + TOPN
 
-SRC_MAP = {
-    "MoM_Analysis": [("Q", MONEY), ("R", MONEY), ("S", MONEY), ("T", PCT)],
-    "YoY_Analysis": [("H", MONEY), ("I", MONEY), ("J", MONEY), ("K", PCT)],
+COLMAP = {
+    "MOM_KEY": [(CL(DER["CY_MTH"]), MONEY), (CL(DER["CY_PRI"]), MONEY), (CL(DER["MOM_VAR"]), MONEY)],
+    "YOY_KEY": [(CL(DER["CY_YTD"]), MONEY), (CL(DER["PY_YTD"]), MONEY), (CL(DER["YOY_VAR"]), MONEY)],
 }
 nxt = exception_block(4, f"TOP {TOPN} MONTH-ON-MONTH MOVEMENTS  (by absolute dollar movement)",
-                      "MoM_Analysis", "Z",
-                      ["Current\nMonth", "Prior\nMonth", "Movement $", "Movement %"], "X")
+                      "MOM_KEY", ["Current\nMonth", "Prior\nMonth", "Movement $", "Movement %"], "MOM_FLAG")
 nxt = exception_block(nxt + 2, f"TOP {TOPN} YEAR-ON-YEAR VARIANCES  (year to date, by absolute dollar variance)",
-                      "YoY_Analysis", "R",
-                      ["CY YTD", "PY YTD", "YTD Var $", "YTD Var %"], "P")
+                      "YOY_KEY", ["CY YTD", "PY YTD", "YTD Var $", "YTD Var %"], "YOY_FLAG")
 lbl(ex, 3, 11, "working cells", size=8, color="BFBFBF")
-
 # ===========================================================================
 # CONTROLS  - the data-integrity checks a controller signs off
 # ===========================================================================
@@ -1241,8 +1391,8 @@ CHECKS = [
      f'=COUNTIFS(COA_Mapping!$A${COA_R0}:$A${COA_R1},"<>",COA_Mapping!$H${COA_R0}:$H${COA_R1},0)', "= 0", "info", "REVIEW", NUM,
      "Dormant accounts. Harmless, but if an account you expected to see is here the name probably does not match the GL exactly."),
     ("C18", "High risk movements all have a controller comment",
-     f'=SUMPRODUCT((MoM_Analysis!$X${ENG_R0}:$X${ENG_R1}="High")*(MoM_Analysis!$Y${ENG_R0}:$Y${ENG_R1}=""))'
-     f'+SUMPRODUCT((YoY_Analysis!$P${ENG_R0}:$P${ENG_R1}="High")*(YoY_Analysis!$Q${ENG_R0}:$Q${ENG_R1}=""))',
+     f'=SUMPRODUCT((MoM_Analysis!$X${MM_R0}:$X${MM_R1}="High")*(MoM_Analysis!$Y${MM_R0}:$Y${MM_R1}=""))'
+     f'+SUMPRODUCT((YoY_Analysis!$P${YY_R0}:$P${YY_R1}="High")*(YoY_Analysis!$Q${YY_R0}:$Q${YY_R1}=""))',
      "= 0", "eq0", "REVIEW", NUM,
      "This is your sign-off. Every High flag needs an explanation before the pack goes out."),
     ("C20", "Raw_Paste: the cleaning kept a sensible number of lines",
@@ -1253,6 +1403,20 @@ CHECKS = [
      f'=IF({SRC}<>"Raw_Paste",0,COUNTIF(Cleanup!$E${CLN_R0}:$E${CLN_R1},"Text only"))', "= 0", "info", "REVIEW", NUM,
      "Rows with text but no date and no amount that were not treated as account headings. Harmless if they are "
      "report titles; a problem if they are transactions whose date column was misidentified."),
+    ("C22", "Every active account has somewhere to display",
+     f'=SUMPRODUCT(({ecol("ACTIVE")}=1)*({ecol("SHOWN")}=0)*(Data_Engine!$C${ENG_R0}:$C${ENG_R1}="P&L"))',
+     "= 0", "eq0", "FAIL", NUM,
+     "A P&L account has more entries in its department and group than the block on MoM_Analysis has room for, so it is "
+     "invisible on those sheets even though its money is in the department total. Move some accounts to another "
+     "department on COA_Mapping, or ask for the block to be made bigger."),
+    ("C23", "The reporting month resolved to a real date",
+     '=IF(Setup!$B$10="",1,0)', "= 0", "eq0", "FAIL", NUM,
+     "Setup B5 does not match any month in the picker list. Choose one from the dropdown rather than typing it."),
+    ("C24", "Every account carries an Overhead flag",
+     f'=SUMPRODUCT((COA_Mapping!$A${COA_R0}:$A${COA_R1}<>"")*(COA_Mapping!$J${COA_R0}:$J${COA_R1}=""))',
+     "= 0", "info", "REVIEW", NUM,
+     "Accounts with a blank Overhead? flag report under their own division. Set Yes for anything that is a "
+     "company-wide overhead so it lands in the Overheads department instead."),
     ("C19", "Thresholds on Setup are sensible (High % above Medium %)",
      f'=IF({HIP}>{MEDP},0,1)', "= 0", "eq0", "FAIL", NUM,
      "Setup B16 must be greater than B15, otherwise the Medium band never triggers."),
@@ -1340,9 +1504,9 @@ def rd_line(r, left, right, bold=False):
 r = 4
 r = rd_band(r, "HOW TO USE IT  -  five steps, in this order")
 for i, (a, b) in enumerate([
-    ("Step 1", "Open Setup. Set the financial year (cell B7, the year the FY ENDS) and the reporting period "
-               "(cell B8, where 1 = the first month of the FY). For a July year start, period 3 = September. "
-               "Check the risk thresholds in B14:B17 suit your business."),
+    ("Step 1", "Open Setup and pick the month you are reporting on from the dropdown in cell B5. That is the only "
+               "date control - the financial year and the period number work themselves out from it. Check the risk "
+               "thresholds in B14:B17 suit your business."),
     ("Step 2", "Open Raw_Paste and dump your Xero export into cell A1, exactly as it comes out. The sheet is "
                "deliberately empty so you can select the whole export, copy, and paste straight into A1 - Excel "
                "will not let you paste a whole-sheet selection anywhere else. Leave the title rows, the account "
@@ -1351,8 +1515,9 @@ for i, (a, b) in enumerate([
                "the column numbers are right. If they look wrong, go back and fix the numbers on Raw_Paste - that is "
                "almost always the problem."),
     ("Step 4", "Open COA_Mapping. Every account name the cleaning found must appear in column A, spelled exactly "
-               "the same. It is pre-loaded with your 190 accounts from Xero. Set the Group and Division. "
-               "Overwrite rows in place - never insert or delete rows here."),
+               "the same. It is pre-loaded with your 190 accounts from Xero. Set the Group, the Division, and the "
+               "Overhead? flag - anything marked Yes reports under Overheads instead of its division. Column K "
+               "shows where each account will actually appear. Overwrite rows in place - never insert or delete."),
     ("Step 5", "Open Controls. Clear every FAIL before you read anything else. Then Summary, then Exceptions, "
                "then the two detail sheets."),
 ]):
@@ -1400,6 +1565,28 @@ for a, b in [
     ("Summary", "The one page. Group P&L, revenue and gross profit by division, and the review status block."),
     ("Exceptions", "The 25 biggest month-on-month movers and the 25 biggest year-on-year variances, ranked automatically."),
     ("Controls", "Nineteen data integrity checks. FAIL means the numbers are wrong, not just untidy."),
+]:
+    r = rd_line(r, a, b)
+
+r += 1
+r = rd_band(r, "READING IT BY DEPARTMENT")
+for a, b in [
+    ("The three levels", "Summary, MoM_Analysis and YoY_Analysis all group the same way. A department row, then its "
+                         "group subtotals, then the accounts. Use the + and - buttons in the left margin, or the "
+                         "small 1 2 3 buttons above them to open every department to the same depth at once."),
+    ("It opens collapsed", "You see departments and their group subtotals. The accounts are hidden until you open "
+                           "them, which is the point - you drill into the one department that moved, not all eight."),
+    ("Department rows", "NET CONTRIBUTION: income less costs, for that department. The lines underneath are gross, "
+                        "with income and costs both shown positive. The 'Other' line on Summary catches anything "
+                        "mapped to depreciation, finance or tax so each department block ties to its own total."),
+    ("Overheads", "The expense accounts with no division - 68 of them on your current mapping - report as their own "
+                  "department instead of being buried in Admin. Set the Overhead? flag on COA_Mapping column J to "
+                  "change that account by account, or set an account's Division to Admin to move it there outright."),
+    ("Block sizes", "Each department and group block has a fixed number of account slots with room to spare. "
+                    "Control C22 tells you if an account has nowhere to appear, which happens only if you re-map a "
+                    "lot of accounts into one department."),
+    ("Exceptions", "Ranked straight off Data_Engine at account level, so it ignores the grouping entirely. That is "
+                   "the sheet to read first when you do not yet know which department moved."),
 ]:
     r = rd_line(r, a, b)
 
@@ -1509,6 +1696,11 @@ for ws in wb.worksheets:                      # Arial everywhere, size preserved
 
 for name in ("Summary", "MoM_Analysis", "YoY_Analysis", "Exceptions", "Controls"):
     wb[name].print_title_rows = "1:5"
+
+# Set last: the summary row sits ABOVE its detail, so Excel must be told
+# summaryBelow=0 or the +/- buttons land on the wrong rows.
+for name in ("Summary", "MoM_Analysis", "YoY_Analysis"):
+    wb[name].sheet_properties.outlinePr = Outline(summaryBelow=False, summaryRight=False, applyStyles=False)
 
 wb.active = wb.sheetnames.index("README")
 OUT.parent.mkdir(parents=True, exist_ok=True)
