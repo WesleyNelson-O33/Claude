@@ -1,0 +1,110 @@
+{
+  "_source": "Division and group corrections derived from the live Xero P&L (FY26, accrual) and May 2026 sales invoice line descriptions, pulled 2026-09-15. accounts.json stays as the raw Xero-derived mapping; every change is listed here with its evidence so it can be audited or reversed.",
+  "division": {
+    "Ad Hoc Service Labour": {
+      "to": "Onsite",
+      "why": "Invoice code 42300, Deloitte: 'Labour', 'Engineering Services'. Onsite service work. Confirmed by the user."
+    },
+    "Conference Call Charge": {
+      "to": "Onsite",
+      "why": "Billed under managed support contracts. User's call. Nil in May, $215,070 for FY26, so it bills in lumps."
+    },
+    "Contract Help Desk": {
+      "to": "Onsite",
+      "why": "Help desk is onsite support. Nil in FY26."
+    },
+    "Contract Maintenance": {
+      "to": "Onsite",
+      "why": "Contracted maintenance sits with the onsite support division."
+    },
+    "Contract Support Staff": {
+      "to": "Onsite",
+      "why": "Invoice code 41100, all Deloitte: 'Technician - SYD L2', 'Technician - 1st/2nd Level MEL', 'Technician - BNE', 'Technician - ADL', 'Technician - NSTL'. Embedded onsite support technicians by capital city. Pairs with Direct Salaries/Wages/Super - ONS of $1,572,957."
+    },
+    "Damage Waiver": {
+      "to": "Production",
+      "why": "Charged on equipment hires."
+    },
+    "Equipment - Hires": {
+      "to": "Production",
+      "why": "Cost side of Equipment Hires. Invoice code 42500 shows 'Audio', 'Lighting', 'Video', 'IT' hire lines."
+    },
+    "Equipment - Purchase": {
+      "to": "Production",
+      "why": "Cost side of Equipment Sales."
+    },
+    "Equipment -Maintenance Support": {
+      "to": "Production",
+      "why": "Maintenance of hire equipment. Nil in FY26."
+    },
+    "Equipment Hires": {
+      "to": "Production",
+      "why": "Equipment hire revenue. Invoice code 42500 bills 'Audio', 'Lighting', 'Video', 'IT' hire lines for events. Its cost side (Equipment - Hires) is also Production, so both must move together."
+    },
+    "Equipment Sales": {
+      "to": "Production",
+      "why": "AV hardware supply. Invoice code 42600: 'Commbox CB', 'Motherboard Assembly', 'Miscellaneous Equipment'. Its cost side (Equipment - Purchase) is also Production."
+    },
+    "Production Labour": {
+      "to": "Production",
+      "why": "Name matches the division. Invoice code 42100 shows 'Bump in', 'Bump out', 'Technical Director' - live event staging."
+    },
+    "Service - hires": {
+      "to": "Production",
+      "why": "Hire-related service cost."
+    },
+    "Tech Event Management": {
+      "to": "Production",
+      "why": "Event delivery sits with Production."
+    },
+    "Video Labour": {
+      "to": "Video",
+      "why": "Name matches the division."
+    },
+    "Tech Consulting/Project Manage": {
+      "to": "Consulting",
+      "why": "Invoice code 42800: 'Phase 2 - Briefing', 'Phase 4 - Tender Support', 'Project Management'."
+    },
+    "Installation Labour": {
+      "to": "Integration",
+      "why": "Installation work is the Integration division."
+    }
+  },
+  "group": {
+    "Instant Asset Write Off": {
+      "to": "Depreciation & Amortisation",
+      "why": "$71,153 in FY26 sitting in operating expenses. It is a capital write-off, so it was understating EBITDA by that amount."
+    },
+    "Depreciation": {
+      "to": "Depreciation & Amortisation",
+      "why": "Belongs below EBITDA. Nil in FY26 - worth asking why."
+    },
+    "Depreciation - ROU": {
+      "to": "Depreciation & Amortisation",
+      "why": "Right-of-use asset depreciation belongs below EBITDA."
+    },
+    "Interest Expense": {
+      "to": "Finance Costs",
+      "why": "Finance cost, not an operating expense."
+    },
+    "Income Tax Expense": {
+      "to": "Income Tax Expense",
+      "why": "Tax belongs below net profit before tax."
+    },
+    "Under/(Over) provision for tax": {
+      "to": "Income Tax Expense",
+      "why": "Prior year tax true-up belongs with tax."
+    },
+    "Dividend paid [93000]": {
+      "to": "Equity",
+      "why": "A dividend is a distribution of profit, not an expense. Nil in FY26, but it would have understated net profit directly if used."
+    }
+  },
+  "unchanged_and_why": {
+    "Subscriptions & Licences - Income / Expense": "Income $241,326 against expense $209,972 - a 13% margin pass-through of third-party licences (invoices show 'Spotify Music Subscription', 'Enterprise Desk Subscription - Cloud'). Putting a pass-through inside one division would drag its margin down misleadingly. Left unallocated.",
+    "Mobile Phone Plans": "$12,339 recharge, spans clients. Left unallocated.",
+    "Opening / Closing Work in Progress": "Spans divisions by nature. Left unallocated.",
+    "All Other Income": "Interest Received, Income Other, grants and subsidies are company-level, not divisional. Correctly unallocated.",
+    "Realised / Unrealised Currency Gains, Foreign Currency Translation, Bank Revaluations": "All nil in FY26. Named as gains but sitting in the Expenses group with sign +1, so a gain would reduce profit. Flagged, not moved - needs a decision on whether each is a gain or a loss account."
+  }
+}

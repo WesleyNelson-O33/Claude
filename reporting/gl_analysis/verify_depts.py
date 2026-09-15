@@ -11,13 +11,21 @@ SRC = HERE / "GL Month-on-Month & Year-on-Year Analysis.xlsx"
 TEST = HERE / "_verify_depts.xlsx"
 RECALC = str(next(Path("/root/.claude/skills/synced").glob("*/xlsx/scripts/recalc.py")))
 ACCOUNTS = json.loads((HERE.parent / "data/accounts.json").read_text())
+_OV = json.loads((HERE.parent / "data/account_overrides.json").read_text())
+for _a in ACCOUNTS:
+    if _a["account"] in _OV["division"]:
+        _a["division"] = _OV["division"][_a["account"]]["to"]
+    if _a["account"] in _OV["group"]:
+        _a["group"] = _OV["group"][_a["account"]]["to"]
 CY, PER, PY, MONTH_LABEL = 2027, 3, 2026, "Sep 2026"
 
 months = [dt.date(2025, m, 12) for m in range(7, 13)] + [dt.date(2026, m, 12) for m in range(1, 10)]
 pool = [a for a in ACCOUNTS if a["group"] in ("Income", "Cost of Sales", "Expenses", "Other Income")]
 chosen = random.sample(pool, 60)
-sign = {"Income": -1, "Other Income": -1, "Cost of Sales": 1, "Expenses": 1, "Current Assets": 1}
-net = {"Income": 1, "Other Income": 1, "Cost of Sales": -1, "Expenses": -1, "Current Assets": 0}
+sign = {"Income": -1, "Other Income": -1, "Cost of Sales": 1, "Expenses": 1, "Current Assets": 1,
+        "Depreciation & Amortisation": 1, "Finance Costs": 1, "Income Tax Expense": 1, "Equity": -1}
+net = {"Income": 1, "Other Income": 1, "Cost of Sales": -1, "Expenses": -1, "Current Assets": 0,
+       "Depreciation & Amortisation": -1, "Finance Costs": -1, "Income Tax Expense": -1, "Equity": 0}
 
 txns = []
 for a in chosen:

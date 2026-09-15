@@ -19,6 +19,19 @@ ROOT = Path("/home/user/Claude/reporting")
 OUT = ROOT / "gl_analysis" / "GL Month-on-Month & Year-on-Year Analysis.xlsx"
 ACCOUNTS = json.loads((ROOT / "data/accounts.json").read_text())
 
+# Division and group corrections, evidenced from the live Xero P&L and invoice
+# line descriptions. accounts.json stays as the raw Xero-derived mapping.
+_OV = json.loads((ROOT / "data/account_overrides.json").read_text())
+OVERRIDE_NOTE = {}
+for _a in ACCOUNTS:
+    _n = _a["account"]
+    if _n in _OV["division"]:
+        _a["division"] = _OV["division"][_n]["to"]
+        OVERRIDE_NOTE[_n] = _OV["division"][_n]["why"]
+    if _n in _OV["group"]:
+        _a["group"] = _OV["group"][_n]["to"]
+        OVERRIDE_NOTE[_n] = _OV["group"][_n]["why"]
+
 # ---- capacity -------------------------------------------------------------
 GL_R0, GL_R1 = 8, 5007          # GL_Data data rows
 COA_R0, COA_R1 = 7, 256         # COA_Mapping data rows (250 accounts)
@@ -124,6 +137,9 @@ OVERHEAD_DEPT = "Overheads"
 
 def _is_overhead(a):
     return a["group"] == "Expenses" and a["division"] == "Unallocated"
+
+def _overhead_flag(a):
+    return "Yes" if _is_overhead(a) else "No"
 
 def _rdept(a):
     return OVERHEAD_DEPT if _is_overhead(a) else a["division"]
@@ -388,6 +404,11 @@ for i in range(NACC):
         cell.font = Font(name=ARIAL, size=9, color=BLUE_FONT)
         cell.fill = INPUT_FILL
         cell.border = BOX
+    if src_a and src_a["account"] in OVERRIDE_NOTE:
+        a.comment = Comment(f"Reallocated from the Xero default.\n\n{OVERRIDE_NOTE[src_a['account']]}",
+                            "Financial Controller Pack")
+        for cell in (c, d):
+            cell.fill = PatternFill("solid", fgColor="E2EFDA")
     ov.alignment = Alignment(horizontal="center")
     e = coa.cell(row=r, column=5, value=f'=IF($A{r}="","",IFERROR(INDEX(Lists!$C${GRP_R0}:$C${GRP_R1},MATCH($C{r},{GRP_RNG},0)),"?"))')
     f = coa.cell(row=r, column=6, value=f'=IF($A{r}="","",IFERROR(INDEX(Lists!$D${GRP_R0}:$D${GRP_R1},MATCH($C{r},{GRP_RNG},0)),1))')

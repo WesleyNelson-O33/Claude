@@ -8,6 +8,12 @@ HERE = Path(__file__).parent
 TEST = HERE / "_verify_gl.xlsx"
 RECALC = str(next(Path("/root/.claude/skills/synced").glob("*/xlsx/scripts/recalc.py")))
 ACCOUNTS = json.loads((HERE.parent / "data/accounts.json").read_text())
+_OV = json.loads((HERE.parent / "data/account_overrides.json").read_text())
+for _a in ACCOUNTS:
+    if _a["account"] in _OV["division"]:
+        _a["division"] = _OV["division"][_a["account"]]["to"]
+    if _a["account"] in _OV["group"]:
+        _a["group"] = _OV["group"][_a["account"]]["to"]
 CY, PER, MONTH = 2027, 3, "Sep 2026"
 sign = {"Income": -1, "Other Income": -1, "Cost of Sales": 1, "Expenses": 1}
 net = {"Income": 1, "Other Income": 1, "Cost of Sales": -1, "Expenses": -1}
