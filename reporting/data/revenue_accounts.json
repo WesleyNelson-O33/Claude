@@ -1,0 +1,157 @@
+{
+ "cost_centres": [
+  "ONSITE",
+  "PRODUCTION",
+  "VIDEO",
+  "INTEGRATION",
+  "CONSULTING",
+  "CTS"
+ ],
+ "revenue_gl": [
+  {
+   "code": "41100",
+   "name": "Contract Support Staff"
+  },
+  {
+   "code": "41150",
+   "name": "Mobile Phone Plans"
+  },
+  {
+   "code": "41175",
+   "name": "Subscriptions & Licences - Income"
+  },
+  {
+   "code": "41200",
+   "name": "Contract Maintenance"
+  },
+  {
+   "code": "41500",
+   "name": "Contract Help Desk"
+  },
+  {
+   "code": "42100",
+   "name": "Production Labour"
+  },
+  {
+   "code": "42150",
+   "name": "Video Labour"
+  },
+  {
+   "code": "42200",
+   "name": "Ad Hoc Service Labour"
+  },
+  {
+   "code": "42300",
+   "name": "Installation Labour"
+  },
+  {
+   "code": "42500",
+   "name": "Equipment Hires"
+  },
+  {
+   "code": "42600",
+   "name": "Equipment Sales"
+  },
+  {
+   "code": "42700",
+   "name": "Conference Call Charge"
+  },
+  {
+   "code": "42800",
+   "name": "Tech Consulting/Project Manage"
+  },
+  {
+   "code": "42900",
+   "name": "Tech Event Management"
+  },
+  {
+   "code": "44100",
+   "name": "Opening Work in Progress"
+  },
+  {
+   "code": "44200",
+   "name": "Closing Work in Progress"
+  },
+  {
+   "code": "45005",
+   "name": "Freight & Travel - ADMIN"
+  },
+  {
+   "code": "45010",
+   "name": "Freight & Travel - ONS"
+  },
+  {
+   "code": "45015",
+   "name": "Freight & Travel - PRD"
+  },
+  {
+   "code": "45020",
+   "name": "Freight & Travel - VID"
+  },
+  {
+   "code": "45025",
+   "name": "Freight & Travel - INTEGRATION"
+  },
+  {
+   "code": "45030",
+   "name": "Freight & Travel - CONS"
+  },
+  {
+   "code": "46005",
+   "name": "Credit Card Fees - ADMIN"
+  },
+  {
+   "code": "46010",
+   "name": "Credit Card Collected - ONS"
+  },
+  {
+   "code": "46015",
+   "name": "Credit Card Collected - PRD"
+  },
+  {
+   "code": "46020",
+   "name": "Credit Card Collected - VID"
+  },
+  {
+   "code": "46025",
+   "name": "Credit Card Collected - INTEGRATION"
+  },
+  {
+   "code": "46030",
+   "name": "Credit Card Collected - CONS"
+  },
+  {
+   "code": "47005",
+   "name": "Meal & Travel - ADMIN"
+  },
+  {
+   "code": "47010",
+   "name": "Meal & Travel - ONS"
+  },
+  {
+   "code": "47015",
+   "name": "Meal & Travel - PRD"
+  },
+  {
+   "code": "47020",
+   "name": "Meal & Travel - VID"
+  },
+  {
+   "code": "47025",
+   "name": "Meal & Travel - INTEGRATION"
+  },
+  {
+   "code": "47030",
+   "name": "Meal & Travel - CONS"
+  },
+  {
+   "code": "48000",
+   "name": "Miscellaneous Income"
+  }
+ ],
+ "wip_gl": [
+  "11300",
+  "44100",
+  "44200"
+ ]
+}

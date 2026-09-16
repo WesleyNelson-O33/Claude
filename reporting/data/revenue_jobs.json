@@ -1,0 +1,2117 @@
+[
+ {
+  "job": "1144",
+  "name": "Bankwest PER Half Tech",
+  "dept": "ONS"
+ },
+ {
+  "job": "1350",
+  "name": "CBA Brisbane ONS",
+  "dept": "ONS"
+ },
+ {
+  "job": "1400",
+  "name": "DTTL Mel Tech FT 2",
+  "dept": "ONS"
+ },
+ {
+  "job": "1401",
+  "name": "DTTL SYD FT Tech 2",
+  "dept": "ONS"
+ },
+ {
+  "job": "1530",
+  "name": "DTTL BNE Onsite",
+  "dept": "ONS"
+ },
+ {
+  "job": "1668",
+  "name": "CBA Dedicated Tech",
+  "dept": "ONS"
+ },
+ {
+  "job": "1750",
+  "name": "Bankwest Spotify",
+  "dept": ""
+ },
+ {
+  "job": "1755",
+  "name": "CBA Spotify",
+  "dept": "ONS"
+ },
+ {
+  "job": "1771",
+  "name": "Integration - Training",
+  "dept": "INT"
+ },
+ {
+  "job": "1862",
+  "name": "DTTL ADL Onsite",
+  "dept": "ONS"
+ },
+ {
+  "job": "20250731",
+  "name": "PWC National Pool of Hours",
+  "dept": "ONS"
+ },
+ {
+  "job": "2026021101",
+  "name": "AusPayNet Quarterly AV Support & Maintenance 2026",
+  "dept": "ONS"
+ },
+ {
+  "job": "20260801",
+  "name": "CTS Day 2026",
+  "dept": "CTS"
+ },
+ {
+  "job": "2192",
+  "name": "Bankwest Additional Tech",
+  "dept": "ONS"
+ },
+ {
+  "job": "2347",
+  "name": "DTTL Dedicated Tech",
+  "dept": "ONS"
+ },
+ {
+  "job": "2392",
+  "name": "PWC \u2013 MEL Technician",
+  "dept": "ONS"
+ },
+ {
+  "job": "2402",
+  "name": "DTTL SYD FT Tech 1",
+  "dept": "ONS"
+ },
+ {
+  "job": "2407312",
+  "name": "Hills Performance Centre",
+  "dept": "CONS"
+ },
+ {
+  "job": "24102501",
+  "name": "PWC - MEL Tech 12Months",
+  "dept": "ONS"
+ },
+ {
+  "job": "24121001",
+  "name": "BW PER Studio Equipment Supply",
+  "dept": "INT"
+ },
+ {
+  "job": "2479",
+  "name": "CONSULTING - Quotes",
+  "dept": "CONS"
+ },
+ {
+  "job": "2480",
+  "name": "ONSITE - Quotes",
+  "dept": "ONS"
+ },
+ {
+  "job": "2481",
+  "name": "Production - Quotes",
+  "dept": "PRD"
+ },
+ {
+  "job": "2482",
+  "name": "VIDEO - Quotes",
+  "dept": "VID"
+ },
+ {
+  "job": "2488",
+  "name": "PWC IT P/T BNE",
+  "dept": "ONS"
+ },
+ {
+  "job": "25011601",
+  "name": "DTTL Hobart ITS AV Ref",
+  "dept": "INT"
+ },
+ {
+  "job": "2501738",
+  "name": "APA HYR25 & FYR25",
+  "dept": "PRD"
+ },
+ {
+  "job": "2502",
+  "name": "ONS CBA (non-chargeable)",
+  "dept": ""
+ },
+ {
+  "job": "25021901",
+  "name": "DAFF Technology Standard",
+  "dept": "CONS"
+ },
+ {
+  "job": "2503",
+  "name": "ONS DTTL (non-chargeable)",
+  "dept": ""
+ },
+ {
+  "job": "25032701",
+  "name": "St Catherines Chargeable",
+  "dept": "ONS"
+ },
+ {
+  "job": "25032701NC",
+  "name": "St Catherines Non-Chgble",
+  "dept": "ONS"
+ },
+ {
+  "job": "2504",
+  "name": "ONS WBC (non-chargeable)",
+  "dept": ""
+ },
+ {
+  "job": "25041502",
+  "name": "PDNSW DB License Ext",
+  "dept": "INT"
+ },
+ {
+  "job": "2505",
+  "name": "ONS PWC (non-chargeable)",
+  "dept": ""
+ },
+ {
+  "job": "25051302",
+  "name": "NSW Prop Bradfield Desk Booking + Penrith Additional",
+  "dept": "INT"
+ },
+ {
+  "job": "25051403",
+  "name": "DTTL SYD Tech Supp TMT AP",
+  "dept": "ONS"
+ },
+ {
+  "job": "25052802",
+  "name": "Aus Retirement Trust Members Meeting 2025",
+  "dept": "PRD"
+ },
+ {
+  "job": "2505901",
+  "name": "COS Projector Lens Supply",
+  "dept": "INT"
+ },
+ {
+  "job": "2506",
+  "name": "ONS BWEST (non-chargeable)",
+  "dept": ""
+ },
+ {
+  "job": "25060301",
+  "name": "6PSQ L12 Desk Booking",
+  "dept": "INT"
+ },
+ {
+  "job": "25060307",
+  "name": "DPIE Molesworth St D/B",
+  "dept": "INT"
+ },
+ {
+  "job": "2506208",
+  "name": "CBA AGM 2026",
+  "dept": "PRD"
+ },
+ {
+  "job": "2506208V",
+  "name": "CBA AGM 2026",
+  "dept": "VID"
+ },
+ {
+  "job": "25063001V",
+  "name": "APA All Hands Staff",
+  "dept": "VID"
+ },
+ {
+  "job": "25070702",
+  "name": "APA VMS Brisbane & Darwin",
+  "dept": "INT"
+ },
+ {
+  "job": "2507203",
+  "name": "Hills Grammar Airmedia Supply",
+  "dept": "INT"
+ },
+ {
+  "job": "25081402",
+  "name": "Hills Grammar Loan Airmedia Purchase",
+  "dept": "INT"
+ },
+ {
+  "job": "25082501",
+  "name": "APA Sydney Tablet Brackets",
+  "dept": "INT"
+ },
+ {
+  "job": "25091703",
+  "name": "Scentre Group Marion Superscreen (D10396) Test and Cert",
+  "dept": "CONS"
+ },
+ {
+  "job": "25101301",
+  "name": "PWC IT Support \u2013 Melbourne",
+  "dept": "ONS"
+ },
+ {
+  "job": "25101301B",
+  "name": "PWC IT Support \u2013 Sydney",
+  "dept": "ONS"
+ },
+ {
+  "job": "2510202",
+  "name": "HP Poly Room Assessment",
+  "dept": "CONS"
+ },
+ {
+  "job": "2510205",
+  "name": "NSW Property RGB Desk Booking",
+  "dept": "INT"
+ },
+ {
+  "job": "2510210",
+  "name": "Scentre Group Westfield Bondi Screen Tests",
+  "dept": "CONS"
+ },
+ {
+  "job": "25102701",
+  "name": "DEWR - Studio Upgrade - Consulting, Design",
+  "dept": "CONS"
+ },
+ {
+  "job": "25102801",
+  "name": "DTTL SYD QQT Additional Mics Install in L45 Seminar Space",
+  "dept": "INT"
+ },
+ {
+  "job": "25102802",
+  "name": "Novigi Meeting Space Inspection",
+  "dept": "CONS"
+ },
+ {
+  "job": "2510804",
+  "name": "CommSecurity Presynct QLD Desk Booking",
+  "dept": "INT"
+ },
+ {
+  "job": "2510805",
+  "name": "PNSW Reconstruction Authority Newcastle",
+  "dept": "INT"
+ },
+ {
+  "job": "25111203",
+  "name": "CoS | Barco E3 Sale",
+  "dept": "INT"
+ },
+ {
+  "job": "25112801",
+  "name": "APA MEL - iPad & Bouncepad Sale",
+  "dept": "INT"
+ },
+ {
+  "job": "25121001",
+  "name": "HP Poly Mic System Sale and Install at Mission Australia",
+  "dept": "INT"
+ },
+ {
+  "job": "25121007",
+  "name": "Novigi SYD/MEL boardroom Mic upgrade + Cable Tidy",
+  "dept": "INT"
+ },
+ {
+  "job": "25121208",
+  "name": "APA HYR & FYR Package 2026",
+  "dept": "PRD"
+ },
+ {
+  "job": "2512503",
+  "name": "Ventia EOY Town Hall 10.12.2025",
+  "dept": "PRD"
+ },
+ {
+  "job": "2512503V",
+  "name": "Ventia EOY Town Hall 10.12.2025",
+  "dept": "VID"
+ },
+ {
+  "job": "2512804",
+  "name": "RSNSW Ordinary General Meeting 5.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2512804V",
+  "name": "RSNSW Ordinary General Meeting 5.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2512805",
+  "name": "RSNSW Ordinary General Meeting 7.10.2026",
+  "dept": "PRD"
+ },
+ {
+  "job": "2512805V",
+  "name": "RSNSW Ordinary General Meeting 7.10.2026",
+  "dept": "VID"
+ },
+ {
+  "job": "2512806",
+  "name": "RSNSW Ordinary General Meeting 2.12.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2512806V",
+  "name": "RSNSW Ordinary General Meeting 2.12.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2519",
+  "name": "NSW Prop-6PSQ Visitor MG",
+  "dept": "INT"
+ },
+ {
+  "job": "2521",
+  "name": "PWC - PER Tech",
+  "dept": "ONS"
+ },
+ {
+  "job": "2540",
+  "name": "PWC - SYD Tech",
+  "dept": "ONS"
+ },
+ {
+  "job": "2543",
+  "name": "DTTL MEL Tech (PT)",
+  "dept": "ONS"
+ },
+ {
+  "job": "2591012",
+  "name": "St. Luke's Non-chargeable",
+  "dept": "PRD"
+ },
+ {
+  "job": "2591012C",
+  "name": "St. Luke's Church",
+  "dept": "PRD"
+ },
+ {
+  "job": "2593",
+  "name": "PWC CBR Technician",
+  "dept": "ONS"
+ },
+ {
+  "job": "2598",
+  "name": "DTTL WA Tech",
+  "dept": "ONS"
+ },
+ {
+  "job": "26011404",
+  "name": "ASX CEO Connect (Extended Results) 1.9.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26011404V",
+  "name": "ASX CEO Connect (Extended Results) 1.9.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26011407",
+  "name": "ASX CEO Connect 27.10.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26011407V",
+  "name": "ASX CEO Connect 27.10.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26011408",
+  "name": "ASX CEO Connect 1.12.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26011408V",
+  "name": "ASX CEO Connect 1.12.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26011409",
+  "name": "ASX Investor Days Sydney & Melbourne 2026",
+  "dept": "PRD"
+ },
+ {
+  "job": "26011501",
+  "name": "ASX Refinitiv Charity Golf Classic H/L Vid 2026",
+  "dept": "VID"
+ },
+ {
+  "job": "26011502",
+  "name": "ASX Charity Regatta Highlights Video 2026",
+  "dept": "VID"
+ },
+ {
+  "job": "26012301",
+  "name": "PWC IT Support - Brisbane",
+  "dept": "ONS"
+ },
+ {
+  "job": "2601701",
+  "name": "CEOi - TLP Brand Video",
+  "dept": "VID"
+ },
+ {
+  "job": "26021602",
+  "name": "Gen E ABS AV Support (Canberra)",
+  "dept": "ONS"
+ },
+ {
+  "job": "26021602N",
+  "name": "Gen E ABS AV Support (Canberra) [ONS non-chargeable]",
+  "dept": ""
+ },
+ {
+  "job": "26021801",
+  "name": "Aware Super Seminar Room AV Upgrade",
+  "dept": "INT"
+ },
+ {
+  "job": "2602203",
+  "name": "YSG Studio Orange Room Upgrade",
+  "dept": "CONS"
+ },
+ {
+  "job": "26022301",
+  "name": "Aware Super AV Maintenance",
+  "dept": "ONS"
+ },
+ {
+  "job": "26022301C",
+  "name": "Aware Super AV Maintenance",
+  "dept": "CONS"
+ },
+ {
+  "job": "26022301NC",
+  "name": "Aware Super AV Maintenance Non-chargeable",
+  "dept": "ONS"
+ },
+ {
+  "job": "26022301P",
+  "name": "Aware Super AV Maintenance",
+  "dept": "PRD"
+ },
+ {
+  "job": "26022302",
+  "name": "GP - Talking Philanthropy - 18.9.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26022302V",
+  "name": "GP - Talking Philanthropy - 18.9.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26022601",
+  "name": "ART - Annual Members Meeting - 25.11.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26022601V",
+  "name": "ART - Annual Members Meeting - 25.11.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2602901",
+  "name": "HP-Telstra: Phone Modification",
+  "dept": "INT"
+ },
+ {
+  "job": "2603104",
+  "name": "Cochlear FY26 Results 18.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2603104V",
+  "name": "Cochlear FY26 Results 18.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2603105",
+  "name": "Cochlear - AGM - 26.10.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2603105V",
+  "name": "Cochlear - AGM - 26.10.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2603202",
+  "name": "Property NSW 5 O\u2019Keefe Ave Nowra Workplace Hub",
+  "dept": "INT"
+ },
+ {
+  "job": "26032301",
+  "name": "RSNSW - OGM - 1.7.2026",
+  "dept": "PRD"
+ },
+ {
+  "job": "26032301V",
+  "name": "RSNSW - OGM - 1.7.2026",
+  "dept": "VID"
+ },
+ {
+  "job": "26032302",
+  "name": "RSNSW - OGM - 2.9.2026",
+  "dept": "PRD"
+ },
+ {
+  "job": "26032302V",
+  "name": "RSNSW - OGM - 2.9.2026",
+  "dept": "VID"
+ },
+ {
+  "job": "26032501",
+  "name": "ChorusCall - Regal Partners AGM - 28.5.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26032502",
+  "name": "3YS Owls - Governance Top 100 2026 - 30.10.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26032502V",
+  "name": "3YS Owls - Governance Top 100 2026 - 30.10.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26032701",
+  "name": "MUFG - A1N AGM - 7.5.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26032701V",
+  "name": "MUFG - A1N AGM - 7.5.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26032702",
+  "name": "Ventia Transport Australia and Ventia Networking 6.5.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26032704",
+  "name": "CBA LES - April 2026",
+  "dept": "PRD"
+ },
+ {
+  "job": "26033003",
+  "name": "DTTL 8PSQ Dream Big Microphones",
+  "dept": "INT"
+ },
+ {
+  "job": "26033004",
+  "name": "DTTL Melbourne Bluetooth Audio",
+  "dept": "INT"
+ },
+ {
+  "job": "26033005",
+  "name": "DTTL QQT & 8PSQ Crestron Connect Adaptor",
+  "dept": "INT"
+ },
+ {
+  "job": "26033006",
+  "name": "DTTL 8PSQ Bluetooth Audio",
+  "dept": "INT"
+ },
+ {
+  "job": "26033007",
+  "name": "DTTL QQT Lv45 Seminar Wheels repair",
+  "dept": "INT"
+ },
+ {
+  "job": "26033008",
+  "name": "DTTL MEL Repair of Lv31 LED panels",
+  "dept": "INT"
+ },
+ {
+  "job": "26041603",
+  "name": "Optiver - Town Hall - 23.7.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26041603V",
+  "name": "Optiver - Town Hall - 23.7.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26041701",
+  "name": "N2 Dance End of Year Concert Videos 2026",
+  "dept": "VID"
+ },
+ {
+  "job": "26042001",
+  "name": "ASX - AGM - 22.10.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26042001V",
+  "name": "ASX - AGM - 22.10.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2604201",
+  "name": "Bankwest - Stage Hire - 27.5.2026",
+  "dept": "PRD"
+ },
+ {
+  "job": "2604202",
+  "name": "Ventia - Ventia Awards - 30.7.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2604202V",
+  "name": "Ventia - Ventia Awards - 30.7.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2604203V",
+  "name": "Ventia - Investor Day - 4.5.2026",
+  "dept": "VID"
+ },
+ {
+  "job": "2604204",
+  "name": "Ventia - AGM - 21.5.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2604204V",
+  "name": "Ventia - AGM - 21.5.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26042802",
+  "name": "DTTL DAR Meeting Room Extension Cable Install",
+  "dept": "INT"
+ },
+ {
+  "job": "26043001",
+  "name": "CBA FT Tech MEL - 12 months",
+  "dept": "ONS"
+ },
+ {
+  "job": "26043002",
+  "name": "CTS Town Hall",
+  "dept": "CTS"
+ },
+ {
+  "job": "26043003",
+  "name": "PwC Screen Replacements SYD+MEL",
+  "dept": "INT"
+ },
+ {
+  "job": "2604704",
+  "name": "Aware Super Seminar Room Audio Upgrade",
+  "dept": "INT"
+ },
+ {
+  "job": "2604802",
+  "name": "PwC - Audio Support - 29.4.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26051101",
+  "name": "DTTL Mardi Gras/Vivid Event 27/05/26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26051101V",
+  "name": "DTTL Mardi Gras/Vivid Event 27/05/26",
+  "dept": "VID"
+ },
+ {
+  "job": "26051102",
+  "name": "DTTL - CEO Roadshow - 1.6.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26051102V",
+  "name": "DTTL - CEO Roadshow - 1.6.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26051103",
+  "name": "PwC PER Studio Support 25.05.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26051103V",
+  "name": "PwC PER Studio Support 25.05.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26051201",
+  "name": "ASX CEO Farewell Highlights",
+  "dept": "VID"
+ },
+ {
+  "job": "26051301",
+  "name": "HP-BAE | Phone Mod",
+  "dept": "INT"
+ },
+ {
+  "job": "26051401",
+  "name": "ASX - Business Meeting - 27.5.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26051401V",
+  "name": "ASX - Business Meeting - 27.5.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26051402",
+  "name": "PwC Foldback Monitor Hire",
+  "dept": "PRD"
+ },
+ {
+  "job": "26051801",
+  "name": "PwC | Mel Studio Equipment",
+  "dept": "INT"
+ },
+ {
+  "job": "26051803",
+  "name": "AVIT - Taronga ZOO AV Support - May 2026",
+  "dept": "PRD"
+ },
+ {
+  "job": "26052001",
+  "name": "MeetMagic - AI Behaviour Event - 29.5.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26052001V",
+  "name": "MeetMagic - AI Behaviour Event - 29.5.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26052002",
+  "name": "DTTL BNE L23 Training Rooms Upgrade",
+  "dept": "INT"
+ },
+ {
+  "job": "26052003",
+  "name": "DTTL Mobile Commbox Displays",
+  "dept": "INT"
+ },
+ {
+  "job": "26052004",
+  "name": "CBA - Live Event Support - June 2026",
+  "dept": "PRD"
+ },
+ {
+  "job": "26052101",
+  "name": "MeetMagic - Human AI Event Highlights",
+  "dept": "VID"
+ },
+ {
+  "job": "26052102",
+  "name": "HP-D3 | Austrac Phone Mods",
+  "dept": "INT"
+ },
+ {
+  "job": "26052103",
+  "name": "Ventia - LTI FY26 Video Record",
+  "dept": "VID"
+ },
+ {
+  "job": "26052501V",
+  "name": "AVIT - Taronga AV Event Support - 26-27.5.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26052502",
+  "name": "AVIT - Taronga AV Event Support 4-5.06.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26052502V",
+  "name": "AVIT - Taronga AV Event Support 4-5.06.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26052602",
+  "name": "DTTL MEL Display Supply",
+  "dept": "INT"
+ },
+ {
+  "job": "26052701",
+  "name": "Aware | SYD 28.06 Equipment",
+  "dept": "INT"
+ },
+ {
+  "job": "26052702",
+  "name": "ASX - FYR - 13.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26052702V",
+  "name": "ASX - FYR - 13.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26052703",
+  "name": "Microsoft Town Hall - 21.7.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26052703V",
+  "name": "Microsoft Town Hall - 21.7.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26052704",
+  "name": "AVIT - Pinsent Masons Technician Callout",
+  "dept": "ONS"
+ },
+ {
+  "job": "26052901",
+  "name": "Causeway Productions - Stool Hire - 1.6.27",
+  "dept": "PRD"
+ },
+ {
+  "job": "26052901V",
+  "name": "Causeway Productions - Stool Hire - 1.6.27",
+  "dept": "VID"
+ },
+ {
+  "job": "2605401",
+  "name": "AGL FYR - Investor Briefing - 12.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2605401V",
+  "name": "AGL FYR - Investor Briefing - 12.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2605402",
+  "name": "AGL FYR - Employee Town Hall - 12.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2605402V",
+  "name": "AGL FYR - Employee Town Hall - 12.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2605403",
+  "name": "ARUP - Oves Awards - 23.7.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2605403V",
+  "name": "ARUP - Oves Awards - 23.7.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2605501",
+  "name": "DTTL Tech Support AWS AP AI Symposium",
+  "dept": "ONS"
+ },
+ {
+  "job": "2605502",
+  "name": "CBA BNE - Event Support - 13.5.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2605502V",
+  "name": "CBA BNE - Event Support - 13.5.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2605503",
+  "name": "DTTL L31 reception Led Wall Audio DSP Repair",
+  "dept": "INT"
+ },
+ {
+  "job": "2605605",
+  "name": "DTTL Hobart AV Fitout",
+  "dept": "INT"
+ },
+ {
+  "job": "2605606",
+  "name": "Ventia Internal Townhall 8.05.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2605606V",
+  "name": "Ventia Internal Townhall 8.05.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2605609",
+  "name": "ASX - CEO Farewell - 27.5.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2605609V",
+  "name": "ASX - CEO Farewell - 27.5.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2605610",
+  "name": "ASX CEO Farewell Additional Costs",
+  "dept": "PRD"
+ },
+ {
+  "job": "2605704",
+  "name": "CBA CBPS Auditorium Upgrade",
+  "dept": "INT"
+ },
+ {
+  "job": "2605801",
+  "name": "Dimensional - AV Support - 3-4.6.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2605803",
+  "name": "St Catherine's - Dedicated Tech - 12.6.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2605804",
+  "name": "City of Sydney Supply of Barco Projector Shutters",
+  "dept": "INT"
+ },
+ {
+  "job": "2605806",
+  "name": "Aware Super AV Fitout @ 555 Collins Street MEL",
+  "dept": "INT"
+ },
+ {
+  "job": "26061001",
+  "name": "Garvan August All Clear Event 25.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061002",
+  "name": "Optiver - Fireside Event Support - 18.6.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061002V",
+  "name": "Optiver - Fireside Event Support - 18.6.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26061102",
+  "name": "CSE Invest Sri Lanka | 16.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061102V",
+  "name": "CSE Invest Sri Lanka | 16.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26061103",
+  "name": "Circadia Australia Elevate | 14.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061103V",
+  "name": "Circadia Australia Elevate | 14.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26061104",
+  "name": "MUFG - FYR26 - 12.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061104V",
+  "name": "MUFG - FYR26 - 12.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26061105",
+  "name": "CBA - FYR 2026 - 12.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061105V",
+  "name": "CBA - FYR 2026 - 12.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26061106",
+  "name": "TLC Full Year Results MEL",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061106V",
+  "name": "TLC Full Year Results MEL",
+  "dept": "VID"
+ },
+ {
+  "job": "26061107",
+  "name": "Downer - FYR 2026 - 20.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061107V",
+  "name": "Downer - FYR 2026 - 20.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26061108",
+  "name": "APA - Qtly All Hands FYR26 - 20.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061108V",
+  "name": "APA - Qtly All Hands FYR26 - 20.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26061109",
+  "name": "Ventia - FYR26 - 24.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061109V",
+  "name": "Ventia - FYR26 - 24.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26061201",
+  "name": "PWC - Firmwide Webcast - 30.6.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061201V",
+  "name": "PWC - Firmwide Webcast - 30.6.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26061202",
+  "name": "CBA AGM 2027",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061202V",
+  "name": "CBA AGM 2027",
+  "dept": "VID"
+ },
+ {
+  "job": "26061501",
+  "name": "DTTL MEL Lv29 Display Supply",
+  "dept": "INT"
+ },
+ {
+  "job": "26061602",
+  "name": "ASX - CEO Connect (Extended) - 1.9.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061602V",
+  "name": "ASX - CEO Connect (Extended) - 1.9.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26061605",
+  "name": "MUFG - IBM Ltd AGM - 27.10.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061605V",
+  "name": "MUFG - IBM Ltd AGM - 27.10.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26061606",
+  "name": "MUFG - Endeavour AGM - 30.10.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061606V",
+  "name": "MUFG - Endeavour AGM - 30.10.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26061607",
+  "name": "APA - Qtly All Hands (BNE) - 4.11.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061607V",
+  "name": "APA - Qtly All Hands (BNE) - 4.11.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26061608",
+  "name": "APA - Qtly All Hands Sydney - Feb 27",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061608V",
+  "name": "APA - Qtly All Hands Sydney - Feb 27",
+  "dept": "VID"
+ },
+ {
+  "job": "26061609",
+  "name": "APA Qtly All Hands Perth - May 2027",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061609V",
+  "name": "APA Qtly All Hands Perth - May 2027",
+  "dept": "VID"
+ },
+ {
+  "job": "26061611",
+  "name": "QBE - Keynote Event - 27.10.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061611V",
+  "name": "QBE - Keynote Event - 27.10.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26061612",
+  "name": "Chorus Call - Redox AGM - 7.10.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061612V",
+  "name": "Chorus Call - Redox AGM - 7.10.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26061701",
+  "name": "CBA - LES - July 2026",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061702",
+  "name": "Garvan - Morning Tea Event - 31.7.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061801",
+  "name": "APA - Investor Briefing FYR26 - 20.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26061801V",
+  "name": "APA - Investor Briefing FYR26 - 20.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26062201",
+  "name": "PWC - Tax & Legal Webcast 02.07.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26062201V",
+  "name": "PWC - Tax & Legal Webcast 02.07.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26062202",
+  "name": "PWC - Early Careers Webcast - 29.7.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26062202V",
+  "name": "PWC - Early Careers Webcast - 29.7.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26062403",
+  "name": "CBA - CommBank Private Hosting 25.6.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26062403V",
+  "name": "CBA - CommBank Private Hosting 25.6.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26062501",
+  "name": "DTTL STL Travel (SYD-MEL Return)",
+  "dept": "ONS"
+ },
+ {
+  "job": "26062503",
+  "name": "Aware Super 24.16 UC Engine Replacement",
+  "dept": "INT"
+ },
+ {
+  "job": "26062601",
+  "name": "Ventia - XELT Event - 29.6.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26062601V",
+  "name": "Ventia - XELT Event - 29.6.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26062901",
+  "name": "Aware | SYD 28.06 Services",
+  "dept": "INT"
+ },
+ {
+  "job": "26062902",
+  "name": "Aware | SYD Occupancy Sensors",
+  "dept": "INT"
+ },
+ {
+  "job": "26063002",
+  "name": "CEOi - CEO Connect - 11.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26063002V",
+  "name": "CEOi - CEO Connect - 11.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2606401V",
+  "name": "PWC - NRW Webcast - 11.6.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2606901",
+  "name": "PwC | Syd Studio Equipment",
+  "dept": "INT"
+ },
+ {
+  "job": "2606902",
+  "name": "AVIT - Taronga AV Support - 9-11.6.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2606903",
+  "name": "Virgin FY26 Results",
+  "dept": "PRD"
+ },
+ {
+  "job": "2606903V",
+  "name": "Virgin FY26 Results",
+  "dept": "VID"
+ },
+ {
+  "job": "2606904",
+  "name": "Symal - FYR26 (Melb) - 24.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2606904V",
+  "name": "Symal - FYR26 (Melb) - 24.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2606905",
+  "name": "Dimensional - Audio Tech Support - 22.6.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2606906",
+  "name": "St Catherines Case Study Video Non-Chrgable",
+  "dept": "VID"
+ },
+ {
+  "job": "26071303",
+  "name": "Ventia - Melbourne Office Event - 30.7.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26071304",
+  "name": "YSG | Orange Room Upgrade",
+  "dept": "INT"
+ },
+ {
+  "job": "26071403",
+  "name": "Elkiem - Studio Support - 4.11.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26071404",
+  "name": "Elkiem - Studio Support - 9.12.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26071405",
+  "name": "PWC - Event Technician - 29.7.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26071501",
+  "name": "Ventia - Half Year Results Briefing - 24.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26071501V",
+  "name": "Ventia - Half Year Results Briefing - 24.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26071601",
+  "name": "Aware | PER | Barry Marshall and Albany Rooms BYOD USB-C Replcmnt",
+  "dept": "INT"
+ },
+ {
+  "job": "26071701",
+  "name": "ASX Live - 9.9.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26071701V",
+  "name": "ASX Live - 9.9.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26071901",
+  "name": "Elkiem - Studio Support - 11.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26072003",
+  "name": "CBA Live Event Support August 2026",
+  "dept": "PRD"
+ },
+ {
+  "job": "26072101",
+  "name": "Aware MEL 17.02 Amp Replacement",
+  "dept": "INT"
+ },
+ {
+  "job": "26072101",
+  "name": "Aware_Mel 17.02 Amp Replacement",
+  "dept": "INT"
+ },
+ {
+  "job": "26072102",
+  "name": "Ventia - RUOK? Day - 10.09.2026",
+  "dept": "PRD"
+ },
+ {
+  "job": "26072102V",
+  "name": "Ventia - RUOK? Day - 10.09.2026",
+  "dept": "VID"
+ },
+ {
+  "job": "26072802",
+  "name": "ON24 KWM Sydney Event - 18.08.2026",
+  "dept": "PRD"
+ },
+ {
+  "job": "26072802V",
+  "name": "ON24 KWM Sydney Event - 18.08.2026",
+  "dept": "VID"
+ },
+ {
+  "job": "26072902",
+  "name": "PWC AI Townhall 6.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26072902V",
+  "name": "PWC AI Townhall 6.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26072903",
+  "name": "PWC - GB Webcast - 11.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26072903V",
+  "name": "PWC - GB Webcast - 11.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26072906",
+  "name": "ASX Advisory Group on Corporate Governance",
+  "dept": "PRD"
+ },
+ {
+  "job": "26072906V",
+  "name": "ASX Advisory Group on Corporate Governance",
+  "dept": "VID"
+ },
+ {
+  "job": "26073103",
+  "name": "DTTL PER AV & Hospitality Tech (SEP26-FEB27)",
+  "dept": "ONS"
+ },
+ {
+  "job": "26073103N",
+  "name": "DTTL PER AV & Hospitality Tech (SEP26-FEB27) [ONS] non-chargeable",
+  "dept": ""
+ },
+ {
+  "job": "26073105",
+  "name": "Elkiem - Studio Support - 25.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26073106",
+  "name": "Elkiem - Studio Support - 18.9.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26073107",
+  "name": "DTTL Travel for Technician & Coverage ADL-HOB",
+  "dept": "ONS"
+ },
+ {
+  "job": "26073110",
+  "name": "Garvan - Weizmann Dinner Event - 20.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26073110V",
+  "name": "Garvan - Weizmann Dinner Event - 20.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26073111",
+  "name": "Downer - FYR & Employee Webcast - 25.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26073111V",
+  "name": "Downer - FYR & Employee Webcast - 25.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2607703",
+  "name": "Garvan - YPO Event - 6.8.2026",
+  "dept": "PRD"
+ },
+ {
+  "job": "2607703V",
+  "name": "Garvan - YPO Event - 6.8.2026",
+  "dept": "VID"
+ },
+ {
+  "job": "2608101",
+  "name": "ART - AMM Captioning - 25.11.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2608101V",
+  "name": "ART - AMM Captioning - 25.11.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2608102",
+  "name": "ART - Education Session Captioning - 25.11.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26081101",
+  "name": "Vega Global - Payments Forum - 17.9.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26081302",
+  "name": "Ubank - Volunteer Day - 11.11.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26081302V",
+  "name": "Ubank - Volunteer Day - 11.11.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26081402",
+  "name": "Dimensional - AV Support - 19.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26081801",
+  "name": "Microsoft - SME&C Town Hall 14.10.2026",
+  "dept": "PRD"
+ },
+ {
+  "job": "26081801V",
+  "name": "Microsoft - SME&C Town Hall 14.10.2026",
+  "dept": "VID"
+ },
+ {
+  "job": "26081901",
+  "name": "AusPayNet Logitech Essentials for Room License Renewal",
+  "dept": "INT"
+ },
+ {
+  "job": "26081904",
+  "name": "Garvan - AllClear Program Meeting - 2.9.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26082402",
+  "name": "TLC - 2026 AGM - 14.10.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26082402V",
+  "name": "TLC - 2026 AGM - 14.10.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26082501",
+  "name": "CBA - LES - September 2026",
+  "dept": "PRD"
+ },
+ {
+  "job": "26082502",
+  "name": "ICC - Presenter & Speaker Preparation - September 2026",
+  "dept": "PRD"
+ },
+ {
+  "job": "26082502V",
+  "name": "ICC - Presenter & Speaker Preparation - September 2026",
+  "dept": "VID"
+ },
+ {
+  "job": "26082702",
+  "name": "Garvan - Breast Cancer Public Lecture - 1.10.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26082703",
+  "name": "APA - RUOK Day - 10.9.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26082703V",
+  "name": "APA - RUOK Day - 10.9.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26082704",
+  "name": "DTTL Travel for National STL & Coverage SYD-PER",
+  "dept": "ONS"
+ },
+ {
+  "job": "26082801",
+  "name": "Ricoh Australia - SHELL AV Support",
+  "dept": "ONS"
+ },
+ {
+  "job": "2608402",
+  "name": "Garvan - Suttons Event - 15.10.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2608404",
+  "name": "St Vincents Public Hospital - Awards Night - 26.8.25",
+  "dept": "PRD"
+ },
+ {
+  "job": "2608404V",
+  "name": "St Vincents Public Hospital - Awards Night - 26.8.25",
+  "dept": "VID"
+ },
+ {
+  "job": "2608604",
+  "name": "ASX - FYR Employee Town Hall - 13.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2608604V",
+  "name": "ASX - FYR Employee Town Hall - 13.8.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2608701",
+  "name": "Elkeim - Studio Support - 10.9.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2608702",
+  "name": "APA - Qtly All Hands SYD Screen Hire - 20.8.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26091002",
+  "name": "GP - Talking Philanthropy - Event Videography 18.9.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26091002V",
+  "name": "GP - Talking Philanthropy - Event Videography 18.9.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26091601",
+  "name": "Automic - September All Hands - 25.9.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26091601V",
+  "name": "Automic - September All Hands - 25.9.26",
+  "dept": "VID"
+ },
+ {
+  "job": "26091604",
+  "name": "The George Institute - SYD CV Symposium - 29-30.10.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "26091604V",
+  "name": "The George Institute - SYD CV Symposium - 29-30.10.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2609402",
+  "name": "MUFG - SUN Investor Day - 29.10.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2609402V",
+  "name": "MUFG - SUN Investor Day - 29.10.26",
+  "dept": "VID"
+ },
+ {
+  "job": "2609801",
+  "name": "Elkiem - Studio Support - 16.9.26",
+  "dept": "PRD"
+ },
+ {
+  "job": "2645",
+  "name": "EY SYD Tech Support",
+  "dept": "ONS"
+ },
+ {
+  "job": "2648",
+  "name": "DTTL MEL Additional Tech",
+  "dept": "ONS"
+ },
+ {
+  "job": "2658",
+  "name": "EY MELB Tech",
+  "dept": "ONS"
+ },
+ {
+  "job": "2675",
+  "name": "ONS EY (non-chargeable)",
+  "dept": ""
+ },
+ {
+  "job": "2685",
+  "name": "APA Proxyclick BNE & DRW",
+  "dept": "INT"
+ },
+ {
+  "job": "2706",
+  "name": "EPA 6PSQ Proxyclick VMS",
+  "dept": "INT"
+ },
+ {
+  "job": "2719",
+  "name": "GSP - 6PSQProxyclickOnb",
+  "dept": "INT"
+ },
+ {
+  "job": "2722",
+  "name": "PWC Monthly Consulting",
+  "dept": "CONS"
+ },
+ {
+  "job": "2726",
+  "name": "KPMG MEL Tech",
+  "dept": "ONS"
+ },
+ {
+  "job": "2756",
+  "name": "CTS Mgmt Meetings",
+  "dept": "CTS"
+ },
+ {
+  "job": "2834",
+  "name": "APA Young - Visitor Mgmt",
+  "dept": "INT"
+ },
+ {
+  "job": "2838",
+  "name": "KPMG SYD Tech",
+  "dept": "ONS"
+ },
+ {
+  "job": "2846",
+  "name": "DTTL National STL",
+  "dept": "ONS"
+ },
+ {
+  "job": "2848",
+  "name": "APA ADL Visitor Mgmt",
+  "dept": "INT"
+ },
+ {
+  "job": "2849",
+  "name": "DTTL SYD Internal",
+  "dept": "ONS"
+ },
+ {
+  "job": "2855",
+  "name": "APA Melbourne VMS",
+  "dept": "INT"
+ },
+ {
+  "job": "2857",
+  "name": "APA Sydney Visitor Mgmt",
+  "dept": "INT"
+ },
+ {
+  "job": "2877",
+  "name": "DEWR Maintenance Ext",
+  "dept": "INT"
+ },
+ {
+  "job": "2879",
+  "name": "ONS Ricoh-QANTAS (non-chgble)",
+  "dept": ""
+ },
+ {
+  "job": "2880",
+  "name": "Ricoh - QANTAS",
+  "dept": "ONS"
+ },
+ {
+  "job": "2892",
+  "name": "JP Morgan Onsite Tech",
+  "dept": "ONS"
+ },
+ {
+  "job": "2896",
+  "name": "ONS KPMG (non-chargeable)",
+  "dept": ""
+ },
+ {
+  "job": "2897",
+  "name": "ONS JPM (non-chargeable)",
+  "dept": ""
+ },
+ {
+  "job": "2900",
+  "name": "ONS Ammacus-Woolworths (non-chargeable)",
+  "dept": ""
+ },
+ {
+  "job": "2906",
+  "name": "KPMG BNE Tech",
+  "dept": "ONS"
+ },
+ {
+  "job": "2907",
+  "name": "Ammacus-Woolworths Tech",
+  "dept": "ONS"
+ },
+ {
+  "job": "2910",
+  "name": "Office Move 2024",
+  "dept": "CTS"
+ },
+ {
+  "job": "2977",
+  "name": "St Catherine's School (CONS)",
+  "dept": ""
+ },
+ {
+  "job": "3014",
+  "name": "ONS Ricoh/Campari (Chargeable)",
+  "dept": ""
+ },
+ {
+  "job": "3015",
+  "name": "ONS Ricoh/Campari (Non Chgble)",
+  "dept": ""
+ },
+ {
+  "job": "3027",
+  "name": "DPIE Elizabeth St Booking",
+  "dept": "INT"
+ },
+ {
+  "job": "3028",
+  "name": "APA Kidman Park VMS",
+  "dept": "INT"
+ },
+ {
+  "job": "3034",
+  "name": "ARUP ONS (non-chargeable)",
+  "dept": ""
+ },
+ {
+  "job": "3035",
+  "name": "ARUP ONS National (Chargeable)",
+  "dept": ""
+ },
+ {
+  "job": "3040",
+  "name": "Corrs MELB Office Reloc",
+  "dept": "CONS"
+ },
+ {
+  "job": "3042",
+  "name": "Corrs-PER Office Reloc",
+  "dept": "CONS"
+ },
+ {
+  "job": "3046",
+  "name": "Stone&Chalk ONS [chargeable]",
+  "dept": ""
+ },
+ {
+  "job": "3047",
+  "name": "Stone&Chalk ONS [non-chargable]",
+  "dept": ""
+ },
+ {
+  "job": "3048",
+  "name": "Stone & Chalk Audit 2",
+  "dept": "CONS"
+ },
+ {
+  "job": "3056",
+  "name": "AusPayNet Onsite [Chargeable]",
+  "dept": ""
+ },
+ {
+  "job": "3057",
+  "name": "AusPayNet ONS[Non-Chargeable]",
+  "dept": ""
+ },
+ {
+  "job": "3059",
+  "name": "CBA AGM 2025",
+  "dept": "PRD"
+ },
+ {
+  "job": "3068",
+  "name": "DPIE Pitt and Penrith",
+  "dept": "INT"
+ },
+ {
+  "job": "3072",
+  "name": "APA Thomastown",
+  "dept": "INT"
+ },
+ {
+  "job": "585",
+  "name": "CBA Team Leader",
+  "dept": "ONS"
+ },
+ {
+  "job": "586",
+  "name": "CBA Tech NP",
+  "dept": "ONS"
+ },
+ {
+  "job": "587",
+  "name": "CBA Tech TN",
+  "dept": "ONS"
+ },
+ {
+  "job": "724",
+  "name": "DTTL SYD NTSL",
+  "dept": "ONS"
+ },
+ {
+  "job": "725",
+  "name": "DTTL Mel Tech FT 1",
+  "dept": "ONS"
+ },
+ {
+  "job": "729",
+  "name": "DTTL Consulting",
+  "dept": "CONS"
+ },
+ {
+  "job": "732",
+  "name": "Bank West Contract",
+  "dept": "ONS"
+ },
+ {
+  "job": "9000",
+  "name": "OFFICE / ADMIN",
+  "dept": "CTS"
+ },
+ {
+  "job": "9001",
+  "name": "OFFICE/ADMIN Orientation",
+  "dept": "CTS"
+ },
+ {
+  "job": "9050",
+  "name": "OFFICE ASSETS",
+  "dept": "CTS"
+ },
+ {
+  "job": "9100",
+  "name": "PRODUCTION",
+  "dept": "PRD"
+ },
+ {
+  "job": "9101",
+  "name": "PRODUCTION - Orientation",
+  "dept": "PRD"
+ },
+ {
+  "job": "9102",
+  "name": "Production - Training",
+  "dept": "PRD"
+ },
+ {
+  "job": "9105",
+  "name": "ONSITE (including PROD backup)",
+  "dept": ""
+ },
+ {
+  "job": "9106",
+  "name": "ONSITE - Orientation",
+  "dept": "ONS"
+ },
+ {
+  "job": "9107",
+  "name": "ONSITE - Assets",
+  "dept": "ONS"
+ },
+ {
+  "job": "9108",
+  "name": "ONSITE - Sales",
+  "dept": "ONS"
+ },
+ {
+  "job": "9109",
+  "name": "ONSITE - Marketing",
+  "dept": "ONS"
+ },
+ {
+  "job": "9125",
+  "name": "VIDEO DEPT",
+  "dept": "VID"
+ },
+ {
+  "job": "9126",
+  "name": "VIDEO - Orientation",
+  "dept": "VID"
+ },
+ {
+  "job": "9127",
+  "name": "VIDEO - Assets",
+  "dept": "VID"
+ },
+ {
+  "job": "9128",
+  "name": "VIDEO - Sales",
+  "dept": "VID"
+ },
+ {
+  "job": "9129",
+  "name": "VIDEO - Marketing",
+  "dept": "VID"
+ },
+ {
+  "job": "9150",
+  "name": "PRODUCTION - Assets",
+  "dept": "PRD"
+ },
+ {
+  "job": "9175",
+  "name": "PRODUCTION - Sales",
+  "dept": "PRD"
+ },
+ {
+  "job": "9176",
+  "name": "Production - Marketing",
+  "dept": "PRD"
+ },
+ {
+  "job": "9178",
+  "name": "Production \u2013 Webcasts",
+  "dept": "PRD"
+ },
+ {
+  "job": "9200",
+  "name": "INTEGRATION",
+  "dept": "INT"
+ },
+ {
+  "job": "9201",
+  "name": "INTEGRATION - Orientation [INT",
+  "dept": ""
+ },
+ {
+  "job": "9202",
+  "name": "INTEGRATION - Quotes",
+  "dept": "INT"
+ },
+ {
+  "job": "9225",
+  "name": "Integration - SALES",
+  "dept": "INT"
+ },
+ {
+  "job": "9226",
+  "name": "Integration - Marketing",
+  "dept": "INT"
+ },
+ {
+  "job": "9300",
+  "name": "HUMAN RESOURCES",
+  "dept": "CTS"
+ },
+ {
+  "job": "9301",
+  "name": "Recruitment",
+  "dept": "CTS"
+ },
+ {
+  "job": "9350",
+  "name": "MARKETING (external)",
+  "dept": "CTS"
+ },
+ {
+  "job": "9375",
+  "name": "MARKETING / COMMS",
+  "dept": "CTS"
+ },
+ {
+  "job": "9400",
+  "name": "CONSULTING",
+  "dept": "CONS"
+ },
+ {
+  "job": "9402",
+  "name": "CONSULTING - Assets",
+  "dept": "CONS"
+ },
+ {
+  "job": "9403",
+  "name": "CONSULTING - Sales",
+  "dept": "CONS"
+ },
+ {
+  "job": "9405",
+  "name": "CONSULTING - Marketing",
+  "dept": "CONS"
+ },
+ {
+  "job": "9407",
+  "name": "CONSULTING - Training",
+  "dept": "CONS"
+ },
+ {
+  "job": "974",
+  "name": "DTTL 1300 Number",
+  "dept": "ONS"
+ }
+]
