@@ -135,6 +135,44 @@ for r in range(6, bv.max_row + 1):
         print(f"{'OK ' if ok else 'BAD'} {cur:<12} budget YTD {bud:>13,.2f} (expected {want:>13,.2f})"
               f"   actual {act:>13,.2f}   var {act-bud:>13,.2f}")
 
+# Tech_Spend, against the same GL computed independently here
+TECHEXP = {"IT Network Service & Support": 30218.74, "Dues & Subscriptions": 20672.16,
+           "Instant Asset Write Off": 5000.00, "Internet": 727.64, "Mobile Phones": 1286.29,
+           "Office Phones": 343.42, "1300 Number": 171.33}
+TECHBUD = {"IT Network Service & Support": 149160.0, "Dues & Subscriptions": 86544.0,
+           "Instant Asset Write Off": 60000.0, "Internet": 4814.0, "Mobile Phones": 3300.0,
+           "Office Phones": 2400.0, "1300 Number": 780.0}
+ts = vb["Tech_Spend"]
+print("\n--- Tech_Spend: actual YTD per account ---")
+srow = {}
+for r in range(1, ts.max_row + 1):          # summary block only - the monthly
+    v = ts.cell(r, 2).value                  # header repeats the account names
+    if isinstance(v, str) and v.strip() in TECHEXP and v.strip() not in srow:
+        srow[v.strip()] = r
+    if isinstance(v, str) and v.strip() == "TOTAL discretionary tech spend": grand = r
+for a, want in TECHEXP.items():
+    r = srow[a]
+    chk(f"{a[:34]}", ts.cell(r, 6).value, want)
+    b = ts.cell(r, 5).value or 0
+    wb2 = TECHBUD[a] / 12 * 2
+    chk(f"  ^ budget YTD", b, wb2, tol=0.02)
+chk("TOTAL actual YTD", ts.cell(grand, 6).value, sum(TECHEXP.values()))
+chk("TOTAL budget FY", ts.cell(grand, 3).value, sum(TECHBUD.values()), tol=0.02)
+chk("TOTAL budget YTD", ts.cell(grand, 5).value, sum(TECHBUD.values()) / 12 * 2, tol=0.02)
+print(f"    full-year run-rate {ts.cell(grand,8).value:,.0f} against budget "
+      f"{ts.cell(grand,3).value:,.0f}")
+# supplier block
+for r in range(1, ts.max_row + 1):
+    if str(ts.cell(r, 1).value).strip() == "First Focus IT Pty Ltd":
+        chk("First Focus IT YTD", ts.cell(r, 2).value, 37799.82); break
+for r in range(1, ts.max_row + 1):
+    if str(ts.cell(r, 1).value).strip() == "All other suppliers":
+        print(f"    'all other suppliers' catch-all: {ts.cell(r,2).value:,.2f} (should be ~0 "
+              f"while the seeded list still covers everyone)"); break
+det = sum(1 for r in range(1, ts.max_row + 1)
+          if isinstance(ts.cell(r, 1).value, int) and ts.cell(r, 6).value not in (None, ""))
+print(f"    transaction detail lines rendered for the reporting month: {det}")
+
 print("\n--- Controls ---")
 for r in range(6, 25):
     if ct.cell(r, 1).value:

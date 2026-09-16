@@ -24,6 +24,7 @@ OUT = ROOT / "cts_pack" / "CTS Financial Controller Pack.xlsx"
 ACCTS = json.loads((ROOT / "data/cts_accounts.json").read_text())
 JOBS = json.loads((ROOT / "data/cts_jobs.json").read_text())
 BUDGET = json.loads((ROOT / "data/cts_budget_fy27.json").read_text())
+TECH = json.loads((ROOT / "data/cts_tech_spend.json").read_text())
 
 # ---- capacity -------------------------------------------------------------
 GL_R0, GL_R1 = 2, 30001            # GL_Paste: export pasted at A1, 30,000 rows
@@ -122,13 +123,14 @@ title(ls, "Reference Lists",
       "Pulled from the GL code database in your PL Analysis workbook. Accounts, subcategories, the "
       "Labour / Equipment type split, departments and the job master.")
 header(ls, 4, ["#", "Account Code", "Account Name", "Category", "Subcategory", "Type",
-               "Cat #", "Sub #", "Type #"])
+               "Cat #", "Sub #", "Type #", "Tech?"])
 for i, a in enumerate(ACCTS):
     r = 5 + i
     vals = [i + 1, a["code"], a["name"], a["category"], a["subcategory"], a["type"],
             (CATS.index(a["category"]) + 1) if a["category"] in CATS else 0,
             (SUB_NAMES.index(a["subcategory"]) + 1) if a["subcategory"] in SUB_NAMES else 0,
-            (TYPES.index(a["type"]) + 1) if a["type"] in TYPES else 0]
+            (TYPES.index(a["type"]) + 1) if a["type"] in TYPES else 0,
+            1 if a["name"] in TECH["budget_fy27"] else 0]
     for j, v in enumerate(vals):
         c = ls.cell(row=r, column=1 + j, value=v)
         c.font = Font(name=ARIAL, size=9); c.border = BOX
@@ -182,6 +184,7 @@ L_ACC_CODE = f"Lists!$B${ACC_R0}:$B${ACC_R1}"
 L_ACC_NAME = f"Lists!$C${ACC_R0}:$C${ACC_R1}"
 L_ACC_SUB = f"Lists!$H${ACC_R0}:$H${ACC_R1}"
 L_ACC_TYP = f"Lists!$I${ACC_R0}:$I${ACC_R1}"
+L_ACC_TECH = f"Lists!$J${ACC_R0}:$J${ACC_R1}"
 L_DEP_CC = f"Lists!$M${DEP_R0}:$M${DEP_R1}"
 L_JOB = f"Lists!$Y${JOB_R0}:$Y${JOB_R1}"
 L_JOB_DEP = f"Lists!$AA${JOB_R0}:$AA${JOB_R1}"
@@ -337,7 +340,8 @@ title(cu, "Cleanup  -  what the workbook made of the GL paste",
       "Columns J to N are numeric match keys - that is what makes the reports fast.")
 header(cu, 5, ["Date", "Amount", "Acct #", "Dept #", "Sub #", "Type #", "Period", "FY off",
                "Keep", "Key: acct x period", "Key: acct x dept (month)",
-               "Key: acct x dept (YTD)", "Key: sub x dept", "Key: type x dept", "Status"])
+               "Key: acct x dept (YTD)", "Key: sub x dept", "Key: type x dept", "Status",
+               "Tech YTD?", "Tech month rank"])
 cu.freeze_panes = "A6"
 widths(cu, {"A": 11, "B": 13, "C": 8, "D": 8, "E": 8, "F": 8, "G": 8, "H": 8, "I": 7,
             "J": 15, "K": 17, "L": 17, "M": 15, "N": 15, "O": 18})
@@ -366,6 +370,10 @@ for i in range(CL_R1 - CL_R0 + 1):
         14: f'=IF($I{r}=0,0,$F{r}*100000+$D{r}*10000+$H{r}*1000+$G{r})',
         15: (f'=IF($A{r}="","",IF($C{r}=0,"NO ACCOUNT",IF($D{r}=0,"NO DEPARTMENT",'
              f'IF($H{r}=-1,"OUTSIDE FY","OK"))))'),
+        16: (f'=IF(AND($I{r}=1,$H{r}=1,$G{r}<={B8}),INDEX({L_ACC_TECH},MAX($C{r},1)),0)'),
+        17: (f'={f"INT($Q{r-1})" if r > CL_R0 else "0"}'
+             f'+IF(AND($P{r}=1,$G{r}={B8}),1,0)'
+             f'+IF(AND($P{r}=1,$G{r}={B8}),0,0.5)'),
     }
     for col, f in fml.items():
         c = cu.cell(row=r, column=col, value=f)
@@ -383,6 +391,9 @@ CU_K1 = f"Cleanup!$J${CL_R0}:$J${CL_R1}"
 CU_K5 = f"Cleanup!$M${CL_R0}:$M${CL_R1}"
 CU_K6 = f"Cleanup!$N${CL_R0}:$N${CL_R1}"
 CU_AMT = f"Cleanup!$B${CL_R0}:$B${CL_R1}"
+CU_TECH = f"Cleanup!$P${CL_R0}:$P${CL_R1}"
+CU_TRANK = f"Cleanup!$Q${CL_R0}:$Q${CL_R1}"
+GL_CONTACT = f"GL_Paste!$F${GL_R0}:$F${GL_R1}"
 print("paste sheets + cleanup built")
 
 # ===========================================================================
@@ -1118,6 +1129,158 @@ trend.set_categories(Reference(rc, min_col=1, min_row=TR_R0, max_row=TR_R1))
 rc.add_chart(trend, "J24")
 
 # ===========================================================================
+# TECH_SPEND  - discretionary technology spend, summary and the detail behind it
+# ===========================================================================
+ts = sheet("Tech_Spend", "7030A0")
+title(ts, "Discretionary Technology Spend")
+ts["A2"] = ('=IF(Setup!$B$4="","","FY"&Setup!$B$7&" budget against actual to "&Setup!$B$5'
+            '&".   Budget is fixed; every actual is a formula off the GL paste.")')
+ts["A2"].font = Font(name=ARIAL, size=10, bold=True, color=MUTED)
+widths(ts, {"A": 13, "B": 34, "C": 15, "D": 14, "E": 14, "F": 14, "G": 14, "H": 14, "I": 12})
+TECH_ACCS = list(TECH["budget_fy27"].keys())
+GROUPS_T = ["Standard", "Telecoms"]
+
+def acc_ytd(name):
+    return f'=-SUMIF({E_NAME},"{name}",{ecol("CY_YTD")})'
+def acc_month(name):
+    return f'=-SUMIF({E_NAME},"{name}",{ecol("CY_M")})'
+
+r = 4
+band(ts, r, "SUMMARY", 1, 9); r += 1
+header(ts, r, ["Group", "Account", "FY budget", "Budget per\nmonth", "Budget YTD",
+               "Actual YTD", "Variance YTD", "Full year\nrun-rate", "Run-rate vs\nbudget"]); r += 1
+SUM_R0 = r
+grp_rows = {g: [] for g in GROUPS_T}
+for name in TECH_ACCS:
+    g = TECH["groups"][name]
+    grp_rows[g].append(r)
+    lbl(ts, r, 1, g, size=9, color=MUTED)
+    lbl(ts, r, 2, name, size=10)
+    cells = {
+        3: TECH["budget_fy27"][name],
+        4: f'=$C{r}/12',
+        5: f'=$D{r}*{B8}',
+        6: acc_ytd(name),
+        7: f'=$F{r}-$E{r}',
+        8: f'=IF({B8}=0,0,$F{r}/{B8}*12)',
+        9: f'=IF($C{r}=0,"n/a",$H{r}/$C{r}-1)',
+    }
+    for col, f in cells.items():
+        c = ts.cell(row=r, column=col, value=f)
+        c.font = Font(name=ARIAL, size=10, bold=(col in (6, 8)))
+        c.number_format = PCT if col == 9 else MONEY
+        c.border = BOX
+    r += 1
+SUM_R1 = r - 1
+sub_rows = {}
+for g in GROUPS_T:
+    rows = grp_rows[g]
+    lbl(ts, r, 2, f"Total ({g})", bold=True, size=10)
+    for col in (3, 4, 5, 6, 7, 8):
+        c = ts.cell(row=r, column=col,
+                    value="=" + "+".join(f"{CL(col)}{x}" for x in rows))
+        c.font = Font(name=ARIAL, size=10, bold=True); c.number_format = MONEY
+        c.border = BOX; c.fill = TOTAL_FILL
+    c = ts.cell(row=r, column=9, value=f'=IF($C{r}=0,"n/a",$H{r}/$C{r}-1)')
+    c.font = Font(name=ARIAL, size=10, bold=True); c.number_format = PCT
+    c.border = BOX; c.fill = TOTAL_FILL
+    for col in (1, 2): ts.cell(row=r, column=col).fill = TOTAL_FILL
+    sub_rows[g] = r
+    r += 1
+lbl(ts, r, 2, "TOTAL discretionary tech spend", bold=True, size=11)
+for col in (3, 4, 5, 6, 7, 8):
+    c = ts.cell(row=r, column=col,
+                value=f'={CL(col)}{sub_rows["Standard"]}+{CL(col)}{sub_rows["Telecoms"]}')
+    c.font = Font(name=ARIAL, size=11, bold=True, color=WHITE); c.number_format = MONEY
+c = ts.cell(row=r, column=9, value=f'=IF($C{r}=0,"n/a",$H{r}/$C{r}-1)')
+c.font = Font(name=ARIAL, size=11, bold=True, color=WHITE); c.number_format = PCT
+for col in range(1, 10): ts.cell(row=r, column=col).fill = SUBHEAD
+GRAND_R = r
+r += 1
+note = ts.cell(row=r, column=1, value=(
+    "Standard is the three core accounts; Telecoms is the four phone and internet accounts. The total "
+    "is Standard PLUS Telecoms, counted once. A figure of 602,702 would be adding the standard three "
+    "in twice - the broad total already contains them."))
+note.font = Font(name=ARIAL, size=9, italic=True, color="C00000")
+note.alignment = Alignment(wrap_text=True, vertical="top")
+ts.merge_cells(start_row=r, start_column=1, end_row=r + 1, end_column=9)
+r += 3
+
+band(ts, r, "BY MONTH", 1, 9); r += 1
+header(ts, r, ["Month"] + TECH_ACCS + ["Total"]); r += 1
+MTH_T0 = r
+for pnum in range(1, 13):
+    rr = MTH_T0 + pnum - 1
+    ts.cell(row=rr, column=1, value=mhdr(B7, pnum)).font = Font(name=ARIAL, size=9)
+    for k, name in enumerate(TECH_ACCS):
+        c = ts.cell(row=rr, column=2 + k,
+                    value=f'=-SUMIF({E_NAME},"{name}",Engine!${CL(CY_C0+pnum-1)}${E_R0}:${CL(CY_C0+pnum-1)}${E_R1})')
+        c.font = Font(name=ARIAL, size=9); c.number_format = MONEY; c.border = BOX
+    t = ts.cell(row=rr, column=2 + len(TECH_ACCS), value=f'=SUM($B{rr}:${CL(1+len(TECH_ACCS))}{rr})')
+    t.font = Font(name=ARIAL, size=9, bold=True); t.number_format = MONEY
+    t.border = BOX; t.fill = TOTAL_FILL
+r = MTH_T0 + 13
+
+band(ts, r, "BY SUPPLIER  -  year to date, across all seven accounts", 1, 5); r += 1
+header(ts, r, ["Supplier", "Spend YTD", "% of total", "Run-rate FY"]); r += 1
+SUP_R0 = r
+SUPS = TECH["suppliers"][:30]
+for name in SUPS:
+    safe = name.replace('"', '""')
+    blank = name.startswith("(no supplier")
+    lbl(ts, r, 1, ("No supplier name on the line" if blank else name), size=9,
+        bold=blank, color=("C00000" if blank else "000000"))
+    crit = '""' if blank else f'"{safe}"'          # blank contact needs an empty criterion
+    c = ts.cell(row=r, column=2,
+                value=f'=-SUMIFS({CU_AMT},{GL_CONTACT},{crit},{CU_TECH},1)')
+    c.font = Font(name=ARIAL, size=9); c.number_format = MONEY; c.border = BOX
+    for col, f, fmt in ((3, f'=IF(${CL(2)}${GRAND_R}=0,"n/a",$B{r}/$F${GRAND_R})', PCT),
+                        (4, f'=IF({B8}=0,0,$B{r}/{B8}*12)', MONEY)):
+        cc = ts.cell(row=r, column=col, value=f); cc.number_format = fmt
+        cc.font = Font(name=ARIAL, size=9); cc.border = BOX
+    r += 1
+SUP_R1 = r - 1
+lbl(ts, r, 1, "All other suppliers", bold=True, size=9)
+c = ts.cell(row=r, column=2, value=f'=$F${GRAND_R}-SUM($B${SUP_R0}:$B${SUP_R1})')
+c.font = Font(name=ARIAL, size=9, bold=True); c.number_format = MONEY
+c.border = BOX; c.fill = TOTAL_FILL
+r += 1
+lbl(ts, r, 1, "TOTAL", bold=True, size=10)
+c = ts.cell(row=r, column=2, value=f'=SUM($B${SUP_R0}:$B{r-1})')
+c.font = Font(name=ARIAL, size=10, bold=True); c.number_format = MONEY
+c.border = BOX; c.fill = TOTAL_FILL
+r += 2
+
+band(ts, r, "TRANSACTION DETAIL  -  reporting month only", 1, 6); r += 1
+header(ts, r, ["#", "Date", "Account", "Supplier", "Description", "Amount"]); r += 1
+DET_R0 = r
+DET_N = 250
+for k in range(DET_N):
+    rr = DET_R0 + k
+    src = ts.cell(row=rr, column=8,
+                  value=f'=IF({k+1}>MAX({CU_TRANK}),"",MATCH({k+1},{CU_TRANK},1)+{CL_R0-1})')
+    src.font = Font(name=ARIAL, size=8, color="BFBFBF")
+    n = ts.cell(row=rr, column=1, value=f'=IF($H{rr}="","",{k+1})')
+    n.font = Font(name=ARIAL, size=9); n.alignment = Alignment(horizontal="center")
+    for col, ref, fmt in ((2, "Cleanup!$A:$A", DATEF), (3, "GL_Paste!$C:$C", None),
+                          (4, "GL_Paste!$F:$F", None), (5, "GL_Paste!$L:$L", None)):
+        off = 0 if "Cleanup" in ref else -(CL_R0 - GL_R0)
+        c = ts.cell(row=rr, column=col,
+                    value=f'=IF($H{rr}="","",INDEX({ref},$H{rr}{"" if off==0 else f"{off}"}))')
+        c.font = Font(name=ARIAL, size=9); c.border = BOX
+        if fmt: c.number_format = fmt
+    c = ts.cell(row=rr, column=6, value=f'=IF($H{rr}="","",-INDEX(Cleanup!$B:$B,$H{rr}))')
+    c.font = Font(name=ARIAL, size=9); c.number_format = MONEY; c.border = BOX
+lbl(ts, DET_R0 - 2, 8, "helper", size=8, color="BFBFBF")
+ts.column_dimensions["E"].width = 46
+ts.column_dimensions["H"].width = 9
+for rr in range(SUM_R0, SUM_R1 + 1):
+    ts.conditional_formatting.add(f"I{rr}", FormulaRule(formula=[f'AND(ISNUMBER($I{rr}),$I{rr}>0.1)'],
+        fill=PatternFill("solid", fgColor=F_HIGH), font=Font(color=T_HIGH, bold=True)))
+    ts.conditional_formatting.add(f"I{rr}", FormulaRule(formula=[f'AND(ISNUMBER($I{rr}),$I{rr}<-0.1)'],
+        fill=PatternFill("solid", fgColor=F_LOW), font=Font(color=T_LOW, bold=True)))
+
+# ===========================================================================
 # CONTROLS
 # ===========================================================================
 ct = sheet("Controls", "7030A0")
@@ -1293,7 +1456,8 @@ for a, b in [
 # ===========================================================================
 del wb["Sheet"]
 order = ["README", "Setup", "GL_Paste", "Budget_Paste", "Hours_Paste", "Financial_Summary",
-         "Dept_PL", "Budget_Variance", "Revenue_Comparison", "Charts", "Controls", "Cleanup", "Engine",
+         "Dept_PL", "Budget_Variance", "Revenue_Comparison", "Tech_Spend", "Charts", "Controls",
+         "Cleanup", "Engine",
          "Engine_Dept", "Lists"]
 wb._sheets = [wb[n] for n in order]
 for ws in wb.worksheets:
