@@ -23,6 +23,7 @@ ROOT = Path("/home/user/Claude/reporting")
 OUT = ROOT / "cts_pack" / "CTS Financial Controller Pack.xlsx"
 ACCTS = json.loads((ROOT / "data/cts_accounts.json").read_text())
 JOBS = json.loads((ROOT / "data/cts_jobs.json").read_text())
+BUDGET = json.loads((ROOT / "data/cts_budget_fy27.json").read_text())
 
 # ---- capacity -------------------------------------------------------------
 GL_R0, GL_R1 = 2, 30001            # GL_Paste: export pasted at A1, 30,000 rows
@@ -274,19 +275,27 @@ for j, h in enumerate(["Index", "Account Code", "Account Name", "Source", "Date"
     c.font = Font(name=ARIAL, size=9, bold=True, color=WHITE); c.fill = HEAD; c.border = BOX
 
 bp = sheet("Budget_Paste", "C55A11")
-title(bp, "Budget  -  paste or type your budget here",
-      "One row per financial year, department and line. Months run July to June across columns D to O. "
-      "Departments must be spelled as they are on the Lists sheet.")
+title(bp, "Budget",
+      "Loaded from CTS_Budget_FY27_Final.xlsx. One row per financial year, department and line, months "
+      "July to June across D to O. Your budget names three departments; the GL has six, so they are "
+      "mapped - see the note below. Overwrite any figure; nothing here is locked.")
+lbl(bp, 3, 1, "Support = Onsite  |  Consulting = Integration  |  Production covers Production AND "
+              "Video, so Video has no budget line of its own  |  CTS Overheads sits against CTS",
+    size=9, color="C00000", bold=True)
+bp.merge_cells(start_row=3, start_column=1, end_row=3, end_column=3)
 header(bp, 4, ["FY (year it ends)", "Department", "Line"] +
        [_dt.date(2000, (6 + i) % 12 + 1, 1).strftime("%b") for i in range(12)])
 BUD_R0, BUD_R1 = 5, 84
 BUD_LINES = ["Income", "Cost of Sales", "Direct Expenses"]
-seed = [(2027, d, l) for d in DEPTS for l in BUD_LINES]
+seed = [(BUDGET["fy"], b["dept"], b["line"], b["months"]) for b in BUDGET["rows"]]
+seeded = {(b["dept"], b["line"]) for b in BUDGET["rows"]}
+seed += [(BUDGET["fy"], d, l, None) for d in DEPTS for l in BUD_LINES if (d, l) not in seeded]
 for i in range(BUD_R1 - BUD_R0 + 1):
     r = BUD_R0 + i
-    vals = seed[i] if i < len(seed) else (None, None, None)
+    row = seed[i] if i < len(seed) else (None, None, None, None)
     for j in range(15):
-        c = bp.cell(row=r, column=1 + j, value=(vals[j] if j < 3 else None))
+        v = row[j] if j < 3 else (row[3][j - 3] if row[3] else None)
+        c = bp.cell(row=r, column=1 + j, value=v)
         c.font = Font(name=ARIAL, size=9, color=BLUE_FONT); c.fill = INPUT_FILL; c.border = BOX
         if j >= 3: c.number_format = MONEY
 widths(bp, {"A": 16, "B": 16, "C": 18})
@@ -852,7 +861,9 @@ print("dept P&L built")
 bv = sheet("Budget_Variance", "7F6000")
 title(bv, "Budget Variance by Department",
       "Actual comes from the GL paste, budget from the Budget sheet. Nothing is retyped, so the two "
-      "cannot drift apart.")
+      "cannot drift apart. Note: your budget covers Production and Video as one line, so Video shows "
+      "actual against no budget and Production carries the budget for both. Read those two together, "
+      "or split the Production budget on Budget_Paste.")
 header(bv, 5, ["Department / Line", "Actual\nMonth", "Budget\nMonth", "Var $", "Var %",
                "Actual\nYTD", "Budget\nYTD", "Var $", "Var %", "Budget\nFull Year",
                "Actual + remaining\nbudget (forecast)", "Flag"])

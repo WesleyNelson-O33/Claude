@@ -110,6 +110,31 @@ for k, m in enumerate(("Jul", "Aug")):
           f"   {'' if ok else f'DIFF {got-want:,.2f}'}")
 print(f"    ({soft} line(s) differ from their typed figures - see note)")
 
+# Budget_Variance: actual from the GL against the budget now loaded in the pack
+import json as _j
+BUD = _j.loads(Path("/home/user/Claude/reporting/data/cts_budget_fy27.json").read_text())
+bud_ytd = {}
+for b in BUD["rows"]:
+    bud_ytd[(b["dept"], b["line"])] = sum(b["months"][:2])          # Jul + Aug
+bv = vb["Budget_Variance"]
+print("\n--- Budget variance, year to date (Jul + Aug FY27) ---")
+cur = None
+for r in range(6, bv.max_row + 1):
+    a = bv.cell(r, 1).value
+    if not isinstance(a, str): continue
+    t = a.strip()
+    if t.isupper() and t.title() in [d.upper().title() for d in DEPTS]:
+        cur = t.title(); continue
+    if cur and t == "Income":
+        act = bv.cell(r, 6).value or 0
+        bud = bv.cell(r, 7).value or 0
+        want = bud_ytd.get((cur, "Income"), 0.0)
+        ok = abs(bud - want) < 0.5
+        fails_local = 0 if ok else 1
+        globals()["fails"] = globals().get("fails", 0) + fails_local
+        print(f"{'OK ' if ok else 'BAD'} {cur:<12} budget YTD {bud:>13,.2f} (expected {want:>13,.2f})"
+              f"   actual {act:>13,.2f}   var {act-bud:>13,.2f}")
+
 print("\n--- Controls ---")
 for r in range(6, 25):
     if ct.cell(r, 1).value:
