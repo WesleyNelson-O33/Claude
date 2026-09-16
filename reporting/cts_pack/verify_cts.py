@@ -82,6 +82,34 @@ chk("company gross profit YTD", fs.cell(gp_r, 6).value, tot_inc + tot_cogs)
 gm = fs.cell(gp_r + 1, 6).value
 print(f"    gross margin YTD: {gm:.1%}" if isinstance(gm, float) else f"    gross margin: {gm}")
 
+# Revenue_Comparison must reproduce what they type on the Revenue tab by hand
+rc = vb["Revenue_Comparison"]
+THEIRS = {"Jul": {"Support": 235402.94, "Production": 110900.03, "Consulting": 112803.24,
+                  "Total": 459106.21},
+          "Aug": {"Support": 240235.93, "Production": 268942.12, "Consulting": 94288.49,
+                  "Total": 603466.54}}
+roll0 = None
+for r in range(1, rc.max_row + 1):
+    if str(rc.cell(r, 1).value).strip() == "Month" and rc.cell(r, 2).value == "Support":
+        roll0 = r + 1; break
+print("\n--- Revenue_Comparison rolled up, against the numbers typed on their Revenue tab ---")
+soft = 0
+for k, m in enumerate(("Jul", "Aug")):
+    for gi, g in enumerate(("Support", "Production", "Consulting")):
+        got = rc.cell(roll0 + k, 2 + gi).value or 0
+        want = THEIRS[m][g]
+        ok = abs(got - want) < 0.5
+        if not ok: soft += 1
+        print(f"{'OK ' if ok else '>> '} {m} {g:<12} theirs {want:>13,.2f}   pack {got:>13,.2f}"
+              f"   {'' if ok else f'DIFF {got-want:,.2f}'}")
+    got = rc.cell(roll0 + k, 6).value or 0
+    want = THEIRS[m]["Total"]
+    ok = abs(got - want) < 0.5
+    if not ok: soft += 1
+    print(f"{'OK ' if ok else '>> '} {m} {'TOTAL':<12} theirs {want:>13,.2f}   pack {got:>13,.2f}"
+          f"   {'' if ok else f'DIFF {got-want:,.2f}'}")
+print(f"    ({soft} line(s) differ from their typed figures - see note)")
+
 print("\n--- Controls ---")
 for r in range(6, 25):
     if ct.cell(r, 1).value:

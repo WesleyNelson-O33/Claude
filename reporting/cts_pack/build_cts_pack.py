@@ -133,9 +133,12 @@ for i, a in enumerate(ACCTS):
         c.font = Font(name=ARIAL, size=9); c.border = BOX
 ACC_R0, ACC_R1 = 5, 4 + NACC
 
-header(ls, 4, ["#", "Department", "Cost Centre (as in GL)"], start_col=11)
+ROLLUP = {"Onsite": "Support", "Production": "Production", "Video": "Production",
+          "Integration": "Consulting", "Consulting": "Consulting", "CTS": "CTS"}
+ROLL_NAMES = ["Support", "Production", "Consulting", "CTS"]
+header(ls, 4, ["#", "Department", "Cost Centre (as in GL)", "Reports as"], start_col=11)
 for i, d in enumerate(DEPTS):
-    for j, v in enumerate([i + 1, d, d.upper()]):
+    for j, v in enumerate([i + 1, d, d.upper(), ROLLUP[d]]):
         c = ls.cell(row=5 + i, column=11 + j, value=v)
         c.font = Font(name=ARIAL, size=9); c.border = BOX
 DEP_R0, DEP_R1 = 5, 4 + len(DEPTS)
@@ -171,7 +174,7 @@ for i, j in enumerate(JOBS):
         c.font = Font(name=ARIAL, size=8); c.border = BOX
 JOB_R0, JOB_R1 = 5, 4 + len(JOBS)
 widths(ls, {"A": 5, "B": 12, "C": 32, "D": 15, "E": 28, "F": 26, "G": 7, "H": 7, "I": 7,
-            "K": 5, "L": 14, "M": 20, "O": 5, "P": 28, "Q": 15, "S": 5, "T": 30,
+            "K": 5, "L": 14, "M": 20, "N": 14, "O": 5, "P": 28, "Q": 15, "S": 5, "T": 30,
             "V": 12, "W": 12, "Y": 10, "Z": 34, "AA": 14})
 
 L_ACC_CODE = f"Lists!$B${ACC_R0}:$B${ACC_R1}"
@@ -994,6 +997,116 @@ ch.add_chart(c4, "J58")
 print("budget variance + charts built")
 
 # ===========================================================================
+# REVENUE_COMPARISON  - actual, prior year, budget and a forecast that
+# updates itself. Replaces the Sales Revenue Comparison sheet, whose numbers
+# were typed in by hand on the Revenue tab.
+# ===========================================================================
+rc = sheet("Revenue_Comparison", "2E75B6")
+title(rc, "Revenue Comparison  -  actual, prior year, budget, forecast")
+rc["A2"] = ('=IF(Setup!$B$4="","","Every figure below is a formula off the GL paste and the budget. '
+            'The forecast is actual for months already closed and budget for the rest, so it rolls '
+            'forward on its own.")')
+rc["A2"].font = Font(name=ARIAL, size=9, italic=True, color=MUTED)
+widths(rc, {"A": 14})
+for i in range(2, 10): rc.column_dimensions[CL(i)].width = 14
+
+def rev_block(row, heading, mode, fill):
+    """mode: cy | py | budget | forecast"""
+    band(rc, row, heading, 1, 8, fill=fill)
+    header(rc, row + 1, ["Month"] + DEPTS + ["Total"])
+    r0 = row + 2
+    for p in range(1, 13):
+        r = r0 + p - 1
+        c = rc.cell(row=r, column=1, value=mhdr(B7 if mode != "py" else B9, p))
+        c.font = Font(name=ARIAL, size=9); c.border = BOX
+        for di, dep in enumerate(DEPTS):
+            if mode in ("cy", "py"):
+                off = 1 if mode == "cy" else 0
+                f = (f'=SUMIFS({edper(off,p)},{ED_KIND},"Sub",{ED_DEPT},"{dep}",'
+                     f'{ED_CAT},"Income")')
+            elif mode == "budget":
+                f = (f'=SUMPRODUCT(({BP_FY}={B7})*({BP_DEP}="{dep}")*({BP_LINE}="Income")'
+                     f'*({BP_PER}={p})*{BP_GRID})')
+            else:
+                act = f"{CL(2+di)}{CY_R0 + p - 1}"
+                bud = f"{CL(2+di)}{BU_R0 + p - 1}"
+                f = f'=IF({p}<={B8},{act},{bud})'
+            cc = rc.cell(row=r, column=2 + di, value=f)
+            cc.font = Font(name=ARIAL, size=9); cc.number_format = MONEY; cc.border = BOX
+        t = rc.cell(row=r, column=8, value=f'=SUM($B{r}:$G{r})')
+        t.font = Font(name=ARIAL, size=9, bold=True); t.number_format = MONEY
+        t.border = BOX; t.fill = TOTAL_FILL
+    tr = r0 + 12
+    rc.cell(row=tr, column=1, value="Full year").font = Font(name=ARIAL, size=9, bold=True)
+    for col in range(2, 9):
+        c = rc.cell(row=tr, column=col, value=f'=SUM({CL(col)}{r0}:{CL(col)}{r0+11})')
+        c.font = Font(name=ARIAL, size=9, bold=True); c.number_format = MONEY
+        c.border = BOX; c.fill = TOTAL_FILL
+    return r0, tr + 2
+
+CY_R0, nxt = rev_block(4, "ACTUAL  -  current financial year", "cy", PatternFill("solid", fgColor="2E75B6"))
+PY_R0, nxt = rev_block(nxt, "ACTUAL  -  prior financial year", "py", PatternFill("solid", fgColor="808080"))
+BU_R0, nxt = rev_block(nxt, "BUDGET  -  current financial year", "budget", PatternFill("solid", fgColor="7F6000"))
+FC_R0, nxt = rev_block(nxt, "ROLLING FORECAST  -  actual for closed months, budget for the rest",
+                       "forecast", PatternFill("solid", fgColor="548235"))
+
+band(rc, nxt, "ROLLED UP THE WAY THE BUDGET NAMES THEM", 1, 6); nxt += 1
+lbl(rc, nxt, 1, "Support = Onsite.  Production = Production + Video.  Consulting = Integration + "
+                "Consulting.  This is the view your old graph pack used.", size=9, color=MUTED)
+rc.merge_cells(start_row=nxt, start_column=1, end_row=nxt, end_column=8); nxt += 1
+header(rc, nxt, ["Month"] + ROLL_NAMES + ["Total"]); nxt += 1
+ROLL_R0 = nxt
+GRP_OF = {g: [d for d in DEPTS if ROLLUP[d] == g] for g in ROLL_NAMES}
+for p in range(1, 13):
+    r = ROLL_R0 + p - 1
+    rc.cell(row=r, column=1, value=f'=$A{CY_R0 + p - 1}').font = Font(name=ARIAL, size=9)
+    for gi, g in enumerate(ROLL_NAMES):
+        cols = [CL(2 + DEPTS.index(d)) for d in GRP_OF[g]]
+        f = "=" + "+".join(f"{c}{CY_R0 + p - 1}" for c in cols)
+        cc = rc.cell(row=r, column=2 + gi, value=f)
+        cc.font = Font(name=ARIAL, size=9); cc.number_format = MONEY; cc.border = BOX
+    t = rc.cell(row=r, column=2 + len(ROLL_NAMES), value=f'=SUM($B{r}:${CL(1+len(ROLL_NAMES))}{r})')
+    t.font = Font(name=ARIAL, size=9, bold=True); t.number_format = MONEY
+    t.border = BOX; t.fill = TOTAL_FILL
+ROLL_R1 = ROLL_R0 + 11
+
+cmp_chart = BarChart()
+cmp_chart.title = "Revenue by department - actual, prior year, budget"
+cmp_chart.type = "col"; cmp_chart.grouping = "clustered"
+cmp_chart.height, cmp_chart.width = 9, 24
+CMP_R = ROLL_R1 + 3
+lbl(rc, CMP_R, 1, "Reporting month comparison", bold=True, size=10)
+header(rc, CMP_R + 1, ["Department", "Actual", "Prior year", "Budget"])
+for di, dep in enumerate(DEPTS):
+    r = CMP_R + 2 + di
+    rc.cell(row=r, column=1, value=dep).font = Font(name=ARIAL, size=9)
+    for k, r0 in enumerate((CY_R0, PY_R0, BU_R0)):
+        c = rc.cell(row=r, column=2 + k, value=f'=INDEX({CL(2+di)}{r0}:{CL(2+di)}{r0+11},{B8})')
+        c.font = Font(name=ARIAL, size=9); c.number_format = MONEY; c.border = BOX
+CMP_R0, CMP_R1 = CMP_R + 2, CMP_R + 1 + len(DEPTS)
+cmp_chart.add_data(Reference(rc, min_col=2, max_col=4, min_row=CMP_R0 - 1, max_row=CMP_R1),
+                   titles_from_data=True)
+cmp_chart.set_categories(Reference(rc, min_col=1, min_row=CMP_R0, max_row=CMP_R1))
+rc.add_chart(cmp_chart, "J4")
+
+trend = LineChart(); trend.title = "Total revenue - actual against budget and forecast"
+trend.height, trend.width = 9, 24
+TR_R = CMP_R1 + 3
+lbl(rc, TR_R, 1, "Monthly trend", bold=True, size=10)
+header(rc, TR_R + 1, ["Month", "Actual", "Prior year", "Budget", "Forecast"])
+for p in range(1, 13):
+    r = TR_R + 1 + p
+    rc.cell(row=r, column=1, value=f'=$A{CY_R0 + p - 1}').font = Font(name=ARIAL, size=9)
+    for k, r0 in enumerate((CY_R0, PY_R0, BU_R0, FC_R0)):
+        c = rc.cell(row=r, column=2 + k, value=f'=$H{r0 + p - 1}')
+        c.font = Font(name=ARIAL, size=9); c.number_format = MONEY; c.border = BOX
+TR_R0, TR_R1 = TR_R + 2, TR_R + 13
+trend.add_data(Reference(rc, min_col=2, max_col=5, min_row=TR_R0 - 1, max_row=TR_R1),
+               titles_from_data=True)
+trend.set_categories(Reference(rc, min_col=1, min_row=TR_R0, max_row=TR_R1))
+rc.add_chart(trend, "J24")
+
+# ===========================================================================
 # CONTROLS
 # ===========================================================================
 ct = sheet("Controls", "7030A0")
@@ -1169,7 +1282,7 @@ for a, b in [
 # ===========================================================================
 del wb["Sheet"]
 order = ["README", "Setup", "GL_Paste", "Budget_Paste", "Hours_Paste", "Financial_Summary",
-         "Dept_PL", "Budget_Variance", "Charts", "Controls", "Cleanup", "Engine",
+         "Dept_PL", "Budget_Variance", "Revenue_Comparison", "Charts", "Controls", "Cleanup", "Engine",
          "Engine_Dept", "Lists"]
 wb._sheets = [wb[n] for n in order]
 for ws in wb.worksheets:
