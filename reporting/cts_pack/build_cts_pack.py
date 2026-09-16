@@ -1234,7 +1234,7 @@ for name in SUPS:
     c = ts.cell(row=r, column=2,
                 value=f'=-SUMIFS({CU_AMT},{GL_CONTACT},{crit},{CU_TECH},1)')
     c.font = Font(name=ARIAL, size=9); c.number_format = MONEY; c.border = BOX
-    for col, f, fmt in ((3, f'=IF(${CL(2)}${GRAND_R}=0,"n/a",$B{r}/$F${GRAND_R})', PCT),
+    for col, f, fmt in ((3, f'=IF($F${GRAND_R}=0,"n/a",$B{r}/$F${GRAND_R})', PCT),
                         (4, f'=IF({B8}=0,0,$B{r}/{B8}*12)', MONEY)):
         cc = ts.cell(row=r, column=col, value=f); cc.number_format = fmt
         cc.font = Font(name=ARIAL, size=9); cc.border = BOX
