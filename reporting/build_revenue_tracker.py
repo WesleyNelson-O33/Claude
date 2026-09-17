@@ -70,6 +70,9 @@ CALC_FILL = PatternFill("solid", fgColor=CALC_BG)
 
 COST_CENTRES = ACC["cost_centres"]
 HDR_ROW, DATA_ROW, DV_LAST, CF_LAST = 4, 5, 20000, 5000
+MONTH_END_R0 = 8                       # first cost-centre row on Month-End
+PRODUCTION_ROW = MONTH_END_R0 + COST_CENTRES.index("PRODUCTION")
+VIDEO_ROW = MONTH_END_R0 + COST_CENTRES.index("VIDEO")
 
 # --------------------------------------------------------------------------
 # The spine. Columns 1-19, identical on all four department sheets.
@@ -97,10 +100,13 @@ EXTRA = {
     "Onsite": [("PO / Reference", 18, TXT, "in"), ("Ariba Status", 15, TXT, "dv"),
                ("Billable Hours", 13, NUM, "in"), ("Approved By", 16, TXT, "in")],
     "Production": [
+        # The video split sits first, immediately after the spine, because it is
+        # what Month-End reads to separate the PRODUCTION and VIDEO cost centres.
+        ("Video Revenue", 15, CUR, "in"), ("Production Revenue", 17, CUR, "f"),
+        ("Video Split", 26, TXT, "f"), ("Video GST", 12, CUR, "f"),
         ("Client Email", 30, TXT, "in"), ("Event Date", 12, DATE, "in"),
         ("Current RMS No", 14, TXT, "in"), ("Zoho Number", 14, TXT, "in"),
-        ("Job Closed", 11, TXT, "dv"), ("Video Revenue", 14, CUR, "in"),
-        ("Production Revenue", 17, CUR, "f"), ("Discounts Included", 17, CUR, "in"),
+        ("Job Closed", 11, TXT, "dv"), ("Discounts Included", 17, CUR, "in"),
         ("Discount %", 11, PCT, "f"), ("Cross Hire Expense", 17, CUR, "in"),
         ("Labour Expense (Internal)", 22, CUR, "in"), ("Net Total", 14, CUR, "f"),
         ("Margin", 14, CUR, "f"), ("Margin %", 10, PCT, "f"),
@@ -122,6 +128,20 @@ EXTRA = {
 EXTRA_FORMULAS = {
     "Production": {
         "Production Revenue": '=IF([@[Ex GST]]="","",[@[Ex GST]]-N([@[Video Revenue]]))',
+        # GST follows the revenue split exactly, so Inc GST still equals Ex + GST
+        # on every line of the Month-End breakdown.
+        "Video GST": '=IF([@[Ex GST]]="","",IF(N([@[Video Revenue]])=0,0,'
+                     'ROUND([@GST]*N([@[Video Revenue]])/[@[Ex GST]],2)))',
+        # Credit notes are negative, so the test is on magnitude and matching
+        # sign, not on "video is bigger than the invoice".
+        "Video Split":
+            '=IF([@[Ex GST]]="","",'
+            'IF(SIGN(N([@[Video Revenue]]))*SIGN([@[Ex GST]])=-1,"CHECK - video sign",'
+            'IF(ABS(N([@[Video Revenue]]))>ABS([@[Ex GST]]),"CHECK - video exceeds invoice",'
+            'IF(AND([@[Cost Centre]]="VIDEO",ROUND(N([@[Video Revenue]]),2)<>ROUND([@[Ex GST]],2)),'
+            '"CHECK - VIDEO job not fully split",'
+            'IF(N([@[Video Revenue]])=0,"All production",'
+            'IF(ROUND(N([@[Video Revenue]]),2)=ROUND([@[Ex GST]],2),"All video","Split"))))))',
         "Discount %": '=IFERROR([@[Discounts Included]]/[@[Net Total]],"")',
         "Net Total": '=IF([@[Ex GST]]="","",[@[Ex GST]]-N([@[Discounts Included]]))',
         "Margin": '=IF([@[Ex GST]]="","",[@[Ex GST]]-N([@[Cross Hire Expense]])-N([@[Labour Expense (Internal)]]))',
@@ -181,11 +201,30 @@ CRIT = ('f0,--((CHOOSECOLS(d,1)&CHOOSECOLS(d,5)&CHOOSECOLS(d,10)&CHOOSECOLS(d,12
         'k,f0*f1*f2*f3*f4*f5,')
 
 
-def across(val, pairs):
-    """SUMIFS the same question across all four department tables."""
+def across(val, pairs, tables=None):
+    """SUMIFS the same question across several department tables."""
     return "+".join(
         f"SUMIFS({t}[{val}]," + ",".join(f"{t}[{c}],{v}" for c, v in pairs) + ")"
-        for t in REV)
+        for t in (tables or REV))
+
+
+# Production carries both cost centres on one row, so its contribution comes from
+# the split columns rather than from Cost Centre. Every other sheet is one row,
+# one cost centre, and is summed the usual way.
+OTHERS = [t for t in REV if t != "tbl_Production"]
+
+
+def by_cost_centre(value, video_value, row):
+    """Month-End revenue for one cost centre, in the selected month."""
+    pairs = [("Month", "$C$4"), ("Cost Centre", f"$A{row}")]
+    rest = across(value, pairs, OTHERS)
+    if row == PRODUCTION_ROW:
+        return (f"SUMIFS(tbl_Production[{value}],tbl_Production[Month],$C$4)"
+                f"-SUMIFS(tbl_Production[{video_value}],tbl_Production[Month],$C$4)"
+                f"+{rest}") if video_value else f"{rest}"
+    if row == VIDEO_ROW:
+        return f"SUMIFS(tbl_Production[{video_value}],tbl_Production[Month],$C$4)+{rest}"
+    return rest
 
 
 def count_across(pairs):
@@ -372,6 +411,7 @@ def build_lists(wb):
                                     "Adjustment / correction", "Migrated opening balance"],
          "lst_WIPType"),
         ("H", "WIP GL Code", ACC["wip_gl"], "lst_WIPGL"),
+        ("I", "Production Cost Centre", ["PRODUCTION", "VIDEO"], "lst_CostCentrePrd"),
     ]
     for col, head, vals, name in simple:
         ws[f"{col}4"] = head
@@ -423,7 +463,7 @@ def build_lists(wb):
     for name, col in (("lst_Jobs", "O"), ("lst_JobName", "P"), ("lst_JobCC", "Q")):
         wb.defined_names.add(DefinedName(name, attr_text=f"Lists!${col}$5:${col}$1500"))
 
-    for col in "ABCDEFGHJKMOPQ":
+    for col in "ABCDEFGHIJKMOPQ":
         c = ws[f"{col}4"]
         c.font = Font(bold=True, color="FFFFFF", size=10)
         c.fill = PatternFill("solid", fgColor=SLATE)
@@ -446,7 +486,8 @@ BLURB = {
 }
 
 
-def build_entry_sheet(wb, name, cols, formulas, team, rows, tblname, blurb):
+def build_entry_sheet(wb, name, cols, formulas, team, rows, tblname, blurb,
+                      dv_override=None):
     ws = wb.create_sheet(name)
     title_block(ws, f"{name} - Revenue Entry" if team else name, blurb)
     heads = [c[0] for c in cols]
@@ -495,24 +536,36 @@ def build_entry_sheet(wb, name, cols, formulas, team, rows, tblname, blurb):
                 attr_text=fx(calcs[col.name]).lstrip("="))
 
     for ci, (h, w, fmt, kind) in enumerate(cols, start=1):
-        if kind == "dv" and h in DV_FOR:
+        source = (dv_override or {}).get(h, DV_FOR.get(h))
+        if kind == "dv" and source:
             dv = DataValidation(
-                type="list", formula1=f"={DV_FOR[h]}", allow_blank=True,
+                type="list", formula1=f"={source}", allow_blank=True,
                 showDropDown=False, errorStyle="warning", errorTitle="Not on the list",
                 error=f'"{h}" is not on the list in the Lists sheet. '
                       "Add it there if it is genuinely new.")
             ws.add_data_validation(dv)
             dv.add(f"{gcl(ci)}{DATA_ROW}:{gcl(ci)}{DV_LAST}")
 
-    for header, value, colour in (("Job in Xero?", "CHECK", WARN),
-                                  ("Posted to Xero", "N", BAD),
-                                  ("Revenue Split Check", "MISMATCH", BAD)):
-        if header in heads:
-            c = gcl(heads.index(header) + 1)
-            ws.conditional_formatting.add(
-                f"{c}{DATA_ROW}:{c}{CF_LAST}",
-                FormulaRule(formula=[f'{c}{DATA_ROW}="{value}"'],
-                            fill=PatternFill("solid", fgColor=colour), stopIfTrue=False))
+    for header, test, colour in (("Job in Xero?", '="CHECK"', WARN),
+                                 ("Posted to Xero", '="N"', BAD),
+                                 ("Revenue Split Check", '="MISMATCH"', BAD),
+                                 ("Video Split", '<>""', None)):
+        if header not in heads:
+            continue
+        c = gcl(heads.index(header) + 1)
+        if header == "Video Split":
+            # green for a clean split, red only when the numbers do not add up
+            for expr, fill in ((f'LEFT({c}{DATA_ROW},5)="CHECK"', BAD),
+                               (f'{c}{DATA_ROW}="Split"', WARN)):
+                ws.conditional_formatting.add(
+                    f"{c}{DATA_ROW}:{c}{CF_LAST}",
+                    FormulaRule(formula=[expr],
+                                fill=PatternFill("solid", fgColor=fill), stopIfTrue=False))
+            continue
+        ws.conditional_formatting.add(
+            f"{c}{DATA_ROW}:{c}{CF_LAST}",
+            FormulaRule(formula=[f"{c}{DATA_ROW}{test}"],
+                        fill=PatternFill("solid", fgColor=colour), stopIfTrue=False))
 
     # The table supplies its own filter buttons; a second sheet-level autofilter
     # over the same range gives Excel two competing sets of dropdowns.
@@ -620,6 +673,16 @@ CHECKS = [
      'COUNTIF(tbl_WIP[Job in Xero?],"CHECK")'),
     ("Consulting revenue split does not equal the invoice",
      'COUNTIF(tbl_Consulting[Revenue Split Check],"MISMATCH")'),
+    ("Production rows where the video split does not add up",
+     'COUNTIF(tbl_Production[Video Split],"CHECK*")'),
+    ("Production rows coded to neither PRODUCTION nor VIDEO",
+     'SUMPRODUCT(--(tbl_Production[Cost Centre]<>"PRODUCTION"),'
+     '--(tbl_Production[Cost Centre]<>"VIDEO"),--(tbl_Production[Cost Centre]<>""))'),
+    ("Production rows with video hours but no video revenue",
+     'SUMPRODUCT(--(IFERROR(tbl_Production[Video Filming Hrs]*1,0)'
+     '+IFERROR(tbl_Production[Video Editing Hrs]*1,0)'
+     '+IFERROR(tbl_Production[Video Project Mgmt Hrs]*1,0)>0),'
+     '--(IFERROR(tbl_Production[Video Revenue]*1,0)=0))'),
     ('Still sitting at "To Invoice" for the selected month',
      count_across([("Month", "$C$4"), ("Status", '"To Invoice"')])),
 ]
@@ -650,14 +713,12 @@ def build_month_end(wb):
     col_heads(ws, 7, ["Cost Centre", "Invoiced Ex GST", "GST", "Inc GST",
                       "WIP Movement", "Revenue Recognised", "Xero Revenue (type in)",
                       "Variance", "Check"])
-    r0 = 8
+    r0 = MONTH_END_R0
     for i, cc in enumerate(COST_CENTRES):
         r = r0 + i
         ws.cell(r, 1, cc).font = Font(bold=True, size=10)
-        ws.cell(r, 2).value = fx("=" + across("Ex GST", [("Month", "$C$4"),
-                                                         ("Cost Centre", f"$A{r}")]))
-        ws.cell(r, 3).value = fx("=" + across("GST", [("Month", "$C$4"),
-                                                      ("Cost Centre", f"$A{r}")]))
+        ws.cell(r, 2).value = fx("=" + by_cost_centre("Ex GST", "Video Revenue", r))
+        ws.cell(r, 3).value = fx("=" + by_cost_centre("GST", "Video GST", r))
         ws.cell(r, 4).value = f"=B{r}+C{r}"
         ws.cell(r, 5).value = fx(f"=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4,"
                                  f"tbl_WIP[Cost Centre],$A{r})")
@@ -692,10 +753,63 @@ def build_month_end(wb):
     return ws, tot
 
 
+VIDEO_PANEL = [
+    ("Video revenue (ex GST)",
+     'SUMIFS(tbl_Production[Video Revenue],tbl_Production[Month],$C$4)', CUR),
+    ("Production revenue (ex GST)",
+     'SUMIFS(tbl_Production[Production Revenue],tbl_Production[Month],$C$4)', CUR),
+    ("Total Production sheet revenue (ex GST)", None, CUR),
+    ("Video as a share of the Production sheet", None, PCT),
+    # counts credit notes too, which a ">0" criterion would miss
+    ("Jobs with a video component",
+     'SUMPRODUCT(--(tbl_Production[Month]=$C$4),'
+     '--(IFERROR(tbl_Production[Video Revenue]*1,0)<>0))', INT),
+    ("Video hours (filming + editing + project management)",
+     'SUMPRODUCT(--(tbl_Production[Month]=$C$4),'
+     'IFERROR(tbl_Production[Video Filming Hrs]*1,0)'
+     '+IFERROR(tbl_Production[Video Editing Hrs]*1,0)'
+     '+IFERROR(tbl_Production[Video Project Mgmt Hrs]*1,0))', NUM),
+]
+
+
+def build_video_panel(ws, tot):
+    """Video and production revenue for the month, off the split columns.
+
+    The two revenue lines add back to the Production sheet total, so this is the
+    same money as section 1 - just shown as the split the department books it in.
+    """
+    s = tot + 2
+    band(ws, s, "2.  VIDEO / PRODUCTION SPLIT  -  from the Production sheet")
+    col_heads(ws, s + 1, ["", "Amount", "", "", "", "", "", "", ""])
+    b = s + 2
+    for i, (label, formula, fmt) in enumerate(VIDEO_PANEL):
+        r = b + i
+        ws.cell(r, 1, label).font = Font(size=10, bold=formula is None)
+        vc = ws.cell(r, 2)
+        vc.number_format, vc.border = fmt, BOX
+        if formula:
+            vc.value, vc.fill = fx("=" + formula), CALC_FILL
+        elif label.startswith("Total"):
+            vc.value = f"=B{b}+B{b + 1}"
+            vc.fill = PatternFill("solid", fgColor=LIGHT)
+            vc.font = Font(bold=True, size=10, color=NAVY)
+        else:
+            vc.value = f'=IFERROR(B{b}/B{b + 2},"")'
+            vc.fill = PatternFill("solid", fgColor=LIGHT)
+            vc.font = Font(bold=True, size=10, color=NAVY)
+    note = b + len(VIDEO_PANEL)
+    ws.cell(note, 1,
+            "Video revenue is typed on the Production sheet (column T). Production "
+            "Revenue next to it is the remainder, so one figure does the whole split."
+            ).font = Font(size=9, italic=True, color="808080")
+    return note
+
+
 def build_month_end_rest(ws, tot):
-    # ---------------- 2. WIP reconciliation
+    tot = build_video_panel(ws, tot)
+    # ---------------- 3. WIP reconciliation
     s2 = tot + 2
-    band(ws, s2, "2.  WORK IN PROGRESS  -  GL 11300")
+    band(ws, s2, "3.  WORK IN PROGRESS  -  GL 11300")
     col_heads(ws, s2 + 1, ["", "Amount", "", "", "", "", "", "", "Check"])
     b = s2 + 2
     # A blank Month would otherwise count as zero and fall into the opening
@@ -746,7 +860,7 @@ def build_month_end_rest(ws, tot):
 
     # ---------------- 3. data checks
     s3 = sign + 2
-    band(ws, s3, "3.  DATA CHECKS  -  every count should be zero before you close")
+    band(ws, s3, "4.  DATA CHECKS  -  every count should be zero before you close")
     col_heads(ws, s3 + 1, ["Check", "Count", "", "", "", "", "", "", "Status"])
     cb = s3 + 2
     for i, (label, formula) in enumerate(CHECKS):
@@ -786,7 +900,7 @@ def build_month_end_rest(ws, tot):
 
     # ---------------- 4. sign-off
     s4 = money + 2
-    band(ws, s4, "4.  SIGN-OFF")
+    band(ws, s4, "5.  SIGN-OFF")
     for i, (label, who) in enumerate([("Prepared by", "Accounts Assistant"),
                                       ("Reviewed by", "Finance Operations Manager"),
                                       ("Date closed", ""),
@@ -880,7 +994,7 @@ README = [
        "Read-only. Stacks all four department sheets into one list of 19 columns. Filter by team, cost centre, "
        "month, status or free text. Rebuilds instantly - there is nothing to refresh."),
  ("R", "Month-End",
-       "The close. Revenue by cost centre against Xero, the WIP reconciliation, thirteen data checks, and a sign-off box."),
+       "The close. Revenue by cost centre against Xero, the video/production split, the WIP reconciliation, sixteen data checks, and a sign-off box."),
  ("R", "WIP Summary",
        "WIP opening / movement / closing for every job, for the selected month, so you can tie job by job back to the WIP Schedule file."),
  ("R", "Lists",
@@ -892,6 +1006,23 @@ README = [
        "Department-specific columns start at column T and Finance ignores them. "
        "If you add a fifth department, copy any department sheet, keep columns A to S as they are, name the table, "
        "and add it to the Finance formula."),
+ ("B", ""),
+ ("H", "VIDEO REVENUE  -  how the Production sheet splits it"),
+ ("P", "An invoice can carry both production and video work, and in Xero those are two different Cost "
+       "Centres on the same invoice. So the Production sheet splits the money rather than the row."),
+ ("P", "   Video Revenue (column T) is the only figure you type. It is the ex-GST portion of the invoice "
+       "coded to VIDEO in Xero. Leave it blank for a job with no video."),
+ ("P", "   Production Revenue (column U) is the remainder, worked out for you."),
+ ("P", "   Video Split (column V) tells you what the row is: All production, Split, All video, or CHECK "
+       "if the numbers do not add up. Amber means split, red means something is wrong."),
+ ("P", "   Video GST (column W) apportions the GST the same way, so Inc GST still adds up on every line "
+       "of the Month-End breakdown."),
+ ("P", "For a pure video job set Cost Centre to VIDEO and put the full invoice in Video Revenue. The check "
+       "flags it if you set VIDEO but do not split the whole amount. The Cost Centre dropdown on this sheet "
+       "is limited to PRODUCTION and VIDEO - anything else belongs on another sheet."),
+ ("P", "Month-End section 1 reads these two columns for the PRODUCTION and VIDEO lines, so video revenue "
+       "reconciles against the VIDEO cost centre in Xero. The two lines always add back to the Production "
+       "sheet total, so nothing can leak between them. Section 2 shows the split for the month on its own."),
  ("B", ""),
  ("H", "THE WIP SIGN RULE  -  read this once and it will always make sense"),
  ("P", "One signed Amount column does both jobs, because GL 11300 nets accrued and deferred revenue."),
@@ -1000,7 +1131,9 @@ def main():
         formulas = dict(CORE_FORMULAS)
         formulas.update(EXTRA_FORMULAS.get(name, {}))
         build_entry_sheet(wb, name, CORE + EXTRA[name], formulas, name,
-                          data[name], TABLES[name], BLURB[name])
+                          data[name], TABLES[name], BLURB[name],
+                          dv_override={"Cost Centre": "lst_CostCentrePrd"}
+                          if name == "Production" else None)
     build_entry_sheet(
         wb, "WIP Movements", WIP_COLS, WIP_FORMULAS, None, migrate_wip(), "tbl_WIP",
         "Every journal that moves revenue between the P&L and GL 11300 Work in Progress. "
