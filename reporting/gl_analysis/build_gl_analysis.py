@@ -4,6 +4,12 @@ Build the GL Month-on-Month / Year-on-Year Analysis workbook.
 Design rule: the only sheets anyone types into are Setup, GL_Data and
 COA_Mapping. Data_Engine aggregates once (account x period) and every
 analysis sheet reads the engine, so the whole pack refreshes from one paste.
+
+
+Build order matters: build, then recalculate, THEN run
+reporting/tools/fix_outline.py. LibreOffice drops the outline properties when it
+recalculates, and without them Excel puts the collapse buttons on the wrong rows.
+    python3 reporting/tools/fix_outline.py "<the .xlsx>" "Summary,MoM_Analysis,YoY_Analysis"
 """
 import json
 from pathlib import Path

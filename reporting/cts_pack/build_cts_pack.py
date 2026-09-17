@@ -7,6 +7,12 @@ the budget and the hours; every other sheet is formulas off those three.
 
 Sign convention follows the existing pack: Amount = Credit - Debit, so income
 is positive, costs are negative, and any total is a contribution.
+
+
+Build order matters: build, then recalculate, THEN run
+reporting/tools/fix_outline.py. LibreOffice drops the outline properties when it
+recalculates, and without them Excel puts the collapse buttons on the wrong rows.
+    python3 reporting/tools/fix_outline.py "<the .xlsx>" "Dept_PL"
 """
 import json
 from pathlib import Path

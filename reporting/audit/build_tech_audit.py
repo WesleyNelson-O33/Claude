@@ -4,6 +4,12 @@ Standalone audit report: discretionary technology spend, FY2027 to date.
 Self-contained on purpose - no links to any other workbook, base data written
 as values so nothing can break in transit, subtotals left as formulas so the
 recipient can see each schedule foots.
+
+
+Build order matters: build, then recalculate, THEN run
+reporting/tools/fix_outline.py. LibreOffice drops the outline properties when it
+recalculates, and without them Excel puts the collapse buttons on the wrong rows.
+    python3 reporting/tools/fix_outline.py "<the .xlsx>" "Supplier Analysis"
 """
 import json
 from pathlib import Path
@@ -240,42 +246,94 @@ for h, b in notes:
 print("basis + summary built")
 
 # ===========================================================================
-# 3. SUPPLIER ANALYSIS
+# 3. SUPPLIER ANALYSIS  - drill-down: supplier, then account, then the lines
 # ===========================================================================
+from openpyxl.worksheet.properties import Outline
 sp = sheet("Supplier Analysis")
-title(sp, "Supplier analysis", SUBTITLE)
-widths(sp, {"A": 46, "B": 16, "C": 12, "D": 10, "E": 46})
-header(sp, 5, ["Supplier", "Amount", "% of total", "Lines", "Accounts the spend is recorded against"])
-by_sup = defaultdict(float); sup_lines = defaultdict(int); sup_accs = defaultdict(set)
+title(sp, "Supplier analysis", SUBTITLE +
+      "  -  use the + and - buttons in the left margin to open a supplier down to its ledger lines")
+widths(sp, {"A": 52, "B": 15, "C": 11, "D": 8, "E": 42, "F": 15, "G": 20, "H": 24, "I": 13, "J": 17})
+header(sp, 5, ["Supplier  /  account  /  transaction date", "Amount", "% of total", "Lines",
+               "Description", "Invoice no.", "Reference", "Job number", "Cost centre", "Source"])
+sp.freeze_panes = "A6"
+
+by_sup = defaultdict(list)
 for t in txns:
-    k = t["supplier"] or "(no supplier name recorded on the ledger line)"
-    by_sup[k] += t["amount"]; sup_lines[k] += 1; sup_accs[k].add(t["account"])
+    by_sup[t["supplier"] or "(no supplier name recorded on the ledger line)"].append(t)
+order = sorted(by_sup, key=lambda k: -sum(x["amount"] for x in by_sup[k]))
+
 r = 6
-SUP_R0 = r
-for k, v in sorted(by_sup.items(), key=lambda kv: -kv[1]):
-    blank = k.startswith("(no supplier")
-    for i, val in enumerate([k, round(v, 2), None, sup_lines[k], ", ".join(sorted(sup_accs[k]))]):
-        c = sp.cell(row=r, column=1 + i, value=val)
-        c.font = Font(name=TNR, size=10, bold=blank, color=("9C0006" if blank else "000000"))
-        c.border = BOX
-        if i == 1: c.number_format = MONEY
-        if i == 3: c.alignment = Alignment(horizontal="center")
-        if i == 4: c.alignment = Alignment(wrap_text=True, vertical="top")
-    sp.cell(row=r, column=3, value=f"=B{r}/$B${{TOT}}").number_format = PCT
-    sp.cell(row=r, column=3).font = Font(name=TNR, size=10)
-    sp.cell(row=r, column=3).border = BOX
+SUP_ROWS = []
+for sup in order:
+    items = by_sup[sup]
+    blank = sup.startswith("(no supplier")
+    sup_row = r
+    SUP_ROWS.append(sup_row)
+    c = sp.cell(row=r, column=1, value=sup)
+    c.font = Font(name=TNR, size=11, bold=True, color=("9C0006" if blank else NAVY))
+    for col in range(1, 11):
+        sp.cell(row=r, column=col).fill = BANDF
+        sp.cell(row=r, column=col).border = BOX
+    sp.cell(row=r, column=4, value=len(items)).alignment = Alignment(horizontal="center")
+    sp.cell(row=r, column=4).font = Font(name=TNR, size=11, bold=True)
     r += 1
-SUP_R1 = r - 1
-sp.cell(row=r, column=1, value="Total").font = Font(name=TNR, size=11, bold=True)
-for col, f in ((2, f"=SUM(B{SUP_R0}:B{SUP_R1})"), (3, None), (4, f"=SUM(D{SUP_R0}:D{SUP_R1})")):
-    if f is None: continue
-    c = sp.cell(row=r, column=col, value=f)
-    c.font = Font(name=TNR, size=11, bold=True); c.border = BOX; c.fill = TOTF
-    c.number_format = MONEY if col == 2 else '#,##0'
-    if col == 4: c.alignment = Alignment(horizontal="center")
+    acc_rows = []
+    per_acc = defaultdict(list)
+    for t in items:
+        per_acc[t["account"]].append(t)
+    for acc in sorted(per_acc, key=lambda a: -sum(x["amount"] for x in per_acc[a])):
+        rows_a = per_acc[acc]
+        acc_row = r
+        acc_rows.append(acc_row)
+        c = sp.cell(row=r, column=1, value=f"    {acc}")
+        c.font = Font(name=TNR, size=10, bold=True)
+        sp.cell(row=r, column=4, value=len(rows_a)).alignment = Alignment(horizontal="center")
+        for col in range(1, 11):
+            sp.cell(row=r, column=col).fill = TOTF
+            sp.cell(row=r, column=col).border = BOX
+        sp.row_dimensions[r].outlineLevel = 1
+        sp.row_dimensions[r].collapsed = True
+        r += 1
+        line_rows = []
+        for t in sorted(rows_a, key=lambda x: (x["date"] or 0)):
+            line_rows.append(r)
+            vals = [t["date"], t["amount"], None, None, t["description"], t["invoice"],
+                    t["reference"], t["job"], t["cost_centre"], t["source"]]
+            for i, v in enumerate(vals):
+                cc = sp.cell(row=r, column=1 + i, value=v)
+                cc.font = Font(name=TNR, size=9)
+                cc.border = BOX
+                if i == 0: cc.number_format = DATEF
+                if i == 1: cc.number_format = MONEY
+            sp.row_dimensions[r].outlineLevel = 2
+            sp.row_dimensions[r].hidden = True
+            r += 1
+        cc = sp.cell(row=acc_row, column=2,
+                     value="=" + "+".join(f"B{x}" for x in line_rows))
+        cc.font = Font(name=TNR, size=10, bold=True); cc.number_format = MONEY; cc.border = BOX
+    cc = sp.cell(row=sup_row, column=2, value="=" + "+".join(f"B{x}" for x in acc_rows))
+    cc.font = Font(name=TNR, size=11, bold=True, color=("9C0006" if blank else "000000"))
+    cc.number_format = MONEY; cc.border = BOX
+
 SUP_TOT = r
-for rr in range(SUP_R0, SUP_R1 + 1):
-    sp.cell(row=rr, column=3).value = f"=B{rr}/$B${SUP_TOT}"
+sp.cell(row=r, column=1, value="Total").font = Font(name=TNR, size=11, bold=True, color=WHITE)
+cc = sp.cell(row=r, column=2, value="=" + "+".join(f"B{x}" for x in SUP_ROWS))
+cc.font = Font(name=TNR, size=11, bold=True, color=WHITE); cc.number_format = MONEY
+cc = sp.cell(row=r, column=4, value=f"={len(txns)}")
+cc.font = Font(name=TNR, size=11, bold=True, color=WHITE)
+cc.alignment = Alignment(horizontal="center")
+for col in range(1, 11): sp.cell(row=r, column=col).fill = HEAD
+for x in SUP_ROWS:
+    cc = sp.cell(row=x, column=3, value=f"=B{x}/$B${SUP_TOT}")
+    cc.font = Font(name=TNR, size=11, bold=True); cc.number_format = PCT; cc.border = BOX
+r += 2
+n = sp.cell(row=r, column=1, value=(
+    "Each supplier total is the sum of its account rows, and each account row is the sum of the "
+    "ledger lines beneath it, so the schedule foots at every level. Open a supplier with the + button "
+    "to see the lines that make up its total. The same lines appear on the Transaction Listing."))
+n.font = Font(name=TNR, size=9, italic=True, color=MUTED)
+n.alignment = Alignment(wrap_text=True, vertical="top")
+sp.merge_cells(start_row=r, start_column=1, end_row=r + 1, end_column=10)
 
 # ===========================================================================
 # 4. MONTHLY ANALYSIS
@@ -413,6 +471,10 @@ for s in wb.worksheets:
     s.oddFooter.center.text = "Corporate Technology Services Pty Ltd  -  Discretionary technology spend  -  FY2027 year to date  -  Page &P of &N"
     s.oddFooter.center.size = 8
 wb["Transaction Listing"].print_title_rows = "5:5"
+wb["Supplier Analysis"].print_title_rows = "5:5"
+# summary row sits above its detail, so Excel must be told, or the +/- land wrong
+wb["Supplier Analysis"].sheet_properties.outlinePr = Outline(
+    summaryBelow=False, summaryRight=False, applyStyles=False)
 wb.active = 0
 OUT.parent.mkdir(parents=True, exist_ok=True)
 wb.save(OUT)
