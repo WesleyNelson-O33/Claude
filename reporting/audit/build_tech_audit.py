@@ -220,10 +220,12 @@ notes = [
      "being 64.7% of the total. That expenditure is recorded across two accounts, IT Network Service "
      "& Support and Dues & Subscriptions. See the Supplier Analysis schedule."),
     ("Note 4 - period covered",
-     f"Actual amounts cover {PERIODS} months of a twelve month financial year. The annualised run "
-     "rate column extrapolates the year-to-date actual evenly across twelve months. It is an "
-     "arithmetic extrapolation only and makes no allowance for seasonality, timing of renewals or "
-     "known future commitments."),
+     f"These figures cover July and August only, which is {PERIODS} months of a twelve month year. "
+     "The annualised run rate column takes what has been spent so far, divides it by "
+     f"{PERIODS} and multiplies by twelve, so it assumes the rest of the year looks like the first "
+     f"{PERIODS} months. It makes no allowance for quieter or busier periods, for annual renewals "
+     "that fall due later in the year, or for spending already committed but not yet incurred. "
+     "Treat it as a rough indicator, not a forecast."),
 ]
 for h, b in notes:
     c = sm.cell(row=r, column=1, value=h)
