@@ -279,14 +279,13 @@ def stack():
 # LET variable names must not look like cell references. "f1".."f5" ARE cells
 # F1:F5, and naming them that returns #VALUE! - which is why the whole Finance
 # sheet came back empty. Names here are deliberately un-reference-like.
-CRIT = ('keep,--((CHOOSECOLS(dat,1)&CHOOSECOLS(dat,5)&CHOOSECOLS(dat,10)&CHOOSECOLS(dat,12))<>""),'
+CRIT = ('keep,--((CHOOSECOLS(dat,1)<>"")+(CHOOSECOLS(dat,5)<>"")'
+        '+(CHOOSECOLS(dat,10)<>"")+(CHOOSECOLS(dat,12)<>"")>0),'
         'fTeam,IF($A$5="All",1,--(CHOOSECOLS(dat,3)=$A$5)),'
         'fCC,IF($C$5="All",1,--(CHOOSECOLS(dat,4)=$C$5)),'
         'fMonth,IF($E$5="All",1,--(CHOOSECOLS(dat,2)=$E$5)),'
         'fStat,IF($G$5="All",1,--(CHOOSECOLS(dat,18)=$G$5)),'
-        'fFind,IF($I$5="",1,--ISNUMBER(SEARCH($I$5,CHOOSECOLS(dat,5)&"|"&CHOOSECOLS(dat,6)'
-        '&"|"&CHOOSECOLS(dat,8)&"|"&CHOOSECOLS(dat,10)))),'
-        'flag,keep*fTeam*fCC*fMonth*fStat*fFind,')
+        'flag,keep*fTeam*fCC*fMonth*fStat,')
 
 
 def across(val, pairs, tables=None):
@@ -685,6 +684,77 @@ ISSUE = ('dte,CHOOSECOLS(dat,1),job,CHOOSECOLS(dat,6),xer,CHOOSECOLS(dat,7),'
          'IF((exg<>"")*(glc=""),"No revenue GL code","")))))),')
 
 
+
+CHECK_TESTS = [
+    ("Does this Excel have the new array functions?", '_ok_', None),
+    ("1  rows in the Onsite table", 'ROWS(tbl_Onsite[#Data])', "54"),
+    ("2  columns in the Onsite table", 'COLUMNS(tbl_Onsite[#Data])', "23"),
+    ("3  CHOOSECOLS picks 3 columns", 'COLUMNS(CHOOSECOLS(tbl_Onsite[#Data],1,2,3))', "3"),
+    ("4  CHOOSECOLS picks 19 columns", 'COLUMNS(CHOOSECOLS(tbl_Onsite[#Data],1,2,3,4,5,6,7,8,'
+     '9,10,11,12,13,14,15,16,17,18,19))', "19"),
+    ("5  VSTACK of two tables", 'ROWS(VSTACK(CHOOSECOLS(tbl_Onsite[#Data],1,2),'
+     'CHOOSECOLS(tbl_Production[#Data],1,2)))', "115"),
+    ("6  rows in the full stack", 'ROWS(@@)', "150"),
+    ("7  columns in the full stack", 'COLUMNS(@@)', "19"),
+    ("8  LET returns the stack", 'LET(dat,@@,ROWS(dat))', "150"),
+    ("9  rows with any content", 'LET(dat,@@,SUM(--((CHOOSECOLS(dat,1)<>"")'
+     '+(CHOOSECOLS(dat,5)<>"")+(CHOOSECOLS(dat,10)<>"")+(CHOOSECOLS(dat,12)<>"")>0)))', "149"),
+    ("10 one filter flag", 'LET(dat,@@,SUM(IF(Finance!$A$5="All",1,'
+     '--(CHOOSECOLS(dat,3)=Finance!$A$5))))', "1"),
+    ("11 FILTER returns rows", 'LET(dat,@@,keep,--((CHOOSECOLS(dat,1)<>"")'
+     '+(CHOOSECOLS(dat,5)<>"")+(CHOOSECOLS(dat,10)<>"")+(CHOOSECOLS(dat,12)<>"")>0),'
+     'ROWS(FILTER(dat,keep=1,"none")))', "149"),
+    ("12 SORT on the date column", 'LET(dat,@@,keep,--((CHOOSECOLS(dat,1)<>"")'
+     '+(CHOOSECOLS(dat,5)<>"")+(CHOOSECOLS(dat,10)<>"")+(CHOOSECOLS(dat,12)<>"")>0),'
+     'ROWS(SORT(FILTER(dat,keep=1,"none"),1,-1)))', "149"),
+    ("13 text search across columns", 'LET(dat,@@,SUM(--ISNUMBER(SEARCH("a",'
+     'CHOOSECOLS(dat,5)&"|"&CHOOSECOLS(dat,6)))))', "a number"),
+    ("14 total Ex GST in the stack", 'LET(dat,@@,SUMPRODUCT(IFERROR('
+     'CHOOSECOLS(dat,12)*1,0)))', "1,830,857.54"),
+]
+
+
+def build_check(wb):
+    """A stage-by-stage test of what the Finance sheet depends on.
+
+    Finance is one long formula, so when it returns an error there is no way to
+    see which part failed. Each line here is the same work broken into a single
+    step: the first one showing an error is the step that this Excel cannot do.
+    """
+    ws = wb.create_sheet("Check", 0)
+    title_block(ws, "Check - is this Excel able to run the Finance sheet?",
+                "Send a picture of this tab. The first line showing an error is the one "
+                "that matters. Delete this sheet once Finance is working.")
+    ws.column_dimensions["A"].width = 46
+    ws.column_dimensions["B"].width = 20
+    ws.column_dimensions["C"].width = 22
+    for i, h in enumerate(("Step", "Result", "Should be"), start=1):
+        c = ws.cell(4, i, h)
+        c.font = Font(bold=True, color="FFFFFF", size=10)
+        c.fill = PatternFill("solid", fgColor=NAVY)
+        c.alignment = Alignment(horizontal="center", vertical="center")
+        c.border = BOX
+    for i, (label, formula, expect) in enumerate(CHECK_TESTS):
+        r = 5 + i
+        ws.cell(r, 1, label).font = Font(size=10)
+        vc = ws.cell(r, 2)
+        if formula == "_ok_":
+            vc.value = fx('=IFERROR(IF(COLUMNS(VSTACK(1,1))=1,"yes","yes"),"NO - too old")')
+        else:
+            vc.value = fx("=" + formula.replace("@@", stack()))
+        vc.border = BOX
+        vc.fill = CALC_FILL
+        vc.alignment = Alignment(horizontal="center")
+        vc.font = Font(bold=True, size=10)
+        vc.number_format = "#,##0.00" if "Ex GST" in label else "General"
+        ec = ws.cell(r, 3, expect or "yes")
+        ec.font = Font(size=10, italic=True, color="808080")
+        ec.alignment = Alignment(horizontal="center")
+        ec.border = BOX
+        ws.cell(r, 1).border = BOX
+    ws.freeze_panes = "A5"
+
+
 def build_finance(wb):
     ws = wb.create_sheet("Finance", 1)
     title_block(ws, "Finance - All Departments",
@@ -752,8 +822,8 @@ def build_finance(wb):
     ws.row_dimensions[7].height = 34
     ws["A8"] = fx(
         f"=LET(dat,{stack()},{CRIT}"
-        'SORT(FILTER(dat,flag=1,"No records match these filters - widen them '
-        'or check the department sheets"),1,-1))')
+        'FILTER(dat,flag=1,"No records match these filters - widen them '
+        'or check the department sheets"))')
     ws.freeze_panes = "A8"
 
 
@@ -1312,17 +1382,18 @@ def main():
         "deferred out of this month (WIP balance down). One row per job per month.")
 
     build_finance(wb)
+    build_check(wb)
     build_data_issues(wb)
     ws, tot = build_month_end(wb)
     build_month_end_rest(ws, tot)
     build_wip_summary(wb)
     build_readme(wb)
 
-    colours = {"Read Me": "7F7F7F", "Finance": NAVY, "Month-End": "2E6B4F",
+    colours = {"Check": "C00000", "Read Me": "7F7F7F", "Finance": NAVY, "Month-End": "2E6B4F",
                "WIP Summary": "2E6B4F", "Data Issues": "8B2B2B", "Onsite": SLATE, "Production": SLATE,
                "Consulting": SLATE, "Other": SLATE, "WIP Movements": "8B6A2B",
                "Lists": "A6A6A6"}
-    order = ["Read Me", "Finance", "Month-End", "Data Issues", "WIP Summary",
+    order = ["Check", "Read Me", "Finance", "Month-End", "Data Issues", "WIP Summary",
              "Onsite", "Production",
              "Consulting", "Other", "WIP Movements", "Lists"]
     for name, colour in colours.items():
