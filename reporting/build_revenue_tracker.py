@@ -52,6 +52,7 @@ _XLWS = ["FILTER", "SORT"]          # worksheet-scoped: _xlfn._xlws.NAME
 LET_NAMES = {
     "dat", "keep", "fTeam", "fCC", "fMonth", "fStat", "fFind", "flag",
     "cnt", "tot", "exg", "gst", "inc", "mth", "job", "opn", "mvt", "arr", "uni",
+    "dte", "xer", "inv", "tax", "glc", "pst", "iss",
 }
 
 
@@ -170,8 +171,9 @@ EXTRA = {
         ("Client Email", 30, TXT, "in"), ("Event Date", 12, DATE, "in"),
         ("Current RMS No", 14, TXT, "in"), ("Zoho Number", 14, TXT, "in"),
         ("Job Closed", 11, TXT, "dv"), ("Discounts Included", 17, CUR, "in"),
-        ("Discount %", 11, PCT, "f"), ("Cross Hire Expense", 17, CUR, "in"),
-        ("Labour Expense (Internal)", 22, CUR, "in"), ("Net Total", 14, CUR, "f"),
+        ("Value Before Discount", 20, CUR, "f"), ("Discount %", 11, PCT, "f"),
+        ("Cross Hire Expense", 17, CUR, "in"),
+        ("Labour Expense (Internal)", 22, CUR, "in"),
         ("Margin", 14, CUR, "f"), ("Margin %", 10, PCT, "f"),
         ("Video Filming Hrs", 15, NUM, "in"), ("Video Editing Hrs", 15, NUM, "in"),
         ("Project Mgmt Hrs", 15, NUM, "in"), ("Video Project Mgmt Hrs", 19, NUM, "in"),
@@ -205,8 +207,12 @@ EXTRA_FORMULAS = {
             '"CHECK - VIDEO job not fully split",'
             'IF(N({Video Revenue})=0,"All production",'
             'IF(ROUND(N({Video Revenue}),2)=ROUND({Ex GST},2),"All video","Split"))))))',
-        "Discount %": '=IFERROR({Discounts Included}/{Net Total},"")',
-        "Net Total": '=IF({Ex GST}="","",{Ex GST}-N({Discounts Included}))',
+        # Ex GST is what Xero holds, so the discount was taken off before the
+        # invoice was raised. Value Before Discount is what the job was worth
+        # with it added back; subtracting it again (the old "Net Total") gave a
+        # figure that matched neither Xero nor the list price.
+        "Value Before Discount": '=IF({Ex GST}="","",{Ex GST}+N({Discounts Included}))',
+        "Discount %": '=IFERROR({Discounts Included}/{Value Before Discount},"")',
         "Margin": '=IF({Ex GST}="","",{Ex GST}-N({Cross Hire Expense})'
                   '-N({Labour Expense (Internal)}))',
         "Margin %": '=IFERROR({Margin}/{Ex GST},"")',
@@ -668,6 +674,17 @@ def build_entry_sheet(wb, name, cols, formulas, team, rows, tblname, blurb,
 
 
 # --------------------------------------------------------------------------
+ISSUE = ('dte,CHOOSECOLS(dat,1),job,CHOOSECOLS(dat,6),xer,CHOOSECOLS(dat,7),'
+         'inv,CHOOSECOLS(dat,10),tax,CHOOSECOLS(dat,11),exg,CHOOSECOLS(dat,12),'
+         'glc,CHOOSECOLS(dat,15),pst,CHOOSECOLS(dat,16),'
+         'iss,IF(dte="","No date - this row sits outside every month",'
+         'IF(job="","No job number",'
+         'IF(xer="CHECK","Job number is not in the Xero job list",'
+         'IF((pst="Y")*(inv=""),"Marked posted to Xero but has no invoice number",'
+         'IF((exg<>"")*(tax=""),"No tax code",'
+         'IF((exg<>"")*(glc=""),"No revenue GL code","")))))),')
+
+
 def build_finance(wb):
     ws = wb.create_sheet("Finance", 1)
     title_block(ws, "Finance - All Departments",
@@ -781,6 +798,56 @@ CHECKS = [
     ('Still sitting at "To Invoice" for the selected month',
      count_across([("Month", "$C$4"), ("Status", '"To Invoice"')])),
 ]
+
+
+
+def build_data_issues(wb):
+    """Every row that fails a check, named rather than merely counted.
+
+    Month-End reports that 21 rows have an amount but no date; this is the list
+    of which ones, so somebody can actually work through them.
+    """
+    ws = wb.create_sheet("Data Issues", 3)
+    title_block(ws, "Data Issues",
+                "Every invoice row that fails one of the month-end checks, worst first. "
+                "Fix them on the department sheet the row came from - this list is one "
+                "formula and clears itself as they are corrected.")
+    ws.merge_cells("A4:G4")
+    ws["A4"] = fx('="Rows needing attention: "&TEXT(LET(dat,' + stack() + ','
+                  'keep,--((CHOOSECOLS(dat,1)&CHOOSECOLS(dat,5)&CHOOSECOLS(dat,10)'
+                  '&CHOOSECOLS(dat,12))<>""),' + ISSUE + 'SUM(keep*--(iss<>""))),"#,##0")'
+                  '&"      Value with no date: "&TEXT(' +
+                  "+".join(f'SUMPRODUCT(--({t}[Date]=""),IFERROR({t}[Ex GST]*1,0))'
+                           for t in REV) + ',"$#,##0.00")')
+    ws["A4"].font = Font(bold=True, size=11, color=NAVY)
+    ws["A4"].fill = PatternFill("solid", fgColor=LIGHT)
+    ws["A4"].alignment = Alignment(horizontal="left", vertical="center", indent=1)
+    ws["A4"].border = BOX
+    ws.row_dimensions[4].height = 22
+
+    heads = [("Team", 13, TXT), ("Date", 11, DATE), ("Client", 26, TXT),
+             ("Job Number", 15, TXT), ("Xero Invoice No", 16, TXT),
+             ("Ex GST", 14, CUR), ("What is wrong", 46, TXT)]
+    for i, (h, w, fmt) in enumerate(heads, start=1):
+        c = ws.cell(6, i, h)
+        c.font = Font(bold=True, color="FFFFFF", size=10)
+        c.fill = PatternFill("solid", fgColor=NAVY)
+        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        c.border = BOX
+        dim = ws.column_dimensions[gcl(i)]
+        dim.width, dim.number_format, dim.font = w, fmt, Font(size=10)
+    ws.row_dimensions[6].height = 30
+    ws["A7"] = fx(
+        '=LET(dat,' + stack() + ','
+        'keep,--((CHOOSECOLS(dat,1)&CHOOSECOLS(dat,5)&CHOOSECOLS(dat,10)'
+        '&CHOOSECOLS(dat,12))<>""),' + ISSUE +
+        'flag,keep*--(iss<>""),'
+        'SORT(FILTER(HSTACK(CHOOSECOLS(dat,3),dte,CHOOSECOLS(dat,5),job,inv,exg,iss),'
+        'flag=1,"Nothing to fix - every row passes"),7))')
+    ws.freeze_panes = "A7"
+    ws.conditional_formatting.add("G7:G2000", FormulaRule(
+        formula=['ISNUMBER(SEARCH("no date",G7))'],
+        fill=PatternFill("solid", fgColor=BAD)))
 
 
 def build_month_end(wb):
@@ -1090,6 +1157,8 @@ README = [
        "month, status or free text. Rebuilds instantly - there is nothing to refresh."),
  ("R", "Month-End",
        "The close. Revenue by cost centre against Xero, the video/production split, the WIP reconciliation, sixteen data checks, and a sign-off box."),
+ ("R", "Data Issues",
+       "Every invoice row that fails a month-end check, named rather than counted - no date, no job number, a job number Xero does not have, and so on. Work this list to zero before you close."),
  ("R", "WIP Summary",
        "WIP opening / movement / closing for every job, for the selected month, so you can tie job by job back to the WIP Schedule file."),
  ("R", "Lists",
@@ -1157,12 +1226,19 @@ README = [
        "Consulting 42800, Integration 42300). Spot-check these - they are a starting point, not gospel."),
  ("P", "   The 126 migrated WIP rows were given a Type based on the sign of the amount. Confirm those before you rely on them."),
  ("B", ""),
- ("W", "TWO THINGS TO CONFIRM BEFORE YOU RELY ON THIS"),
- ("P", "Production revenue basis. The old Dashboard reported Production on \"Net Total\", which is Invoice Value "
-       "minus Discounts Included - $415,476.74 against an invoice value of $460,883.46, a gap of $45,406.72. "
-       "Xero holds the invoice value, so this workbook reconciles on Ex GST (invoice value) and keeps Net Total "
-       "as a separate management column. If the discount is applied inside the Xero invoice, Ex GST is the right "
-       "basis and the old Dashboard was under-reporting Production by the discount. Confirm this."),
+ ("H", "DISCOUNTS, AND WHY \"NET TOTAL\" IS GONE"),
+ ("P", "Checked against Xero: for all 17 August Production invoices carrying a discount, the ex-GST total on the "
+       "Xero invoice equals this workbook's Ex GST exactly. Not one matched Ex GST minus the discount. So the "
+       "discount is taken off before the invoice is raised, and Ex GST is what reconciles to the P&L."),
+ ("P", "That makes the old \"Net Total\" (Ex GST minus Discounts Included) a figure that matches neither Xero nor "
+       "the list price - on INV-10518 it gave $35.00 on a $500.00 invoice. It was also what the old Dashboard "
+       "reported Production on, which is why it showed $415,476.74 against $460,883.46 actually invoiced."),
+ ("P", "Net Total has been replaced by Value Before Discount (Ex GST plus Discounts Included) - what the job was "
+       "worth before the discount - and Discount % is now measured against that. ASSUMPTION: Discounts Included "
+       "records what was given away off standard rates. If it means something else, tell me and this is a "
+       "two-line change."),
+ ("B", ""),
+ ("W", "STILL TO CONFIRM"),
  ("P", "Undated rows. $93,346.99 across 21 migrated rows has an amount but no date, so it cannot belong to a month. "
        "They show on the department sheets and on Finance when the month filter is All, and Month-End reports "
        "the dollar value. Date them and the figure goes to zero."),
@@ -1236,16 +1312,18 @@ def main():
         "deferred out of this month (WIP balance down). One row per job per month.")
 
     build_finance(wb)
+    build_data_issues(wb)
     ws, tot = build_month_end(wb)
     build_month_end_rest(ws, tot)
     build_wip_summary(wb)
     build_readme(wb)
 
     colours = {"Read Me": "7F7F7F", "Finance": NAVY, "Month-End": "2E6B4F",
-               "WIP Summary": "2E6B4F", "Onsite": SLATE, "Production": SLATE,
+               "WIP Summary": "2E6B4F", "Data Issues": "8B2B2B", "Onsite": SLATE, "Production": SLATE,
                "Consulting": SLATE, "Other": SLATE, "WIP Movements": "8B6A2B",
                "Lists": "A6A6A6"}
-    order = ["Read Me", "Finance", "Month-End", "WIP Summary", "Onsite", "Production",
+    order = ["Read Me", "Finance", "Month-End", "Data Issues", "WIP Summary",
+             "Onsite", "Production",
              "Consulting", "Other", "WIP Movements", "Lists"]
     for name, colour in colours.items():
         wb[name].sheet_properties.tabColor = colour
