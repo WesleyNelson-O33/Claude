@@ -533,98 +533,170 @@ def build_pl(wb, subs, engine_index):
     return ws
 
 
-def build_summary(wb, subs, engine_index):
-    """Her column set: month, year to date, quarter and full year, each against budget.
-
-    Each figure is one SUMPRODUCT masking the Engine block by department, by
-    category and by month, rather than a formula per Engine row.
-    """
-    ws = wb.create_sheet("Summary")
-    style_title(ws, "Summary",
-                "Month, year to date, quarter and full year, each against budget. Calculated from the Engine.")
-    ws["A3"] = "=\"Reporting month: \"&TEXT(Setup!$B$5,\"mmm yyyy\")&\"   |   period \"&Setup!$B$8&\" of 12\""
-    ws["A3"].font = Font(name=FONT, size=10, bold=True, color="C00000")
-
-    cols = [
-        ("Line", 40), ("Month", 13), ("Month budget", 13), ("Var $", 13), ("Var %", 10),
-        ("YTD", 13), ("YTD budget", 13), ("Var $", 13), ("Var %", 10),
-        ("Quarter", 13), ("Quarter budget", 13), ("Var $", 13), ("Var %", 10),
-        ("Full year", 13), ("FY budget", 13), ("Var $", 13), ("Var %", 10),
-    ]
-    for i, (h, w) in enumerate(cols):
-        c = ws.cell(row=5, column=1 + i, value=h)
+def build_prior_year(wb, subs):
+    """Last year, same shape as the Engine, so the year on year block works.
+    Pasted once a year from the closed FY."""
+    ws = wb.create_sheet("Prior_Year")
+    style_title(ws, "Prior year  -  type or paste here once a year",
+                "Last financial year by department and subcategory. Same signs as the P&L. "
+                "Feeds the year on year block on the Summary.")
+    for i, h in enumerate(["Key", "Department", "Category", "Subcategory"]):
+        c = ws.cell(row=4, column=1 + i, value=h)
         c.font = HEAD
         c.fill = HEAD_FILL
-        ws.column_dimensions[get_column_letter(1 + i)].width = w
+    for i, (y, m) in enumerate(MONTHS):
+        c = ws.cell(row=4, column=5 + i, value=date(y - 1, m, 1))
+        c.font = HEAD
+        c.fill = HEAD_FILL
+        c.number_format = "mmm-yy"
+    ws.cell(row=4, column=17, value="FY total").font = HEAD
+    ws.cell(row=4, column=17).fill = HEAD_FILL
+    ws.column_dimensions["A"].width = 34
+    for col, w in (("B", 15), ("C", 15), ("D", 32)):
+        ws.column_dimensions[col].width = w
+    for i in range(len(MONTHS) + 1):
+        ws.column_dimensions[get_column_letter(5 + i)].width = 12
+    ws.freeze_panes = "E5"
+    ws.sheet_view.showGridLines = False
+    r = 5
+    for dept in DEPTS:
+        for cat, sub in subs:
+            ws.cell(row=r, column=1, value=f"{dept}|{sub}").font = BODY
+            ws.cell(row=r, column=2, value=dept).font = BODY
+            ws.cell(row=r, column=3, value=cat).font = BODY
+            ws.cell(row=r, column=4, value=sub).font = BODY
+            for i in range(len(MONTHS)):
+                c = ws.cell(row=r, column=5 + i)
+                c.number_format = MONEY
+                c.fill = YELLOW_FILL
+                c.font = INPUT_FONT
+            c = ws.cell(row=r, column=17,
+                        value=f"=SUM(E{r}:{get_column_letter(4 + len(MONTHS))}{r})")
+            c.number_format = MONEY
+            c.font = BOLD
+            r += 1
+    return ws
+
+
+def build_summary(wb, subs, engine_index):
+    """Three rolling months, then year to date, quarter and year on year,
+    laid out the way she sketched it and styled like the P&L."""
+    ws = wb.create_sheet("Summary")
+    style_title(ws, "Summary",
+                "Three rolling months, then year to date, the quarter and year on year. "
+                "Click the plus and minus buttons to open a department into its categories.")
+    ws["A3"] = ('=\"Reporting month: \"&TEXT(Setup!$B$5,\"mmm yyyy\")'
+                '&\"   |   period \"&Setup!$B$8&\" of 12\"')
+    ws["A3"].font = Font(name=FONT, size=10, bold=True, color="C00000")
+
+    # Column A, then her blocks. Blank spacer columns keep the blocks apart.
+    heads = [
+        ("A", "Line", 42), ("B", None, 13), ("C", None, 13), ("D", None, 13),
+        ("E", "YTD", 13), ("F", "YTD vs forecast", 14), ("G", "YTD vs budget", 14),
+        ("H", "Var $", 13), ("I", "Var %", 10), ("J", "", 3),
+        ("K", "Quarter", 13), ("L", "Quarter budget", 14), ("M", "Var $", 13), ("N", "Var %", 10),
+        ("O", "", 3),
+        ("P", "Last year YTD", 14), ("Q", "This year YTD", 14), ("R", "Var $", 13), ("S", "Var %", 10),
+    ]
+    for col, label, width in heads:
+        ws.column_dimensions[col].width = width
+        if label is not None:
+            c = ws[f"{col}5"]
+            c.value = label
+            c.font = HEAD
+            c.fill = HEAD_FILL
+            c.alignment = Alignment(horizontal="center", wrap_text=True)
+    # The three rolling months are formulas off the reporting month.
+    for col, offset in (("B", -2), ("C", -1), ("D", 0)):
+        c = ws[f"{col}5"]
+        c.value = f"=EDATE(Setup!$B$5,{offset})"
+        c.number_format = "mmm yyyy"
+        c.font = HEAD
+        c.fill = HEAD_FILL
+        c.alignment = Alignment(horizontal="center")
+    ws["B4"] = "Rolling three months"
+    ws["E4"] = "Year to date"
+    ws["K4"] = "Quarter"
+    ws["P4"] = "Year on year"
+    for col in ("B", "E", "K", "P"):
+        ws[f"{col}4"].font = Font(name=FONT, size=10, bold=True, color=NAVY)
     ws.freeze_panes = "B6"
     ws.sheet_view.showGridLines = False
 
     first, last = 5, 4 + len(DEPTS) * len(subs)
-    mfirst, mlast = "$E", "$P"
-    hdr = f"{{s}}!{mfirst}$4:{mlast}$4"
-    body = f"{{s}}!{mfirst}${first}:{mlast}${last}"
+    hdr = f"{{s}}!$E$4:$P$4"
+    body = f"{{s}}!$E${first}:$P${last}"
     deptcol = f"{{s}}!$B${first}:$B${last}"
     catcol = f"{{s}}!$C${first}:$C${last}"
-
     qstart = "DATE(YEAR(Setup!$B$5),FLOOR(MONTH(Setup!$B$5)-1,3)+1,1)"
     fystart = "DATE(Setup!$B$7-1,7,1)"
 
-    def measure(sheet, dept, cat, which):
-        masks = []
+    def measure(sheet, dept, cat, which, month_expr=None):
+        m = []
         if dept:
-            masks.append(f"({deptcol.format(s=sheet)}=\"{dept}\")")
+            m.append(f"({deptcol.format(s=sheet)}=\"{dept}\")")
         if cat:
-            masks.append(f"({catcol.format(s=sheet)}=\"{cat}\")")
+            m.append(f"({catcol.format(s=sheet)}=\"{cat}\")")
         h = hdr.format(s=sheet)
         if which == "month":
-            masks.append(f"({h}=Setup!$B$5)")
+            m.append(f"({h}={month_expr})")
         elif which == "ytd":
-            masks.append(f"({h}>={fystart})")
-            masks.append(f"({h}<=Setup!$B$5)")
+            m.append(f"({h}>={fystart})")
+            m.append(f"({h}<=Setup!$B$5)")
         elif which == "qtr":
-            masks.append(f"({h}>={qstart})")
-            masks.append(f"({h}<=Setup!$B$5)")
-        masks.append(body.format(s=sheet))
-        return "=SUMPRODUCT(" + "*".join(masks) + ")"
+            m.append(f"({h}>={qstart})")
+            m.append(f"({h}<=Setup!$B$5)")
+        elif which == "ytd_ly":
+            m.append(f"({h}>=DATE(Setup!$B$7-2,7,1))")
+            m.append(f"({h}<=EDATE(Setup!$B$5,-12))")
+        m.append(body.format(s=sheet))
+        return "=SUMPRODUCT(" + "*".join(m) + ")"
 
-    def write_row(r, label, dept, cat, bold=False, fill=None):
-        c = ws.cell(row=r, column=1, value=("    " if cat else "") + label)
-        c.font = BOLD if bold else BODY
-        if fill:
-            c.fill = fill
-        for grp, which in enumerate(("month", "ytd", "qtr", "fy")):
-            base = 2 + grp * 4
-            ws.cell(row=r, column=base, value=measure("Engine", dept, cat, which))
-            ws.cell(row=r, column=base + 1, value=measure("Budget_Paste", dept, cat, which))
-            a = get_column_letter(base)
-            b = get_column_letter(base + 1)
-            ws.cell(row=r, column=base + 2, value=f"={a}{r}-{b}{r}")
-            ws.cell(row=r, column=base + 3, value=f"=IFERROR(({a}{r}-{b}{r})/ABS({b}{r}),0)")
-            for k in range(3):
-                cc = ws.cell(row=r, column=base + k)
-                cc.number_format = MONEY
-                cc.font = BOLD if bold else BODY
-                if fill:
-                    cc.fill = fill
-            cp = ws.cell(row=r, column=base + 3)
-            cp.number_format = PCT
-            cp.font = BOLD if bold else BODY
+    def variance(r, a, b, var, pct):
+        ws[f"{var}{r}"] = f"={a}{r}-{b}{r}"
+        ws[f"{pct}{r}"] = f"=IFERROR(({a}{r}-{b}{r})/ABS({b}{r}),0)"
+
+    def write_row(r, label, dept, cat, bold=False, fill=None, white=False):
+        c = ws.cell(row=r, column=1, value=("        " if cat else "") + label)
+        c.font = Font(name=FONT, size=10, bold=bold, color="FFFFFF" if white else "000000")
+        cells = {}
+        # rolling months
+        for col, off in (("B", -2), ("C", -1), ("D", 0)):
+            cells[col] = measure("Engine", dept, cat, "month", f"EDATE(Setup!$B$5,{off})")
+        cells["E"] = measure("Engine", dept, cat, "ytd")
+        cells["F"] = measure("Budget_Paste", dept, cat, "ytd")
+        cells["G"] = measure("Budget_Paste", dept, cat, "ytd")
+        cells["K"] = measure("Engine", dept, cat, "qtr")
+        cells["L"] = measure("Budget_Paste", dept, cat, "qtr")
+        cells["P"] = measure("Prior_Year", dept, cat, "ytd_ly")
+        cells["Q"] = f"=$E{r}"
+        for col, f in cells.items():
+            ws[f"{col}{r}"] = f
+        variance(r, "E", "G", "H", "I")
+        variance(r, "K", "L", "M", "N")
+        variance(r, "Q", "P", "R", "S")
+        for col, _, _ in heads:
+            if col == "A":
+                continue
+            cc = ws[f"{col}{r}"]
+            cc.number_format = PCT if col in ("I", "N", "S") else MONEY
+            cc.font = Font(name=FONT, size=10, bold=bold,
+                           color="FFFFFF" if white else "000000")
             if fill:
-                cp.fill = fill
+                cc.fill = fill
 
     r = 6
     for dept in DEPTS:
-        write_row(r, dept, dept, None, bold=True, fill=BAND_FILL)
+        write_row(r, dept, dept, None, bold=True, fill=HEAD_FILL, white=True)
         r += 1
         for cat in CATEGORY_ORDER:
             if not any(c == cat for c, _ in subs):
                 continue
-            write_row(r, cat, dept, cat)
+            write_row(r, cat, dept, cat, fill=BAND_FILL)
             ws.row_dimensions[r].outlineLevel = 1
             ws.row_dimensions[r].hidden = True
             r += 1
         r += 1
-
     write_row(r, "COMPANY TOTAL", None, None, bold=True, fill=GREY_FILL)
     ws.sheet_properties.outlinePr.summaryBelow = False
     return ws
@@ -767,6 +839,7 @@ def main():
     build_gl_paste(wb)
     build_pl_check(wb)
     build_budget_paste(wb, subs)
+    build_prior_year(wb, subs)
     build_cleanup(wb)
     _, engine_index, engine_last = build_engine(wb, subs)
     build_pl(wb, subs, engine_index)
@@ -777,7 +850,7 @@ def main():
     for name, ref in defs.items():
         wb.defined_names.add(__import__("openpyxl").workbook.defined_name.DefinedName(name, attr_text=ref))
 
-    yellow_tabs = {"Setup", "GL_Paste", "PL_Check", "Budget_Paste", "Utilisation"}
+    yellow_tabs = {"Setup", "GL_Paste", "PL_Check", "Budget_Paste", "Prior_Year", "Utilisation"}
     for ws in wb.worksheets:
         ws.sheet_properties.tabColor = YELLOW if ws.title in yellow_tabs else NAVY
 
