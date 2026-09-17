@@ -9,7 +9,7 @@ recipient can see each schedule foots.
 Build order matters: build, then recalculate, THEN run
 reporting/tools/fix_outline.py. LibreOffice drops the outline properties when it
 recalculates, and without them Excel puts the collapse buttons on the wrong rows.
-    python3 reporting/tools/fix_outline.py "<the .xlsx>" "Supplier Analysis"
+    python3 reporting/tools/fix_outline.py "<the .xlsx>" "Supplier Analysis,Account Analysis"
 """
 import json
 from pathlib import Path
@@ -336,6 +336,94 @@ n.alignment = Alignment(wrap_text=True, vertical="top")
 sp.merge_cells(start_row=r, start_column=1, end_row=r + 1, end_column=10)
 
 # ===========================================================================
+# 4. ACCOUNT ANALYSIS  - the same drill-down the other way up
+# ===========================================================================
+an = sheet("Account Analysis")
+title(an, "Account analysis", SUBTITLE +
+      "  -  the supplier schedule the other way up: account, then supplier, then the ledger lines")
+widths(an, {"A": 52, "B": 15, "C": 11, "D": 8, "E": 42, "F": 15, "G": 20, "H": 24, "I": 13, "J": 17})
+header(an, 5, ["Account  /  supplier  /  transaction date", "Amount", "% of total", "Lines",
+               "Description", "Invoice no.", "Reference", "Job number", "Cost centre", "Source"])
+an.freeze_panes = "A6"
+
+by_acc = defaultdict(list)
+for t in txns:
+    by_acc[t["account"]].append(t)
+acc_order = sorted(by_acc, key=lambda k: -sum(x["amount"] for x in by_acc[k]))
+
+r = 6
+ACC_ROWS = []
+for acc in acc_order:
+    items = by_acc[acc]
+    acc_row = r
+    ACC_ROWS.append(acc_row)
+    c = an.cell(row=r, column=1, value=acc)
+    c.font = Font(name=TNR, size=11, bold=True, color=NAVY)
+    for col in range(1, 11):
+        an.cell(row=r, column=col).fill = BANDF
+        an.cell(row=r, column=col).border = BOX
+    an.cell(row=r, column=4, value=len(items)).alignment = Alignment(horizontal="center")
+    an.cell(row=r, column=4).font = Font(name=TNR, size=11, bold=True)
+    an.cell(row=r, column=1).border = BOX
+    r += 1
+    per_sup = defaultdict(list)
+    for t in items:
+        per_sup[t["supplier"] or "(no supplier name recorded on the ledger line)"].append(t)
+    sup_rows = []
+    for sup in sorted(per_sup, key=lambda x: -sum(y["amount"] for y in per_sup[x])):
+        rows_s = per_sup[sup]
+        blank = sup.startswith("(no supplier")
+        sup_row = r
+        sup_rows.append(sup_row)
+        c = an.cell(row=r, column=1, value=f"    {sup}")
+        c.font = Font(name=TNR, size=10, bold=True, color=("9C0006" if blank else "000000"))
+        an.cell(row=r, column=4, value=len(rows_s)).alignment = Alignment(horizontal="center")
+        for col in range(1, 11):
+            an.cell(row=r, column=col).fill = TOTF
+            an.cell(row=r, column=col).border = BOX
+        an.row_dimensions[r].outlineLevel = 1
+        an.row_dimensions[r].collapsed = True
+        r += 1
+        line_rows = []
+        for t in sorted(rows_s, key=lambda x: (x["date"] or 0)):
+            line_rows.append(r)
+            vals = [t["date"], t["amount"], None, None, t["description"], t["invoice"],
+                    t["reference"], t["job"], t["cost_centre"], t["source"]]
+            for i, v in enumerate(vals):
+                cc = an.cell(row=r, column=1 + i, value=v)
+                cc.font = Font(name=TNR, size=9)
+                cc.border = BOX
+                if i == 0: cc.number_format = DATEF
+                if i == 1: cc.number_format = MONEY
+            an.row_dimensions[r].outlineLevel = 2
+            an.row_dimensions[r].hidden = True
+            r += 1
+        cc = an.cell(row=sup_row, column=2, value="=" + "+".join(f"B{x}" for x in line_rows))
+        cc.font = Font(name=TNR, size=10, bold=True); cc.number_format = MONEY; cc.border = BOX
+    cc = an.cell(row=acc_row, column=2, value="=" + "+".join(f"B{x}" for x in sup_rows))
+    cc.font = Font(name=TNR, size=11, bold=True); cc.number_format = MONEY; cc.border = BOX
+
+ACC_TOT = r
+an.cell(row=r, column=1, value="Total").font = Font(name=TNR, size=11, bold=True, color=WHITE)
+cc = an.cell(row=r, column=2, value="=" + "+".join(f"B{x}" for x in ACC_ROWS))
+cc.font = Font(name=TNR, size=11, bold=True, color=WHITE); cc.number_format = MONEY
+cc = an.cell(row=r, column=4, value=f"={len(txns)}")
+cc.font = Font(name=TNR, size=11, bold=True, color=WHITE)
+cc.alignment = Alignment(horizontal="center")
+for col in range(1, 11): an.cell(row=r, column=col).fill = HEAD
+for x in ACC_ROWS:
+    cc = an.cell(row=x, column=3, value=f"=B{x}/$B${ACC_TOT}")
+    cc.font = Font(name=TNR, size=11, bold=True); cc.number_format = PCT; cc.border = BOX
+r += 2
+n = an.cell(row=r, column=1, value=(
+    "The same ledger lines as the Supplier Analysis schedule, grouped account first instead of "
+    "supplier first. Each account total is the sum of its supplier rows, and each supplier row is "
+    "the sum of the lines beneath it, so the schedule foots at every level."))
+n.font = Font(name=TNR, size=9, italic=True, color=MUTED)
+n.alignment = Alignment(wrap_text=True, vertical="top")
+an.merge_cells(start_row=r, start_column=1, end_row=r + 1, end_column=10)
+
+# ===========================================================================
 # 4. MONTHLY ANALYSIS
 # ===========================================================================
 mn = sheet("Monthly Analysis")
@@ -431,6 +519,9 @@ CHECKS = [
      f"='Transaction Listing'!K{TL_TOT}-'Transaction Listing'!L{TL_TOT}", None,
      "Equals total expenditure, confirming these are expense lines with no credits netted off."),
     ("R10", "Difference, R9 less R1", "=C14-C6", "eq0", "Must be nil."),
+    ("R11", "Total expenditure per the Account Analysis schedule", f"='Account Analysis'!B{ACC_TOT}",
+     None, "Sum of all accounts. Same lines as R4, grouped the other way up."),
+    ("R12", "Difference, R1 less R11", "=C6-C16", "eq0", "Must be nil."),
 ]
 r = 6
 for ref, desc, amt, mode, basis in CHECKS:
@@ -448,14 +539,15 @@ for ref, desc, amt, mode, basis in CHECKS:
     rc.row_dimensions[r].height = 26
     r += 1
 from openpyxl.formatting.rule import FormulaRule
-rc.conditional_formatting.add("D6:D15", FormulaRule(formula=['$D6="Yes"'],
+rc.conditional_formatting.add("D6:D17", FormulaRule(formula=['$D6="Yes"'],
     fill=PatternFill("solid", fgColor="C6EFCE"), font=Font(color="006100", bold=True)))
-rc.conditional_formatting.add("D6:D15", FormulaRule(formula=['$D6="NO"'],
+rc.conditional_formatting.add("D6:D17", FormulaRule(formula=['$D6="NO"'],
     fill=PatternFill("solid", fgColor="FFC7CE"), font=Font(color="9C0006", bold=True)))
 
 del wb["Sheet"]
 wb._sheets = [wb[n] for n in ["Basis of Preparation", "Summary", "Supplier Analysis",
-                              "Monthly Analysis", "Transaction Listing", "Reconciliation"]]
+                              "Account Analysis", "Monthly Analysis", "Transaction Listing",
+                              "Reconciliation"]]
 for s in wb.worksheets:
     for row in s.iter_rows():
         for c in row:
@@ -472,9 +564,11 @@ for s in wb.worksheets:
     s.oddFooter.center.size = 8
 wb["Transaction Listing"].print_title_rows = "5:5"
 wb["Supplier Analysis"].print_title_rows = "5:5"
+wb["Account Analysis"].print_title_rows = "5:5"
 # summary row sits above its detail, so Excel must be told, or the +/- land wrong
-wb["Supplier Analysis"].sheet_properties.outlinePr = Outline(
-    summaryBelow=False, summaryRight=False, applyStyles=False)
+for _n in ("Supplier Analysis", "Account Analysis"):
+    wb[_n].sheet_properties.outlinePr = Outline(
+        summaryBelow=False, summaryRight=False, applyStyles=False)
 wb.active = 0
 OUT.parent.mkdir(parents=True, exist_ok=True)
 wb.save(OUT)
