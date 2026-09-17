@@ -571,9 +571,12 @@ def build_entry_sheet(wb, name, cols, formulas, team, rows, tblname, blurb,
     for ci, (h, w, fmt, kind) in enumerate(cols, start=1):
         source = (dv_override or {}).get(h, DV_FOR.get(h))
         if kind == "dv" and source:
+            # formula1 holds the formula WITHOUT a leading "=" - Excel treats
+            # "=name" as malformed and offers to repair the whole workbook.
             dv = DataValidation(
-                type="list", formula1=f"={source}", allow_blank=True,
-                showDropDown=False, errorStyle="warning", errorTitle="Not on the list",
+                type="list", formula1=source, allow_blank=True,
+                showDropDown=False, errorStyle="warning", showErrorMessage=True,
+                errorTitle="Not on the list",
                 error=f'"{h}" is not on the list in the Lists sheet. '
                       "Add it there if it is genuinely new.")
             ws.add_data_validation(dv)
@@ -613,9 +616,9 @@ def build_finance(wb):
                 "rebuilds instantly. Row 8 down is one single formula - do not type in it. "
                 "Fix data on the department sheet it came from.")
     filters = [("Team", "A", "B", '"All,Onsite,Production,Consulting,Other"', "All", TXT),
-               ("Cost Centre", "C", "D", "=lst_CostCentre", "All", TXT),
-               ("Month", "E", "F", "=lst_Months", "All", MON),
-               ("Status", "G", "H", "=lst_Status", "All", TXT),
+               ("Cost Centre", "C", "D", "lst_CostCentre", "All", TXT),
+               ("Month", "E", "F", "lst_Months", "All", MON),
+               ("Status", "G", "H", "lst_Status", "All", TXT),
                ("Search text", "I", "K", None, "", TXT)]
     for label, c1, c2, dvf, default, fmt in filters:
         ws.merge_cells(f"{c1}4:{c2}4")
@@ -733,7 +736,7 @@ def build_month_end(wb):
     c.number_format, c.fill, c.border = MON, INPUT_FILL, BOX
     c.font = Font(bold=True, size=12, color=NAVY)
     c.alignment = Alignment(horizontal="center")
-    dv = DataValidation(type="list", formula1="=lst_Months", allow_blank=False,
+    dv = DataValidation(type="list", formula1="lst_Months", allow_blank=False,
                         errorStyle="warning", showErrorMessage=False)
     ws.add_data_validation(dv)
     dv.add("C4")
