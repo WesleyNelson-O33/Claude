@@ -35,6 +35,8 @@ GREY_FILL = PatternFill("solid", fgColor=GREY)
 BAND_FILL = PatternFill("solid", fgColor=BAND)
 # Danica's body shading: White, Background 1, Darker 5% (theme 0, tint -0.05).
 BODY_FILL = PatternFill("solid", fgColor=Color(theme=0, tint=-0.0499893185216834))
+# The budget paste cells sit white against the grey body. Blue type marks them.
+WHITE_FILL = PatternFill("solid", fgColor="FFFFFF")
 
 MONEY = '$#,##0;($#,##0);"-"'
 PCT = '0.0%;(0.0%);"-"'
@@ -533,7 +535,7 @@ def build_paste_sheet(wb, title, subs, note):
             continue
         for col in MONTH_COLS:
             c = ws[f"{col}{r}"]
-            c.fill = YELLOW_FILL
+            c.fill = WHITE_FILL
             c.font = INPUT_FONT
             c.number_format = MONEY
     roll_up(ws, info, MONTH_COLS)
