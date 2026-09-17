@@ -46,6 +46,65 @@ _XLFN = ["VSTACK", "HSTACK", "CHOOSECOLS", "UNIQUE", "LET", "XLOOKUP",
 _XLWS = ["FILTER", "SORT"]          # worksheet-scoped: _xlfn._xlws.NAME
 
 
+# Every LET variable name. They are deliberately three characters or more and
+# nothing like a cell reference: "f1" would be cell F1, which Excel refuses as a
+# variable name, and single letters are easy to mangle when rewriting formulas.
+LET_NAMES = {
+    "dat", "keep", "fTeam", "fCC", "fMonth", "fStat", "fFind", "flag",
+    "cnt", "tot", "exg", "gst", "inc", "mth", "job", "opn", "mvt", "arr", "uni",
+}
+
+
+def xlpm(formula):
+    """Prefix LET variable names with _xlpm., which is how Excel stores them.
+
+    Without it Excel cannot parse the formula when it loads the file and offers
+    to repair the workbook instead - stripping the formula on the way through.
+    Quoted strings and [structured references] are copied verbatim so a name is
+    never rewritten inside 'Month-End'!C4 or tbl_Onsite[#Data].
+    """
+    out, i, n = [], 0, len(formula)
+    while i < n:
+        ch = formula[i]
+        if ch in '"\'':                       # copy a quoted span untouched
+            quote = ch
+            out.append(ch)
+            i += 1
+            while i < n:
+                out.append(formula[i])
+                if formula[i] == quote:
+                    if i + 1 < n and formula[i + 1] == quote:
+                        out.append(formula[i + 1])
+                        i += 2
+                        continue
+                    i += 1
+                    break
+                i += 1
+            continue
+        if ch == '[':                          # copy a structured reference
+            depth = 0
+            while i < n:
+                out.append(formula[i])
+                if formula[i] == '[':
+                    depth += 1
+                elif formula[i] == ']':
+                    depth -= 1
+                    if depth == 0:
+                        i += 1
+                        break
+                i += 1
+            continue
+        m = re.match(r"[A-Za-z_][A-Za-z0-9_.]*", formula[i:])
+        if m:
+            tok = m.group()
+            out.append("_xlpm." + tok if tok in LET_NAMES else tok)
+            i += len(tok)
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
 def fx(formula):
     """Rewrite a readable formula into the form openpyxl must persist."""
     for name in _XLWS:
@@ -54,7 +113,7 @@ def fx(formula):
     for name in _XLFN:
         formula = re.sub(r"(?<![A-Z0-9_.])" + name + r"\(",
                          "_xlfn." + name + "(", formula)
-    return re.sub(r"\s*\n\s*", "", formula)
+    return xlpm(re.sub(r"\s*\n\s*", "", formula))
 
 
 NAVY, SLATE, LIGHT = "3E5066", "5B708A", "EDF1F6"
@@ -214,14 +273,14 @@ def stack():
 # LET variable names must not look like cell references. "f1".."f5" ARE cells
 # F1:F5, and naming them that returns #VALUE! - which is why the whole Finance
 # sheet came back empty. Names here are deliberately un-reference-like.
-CRIT = ('keep,--((CHOOSECOLS(d,1)&CHOOSECOLS(d,5)&CHOOSECOLS(d,10)&CHOOSECOLS(d,12))<>""),'
-        'fTeam,IF($A$5="All",1,--(CHOOSECOLS(d,3)=$A$5)),'
-        'fCC,IF($C$5="All",1,--(CHOOSECOLS(d,4)=$C$5)),'
-        'fMonth,IF($E$5="All",1,--(CHOOSECOLS(d,2)=$E$5)),'
-        'fStat,IF($G$5="All",1,--(CHOOSECOLS(d,18)=$G$5)),'
-        'fFind,IF($I$5="",1,--ISNUMBER(SEARCH($I$5,CHOOSECOLS(d,5)&"|"&CHOOSECOLS(d,6)'
-        '&"|"&CHOOSECOLS(d,8)&"|"&CHOOSECOLS(d,10)))),'
-        'k,keep*fTeam*fCC*fMonth*fStat*fFind,')
+CRIT = ('keep,--((CHOOSECOLS(dat,1)&CHOOSECOLS(dat,5)&CHOOSECOLS(dat,10)&CHOOSECOLS(dat,12))<>""),'
+        'fTeam,IF($A$5="All",1,--(CHOOSECOLS(dat,3)=$A$5)),'
+        'fCC,IF($C$5="All",1,--(CHOOSECOLS(dat,4)=$C$5)),'
+        'fMonth,IF($E$5="All",1,--(CHOOSECOLS(dat,2)=$E$5)),'
+        'fStat,IF($G$5="All",1,--(CHOOSECOLS(dat,18)=$G$5)),'
+        'fFind,IF($I$5="",1,--ISNUMBER(SEARCH($I$5,CHOOSECOLS(dat,5)&"|"&CHOOSECOLS(dat,6)'
+        '&"|"&CHOOSECOLS(dat,8)&"|"&CHOOSECOLS(dat,10)))),'
+        'flag,keep*fTeam*fCC*fMonth*fStat*fFind,')
 
 
 def across(val, pairs, tables=None):
@@ -648,15 +707,15 @@ def build_finance(wb):
 
     ws.merge_cells("A6:S6")
     ws["A6"] = fx(
-        f"=LET(d,{stack()},{CRIT}"
-        "cnt,SUM(k),tot,SUM(keep),"
-        "ex,SUMPRODUCT(k,IFERROR(CHOOSECOLS(d,12)*1,0)),"
-        "gs,SUMPRODUCT(k,IFERROR(CHOOSECOLS(d,13)*1,0)),"
-        "ic,SUMPRODUCT(k,IFERROR(CHOOSECOLS(d,14)*1,0)),"
+        f"=LET(dat,{stack()},{CRIT}"
+        "cnt,SUM(flag),tot,SUM(keep),"
+        "exg,SUMPRODUCT(flag,IFERROR(CHOOSECOLS(dat,12)*1,0)),"
+        "gst,SUMPRODUCT(flag,IFERROR(CHOOSECOLS(dat,13)*1,0)),"
+        "inc,SUMPRODUCT(flag,IFERROR(CHOOSECOLS(dat,14)*1,0)),"
         '"Showing "&TEXT(cnt,"#,##0")&" of "&TEXT(tot,"#,##0")&" records"'
-        '&"      Ex GST "&TEXT(ex,"$#,##0.00")'
-        '&"      GST "&TEXT(gs,"$#,##0.00")'
-        '&"      Inc GST "&TEXT(ic,"$#,##0.00"))')
+        '&"      Ex GST "&TEXT(exg,"$#,##0.00")'
+        '&"      GST "&TEXT(gst,"$#,##0.00")'
+        '&"      Inc GST "&TEXT(inc,"$#,##0.00"))')
     ws["A6"].font = Font(bold=True, size=11, color=NAVY)
     ws["A6"].fill = PatternFill("solid", fgColor=LIGHT)
     ws["A6"].alignment = Alignment(horizontal="left", vertical="center", indent=1)
@@ -675,8 +734,8 @@ def build_finance(wb):
         dim.width, dim.number_format, dim.font = w, fmt, Font(size=10)
     ws.row_dimensions[7].height = 34
     ws["A8"] = fx(
-        f"=LET(d,{stack()},{CRIT}"
-        'SORT(FILTER(d,k=1,"No records match these filters - widen them '
+        f"=LET(dat,{stack()},{CRIT}"
+        'SORT(FILTER(dat,flag=1,"No records match these filters - widen them '
         'or check the department sheets"),1,-1))')
     ws.freeze_panes = "A8"
 
@@ -692,8 +751,8 @@ CHECKS = [
     ("Marked posted to Xero but no Xero invoice number",
      count_across([("Posted to Xero", '"Y"'), ("Xero Invoice No", '""')])),
     ("Duplicate Xero invoice numbers across all departments",
-     "IFERROR(LET(a,VSTACK(" + ",".join(f"{t}[Xero Invoice No]" for t in REV)
-     + '),v,FILTER(a,a<>""),ROWS(v)-ROWS(UNIQUE(v))),0)'),
+     "IFERROR(LET(arr,VSTACK(" + ",".join(f"{t}[Xero Invoice No]" for t in REV)
+     + '),uni,FILTER(arr,arr<>""),ROWS(uni)-ROWS(UNIQUE(uni))),0)'),
     ("Invoice rows with an amount but no tax code",
      count_across([("Ex GST", '"<>"'), ("Tax Code", '""')])),
     ("Invoice rows with an amount but no revenue GL code",
@@ -987,13 +1046,13 @@ def build_wip_summary(wb):
         dim.width, dim.number_format = w, (CUR if i >= 3 else TXT)
     # One formula spills the whole block, so the job list maintains itself.
     ws["A11"] = fx(
-        '=LET(m,$C$4,'
-        'j,SORT(UNIQUE(FILTER(tbl_WIP[Job Number],tbl_WIP[Job Number]<>"","No WIP rows"))),'
-        'o,SUMIFS(tbl_WIP[Amount],tbl_WIP[Job Number],j,tbl_WIP[Month],"<>",'
-        'tbl_WIP[Month],"<"&m),'
-        'v,SUMIFS(tbl_WIP[Amount],tbl_WIP[Job Number],j,tbl_WIP[Month],m),'
-        'HSTACK(j,XLOOKUP(j,tbl_WIP[Job Number],tbl_WIP[Client],""),'
-        'XLOOKUP(j,tbl_WIP[Job Number],tbl_WIP[Cost Centre],""),o,v,o+v))')
+        '=LET(mth,$C$4,'
+        'job,SORT(UNIQUE(FILTER(tbl_WIP[Job Number],tbl_WIP[Job Number]<>"","No WIP rows"))),'
+        'opn,SUMIFS(tbl_WIP[Amount],tbl_WIP[Job Number],job,tbl_WIP[Month],"<>",'
+        'tbl_WIP[Month],"<"&mth),'
+        'mvt,SUMIFS(tbl_WIP[Amount],tbl_WIP[Job Number],job,tbl_WIP[Month],mth),'
+        'HSTACK(job,XLOOKUP(job,tbl_WIP[Job Number],tbl_WIP[Client],""),'
+        'XLOOKUP(job,tbl_WIP[Job Number],tbl_WIP[Cost Centre],""),opn,mvt,opn+mvt))')
     for r in range(11, 1211):
         g = ws.cell(r, 7)
         g.fill, g.number_format, g.border = INPUT_FILL, CUR, BOX
