@@ -163,7 +163,12 @@ def add_styles(root):
         fills.set("count", str(len(fills)))
         return len(fills) - 1
 
+    used = {int(e.get("numFmtId")) for e in numfmts}
+
     def numfmt(code, fid):
+        while fid in used:
+            fid += 1
+        used.add(fid)
         e = etree.SubElement(numfmts, Q("numFmt"))
         e.set("numFmtId", str(fid))
         e.set("formatCode", code)
@@ -188,7 +193,7 @@ def add_styles(root):
         xfs.set("count", str(len(xfs)))
         return len(xfs) - 1
 
-    MONEY = numfmt('$#,##0;($#,##0);&quot;-&quot;', 300)
+    MONEY = numfmt('$#,##0;($#,##0);"-"', 300)
     PCT = numfmt("0.0%", 301)
     MON = numfmt("mmm-yy", 302)
 
@@ -364,45 +369,101 @@ def build_budget(S):
     return ws.xml(cols, freeze=5)
 
 
+# ---------------------------------------------------- the 3 Way fix and the orange
+TOTALS = {26: 500.0, 28: 0.0, 49: 200.0, 50: 275.0, 53: 12430.0}
+THREE = {"A": 0.34, "B": 0.33, "C": 0.33}
+
+
+def three_way(xml, styles_root):
+    """Point five overhead lines at the 3 Way row, then band them orange."""
+    for r, total in TOTALS.items():
+        for c in "ABC":
+            m = re.search(r'<c r="%s%d"[^>]*>.*?</c>' % (c, r), xml, re.S)
+            new = re.sub(r"<f>([^<]*)</f>",
+                         lambda x: "<f>" + re.sub(r"\b([ABC])(19|21)\b", r"\g<1>17",
+                                                 x.group(1)) + "</f>", m.group(0))
+            new = re.sub(r"<v>[^<]*</v>", "<v>%s</v>" % round(total * THREE[c], 10), new)
+            assert new != m.group(0), (c, r)
+            xml = xml[:m.start()] + new + xml[m.end():]
+        me = re.search(r'<c r="E%d"[^>]*t="s"[^>]*>.*?</c>' % r, xml, re.S)
+        xml = xml[:me.start()] + re.sub(r"<v>\d+</v>", "<v>42</v>", me.group(0)) + xml[me.end():]
+        mf = re.search(r'<c r="F%d"[^>]*>.*?</c>' % r, xml, re.S)
+        if mf:
+            xml = xml[:mf.start()] + xml[mf.end():]
+
+    fills = styles_root.find(Q("fills"))
+    e = etree.SubElement(fills, Q("fill"))
+    pf = etree.SubElement(e, Q("patternFill"))
+    pf.set("patternType", "solid")
+    etree.SubElement(pf, Q("fgColor")).set("rgb", "FFFFA500")
+    etree.SubElement(pf, Q("bgColor")).set("indexed", "64")
+    fills.set("count", str(len(fills)))
+    orange = len(fills) - 1
+
+    xfs = styles_root.find(Q("cellXfs"))
+    items = list(xfs)
+    newxf = {}
+    for sid in (46, 44, 202, 203, 699):
+        clone = etree.fromstring(etree.tostring(items[sid]))
+        clone.set("fillId", str(orange))
+        clone.set("applyFill", "1")
+        xfs.append(clone)
+        newxf[sid] = len(xfs) - 1
+    xfs.set("count", str(len(xfs)))
+
+    blank = {"D": newxf[46], "F": newxf[44]}
+    for r in TOTALS:
+        m = re.search(r'(<row r="%d"[^>]*>)(.*?)(</row>)' % r, xml, re.S)
+        body = m.group(2)
+        for cell, old in re.findall(r'<c r="([A-G]%d)" s="(\d+)"' % r, body):
+            body = body.replace('<c r="%s" s="%s"' % (cell, old),
+                                '<c r="%s" s="%d"' % (cell, newxf[int(old)]), 1)
+        for c, sid in blank.items():
+            if '<c r="%s%d"' % (c, r) not in body:
+                nxt = re.search(r'<c r="[%s]%d"' % ({"D": "EFG", "F": "G"}[c], r), body)
+                tag = '<c r="%s%d" s="%d"/>' % (c, r, sid)
+                body = (body[:nxt.start()] + tag + body[nxt.start():]) if nxt else body + tag
+        xml = xml[:m.start()] + m.group(1) + body + m.group(3) + xml[m.end():]
+    return xml
+
+
 # ------------------------------------------------------------------------ main
 def main():
-    z = zipfile.ZipFile(OUT if __import__("os").path.exists(OUT) else SRC)
+    import os
+    z = zipfile.ZipFile(SRC)                      # always from her original
     parts = {n: z.read(n) for n in z.namelist()}
-    infos = list(z.infolist())
+    order = [i.filename for i in z.infolist()]
     z.close()
 
     root = etree.fromstring(parts["xl/styles.xml"])
+    parts["xl/worksheets/sheet6.xml"] = three_way(
+        parts["xl/worksheets/sheet6.xml"].decode("utf-8"), root).encode("utf-8")
     S = add_styles(root)
     parts["xl/styles.xml"] = etree.tostring(root, xml_declaration=True,
                                             encoding="UTF-8", standalone=True)
 
-    new = {"Pack Map": build_map(S), "Pack Budget FY27": build_budget(S)}
-
-    # drop any earlier run of this script, then re-register both sheets
     wbx = parts["xl/workbook.xml"].decode("utf-8")
     rels = parts["xl/_rels/workbook.xml.rels"].decode("utf-8")
     ct = parts["[Content_Types].xml"].decode("utf-8")
-    for title in new:
-        m = re.search(r'<sheet name="%s"[^>]*r:id="(rId\d+)"[^>]*/>' % title, wbx)
-        if m:
-            rid = m.group(1)
-            tgt = re.search(r'Id="%s"[^>]*Target="([^"]+)"' % rid, rels).group(1)
-            wbx = wbx.replace(m.group(0), "")
-            rels = re.sub(r'<Relationship Id="%s"[^>]*/>' % rid, "", rels)
-            ct = ct.replace('<Override PartName="/xl/%s" ContentType="application/vnd.'
-                            'openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
-                            % tgt, "")
-            parts.pop("xl/" + tgt, None)
-            infos = [i for i in infos if i.filename != "xl/" + tgt]
+
+    # calcChain is a cache of formula order. Adding sheets invalidates it, so drop it
+    # and let Excel rebuild on open rather than ship a stale one.
+    cc = "xl/calcChain.xml"
+    if cc in parts:
+        rid = re.search(r'<Relationship Id="(rId\d+)"[^>]*Target="calcChain.xml"[^>]*/>', rels)
+        if rid:
+            rels = rels.replace(rid.group(0), "")
+        ct = re.sub(r'<Override PartName="/xl/calcChain\.xml"[^>]*/>', "", ct)
+        del parts[cc]
+        order = [n for n in order if n != cc]
 
     sid = max(int(x) for x in re.findall(r'sheetId="(\d+)"', wbx))
     rid = max(int(x) for x in re.findall(r'Id="rId(\d+)"', rels))
-    nsheet = max(int(m) for m in re.findall(r'worksheets/sheet(\d+)\.xml', rels))
+    nsheet = max(int(m) for m in re.findall(r"worksheets/sheet(\d+)\.xml", rels))
     add = []
-    for title, xml in new.items():
-        sid += 1
-        rid += 1
-        nsheet += 1
+    for title, xml in (("Pack Map", build_map(S)),
+                       ("Pack Budget FY27", build_budget(S))):
+        sid, rid, nsheet = sid + 1, rid + 1, nsheet + 1
         name = "worksheets/sheet%d.xml" % nsheet
         parts["xl/" + name] = xml
         add.append("xl/" + name)
@@ -411,25 +472,21 @@ def main():
         rels = rels.replace("</Relationships>",
                             '<Relationship Id="rId%d" Type="%s/worksheet" Target="%s"/>'
                             "</Relationships>" % (rid, R, name))
-        ct = ct.replace("</Types>",
-                        '<Override PartName="/xl/%s" ContentType="application/vnd.'
-                        'openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
-                        "</Types>" % name)
-    if "fullCalcOnLoad" not in wbx:
-        wbx = wbx.replace('<calcPr calcId="191028"/>',
-                          '<calcPr calcId="191028" fullCalcOnLoad="1"/>')
+        ct = ct.replace("</Types>", '<Override PartName="/xl/%s" ContentType="application/vnd.'
+                        'openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>'
+                        % name)
+    wbx = wbx.replace('<calcPr calcId="191028"/>',
+                      '<calcPr calcId="191028" fullCalcOnLoad="1"/>')
     parts["xl/workbook.xml"] = wbx.encode("utf-8")
     parts["xl/_rels/workbook.xml.rels"] = rels.encode("utf-8")
     parts["[Content_Types].xml"] = ct.encode("utf-8")
 
     zo = zipfile.ZipFile(OUT + ".tmp", "w", zipfile.ZIP_DEFLATED)
-    for i in infos:
-        zo.writestr(i, parts[i.filename])
-    for n in add:
+    for n in order + add:
         zo.writestr(n, parts[n])
     zo.close()
-    __import__("os").replace(OUT + ".tmp", OUT)
-    print("added", list(new), "->", OUT)
+    os.replace(OUT + ".tmp", OUT)
+    print("built", OUT, len(order) + len(add), "parts")
 
 
 if __name__ == "__main__":
