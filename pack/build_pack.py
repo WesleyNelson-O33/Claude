@@ -6,10 +6,11 @@ on each GL line, so it is per transaction rather than per account.
 """
 import json
 import re
+from copy import copy
 from datetime import date
 
 from openpyxl import Workbook
-from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.styles import Alignment, Border, Color, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.datavalidation import DataValidation
 
@@ -32,6 +33,8 @@ HEAD_FILL = PatternFill("solid", fgColor=NAVY)
 YELLOW_FILL = PatternFill("solid", fgColor=YELLOW)
 GREY_FILL = PatternFill("solid", fgColor=GREY)
 BAND_FILL = PatternFill("solid", fgColor=BAND)
+# Danica's body shading: White, Background 1, Darker 5% (theme 0, tint -0.05).
+BODY_FILL = PatternFill("solid", fgColor=Color(theme=0, tint=-0.0499893185216834))
 
 MONEY = '$#,##0;($#,##0);"-"'
 PCT = '0.0%;(0.0%);"-"'
@@ -438,7 +441,7 @@ def row_map(rows):
     return info
 
 
-def paint(ws, rows, ncols):
+def paint(ws, rows, ncols, body_fill=BODY_FILL):
     for i, (kind, label, *_rest) in enumerate(rows):
         r = ROW0 + i
         if kind == "blank":
@@ -449,11 +452,10 @@ def paint(ws, rows, ncols):
             if kind == "dept":
                 cell.fill = HEAD_FILL
                 cell.font = Font(name=FONT, size=10, bold=True, color="FFFFFF")
-            elif kind == "cat":
-                cell.fill = BAND_FILL
-                cell.font = BOLD
             else:
-                cell.font = BODY
+                if body_fill is not None:
+                    cell.fill = copy(body_fill)
+                cell.font = BOLD if kind == "cat" else BODY
         if kind == "sub":
             ws.row_dimensions[r].outlineLevel = 2
             ws.row_dimensions[r].hidden = True
@@ -639,7 +641,7 @@ def build_summary(wb, subs):
         c.alignment = Alignment(horizontal="center")
 
     rows = layout(subs)
-    paint(ws, rows, 20)
+    paint(ws, rows, 20, body_fill=None)
     info = row_map(rows)
 
     for i, (kind, *_x) in enumerate(rows):
@@ -981,137 +983,153 @@ def build_clients(wb):
 PL_LAST = 232
 
 
-def build_chart_data(wb):
-    """The series behind every chart, so the Charts sheet stays clean."""
-    ws = wb.create_sheet("Chart_Data")
-    style_title(ws, "Chart data  -  calculated, never type here",
-                "Each block is one chart on the Charts sheet.")
-    ws.sheet_view.showGridLines = False
-    ws.column_dimensions["A"].width = 30
-    for i in range(len(MONTHS)):
-        ws.column_dimensions[get_column_letter(2 + i)].width = 11
+def build_charts(wb):
+    """Her layout: a labelled table on the left, its chart beside it, stacked
+    down the page. Every figure is a formula, so nothing is copied in."""
+    from openpyxl.chart import BarChart, LineChart, Reference
 
-    def months_row(r):
-        c = ws.cell(row=r, column=1, value="Month")
-        c.font = HEAD
-        c.fill = HEAD_FILL
-        for i, (y, m) in enumerate(MONTHS):
-            c = ws.cell(row=r, column=2 + i, value=date(y, m, 1))
-            c.number_format = "mmm-yy"
-            c.font = HEAD
-            c.fill = HEAD_FILL
+    ws = wb.create_sheet("Charts")
+    style_title(ws, "Charts",
+                "Every series below is a formula off the engine. Paste a new month "
+                "and the charts move - there is no copying from another workbook.")
+    ws.sheet_view.showGridLines = False
+    ws.column_dimensions["A"].width = 26
+    for i in range(7):
+        ws.column_dimensions[get_column_letter(2 + i)].width = 15
 
     def cat_sum(sheet, cat, col):
         return (f"SUMIF('{sheet}'!$A$6:$A${PL_LAST},\"    {cat}\","
                 f"'{sheet}'!{col}$6:{col}${PL_LAST})")
 
-    ws["A4"] = "1.  Revenue versus profit"
-    ws["A4"].font = BOLD
-    months_row(5)
-    for j, label in enumerate(("Revenue", "Gross profit", "Net profit")):
-        r = 6 + j
-        ws.cell(row=r, column=1, value=label).font = BODY
-        for i, col in enumerate(MONTH_COLS):
-            if label == "Revenue":
-                f = "=" + cat_sum("P&L FY27", "Income", col)
-            elif label == "Gross profit":
-                f = ("=" + cat_sum("P&L FY27", "Income", col) + "+"
-                     + cat_sum("P&L FY27", "Cost of Sales", col))
-            else:
-                f = "=" + "+".join(cat_sum("P&L FY27", c, col) for c in CATEGORY_ORDER)
-            ws.cell(row=r, column=2 + i, value=f).number_format = MONEY
+    def block(r, label, first_head, heads, rows, fmt=MONEY):
+        """Label, navy header, then the rows. Returns the last data row."""
+        ws.cell(row=r, column=1, value=label).font = BOLD
+        c = ws.cell(row=r + 1, column=1, value=first_head)
+        c.font, c.fill = HEAD, HEAD_FILL
+        c.alignment = Alignment(horizontal="center")
+        for i, h in enumerate(heads):
+            c = ws.cell(row=r + 1, column=2 + i, value=h)
+            c.font, c.fill = HEAD, HEAD_FILL
+            c.alignment = Alignment(horizontal="center", wrap_text=True)
+        for j, (left, cells) in enumerate(rows):
+            rr = r + 2 + j
+            c = ws.cell(row=rr, column=1, value=left)
+            c.font = BODY
+            if isinstance(left, date):
+                c.number_format = "mmm-yy"
+            for i, v in enumerate(cells):
+                c = ws.cell(row=rr, column=2 + i, value=v)
+                c.font = BODY
+                c.number_format = fmt
+        return r + 1 + len(rows)
 
-    ws["A10"] = "2.  Budget versus actual  -  net profit"
-    ws["A10"].font = BOLD
-    months_row(11)
-    for j, (label, sheet) in enumerate((("Actual", "P&L FY27"), ("Budget", "Budget FY27"))):
-        r = 12 + j
-        ws.cell(row=r, column=1, value=label).font = BODY
-        for i, col in enumerate(MONTH_COLS):
-            f = "=" + "+".join(cat_sum(sheet, c, col) for c in CATEGORY_ORDER)
-            ws.cell(row=r, column=2 + i, value=f).number_format = MONEY
-
-    ws["A16"] = "3.  Utilisation month on month"
-    ws["A16"].font = BOLD
-    months_row(17)
-    for j, dept in enumerate(UTIL_DEPTS):
-        r = 18 + j
-        ws.cell(row=r, column=1, value=dept).font = BODY
-        for i, col in enumerate(UCOLS):
-            ws.cell(row=r, column=2 + i, value=(
-                f'=IFERROR(SUMIFS(Utilisation!{col}$9:{col}$60,Utilisation!$B$9:$B$60,$A{r},'
-                f'Utilisation!$C$9:$C$60,"Chargeable")/'
-                f'SUMIFS(Utilisation!{col}$9:{col}$60,Utilisation!$B$9:$B$60,$A{r},'
-                f'Utilisation!$C$9:$C$60,"<>Leave"),0)')).number_format = PCT
-
-    ws["A26"] = "4.  Days sales outstanding"
-    ws["A26"].font = BOLD
-    ws["C26"] = ("Trade receivables is not in a P&L export, so type the closing balance "
-                 "each month in the yellow row. DSO then calculates.")
-    ws["C26"].font = Font(name=FONT, size=9, italic=True, color="C00000")
-    months_row(27)
-    for label, r in (("Trade receivables (closing)", 28), ("Revenue", 29), ("DSO (days)", 30)):
-        ws.cell(row=r, column=1, value=label).font = BOLD if r == 30 else BODY
-    for i, col in enumerate(MONTH_COLS):
-        c = ws.cell(row=28, column=2 + i)
-        c.fill = YELLOW_FILL
-        c.font = INPUT_FONT
-        c.number_format = MONEY
-        cl = get_column_letter(2 + i)
-        ws.cell(row=29, column=2 + i, value=f"={cl}6").number_format = MONEY
-        ws.cell(row=30, column=2 + i,
-                value=f"=IFERROR({cl}28/{cl}29*DAY(EOMONTH({cl}$27,0)),0)").number_format = "#,##0"
-    return ws
-
-
-def build_charts(wb):
-    from openpyxl.chart import BarChart, LineChart, Reference
-
-    ws = wb.create_sheet("Charts")
-    style_title(ws, "Charts",
-                "Every series is a formula off the pack, so nothing is copied across each month.")
-    ws.sheet_view.showGridLines = False
-    cd = wb["Chart_Data"]
-    ncol = 1 + len(MONTHS)
-
-    def monthly(chart, title, first, lastrow, catrow, anchor, pct=False):
+    def plot(chart, title, r, nseries, nrows, pct=False):
         chart.title = title
-        chart.height, chart.width = 8, 19
-        data = Reference(cd, min_col=1, max_col=ncol, min_row=first, max_row=lastrow)
-        cats = Reference(cd, min_col=2, max_col=ncol, min_row=catrow, max_row=catrow)
-        chart.add_data(data, titles_from_data=True, from_rows=True)
-        chart.set_categories(cats)
+        chart.height, chart.width = 7.5, 15
+        chart.add_data(Reference(ws, min_col=2, max_col=1 + nseries,
+                                 min_row=r + 1, max_row=r + 1 + nrows),
+                       titles_from_data=True)
+        chart.set_categories(Reference(ws, min_col=1, min_row=r + 2,
+                                       max_row=r + 1 + nrows))
         if pct:
             chart.y_axis.numFmt = "0%"
-        ws.add_chart(chart, anchor)
+        ws.add_chart(chart, f"J{r}")
 
+    months = [date(y, m, 1) for y, m in MONTHS]
+
+    # 1  Revenue versus profit
+    r = 4
+    rows = []
+    for i, col in enumerate(MONTH_COLS):
+        rows.append((months[i], [
+            "=" + cat_sum("P&L FY27", "Income", col),
+            "=" + cat_sum("P&L FY27", "Income", col) + "+"
+                + cat_sum("P&L FY27", "Cost of Sales", col),
+            "=" + "+".join(cat_sum("P&L FY27", c, col) for c in CATEGORY_ORDER)]))
+    block(r, "Revenue versus profit, current financial year", "Month",
+          ["Revenue", "Gross profit", "Net profit"], rows)
     c = BarChart(); c.type = "col"; c.grouping = "clustered"
-    monthly(c, "Revenue versus profit", 6, 8, 5, "A4")
+    plot(c, "Revenue versus profit", r, 3, 12)
+    REV_ROW0 = r + 2
+
+    # 2  Budget versus actual
+    r += 17
+    rows = [(months[i], ["=" + "+".join(cat_sum("P&L FY27", c, col) for c in CATEGORY_ORDER),
+                         "=" + "+".join(cat_sum("Budget FY27", c, col) for c in CATEGORY_ORDER)])
+            for i, col in enumerate(MONTH_COLS)]
+    block(r, "Budget versus actual, net profit", "Month", ["Actual", "Budget"], rows)
     c = BarChart(); c.type = "col"; c.grouping = "clustered"
-    monthly(c, "Budget versus actual  -  net profit", 12, 13, 11, "A21")
+    plot(c, "Budget versus actual  -  net profit", r, 2, 12)
+
+    # 3  Utilisation month on month
+    r += 17
+    rows = []
+    for i, ucol in enumerate(UCOLS):
+        cells = []
+        for dept in UTIL_DEPTS:
+            cells.append(
+                f'=IFERROR(SUMIFS(Utilisation!{ucol}$9:{ucol}$60,'
+                f'Utilisation!$B$9:$B$60,"{dept}",Utilisation!$C$9:$C$60,"Chargeable")/'
+                f'SUMIFS(Utilisation!{ucol}$9:{ucol}$60,'
+                f'Utilisation!$B$9:$B$60,"{dept}",Utilisation!$C$9:$C$60,"<>Leave"),0)')
+        rows.append((months[i], cells))
+    block(r, "Utilisation month on month", "Month", UTIL_DEPTS, rows, fmt=PCT)
     c = LineChart()
-    monthly(c, "Utilisation month on month", 18, 23, 17, "A38", pct=True)
+    plot(c, "Utilisation month on month", r, len(UTIL_DEPTS), 12, pct=True)
+
+    # 4  Days sales outstanding
+    r += 17
+    rows = [(months[i], [None, f"=B{REV_ROW0 + i}", None]) for i in range(12)]
+    block(r, "Days sales outstanding", "Month",
+          ["Trade receivables (closing)", "Revenue", "DSO (days)"], rows)
+    ws.cell(row=r, column=4,
+            value="Trade receivables is not in a P&L export. Type the closing balance "
+                  "each month in the yellow column and DSO calculates.").font = \
+        Font(name=FONT, size=9, italic=True, color="C00000")
+    for i in range(12):
+        rr = r + 2 + i
+        c = ws.cell(row=rr, column=2)
+        c.fill, c.font = YELLOW_FILL, INPUT_FONT
+        ws.cell(row=rr, column=4,
+                value=f"=IFERROR(B{rr}/C{rr}*DAY(EOMONTH($A{rr},0)),0)").number_format = "#,##0"
     c = LineChart()
-    monthly(c, "Days sales outstanding", 30, 30, 27, "A55")
+    c.title = "Days sales outstanding"
+    c.height, c.width = 7.5, 15
+    c.add_data(Reference(ws, min_col=4, min_row=r + 1, max_row=r + 13),
+               titles_from_data=True)
+    c.set_categories(Reference(ws, min_col=1, min_row=r + 2, max_row=r + 13))
+    ws.add_chart(c, f"J{r}")
 
-    cl = wb["Clients"]
-    def clients(chart, title, c1, c2, anchor, r1=5, r2=15, cr1=6, cr2=15, col=2):
-        chart.title = title
-        chart.height, chart.width = 10, 19
-        chart.add_data(Reference(cl, min_col=c1, max_col=c2, min_row=r1, max_row=r2),
-                       titles_from_data=True)
-        chart.set_categories(Reference(cl, min_col=col, min_row=cr1, max_row=cr2))
-        ws.add_chart(chart, anchor)
+    # 5, 6, 7  Top ten clients, mirrored off the Clients sheet
+    for label, title, c1, c2, h1, h2, kind in (
+            ("Top 10 clients, year on year", "Top 10 clients  -  year on year",
+             "I", "J", "This year to date", "Last year to date", "bar"),
+            ("Top 10 clients, month on month", "Top 10 clients  -  month on month",
+             "C", "D", "This month", "Prior month", "col"),
+            ("Top 10 clients, quarter on quarter", "Top 10 clients  -  quarter on quarter",
+             "F", "G", "This quarter", "Prior quarter", "col")):
+        r += 17
+        rows = [(f'=IF(Clients!$B{6 + i}="","",Clients!$B{6 + i})',
+                 [f"=Clients!${c1}{6 + i}", f"=Clients!${c2}{6 + i}"]) for i in range(10)]
+        block(r, label, "Client", [h1, h2], rows)
+        c = BarChart(); c.type = kind; c.grouping = "clustered"
+        plot(c, title, r, 2, 10)
 
-    c = BarChart(); c.type = "bar"; c.grouping = "clustered"
-    clients(c, "Top 10 clients  -  year to date against last year", 9, 10, "L4")
+    # 8  Top client per department
+    r += 17
+    rows = []
+    for j, dept in enumerate(DEPTS):
+        col = get_column_letter(3 + j)
+        rows.append((dept, [
+            f"=MAX(Clients!${col}$42:${col}$71)",
+            f'=IFERROR(INDEX(Clients!$B$42:$B$71,MATCH(MAX(Clients!${col}$42:${col}$71),'
+            f'Clients!${col}$42:${col}$71,0)),"")']))
+    block(r, "Top client per department, year to date", "Department",
+          ["Revenue year to date", "Client"], rows)
+    for i in range(len(DEPTS)):
+        ws.cell(row=r + 2 + i, column=3).number_format = "General"
     c = BarChart(); c.type = "col"; c.grouping = "clustered"
-    clients(c, "Top 10 clients  -  month on month", 3, 4, "L24")
-    c = BarChart(); c.type = "col"; c.grouping = "clustered"
-    clients(c, "Top 10 clients  -  quarter on quarter", 6, 7, "L44")
-    c = BarChart(); c.type = "col"; c.grouping = "stacked"; c.overlap = 100
-    clients(c, "Top clients by department  -  year to date",
-            3, 2 + len(DEPTS), "L64", r1=41, r2=51, cr1=42, cr2=51)
+    plot(c, "Top client per department  -  year to date", r, 1, len(DEPTS))
     return ws
 
 
@@ -1140,7 +1158,6 @@ def main():
     build_summary(wb, subs)
     build_utilisation(wb)
     build_clients(wb)
-    build_chart_data(wb)
     build_charts(wb)
     build_readme(wb)
 
@@ -1150,7 +1167,7 @@ def main():
 
     order = ["README", "Setup", "Summary", "Charts", "Clients", "Engine", "PL_Check",
              "P&L FY27", "Actual FY26", "Budget FY27", "Budget FY26", "GL_Paste",
-             "Utilisation", "Lists", "Chart_Data", "Cleanup"]
+             "Utilisation", "Lists", "Cleanup"]
     wb._sheets.sort(key=lambda w: order.index(w.title) if w.title in order else 99)
 
     yellow = {"Setup", "GL_Paste", "PL_Check", "Budget FY27", "Budget FY26",
