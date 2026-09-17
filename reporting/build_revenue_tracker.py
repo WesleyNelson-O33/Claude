@@ -89,11 +89,15 @@ CORE = [
 ]
 NCORE = len(CORE)
 
+# In-table formulas use {Column Name} placeholders, rendered to plain A1
+# references for each row. Structured row references ([@Col]) are Excel-native
+# but are not resolved by every engine that may open this file, and a formula
+# that silently returns #N/A in a revenue tracker is worse than a verbose one.
 CORE_FORMULAS = {
-    "Month": '=IF([@Date]="","",EOMONTH([@Date],0))',
-    "Job in Xero?": '=IF([@[Job Number]]="","",IF(COUNTIF(lst_Jobs,[@[Job Number]]&"")>0,"OK","CHECK"))',
-    "GST": '=IF([@[Ex GST]]="","",IF([@[Tax Code]]="GST 10%",ROUND([@[Ex GST]]*0.1,2),0))',
-    "Inc GST": '=IF([@[Ex GST]]="","",[@[Ex GST]]+[@GST])',
+    "Month": '=IF({Date}="","",EOMONTH({Date},0))',
+    "Job in Xero?": '=IF({Job Number}="","",IF(COUNTIF(lst_Jobs,{Job Number}&"")>0,"OK","CHECK"))',
+    "GST": '=IF({Ex GST}="","",IF({Tax Code}="GST 10%",ROUND({Ex GST}*0.1,2),0))',
+    "Inc GST": '=IF({Ex GST}="","",{Ex GST}+{GST})',
 }
 
 EXTRA = {
@@ -127,38 +131,50 @@ EXTRA = {
 
 EXTRA_FORMULAS = {
     "Production": {
-        "Production Revenue": '=IF([@[Ex GST]]="","",[@[Ex GST]]-N([@[Video Revenue]]))',
+        "Production Revenue": '=IF({Ex GST}="","",{Ex GST}-N({Video Revenue}))',
         # GST follows the revenue split exactly, so Inc GST still equals Ex + GST
         # on every line of the Month-End breakdown.
-        "Video GST": '=IF([@[Ex GST]]="","",IF(N([@[Video Revenue]])=0,0,'
-                     'ROUND([@GST]*N([@[Video Revenue]])/[@[Ex GST]],2)))',
+        "Video GST": '=IF({Ex GST}="","",IF(N({Video Revenue})=0,0,'
+                     'ROUND({GST}*N({Video Revenue})/{Ex GST},2)))',
         # Credit notes are negative, so the test is on magnitude and matching
         # sign, not on "video is bigger than the invoice".
         "Video Split":
-            '=IF([@[Ex GST]]="","",'
-            'IF(SIGN(N([@[Video Revenue]]))*SIGN([@[Ex GST]])=-1,"CHECK - video sign",'
-            'IF(ABS(N([@[Video Revenue]]))>ABS([@[Ex GST]]),"CHECK - video exceeds invoice",'
-            'IF(AND([@[Cost Centre]]="VIDEO",ROUND(N([@[Video Revenue]]),2)<>ROUND([@[Ex GST]],2)),'
+            '=IF({Ex GST}="","",'
+            'IF(SIGN(N({Video Revenue}))*SIGN({Ex GST})=-1,"CHECK - video sign",'
+            'IF(ABS(N({Video Revenue}))>ABS({Ex GST}),"CHECK - video exceeds invoice",'
+            'IF(AND({Cost Centre}="VIDEO",ROUND(N({Video Revenue}),2)<>ROUND({Ex GST},2)),'
             '"CHECK - VIDEO job not fully split",'
-            'IF(N([@[Video Revenue]])=0,"All production",'
-            'IF(ROUND(N([@[Video Revenue]]),2)=ROUND([@[Ex GST]],2),"All video","Split"))))))',
-        "Discount %": '=IFERROR([@[Discounts Included]]/[@[Net Total]],"")',
-        "Net Total": '=IF([@[Ex GST]]="","",[@[Ex GST]]-N([@[Discounts Included]]))',
-        "Margin": '=IF([@[Ex GST]]="","",[@[Ex GST]]-N([@[Cross Hire Expense]])-N([@[Labour Expense (Internal)]]))',
-        "Margin %": '=IFERROR([@Margin]/[@[Ex GST]],"")',
+            'IF(N({Video Revenue})=0,"All production",'
+            'IF(ROUND(N({Video Revenue}),2)=ROUND({Ex GST},2),"All video","Split"))))))',
+        "Discount %": '=IFERROR({Discounts Included}/{Net Total},"")',
+        "Net Total": '=IF({Ex GST}="","",{Ex GST}-N({Discounts Included}))',
+        "Margin": '=IF({Ex GST}="","",{Ex GST}-N({Cross Hire Expense})'
+                  '-N({Labour Expense (Internal)}))',
+        "Margin %": '=IFERROR({Margin}/{Ex GST},"")',
     },
     "Consulting": {
-        "Total Expense": '=IF([@[Ex GST]]="","",N([@[Labour Expense (External)]])'
-                         '+N([@[Equipment Expense (Internal)]])+N([@[Subscription & Licences Expense]]))',
-        "Margin": '=IF([@[Ex GST]]="","",[@[Ex GST]]-[@[Total Expense]])',
-        "Margin %": '=IFERROR([@Margin]/[@[Ex GST]],"")',
+        "Total Expense": '=IF({Ex GST}="","",N({Labour Expense (External)})'
+                         '+N({Equipment Expense (Internal)})+N({Subscription & Licences Expense}))',
+        "Margin": '=IF({Ex GST}="","",{Ex GST}-{Total Expense})',
+        "Margin %": '=IFERROR({Margin}/{Ex GST},"")',
         "Revenue Split Check":
-            '=IF([@[Ex GST]]="","",IF(N([@[Labour Revenue]])+N([@[Equipment Revenue]])'
-            '+N([@[Subscription Revenue]])=0,"Not split",IF(ROUND(N([@[Labour Revenue]])'
-            '+N([@[Equipment Revenue]])+N([@[Subscription Revenue]]),2)'
-            '=ROUND([@[Ex GST]],2),"OK","MISMATCH")))',
+            '=IF({Ex GST}="","",IF(N({Labour Revenue})+N({Equipment Revenue})'
+            '+N({Subscription Revenue})=0,"Not split",IF(ROUND(N({Labour Revenue})'
+            '+N({Equipment Revenue})+N({Subscription Revenue}),2)'
+            '=ROUND({Ex GST},2),"OK","MISMATCH")))',
     },
 }
+
+
+def render(template, headers, row):
+    """Turn {Column Name} placeholders into plain A1 references for one row."""
+    out = template
+    for name in sorted(headers, key=len, reverse=True):
+        out = out.replace("{" + name + "}", gcl(headers.index(name) + 1) + str(row))
+    if "{" in out:
+        raise ValueError("unresolved placeholder in: " + out)
+    return out
+
 
 WIP_COLS = [
     ("Month", 10, MON, "in"), ("Job Number", 15, TXT, "in"),
@@ -170,7 +186,7 @@ WIP_COLS = [
     ("Notes", 42, TXT, "in"),
 ]
 WIP_FORMULAS = {
-    "Job in Xero?": '=IF([@[Job Number]]="","",IF(COUNTIF(lst_Jobs,[@[Job Number]]&"")>0,"OK","CHECK"))',
+    "Job in Xero?": '=IF({Job Number}="","",IF(COUNTIF(lst_Jobs,{Job Number}&"")>0,"OK","CHECK"))',
 }
 
 TABLES = {"Onsite": "tbl_Onsite", "Production": "tbl_Production",
@@ -184,21 +200,28 @@ DV_FOR = {"Cost Centre": "lst_CostCentre", "Invoice Type": "lst_InvoiceType",
 
 
 def stack():
-    """The four department tables, spine columns only, stacked."""
+    """The four department tables, spine columns only, stacked.
+
+    [#Data] is not decoration: a bare table name includes the header row in some
+    engines, which would put four literal header rows into the Finance list.
+    """
     cols = ",".join(str(i) for i in range(1, NCORE + 1))
-    return "VSTACK(" + ",".join(f"CHOOSECOLS({t},{cols})" for t in REV) + ")"
+    return "VSTACK(" + ",".join(f"CHOOSECOLS({t}[#Data],{cols})" for t in REV) + ")"
 
 
 # A row is real if it carries a date, client, invoice number or amount. Testing
 # the date alone silently hid every undated row, and those hold real money.
-CRIT = ('f0,--((CHOOSECOLS(d,1)&CHOOSECOLS(d,5)&CHOOSECOLS(d,10)&CHOOSECOLS(d,12))<>""),'
-        'f1,IF($A$5="All",1,--(CHOOSECOLS(d,3)=$A$5)),'
-        'f2,IF($C$5="All",1,--(CHOOSECOLS(d,4)=$C$5)),'
-        'f3,IF($E$5="All",1,--(CHOOSECOLS(d,2)=$E$5)),'
-        'f4,IF($G$5="All",1,--(CHOOSECOLS(d,18)=$G$5)),'
-        'f5,IF($I$5="",1,--ISNUMBER(SEARCH($I$5,CHOOSECOLS(d,5)&"|"&CHOOSECOLS(d,6)'
+# LET variable names must not look like cell references. "f1".."f5" ARE cells
+# F1:F5, and naming them that returns #VALUE! - which is why the whole Finance
+# sheet came back empty. Names here are deliberately un-reference-like.
+CRIT = ('keep,--((CHOOSECOLS(d,1)&CHOOSECOLS(d,5)&CHOOSECOLS(d,10)&CHOOSECOLS(d,12))<>""),'
+        'fTeam,IF($A$5="All",1,--(CHOOSECOLS(d,3)=$A$5)),'
+        'fCC,IF($C$5="All",1,--(CHOOSECOLS(d,4)=$C$5)),'
+        'fMonth,IF($E$5="All",1,--(CHOOSECOLS(d,2)=$E$5)),'
+        'fStat,IF($G$5="All",1,--(CHOOSECOLS(d,18)=$G$5)),'
+        'fFind,IF($I$5="",1,--ISNUMBER(SEARCH($I$5,CHOOSECOLS(d,5)&"|"&CHOOSECOLS(d,6)'
         '&"|"&CHOOSECOLS(d,8)&"|"&CHOOSECOLS(d,10)))),'
-        'k,f0*f1*f2*f3*f4*f5,')
+        'k,keep*fTeam*fCC*fMonth*fStat*fFind,')
 
 
 def across(val, pairs, tables=None):
@@ -214,17 +237,27 @@ def across(val, pairs, tables=None):
 OTHERS = [t for t in REV if t != "tbl_Production"]
 
 
+def _prod(col):
+    """A Production-sheet column for the month, limited to its two cost centres.
+
+    Restricting to PRODUCTION and VIDEO matters: a Production row coded to
+    anything else is picked up by the ordinary by-cost-centre sum below, so it
+    lands on its own line instead of disappearing between the two.
+    """
+    return "+".join(
+        f'SUMIFS(tbl_Production[{col}],tbl_Production[Month],$C$4,'
+        f'tbl_Production[Cost Centre],"{cc}")' for cc in ("PRODUCTION", "VIDEO"))
+
+
 def by_cost_centre(value, video_value, row):
     """Month-End revenue for one cost centre, in the selected month."""
     pairs = [("Month", "$C$4"), ("Cost Centre", f"$A{row}")]
-    rest = across(value, pairs, OTHERS)
     if row == PRODUCTION_ROW:
-        return (f"SUMIFS(tbl_Production[{value}],tbl_Production[Month],$C$4)"
-                f"-SUMIFS(tbl_Production[{video_value}],tbl_Production[Month],$C$4)"
-                f"+{rest}") if video_value else f"{rest}"
+        return f"({_prod(value)})-({_prod(video_value)})+{across(value, pairs, OTHERS)}"
     if row == VIDEO_ROW:
-        return f"SUMIFS(tbl_Production[{video_value}],tbl_Production[Month],$C$4)+{rest}"
-    return rest
+        return f"{_prod(video_value)}+{across(value, pairs, OTHERS)}"
+    # every other cost centre sums all four sheets, Production included
+    return across(value, pairs, REV)
 
 
 def count_across(pairs):
@@ -513,7 +546,7 @@ def build_entry_sheet(wb, name, cols, formulas, team, rows, tblname, blurb,
                 if h == "Team":
                     c.value = f'="{team}"' if team else None
                 elif h in formulas:
-                    c.value = fx(formulas[h])
+                    c.value = fx(render(formulas[h], heads, r))
             elif rec.get(h) is not None:
                 c.value = rec[h]
         ws.row_dimensions[r].height = 15
@@ -533,7 +566,7 @@ def build_entry_sheet(wb, name, cols, formulas, team, rows, tblname, blurb,
     for col in t.tableColumns:
         if col.name in calcs:
             col.calculatedColumnFormula = TableFormula(
-                attr_text=fx(calcs[col.name]).lstrip("="))
+                attr_text=fx(render(calcs[col.name], heads, DATA_ROW)).lstrip("="))
 
     for ci, (h, w, fmt, kind) in enumerate(cols, start=1):
         source = (dv_override or {}).get(h, DV_FOR.get(h))
@@ -613,11 +646,11 @@ def build_finance(wb):
     ws.merge_cells("A6:S6")
     ws["A6"] = fx(
         f"=LET(d,{stack()},{CRIT}"
-        "n,SUM(k),tot,SUM(f0),"
+        "cnt,SUM(k),tot,SUM(keep),"
         "ex,SUMPRODUCT(k,IFERROR(CHOOSECOLS(d,12)*1,0)),"
         "gs,SUMPRODUCT(k,IFERROR(CHOOSECOLS(d,13)*1,0)),"
         "ic,SUMPRODUCT(k,IFERROR(CHOOSECOLS(d,14)*1,0)),"
-        '"Showing "&TEXT(n,"#,##0")&" of "&TEXT(tot,"#,##0")&" records"'
+        '"Showing "&TEXT(cnt,"#,##0")&" of "&TEXT(tot,"#,##0")&" records"'
         '&"      Ex GST "&TEXT(ex,"$#,##0.00")'
         '&"      GST "&TEXT(gs,"$#,##0.00")'
         '&"      Inc GST "&TEXT(ic,"$#,##0.00"))')
