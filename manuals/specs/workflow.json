@@ -1,0 +1,717 @@
+{
+  "eyebrow": "PAYROLL PROCESSING",
+  "title": "Payroll Workflow: Start to Finish",
+  "subtitle": "Corporate Technology Services  ·  Employment Hero Payroll  ·  Fortnightly cycle",
+  "runningHead": "Payroll Workflow: Start to Finish",
+  "screenshotDir": "manuals/screenshots/workflow",
+  "output": "manuals/Payroll Workflow - Start to Finish.docx",
+  "blocks": [
+    {
+      "type": "h1",
+      "text": "About this workflow"
+    },
+    {
+      "type": "p",
+      "text": "This is the whole payroll cycle on a few pages: the order it runs in, when each stage happens, what must be true before you move on, and who has to act before anything else can proceed."
+    },
+    {
+      "type": "p",
+      "text": "It does not repeat the instructions. The eight parts of the Payroll Processing Manual tell you how to do each step, and the checklist workbook is what you tick as you go. This document is the map: read it first, work from the manual and the checklist on the day."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "This workflow",
+          "Where each stage sits, what the timing is, and what stops you moving on"
+        ],
+        [
+          "The manual (Parts 1 to 7)",
+          "How to do each step, screen by screen"
+        ],
+        [
+          "The checklist workbook",
+          "79 steps in order, ticked off as you work the fortnight"
+        ],
+        [
+          "The listening version",
+          "The same walkthrough as spoken text, for revision away from the desk"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "Source.",
+      "text": "Everything here is drawn from the seven training recordings and the manual parts built from them. Where the recordings do not answer something, it is marked as a gap rather than filled in with a guess. The gaps are listed at the end."
+    },
+    {
+      "type": "h1",
+      "text": "The cycle at a glance"
+    },
+    {
+      "type": "p",
+      "text": "Payroll runs fortnightly. The pay period ends on a Friday, prep starts the Friday before the processing week, the run is processed on the Monday, and the money moves on the Tuesday."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Across the fortnight",
+          "Payroll notes arrive in your inbox and the CTS Accounts inbox, and are collated into a single draft email as they come  (Part 1)"
+        ],
+        [
+          "Friday, period end",
+          "The pay period closes. This is the same day prep starts: the period runs Saturday to Friday, and the Friday it ends on is the Friday before the processing Monday"
+        ],
+        [
+          "Friday, period end",
+          "Payroll prep: timesheet template copied into the fortnight folder and populated, notes recorded, approvals chased  (Part 1)"
+        ],
+        [
+          "Monday, 10am",
+          "Cut-off. Staff timesheets must be in by this point"
+        ],
+        [
+          "Monday morning",
+          "Gate: nothing under Submitted. Then create the pay run  (Part 2)"
+        ],
+        [
+          "Monday",
+          "Reconcile the pay run employee by employee, in alphabetical order  (Parts 3a, 3b, 3c)"
+        ],
+        [
+          "Monday",
+          "Apply the payroll notes, accrue bonus leave if it is the last run of the month, verify rates, balance to zero  (Part 5)"
+        ],
+        [
+          "Monday",
+          "Finalise, Graham approves, ABA file to CommBiz, funds transferred, Duncan notified, super created, five reports filed  (Part 6)"
+        ],
+        [
+          "Tuesday",
+          "Pay date. Duncan approves the payment in CommBiz and it processes"
+        ],
+        [
+          "The day after approval",
+          "Publish pay slips. Complete super and the ATO lodgement if either was deferred  (Part 6)"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "Four fixed points.",
+      "text": "The recordings fix four things: prep starts the Friday before, the timesheet cut-off is 10am Monday, the pay date is always the Tuesday of the processing week, and pay slips are published the day after the payment is approved. Everything between the cut-off and the pay date runs on the Monday. The recordings never show that Monday's work split across two days, so treat Monday as a full day, not a morning."
+    },
+    {
+      "type": "h1",
+      "text": "The main line: seven stages"
+    },
+    {
+      "type": "p",
+      "text": "Each stage has a trigger that starts it and a gate that has to be satisfied before the next one begins. Skipping a gate does not save time; it means redoing the work after the problem surfaces further down."
+    },
+    {
+      "type": "h2",
+      "text": "Stage 1  Prep"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Starts when",
+          "The pay period closes on the Friday. Note collection has been running all fortnight"
+        ],
+        [
+          "You do",
+          "Collate the notes into one email for approval, copy the timesheet template into the fortnight folder, record every note, populate columns E to S only where the dollar value changes"
+        ],
+        [
+          "Systems",
+          "Outlook, Y drive, Employment Hero"
+        ],
+        [
+          "Someone else acts",
+          "Duncan or Graham approve the collated notes. Managers approve outstanding timesheets"
+        ],
+        [
+          "Gate",
+          "Nothing listed under Submitted in Timesheet Approval, and any missing timesheets followed up"
+        ],
+        [
+          "Detail in",
+          "Part 1: Payroll Prep"
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "Stage 2  Create the pay run"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Starts when",
+          "The approvals gate is clear"
+        ],
+        [
+          "You do",
+          "Set cell B1 to the fortnight period, re-check Submitted is empty, create the pay run on CTS - Fortnight with the pay date set to the Tuesday"
+        ],
+        [
+          "Systems",
+          "Excel timesheet, Employment Hero"
+        ],
+        [
+          "Watch",
+          "Import Timesheets must be set to Timesheets for this pay period, never All unpaid timesheets"
+        ],
+        [
+          "Gate",
+          "The payee count looks right for the fortnight. If it does not, delete the pay run and create it again rather than working through it"
+        ],
+        [
+          "Detail in",
+          "Part 2: Creating a New Pay Run"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "Nothing is committed yet.",
+      "text": "Stage 2 is the last point where starting over is cheap. Deleting and recreating a wrongly built pay run takes minutes; correcting one employee by employee takes the afternoon."
+    },
+    {
+      "type": "h2",
+      "text": "Stage 3  Reconcile, employee by employee"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Starts when",
+          "The pay run exists and the payee count is right"
+        ],
+        [
+          "You do",
+          "Work the pay run in alphabetical order. Check each person's employment type, then apply the guide that covers them"
+        ],
+        [
+          "Systems",
+          "Employment Hero, Employment Hero HR, the roster, the Live Performance Award, the CTS Overtime Matrix, the Excel timesheet"
+        ],
+        [
+          "Watch",
+          "This is the longest stage of the fortnight and the one where wrong payments are made"
+        ],
+        [
+          "Gate",
+          "Every payee reconciled, hours transferred to the spreadsheet, verified rates marked green"
+        ],
+        [
+          "Detail in",
+          "Parts 3a, 3b and 3c. Which one applies is set out under Which path each employee takes, below"
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "Stage 4  Apply the notes and adjustments"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Starts when",
+          "Everyone in the pay run has been reconciled"
+        ],
+        [
+          "You do",
+          "Add anyone still missing, then apply every payroll note: back pays, leave never captured, time in lieu adjustments, per diem at $75 a night"
+        ],
+        [
+          "Also",
+          "If this is the last pay run of the month, accrue bonus leave from the tracker, a month ahead"
+        ],
+        [
+          "Then",
+          "Verify every pay rate against the rate increase spreadsheet, and override any rate that failed to sync from HR"
+        ],
+        [
+          "Gate",
+          "Nothing left to add. Anything applied after this point throws the balance out again"
+        ],
+        [
+          "Detail in",
+          "Part 5, Steps 1 to 4"
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "Stage 5  Balance"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Starts when",
+          "Every adjustment is in and every rate is verified"
+        ],
+        [
+          "You do",
+          "Enter the Employment Hero totals against the per EH Payroll row and read the two checksums"
+        ],
+        [
+          "Read it as",
+          "Hours checksum at zero means the reconciliation is complete. Dollars out with hours agreeing means a rate or multiplier is wrong, usually an overtime rate on a stale base rate"
+        ],
+        [
+          "Gate",
+          "Both checksums at zero, or the dollar figure within a couple of cents of rounding"
+        ],
+        [
+          "Detail in",
+          "Part 5, Step 5"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "Balance once, at the end.",
+      "text": "Checking the totals early feels productive and is not. A single back pay applied afterwards puts the balance out again and the work is repeated. Get everything in first."
+    },
+    {
+      "type": "h2",
+      "text": "Stage 6  Finalise and pay"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Starts when",
+          "Both checksums read zero"
+        ],
+        [
+          "You do",
+          "Check the pay period and paid date, finalise with Graham as approver, then wait"
+        ],
+        [
+          "Someone else acts",
+          "Graham logs in, reviews the total and approves. Nothing proceeds until he does"
+        ],
+        [
+          "Then you",
+          "Refresh, download the ABA file, import it to CommBiz as Direct Entry with Set File as Modifiable ticked, submit and confirm"
+        ],
+        [
+          "Then funds",
+          "Cover net payroll plus super plus anything else scheduled, transferred from savings, leaving roughly a $20,000 buffer, described as MT payroll"
+        ],
+        [
+          "Then notify",
+          "Payroll email to Duncan, copying Graham, Danica and accounts, with the production summary and the transaction group screenshot. Then post in the payments chat tagging Duncan"
+        ],
+        [
+          "Then super",
+          "Create Super Payment, then validate and confirm the batch separately"
+        ],
+        [
+          "Then file",
+          "Five files into the fortnight folder: pay slips, pay run audit, ABA file, leave balances, leave liability. Both leave reports run to the period end date, not today"
+        ],
+        [
+          "Gate",
+          "Duncan approves the payment in CommBiz"
+        ],
+        [
+          "Detail in",
+          "Part 6: Finalisation & Bank Upload"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "This is the least reversible stage.",
+      "text": "Once super payments have been made against a pay run, Employment Hero will not let you unlock it. Be confident the reconciliation is complete before you finalise, not hopeful."
+    },
+    {
+      "type": "h2",
+      "text": "Stage 7  Next day close-out"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Starts when",
+          "You have confirmed Duncan approved the payment"
+        ],
+        [
+          "You do",
+          "Publish pay slips. This is what notifies employees, which is why it waits for the approval"
+        ],
+        [
+          "Also",
+          "Complete the super batch and the ATO lodgement if either was deferred"
+        ],
+        [
+          "Gate",
+          "The fortnight is closed. The next one has already started collecting notes"
+        ],
+        [
+          "Detail in",
+          "Part 6, Step 7"
+        ]
+      ]
+    },
+    {
+      "type": "h1",
+      "text": "The gates: six points where the process stops"
+    },
+    {
+      "type": "p",
+      "text": "These are the points where you cannot proceed until something is true. Four are yours to clear and two belong to somebody else."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "1. Timesheet approvals",
+          "Nothing under Submitted, or the pay run has to be scrapped and rebuilt. Yours to chase"
+        ],
+        [
+          "2. Payee count",
+          "The count at the top of the pay run looks right for the fortnight. If not, stop and investigate"
+        ],
+        [
+          "3. Hours checksum",
+          "Reads zero before you look at dollars at all"
+        ],
+        [
+          "4. Dollar checksum",
+          "Reads zero, or within a couple of cents of rounding, before you finalise"
+        ],
+        [
+          "5. Graham",
+          "Approves the finalised pay run in Employment Hero. Nothing proceeds until he does"
+        ],
+        [
+          "6. Duncan",
+          "Approves the payment in CommBiz. No pay slips published until he has"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "Two of the gates are not yours.",
+      "text": "Gates 5 and 6 depend on two named people, and neither has a documented backup. If either is unavailable on the day, the process has no written answer. That is the single largest hole in this workflow."
+    },
+    {
+      "type": "h1",
+      "text": "Which path each employee takes"
+    },
+    {
+      "type": "p",
+      "text": "Stage 3 is not one procedure, it is three. Which applies depends on employment type and on whether the person's hours reach the pay run on their own. Check the type before applying any rule: the same hours are treated differently for a casual and a salaried employee."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Casual, rostered",
+          "Part 3a. Live Performance Award. Compare with roster, 38-hour weekly and 8-hour daily overtime, meal breaks"
+        ],
+        [
+          "Casual, ad hoc contract",
+          "Part 3a, but there is no roster. PwC Australia and payment networks among others. The timesheets are the only source and the approving manager verifies the hours"
+        ],
+        [
+          "Salaried or full-time",
+          "Part 3b. CTS Overtime Matrix, not the award. Anchor to 80 hours a fortnight and watch the 8-hour rounding rule"
+        ],
+        [
+          "Part-time, does not clock in",
+          "Part 3c. Will not be in the pay run at all. Add manually and check the rate, which often comes through wrong"
+        ],
+        [
+          "New starter",
+          "Part 3c. Will be in the pay run but not in the spreadsheet. Add at the rate excluding casual loading"
+        ],
+        [
+          "Anyone on leave without pay",
+          "Part 3c. Created in Employment Hero HR first, then synced. Look for the aeroplane icon"
+        ],
+        [
+          "A missed shift from an earlier fortnight",
+          "Part 3c. The one case where you import unpaid timesheets instead of this pay period"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "The manual-handling people are the ones that get missed.",
+      "text": "Everyone in Parts 3a and 3b appears in the pay run, so working top to bottom finds them. The people in Part 3c can be absent altogether. Nothing prompts you; you have to know to look."
+    },
+    {
+      "type": "h1",
+      "text": "Branches off the main line"
+    },
+    {
+      "type": "p",
+      "text": "These sit outside the fortnightly sequence. Each has a settled answer, so the risk is not knowing the branch exists rather than not knowing what to do."
+    },
+    {
+      "type": "h2",
+      "text": "A termination or final pay"
+    },
+    {
+      "type": "p",
+      "text": "Not part of the cycle. A resignation is paid through a small ad hoc pay run created for that person, usually because the final pay cannot wait for the next fortnight. The mechanics are the same as a normal run, but you strip the pay run back to the people you actually need, terminate inside it, and check the unused leave payout against the balances held in Employment Hero HR before finalising. Annual leave and time in lieu are paid out; personal and carer's leave and family and domestic violence leave are not. See Part 7."
+    },
+    {
+      "type": "h2",
+      "text": "An expense submitted after the cut-off"
+    },
+    {
+      "type": "p",
+      "text": "It goes into the following pay run. Expenses only import if they were submitted before the cut-off, and there is no way to force a late one in. Entering it by hand risks the same expense importing again next fortnight and being paid twice. This has been the process since 2024; say so plainly to whoever submitted it rather than part-processing it."
+    },
+    {
+      "type": "h2",
+      "text": "An error found after finalising"
+    },
+    {
+      "type": "p",
+      "text": "Part 5 shows corrections being made as back pays in the following fortnight, which is the documented answer. Once super has been paid against the run it cannot be unlocked at all. What is not documented is whether an underpayment, or an error on a termination, has to be fixed immediately instead, and who decides. Ask before you need it."
+    },
+    {
+      "type": "h2",
+      "text": "A rate that did not sync from HR"
+    },
+    {
+      "type": "p",
+      "text": "A known Employment Hero fault leaves the old rate in payroll, often with a warning icon against the employee. Override the rate manually for the current run, then check whether earlier fortnights were paid at the stale rate and add a back pay if they were."
+    },
+    {
+      "type": "h2",
+      "text": "A casual needing access to a cost centre"
+    },
+    {
+      "type": "p",
+      "text": "Not part of any pay run. Most cost centres are available to everyone; casuals are the exception and have to be enabled individually under Payroll Settings, Locations. Do it on the payroll side, not in HR, where the setting only allows a single cost centre."
+    },
+    {
+      "type": "h1",
+      "text": "What happens only sometimes"
+    },
+    {
+      "type": "p",
+      "text": "Four things run on a different rhythm to the fortnight. Nothing in the system prompts you for the first of them."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Last pay run of the month",
+          "Accrue bonus leave, always a month ahead, from the tracker spreadsheet. A day is eight hours. No accrual without a signed letter; mark the tracker and backdate once it is in place"
+        ],
+        [
+          "Every fortnight, after finalising",
+          "Five reports filed into the fortnight folder, with the related emails"
+        ],
+        [
+          "Every fortnight",
+          "The super batch created, then validated and confirmed. Creating it does not send it"
+        ],
+        [
+          "Every fortnight",
+          "The pay run lodged with the ATO, a separate action from the finalised pay run screen"
+        ],
+        [
+          "Whenever rates change",
+          "Verify every rate against the rate increase spreadsheet before balancing. Anyone absent from it has had no change"
+        ]
+      ]
+    },
+    {
+      "type": "h1",
+      "text": "Who has to act, and when"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Managers",
+          "Approve timesheets before the Monday, and attach the reason for any approved overtime"
+        ],
+        [
+          "Duncan or Graham",
+          "Approve the collated payroll notes at the end of prep"
+        ],
+        [
+          "You",
+          "Everything from creating the pay run to filing the reports"
+        ],
+        [
+          "Graham",
+          "Approves the finalised pay run in Employment Hero"
+        ],
+        [
+          "Duncan",
+          "Approves the payment in CommBiz, on the pay date"
+        ],
+        [
+          "You, the next day",
+          "Publish pay slips once the payment is approved"
+        ]
+      ]
+    },
+    {
+      "type": "h1",
+      "text": "When it goes wrong"
+    },
+    {
+      "type": "p",
+      "text": "The left column is the symptom. The right is the first move as the recordings have it. Where the recordings stop, it says so; those are the ones to get answers for before your first run rather than on the day."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Timesheets still unapproved on the Monday",
+          "Chase the approvals. You cannot create the pay run. How long to wait and who to escalate to is not documented"
+        ],
+        [
+          "The pay run will not balance",
+          "Hours first, then dollars. Read gross earnings employee by employee and check overtime rates before ordinary rates. No documented threshold for asking for help"
+        ],
+        [
+          "Total hours look wrong for someone on leave without pay",
+          "Known spreadsheet fault: the leave without pay column is excluded from total hours but needed for the dollar value. Verify that person's total by hand"
+        ],
+        [
+          "Not enough in the account",
+          "Transfer from savings, covering net payroll plus super plus anything else scheduled, leaving a $20,000 buffer. How much notice the transfer needs to clear is not documented"
+        ],
+        [
+          "Employment Hero is unavailable",
+          "Super and the ATO lodgement can slip to the next day; this happened during the Part 6 recording without consequence. What to do if the outage lands on the ABA upload is not documented"
+        ],
+        [
+          "Duncan has not approved by the pay date",
+          "Not documented. The payment simply sits in CommBiz until approved"
+        ],
+        [
+          "An error surfaces after finalising",
+          "Back pay in the following fortnight. Whether an underpayment has to be fixed sooner is not documented"
+        ]
+      ]
+    },
+    {
+      "type": "h1",
+      "text": "Known gaps in this workflow"
+    },
+    {
+      "type": "p",
+      "text": "These are not oversights in the writing. They are things the seven recordings never covered, so there is no source to write them from. Each one has a question waiting in the handover document."
+    },
+    {
+      "type": "bullet",
+      "text": "What shifts when the Monday of the processing week, or the Tuesday pay date, falls on a public holiday"
+    },
+    {
+      "type": "bullet",
+      "text": "Who approves the pay run and the payment if Graham or Duncan is unavailable"
+    },
+    {
+      "type": "bullet",
+      "text": "Who to contact at Employment Hero when something breaks mid pay run"
+    },
+    {
+      "type": "bullet",
+      "text": "Who your escalation is if something goes wrong on pay day"
+    },
+    {
+      "type": "bullet",
+      "text": "How far back a missed shift can be recovered before it needs handling differently, and who approves a back pay for a closed period"
+    },
+    {
+      "type": "bullet",
+      "text": "Whether there is a variance threshold below which a pay run can be finalised, or whether it must always be zero apart from rounding"
+    },
+    {
+      "type": "bullet",
+      "text": "The conversion for a contract rate quoted inclusive of casual loading, and whether the ex-loading rate can be looked up rather than calculated"
+    },
+    {
+      "type": "callout",
+      "label": "Three of these matter more than the rest.",
+      "text": "The two approver backups, the Employment Hero contact, and your escalation on pay day. Those are the ones you will need at the worst possible moment and cannot work out for yourself. Names, roles and phone numbers, written down somewhere you can find under pressure, before your first pay run rather than during it."
+    },
+    {
+      "type": "h1",
+      "text": "Where the detail lives"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Stage 1",
+          "Payroll Processing - Part 1 - Payroll Prep"
+        ],
+        [
+          "Stage 2",
+          "Payroll Processing - Part 2 - Creating a New Pay Run"
+        ],
+        [
+          "Stage 3, casuals",
+          "Payroll Processing - Part 3a - Reconciling Casual Timesheets"
+        ],
+        [
+          "Stage 3, salaried",
+          "Payroll Processing - Part 3b - Reconciling Salaried and Full-Time Timesheets"
+        ],
+        [
+          "Stage 3, manual handling",
+          "Payroll Processing - Part 3c - Employees Needing Manual Handling"
+        ],
+        [
+          "Stages 4 and 5",
+          "Payroll Processing - Part 5 - Reconciling and Balancing the Pay Run"
+        ],
+        [
+          "Stages 6 and 7",
+          "Payroll Processing - Part 6 - Finalisation and Bank Upload"
+        ],
+        [
+          "Terminations",
+          "Payroll Processing - Part 7 - Terminations and Out-of-Cycle Pay Runs"
+        ],
+        [
+          "All of it bound together",
+          "Payroll Processing Manual - Complete"
+        ],
+        [
+          "Tick as you go",
+          "Payroll Processing Checklist  (79 steps, in order)"
+        ],
+        [
+          "Revision away from the desk",
+          "Payroll Step by Step - Listening Version"
+        ],
+        [
+          "The open questions",
+          "Payroll Handover - Questions and Scenarios"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "There is no Part 4, and nothing is missing. Video 4 worked through a correction to a salaried employee, so its material sits at the end of Part 3b alongside the rest of the salaried guidance."
+    },
+    {
+      "type": "next",
+      "text": "Part 1: Payroll Prep, which is where the next fortnight begins."
+    }
+  ]
+}
