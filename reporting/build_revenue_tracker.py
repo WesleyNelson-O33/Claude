@@ -1,23 +1,23 @@
 """Build the FY27 Revenue Tracker workbook.
 
-Replaces FY27_Revenue_Tracker_v2.xlsm, which was slow for one reason: a macro.
-Every cell edit fired Worksheet_Change, which copied 26 columns x 200 rows back
-into hidden storage columns, and every change of the department dropdown rewrote
-the widths, formats and validation for the whole sheet. It was also capped at
-200 rows per department and 800 in total, so it could never have held years of
-transactions.
+Ownership is the point of this design. Finance raises every invoice (ACC005),
+so Finance owns the revenue record and types on the Finance sheet only. Each
+department owns its operational detail and types on its own sheet only. The two
+meet on Job Number, which is a real Xero tracking category and already
+validated, so there is no synthetic key to keep in step.
 
-So there are no macros here at all. Two rules drive the design:
+Two rules follow from that:
 
-  1. Columns A-S are identical on every department sheet. Finance stacks exactly
-     those columns with one formula, so adding a department means copying a sheet
-     and keeping the spine - nothing has to be rebuilt.
-  2. Nothing volatile, nothing whole-column, no per-cell styling over empty rows.
-     Excel only recalculates what actually changed.
+  1. Finance is one row per invoice LINE, coded to one Cost Centre, exactly as
+     Xero holds it. A job invoiced part production and part video is two lines,
+     so the VIDEO total is a plain sum rather than a split column that has to be
+     kept honest.
+  2. No dynamic array functions anywhere - no VSTACK, FILTER, SORT, UNIQUE,
+     XLOOKUP. Finance is a real Excel Table with real filter buttons that can be
+     sorted and pivoted, and every formula here works in any version of Excel.
 
 Cost centres, job numbers and revenue GL codes come from the live Xero
-organisation (Cost Centres and Job Numbers tracking categories, chart of
-accounts), so the tracker ties to Xero without a mapping table.
+organisation, so the tracker ties to Xero without a mapping table.
 """
 import datetime
 import json
@@ -38,85 +38,6 @@ MIG = json.loads((ROOT / "data/revenue_migration.json").read_text())
 ACC = json.loads((ROOT / "data/revenue_accounts.json").read_text())
 OUT = ROOT / "FY27_Revenue_Tracker_v3.xlsx"
 
-# --------------------------------------------------------------------------
-# openpyxl is not Excel: post-2007 functions must be persisted with their
-# internal prefix or Excel reports the file as unreadable and drops the formula.
-_XLFN = ["VSTACK", "HSTACK", "CHOOSECOLS", "UNIQUE", "LET", "XLOOKUP",
-         "TEXTJOIN", "SEQUENCE", "IFNA", "TOCOL", "SORTBY", "TAKE", "DROP"]
-_XLWS = ["FILTER", "SORT"]          # worksheet-scoped: _xlfn._xlws.NAME
-
-
-# Every LET variable name. They are deliberately three characters or more and
-# nothing like a cell reference: "f1" would be cell F1, which Excel refuses as a
-# variable name, and single letters are easy to mangle when rewriting formulas.
-LET_NAMES = {
-    "dat", "keep", "fTeam", "fCC", "fMonth", "fStat", "fFind", "flag",
-    "cnt", "tot", "exg", "gst", "inc", "mth", "job", "opn", "mvt", "arr", "uni",
-    "dte", "xer", "inv", "tax", "glc", "pst", "iss",
-}
-
-
-def xlpm(formula):
-    """Prefix LET variable names with _xlpm., which is how Excel stores them.
-
-    Without it Excel cannot parse the formula when it loads the file and offers
-    to repair the workbook instead - stripping the formula on the way through.
-    Quoted strings and [structured references] are copied verbatim so a name is
-    never rewritten inside 'Month-End'!C4 or tbl_Onsite[#Data].
-    """
-    out, i, n = [], 0, len(formula)
-    while i < n:
-        ch = formula[i]
-        if ch in '"\'':                       # copy a quoted span untouched
-            quote = ch
-            out.append(ch)
-            i += 1
-            while i < n:
-                out.append(formula[i])
-                if formula[i] == quote:
-                    if i + 1 < n and formula[i + 1] == quote:
-                        out.append(formula[i + 1])
-                        i += 2
-                        continue
-                    i += 1
-                    break
-                i += 1
-            continue
-        if ch == '[':                          # copy a structured reference
-            depth = 0
-            while i < n:
-                out.append(formula[i])
-                if formula[i] == '[':
-                    depth += 1
-                elif formula[i] == ']':
-                    depth -= 1
-                    if depth == 0:
-                        i += 1
-                        break
-                i += 1
-            continue
-        m = re.match(r"[A-Za-z_][A-Za-z0-9_.]*", formula[i:])
-        if m:
-            tok = m.group()
-            out.append("_xlpm." + tok if tok in LET_NAMES else tok)
-            i += len(tok)
-            continue
-        out.append(ch)
-        i += 1
-    return "".join(out)
-
-
-def fx(formula):
-    """Rewrite a readable formula into the form openpyxl must persist."""
-    for name in _XLWS:
-        formula = re.sub(r"(?<![A-Z0-9_.])" + name + r"\(",
-                         "_xlfn._xlws." + name + "(", formula)
-    for name in _XLFN:
-        formula = re.sub(r"(?<![A-Z0-9_.])" + name + r"\(",
-                         "_xlfn." + name + "(", formula)
-    return xlpm(re.sub(r"\s*\n\s*", "", formula))
-
-
 NAVY, SLATE, LIGHT = "3E5066", "5B708A", "EDF1F6"
 CALC_BG, BORDER = "F2F2F2", "B7B7B7"
 WARN, GOOD, BAD = "FFF2CC", "E2EFDA", "FCE4E4"
@@ -130,105 +51,35 @@ CALC_FILL = PatternFill("solid", fgColor=CALC_BG)
 
 COST_CENTRES = ACC["cost_centres"]
 HDR_ROW, DATA_ROW, DV_LAST, CF_LAST = 4, 5, 20000, 5000
-MONTH_END_R0 = 8                       # first cost-centre row on Month-End
-PRODUCTION_ROW = MONTH_END_R0 + COST_CENTRES.index("PRODUCTION")
-VIDEO_ROW = MONTH_END_R0 + COST_CENTRES.index("VIDEO")
+SPARE = 400                      # blank rows kept ready on each entry table
 
-# --------------------------------------------------------------------------
-# The spine. Columns 1-19, identical on all four department sheets.
-# (header, width, number format, kind)  kind: in=typed, f=formula, dv=dropdown
-CORE = [
-    ("Date", 11, DATE, "in"), ("Month", 10, MON, "f"), ("Team", 13, TXT, "f"),
-    ("Cost Centre", 14, TXT, "dv"), ("Client", 26, TXT, "in"),
-    ("Job Number", 15, TXT, "in"), ("Job in Xero?", 12, TXT, "f"),
-    ("Description", 46, TXT, "in"), ("Invoice Type", 16, TXT, "dv"),
-    ("Xero Invoice No", 16, TXT, "in"), ("Tax Code", 12, TXT, "dv"),
-    ("Ex GST", 14, CUR, "in"), ("GST", 12, CUR, "f"), ("Inc GST", 14, CUR, "f"),
-    ("Revenue GL", 13, TXT, "dv"), ("Posted to Xero", 14, TXT, "dv"),
-    ("To WIP", 9, TXT, "dv"), ("Status", 14, TXT, "dv"), ("Notes", 42, TXT, "in"),
-]
-NCORE = len(CORE)
+FIN = "tbl_Finance"
+DEPTS = ["Onsite", "Production", "Consulting"]
+DEPT_TABLE = {d: f"tbl_{d}" for d in DEPTS}
 
-# In-table formulas use {Column Name} placeholders, rendered to plain A1
-# references for each row. Structured row references ([@Col]) are Excel-native
-# but are not resolved by every engine that may open this file, and a formula
-# that silently returns #N/A in a revenue tracker is worse than a verbose one.
-CORE_FORMULAS = {
-    "Month": '=IF({Date}="","",EOMONTH({Date},0))',
-    "Job in Xero?": '=IF({Job Number}="","",IF(COUNTIF(lst_Jobs,{Job Number}&"")>0,"OK","CHECK"))',
-    "GST": '=IF({Ex GST}="","",IF({Tax Code}="GST 10%",ROUND({Ex GST}*0.1,2),0))',
-    "Inc GST": '=IF({Ex GST}="","",{Ex GST}+{GST})',
-}
 
-EXTRA = {
-    "Onsite": [("PO / Reference", 18, TXT, "in"), ("Ariba Status", 15, TXT, "dv"),
-               ("Billable Hours", 13, NUM, "in"), ("Approved By", 16, TXT, "in")],
-    "Production": [
-        # The video split sits first, immediately after the spine, because it is
-        # what Month-End reads to separate the PRODUCTION and VIDEO cost centres.
-        ("Video Revenue", 15, CUR, "in"), ("Production Revenue", 17, CUR, "f"),
-        ("Video Split", 26, TXT, "f"), ("Video GST", 12, CUR, "f"),
-        ("Client Email", 30, TXT, "in"), ("Event Date", 12, DATE, "in"),
-        ("Current RMS No", 14, TXT, "in"), ("Zoho Number", 14, TXT, "in"),
-        ("Job Closed", 11, TXT, "dv"), ("Discounts Included", 17, CUR, "in"),
-        ("Value Before Discount", 20, CUR, "f"), ("Discount %", 11, PCT, "f"),
-        ("Cross Hire Expense", 17, CUR, "in"),
-        ("Labour Expense (Internal)", 22, CUR, "in"),
-        ("Margin", 14, CUR, "f"), ("Margin %", 10, PCT, "f"),
-        ("Video Filming Hrs", 15, NUM, "in"), ("Video Editing Hrs", 15, NUM, "in"),
-        ("Project Mgmt Hrs", 15, NUM, "in"), ("Video Project Mgmt Hrs", 19, NUM, "in"),
-        ("Production Labour Hrs", 18, NUM, "in")],
-    "Consulting": [
-        ("Qwilr Link", 46, TXT, "in"), ("Opportunity No", 15, TXT, "in"),
-        ("Labour Revenue", 15, CUR, "in"), ("Equipment Revenue", 17, CUR, "in"),
-        ("Subscription Revenue", 19, CUR, "in"),
-        ("Labour Expense (External)", 22, CUR, "in"),
-        ("Equipment Expense (Internal)", 26, CUR, "in"),
-        ("Subscription & Licences Expense", 28, CUR, "in"),
-        ("Total Expense", 14, CUR, "f"), ("Margin", 14, CUR, "f"),
-        ("Margin %", 10, PCT, "f"), ("Revenue Split Check", 18, TXT, "f")],
-    "Other": [],
-}
-
-EXTRA_FORMULAS = {
-    "Production": {
-        "Production Revenue": '=IF({Ex GST}="","",{Ex GST}-N({Video Revenue}))',
-        # GST follows the revenue split exactly, so Inc GST still equals Ex + GST
-        # on every line of the Month-End breakdown.
-        "Video GST": '=IF({Ex GST}="","",IF(N({Video Revenue})=0,0,'
-                     'ROUND({GST}*N({Video Revenue})/{Ex GST},2)))',
-        # Credit notes are negative, so the test is on magnitude and matching
-        # sign, not on "video is bigger than the invoice".
-        "Video Split":
-            '=IF({Ex GST}="","",'
-            'IF(SIGN(N({Video Revenue}))*SIGN({Ex GST})=-1,"CHECK - video sign",'
-            'IF(ABS(N({Video Revenue}))>ABS({Ex GST}),"CHECK - video exceeds invoice",'
-            'IF(AND({Cost Centre}="VIDEO",ROUND(N({Video Revenue}),2)<>ROUND({Ex GST},2)),'
-            '"CHECK - VIDEO job not fully split",'
-            'IF(N({Video Revenue})=0,"All production",'
-            'IF(ROUND(N({Video Revenue}),2)=ROUND({Ex GST},2),"All video","Split"))))))',
-        # Ex GST is what Xero holds, so the discount was taken off before the
-        # invoice was raised. Value Before Discount is what the job was worth
-        # with it added back; subtracting it again (the old "Net Total") gave a
-        # figure that matched neither Xero nor the list price.
-        "Value Before Discount": '=IF({Ex GST}="","",{Ex GST}+N({Discounts Included}))',
-        "Discount %": '=IFERROR({Discounts Included}/{Value Before Discount},"")',
-        "Margin": '=IF({Ex GST}="","",{Ex GST}-N({Cross Hire Expense})'
-                  '-N({Labour Expense (Internal)}))',
-        "Margin %": '=IFERROR({Margin}/{Ex GST},"")',
-    },
-    "Consulting": {
-        "Total Expense": '=IF({Ex GST}="","",N({Labour Expense (External)})'
-                         '+N({Equipment Expense (Internal)})+N({Subscription & Licences Expense}))',
-        "Margin": '=IF({Ex GST}="","",{Ex GST}-{Total Expense})',
-        "Margin %": '=IFERROR({Margin}/{Ex GST},"")',
-        "Revenue Split Check":
-            '=IF({Ex GST}="","",IF(N({Labour Revenue})+N({Equipment Revenue})'
-            '+N({Subscription Revenue})=0,"Not split",IF(ROUND(N({Labour Revenue})'
-            '+N({Equipment Revenue})+N({Subscription Revenue}),2)'
-            '=ROUND({Ex GST},2),"OK","MISMATCH")))',
-    },
-}
+def balanced(formula):
+    """True when brackets match outside of quoted text."""
+    depth, i, n = 0, 0, len(formula)
+    while i < n:
+        ch = formula[i]
+        if ch == '"':
+            i += 1
+            while i < n:
+                if formula[i] == '"':
+                    if i + 1 < n and formula[i + 1] == '"':
+                        i += 2
+                        continue
+                    break
+                i += 1
+        elif ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth < 0:
+                return False
+        i += 1
+    return depth == 0
 
 
 def render(template, headers, row):
@@ -238,97 +89,297 @@ def render(template, headers, row):
         out = out.replace("{" + name + "}", gcl(headers.index(name) + 1) + str(row))
     if "{" in out:
         raise ValueError("unresolved placeholder in: " + out)
+    if not balanced(out):
+        raise ValueError("unbalanced brackets in: " + out)
     return out
 
+
+# ---------------------------------------------------------------- Finance
+FIN_COLS = [
+    ("Date", 11, DATE, "in"), ("Month", 10, MON, "f"),
+    ("Xero Invoice No", 16, TXT, "in"), ("Client", 26, TXT, "in"),
+    ("Job Number", 15, TXT, "in"), ("Job in Xero?", 12, TXT, "f"),
+    ("Description", 44, TXT, "in"), ("Team", 13, TXT, "dv"),
+    ("Cost Centre", 14, TXT, "dv"), ("Invoice Type", 15, TXT, "dv"),
+    ("Tax Code", 12, TXT, "dv"), ("Ex GST", 14, CUR, "in"),
+    ("GST", 12, CUR, "f"), ("Inc GST", 14, CUR, "f"),
+    ("Revenue GL", 13, TXT, "dv"), ("Posted to Xero", 14, TXT, "dv"),
+    ("To WIP", 9, TXT, "dv"), ("Status", 14, TXT, "dv"),
+    ("Notes", 40, TXT, "in"), ("Issue", 34, TXT, "f"),
+]
+FIN_FORMULAS = {
+    "Month": '=IF({Date}="","",EOMONTH({Date},0))',
+    "Job in Xero?": '=IF({Job Number}="","",IF(COUNTIF(lst_Jobs,{Job Number}&"")>0,"OK","CHECK"))',
+    "GST": '=IF({Ex GST}="","",IF({Tax Code}="GST 10%",ROUND({Ex GST}*0.1,2),0))',
+    "Inc GST": '=IF({Ex GST}="","",{Ex GST}+{GST})',
+    # One filterable column instead of a separate exceptions sheet: turn on the
+    # filter for Issue and the list of what needs fixing is right here.
+    "Issue":
+        '=IF(COUNTA({Date},{Client},{Xero Invoice No},{Ex GST})=0,"",'
+        'IF({Date}="","No date - sits outside every month",'
+        'IF({Job Number}="","No job number",'
+        'IF({Job in Xero?}="CHECK","Job number is not in the Xero job list",'
+        'IF({Cost Centre}="","No cost centre",'
+        'IF(AND({Posted to Xero}="Y",{Xero Invoice No}=""),'
+        '"Marked posted to Xero but has no invoice number",'
+        'IF(AND({Ex GST}<>"",{Tax Code}=""),"No tax code",'
+        'IF(AND({Ex GST}<>"",{Revenue GL}=""),"No revenue GL code",""))))))))',
+}
+
+# ---------------------------------------------------------------- departments
+# Columns 1-7 are the same on every department sheet: the job, and what Finance
+# has invoiced against it. Everything from column 8 is that department's own.
+JOB_CORE = [
+    ("Job Number", 15, TXT, "in"), ("Job in Xero?", 12, TXT, "f"),
+    ("Job Name (Xero)", 40, TXT, "f"), ("Client", 24, TXT, "f"),
+    ("Invoices", 10, INT, "f"), ("Revenue Ex GST", 16, CUR, "f"),
+    ("Cost Centres", 16, TXT, "f"),
+]
+JOB_CORE_FORMULAS = {
+    "Job in Xero?": '=IF({Job Number}="","",IF(COUNTIF(lst_Jobs,{Job Number}&"")>0,"OK","CHECK"))',
+    "Job Name (Xero)": '=IF({Job Number}="","",IFERROR(INDEX(lst_JobName,'
+                       'MATCH({Job Number}&"",lst_Jobs,0)),""))',
+    "Client": '=IF({Job Number}="","",IFERROR(INDEX(' + FIN + '[Client],'
+              'MATCH({Job Number}&"",' + FIN + '[Job Number],0)),""))',
+    "Invoices": '=IF({Job Number}="","",COUNTIFS(' + FIN + '[Job Number],{Job Number}&"",'
+                + FIN + '[Ex GST],"<>"))',
+    "Revenue Ex GST": '=IF({Job Number}="","",SUMIFS(' + FIN + '[Ex GST],'
+                      + FIN + '[Job Number],{Job Number}&""))',
+    "Cost Centres": '=IF({Job Number}="","",IFERROR(INDEX(' + FIN + '[Cost Centre],'
+                    'MATCH({Job Number}&"",' + FIN + '[Job Number],0)),"not invoiced yet"))',
+}
+
+DEPT_EXTRA = {
+    "Onsite": [("PO / Reference", 18, TXT, "in"), ("Ariba Status", 15, TXT, "dv"),
+               ("Billable Hours", 13, NUM, "in"), ("Approved By", 16, TXT, "in"),
+               ("Notes", 40, TXT, "in")],
+    "Production": [
+        ("Event Date", 12, DATE, "in"), ("Current RMS No", 14, TXT, "in"),
+        ("Zoho Number", 14, TXT, "in"), ("Job Closed", 11, TXT, "dv"),
+        ("Discounts Given", 16, CUR, "in"), ("Value Before Discount", 20, CUR, "f"),
+        ("Discount %", 11, PCT, "f"), ("Cross Hire Expense", 17, CUR, "in"),
+        ("Labour Expense (Internal)", 22, CUR, "in"), ("Total Expense", 14, CUR, "f"),
+        ("Margin", 14, CUR, "f"), ("Margin %", 10, PCT, "f"),
+        ("Video Filming Hrs", 15, NUM, "in"), ("Video Editing Hrs", 15, NUM, "in"),
+        ("Project Mgmt Hrs", 15, NUM, "in"), ("Video Project Mgmt Hrs", 19, NUM, "in"),
+        ("Production Labour Hrs", 18, NUM, "in"), ("Notes", 40, TXT, "in")],
+    "Consulting": [
+        ("Qwilr Link", 42, TXT, "in"), ("Opportunity No", 15, TXT, "in"),
+        ("Labour Revenue", 15, CUR, "in"), ("Equipment Revenue", 17, CUR, "in"),
+        ("Subscription Revenue", 19, CUR, "in"), ("Revenue Split Check", 18, TXT, "f"),
+        ("Labour Expense (External)", 22, CUR, "in"),
+        ("Equipment Expense (Internal)", 26, CUR, "in"),
+        ("Subscription & Licences Expense", 28, CUR, "in"),
+        ("Total Expense", 14, CUR, "f"), ("Margin", 14, CUR, "f"),
+        ("Margin %", 10, PCT, "f"), ("Notes", 40, TXT, "in")],
+}
+DEPT_EXTRA_FORMULAS = {
+    "Production": {
+        "Value Before Discount": '=IF({Job Number}="","",{Revenue Ex GST}+N({Discounts Given}))',
+        "Discount %": '=IFERROR({Discounts Given}/{Value Before Discount},"")',
+        "Total Expense": '=IF({Job Number}="","",N({Cross Hire Expense})'
+                         '+N({Labour Expense (Internal)}))',
+        "Margin": '=IF({Job Number}="","",{Revenue Ex GST}-{Total Expense})',
+        "Margin %": '=IFERROR({Margin}/{Revenue Ex GST},"")',
+    },
+    "Consulting": {
+        "Revenue Split Check":
+            '=IF({Job Number}="","",IF(N({Labour Revenue})+N({Equipment Revenue})'
+            '+N({Subscription Revenue})=0,"Not split",'
+            'IF(ROUND(N({Labour Revenue})+N({Equipment Revenue})'
+            '+N({Subscription Revenue}),2)=ROUND({Revenue Ex GST},2),"OK","MISMATCH")))',
+        "Total Expense": '=IF({Job Number}="","",N({Labour Expense (External)})'
+                         '+N({Equipment Expense (Internal)})'
+                         '+N({Subscription & Licences Expense}))',
+        "Margin": '=IF({Job Number}="","",{Revenue Ex GST}-{Total Expense})',
+        "Margin %": '=IFERROR({Margin}/{Revenue Ex GST},"")',
+    },
+}
 
 WIP_COLS = [
     ("Month", 10, MON, "in"), ("Job Number", 15, TXT, "in"),
     ("Job in Xero?", 12, TXT, "f"), ("Client", 26, TXT, "in"),
-    ("Cost Centre", 14, TXT, "dv"), ("Description", 52, TXT, "in"),
+    ("Cost Centre", 14, TXT, "dv"), ("Description", 50, TXT, "in"),
     ("Type", 26, TXT, "dv"), ("Xero Invoice No", 16, TXT, "in"),
     ("Amount", 15, CUR, "in"), ("GL Code", 11, TXT, "dv"),
     ("Journal Ref", 14, TXT, "in"), ("Posted to Xero", 14, TXT, "dv"),
-    ("Notes", 42, TXT, "in"),
+    ("Notes", 40, TXT, "in"),
 ]
 WIP_FORMULAS = {
     "Job in Xero?": '=IF({Job Number}="","",IF(COUNTIF(lst_Jobs,{Job Number}&"")>0,"OK","CHECK"))',
 }
 
-TABLES = {"Onsite": "tbl_Onsite", "Production": "tbl_Production",
-          "Consulting": "tbl_Consulting", "Other": "tbl_Other"}
-REV = list(TABLES.values())
 DV_FOR = {"Cost Centre": "lst_CostCentre", "Invoice Type": "lst_InvoiceType",
           "Tax Code": "lst_TaxCode", "Revenue GL": "lst_RevGL",
           "Posted to Xero": "lst_YN", "To WIP": "lst_YN", "Status": "lst_Status",
           "Ariba Status": "lst_Ariba", "Job Closed": "lst_YN",
-          "Type": "lst_WIPType", "GL Code": "lst_WIPGL", "Month": "lst_Months"}
+          "Team": "lst_Team", "Type": "lst_WIPType", "GL Code": "lst_WIPGL",
+          "Month": "lst_Months"}
 
 
-def stack():
-    """The four department tables, spine columns only, stacked.
-
-    [#Data] is not decoration: a bare table name includes the header row in some
-    engines, which would put four literal header rows into the Finance list.
-    """
-    cols = ",".join(str(i) for i in range(1, NCORE + 1))
-    return "VSTACK(" + ",".join(f"CHOOSECOLS({t}[#Data],{cols})" for t in REV) + ")"
-
-
-# A row is real if it carries a date, client, invoice number or amount. Testing
-# the date alone silently hid every undated row, and those hold real money.
-# LET variable names must not look like cell references. "f1".."f5" ARE cells
-# F1:F5, and naming them that returns #VALUE! - which is why the whole Finance
-# sheet came back empty. Names here are deliberately un-reference-like.
-CRIT = ('keep,--((CHOOSECOLS(dat,1)<>"")+(CHOOSECOLS(dat,5)<>"")'
-        '+(CHOOSECOLS(dat,10)<>"")+(CHOOSECOLS(dat,12)<>"")>0),'
-        'fTeam,IF($A$5="All",1,--(CHOOSECOLS(dat,3)=$A$5)),'
-        'fCC,IF($C$5="All",1,--(CHOOSECOLS(dat,4)=$C$5)),'
-        'fMonth,IF($E$5="All",1,--(CHOOSECOLS(dat,2)=$E$5)),'
-        'fStat,IF($G$5="All",1,--(CHOOSECOLS(dat,18)=$G$5)),'
-        'flag,keep*fTeam*fCC*fMonth*fStat,')
+# ---------------------------------------------------------------- migration
+# The v2 workbook kept each department in a hidden 26-column storage block;
+# those blocks are what data/revenue_migration.json holds. They were one row per
+# invoice, so a production invoice that included video work carried a separate
+# video amount. Here that becomes two Finance lines, which is how Xero holds it.
+def _date(s):
+    if isinstance(s, str) and len(s) == 10 and s[4] == "-":
+        return datetime.datetime.strptime(s, "%Y-%m-%d")
+    return s
 
 
-def across(val, pairs, tables=None):
-    """SUMIFS the same question across several department tables."""
-    return "+".join(
-        f"SUMIFS({t}[{val}]," + ",".join(f"{t}[{c}],{v}" for c, v in pairs) + ")"
-        for t in (tables or REV))
+def _num(v):
+    return v if isinstance(v, (int, float)) and not isinstance(v, bool) else None
 
 
-# Production carries both cost centres on one row, so its contribution comes from
-# the split columns rather than from Cost Centre. Every other sheet is one row,
-# one cost centre, and is summed the usual way.
-OTHERS = [t for t in REV if t != "tbl_Production"]
+def _txt(v):
+    return None if v in (None, "") else str(v).strip()
 
 
-def _prod(col):
-    """A Production-sheet column for the month, limited to its two cost centres.
-
-    Restricting to PRODUCTION and VIDEO matters: a Production row coded to
-    anything else is picked up by the ordinary by-cost-centre sum below, so it
-    lands on its own line instead of disappearing between the two.
-    """
-    return "+".join(
-        f'SUMIFS(tbl_Production[{col}],tbl_Production[Month],$C$4,'
-        f'tbl_Production[Cost Centre],"{cc}")' for cc in ("PRODUCTION", "VIDEO"))
+def _month_end(d):
+    if not isinstance(d, datetime.datetime):
+        return None
+    nxt = datetime.date(d.year + (d.month // 12), (d.month % 12) + 1, 1)
+    return datetime.datetime.combine(nxt - datetime.timedelta(days=1), datetime.time())
 
 
-def by_cost_centre(value, video_value, row):
-    """Month-End revenue for one cost centre, in the selected month."""
-    pairs = [("Month", "$C$4"), ("Cost Centre", f"$A{row}")]
-    if row == PRODUCTION_ROW:
-        return f"({_prod(value)})-({_prod(video_value)})+{across(value, pairs, OTHERS)}"
-    if row == VIDEO_ROW:
-        return f"{_prod(video_value)}+{across(value, pairs, OTHERS)}"
-    # every other cost centre sums all four sheets, Production included
-    return across(value, pairs, REV)
+CC_PROD = {"Production": "PRODUCTION", "Video": "VIDEO",
+           "Production/Video": "PRODUCTION", "Other": "CTS", None: "PRODUCTION"}
+CC_CONS = {"Consulting": "CONSULTING", "Integration": "INTEGRATION", None: "CONSULTING"}
+ST_CONS = {"In Progress": "To Invoice", "Completed": "Invoiced",
+           "Closed": "Paid", "Cancelled": "Cancelled"}
+CC_WIP = {"Production": "PRODUCTION", "Video": "VIDEO", "Integration": "INTEGRATION",
+          "Consulting": "CONSULTING", "Support": "ONSITE", "Onsite": "ONSITE", "CTS": "CTS"}
 
 
-def count_across(pairs):
-    return "+".join("COUNTIFS(" + ",".join(f"{t}[{c}],{v}" for c, v in pairs) + ")"
-                    for t in REV)
+def _idx(block):
+    return {k: i for i, k in enumerate(MIG[block]["headers"])}
 
 
+def migrate_finance():
+    """Every invoice line, from all four v2 blocks."""
+    out = []
+
+    for dt, client, invno, job, desc, amt, notes in MIG["Support"]["rows"]:
+        out.append({"Date": _date(dt), "Xero Invoice No": _txt(invno),
+                    "Client": _txt(client), "Job Number": _txt(job),
+                    "Description": _txt(desc), "Team": "Onsite",
+                    "Cost Centre": "ONSITE", "Invoice Type": "Contract",
+                    "Tax Code": "GST 10%", "Ex GST": _num(amt), "Revenue GL": "41100",
+                    "Posted to Xero": "Y" if invno else "N", "To WIP": "N",
+                    "Status": "Invoiced" if invno else "To Invoice", "Notes": _txt(notes)})
+
+    ix = _idx("Production")
+    for r in MIG["Production"]["rows"]:
+        g = lambda k: r[ix[k]] if k in ix else None
+        invno, dept = _txt(g("Xero Invoice No.")), g("Department")
+        ex, video = _num(g("Invoice Value")), _num(g("Video Total"))
+        base = {"Date": _date(g("Date")), "Xero Invoice No": invno,
+                "Client": _txt(g("Client")), "Job Number": _txt(g("Job Number")),
+                "Description": _txt(g("Project Name")), "Team": "Production",
+                "Invoice Type": "Project", "Tax Code": "GST 10%",
+                "Posted to Xero": _txt(g("Invoice Posted to Xero")) or ("Y" if invno else "N"),
+                "To WIP": "N", "Status": "Invoiced" if invno else "To Invoice"}
+        cc = CC_PROD.get(dept, "PRODUCTION")
+        if video and ex is not None and 0 < abs(video) <= abs(ex) and cc != "VIDEO":
+            # split the line the way Xero codes it: production part, video part
+            out.append(dict(base, **{"Cost Centre": cc, "Ex GST": round(ex - video, 2),
+                                     "Revenue GL": "42100",
+                                     "Notes": "Production portion of this invoice"}))
+            out.append(dict(base, **{"Cost Centre": "VIDEO", "Ex GST": video,
+                                     "Revenue GL": "42150",
+                                     "Notes": "Video portion of this invoice"}))
+        else:
+            out.append(dict(base, **{"Cost Centre": cc, "Ex GST": ex,
+                                     "Revenue GL": "42150" if cc == "VIDEO" else "42100"}))
+
+    ix = _idx("Consulting")
+    for r in MIG["Consulting"]["rows"]:
+        g = lambda k: r[ix[k]] if k in ix else None
+        invno, dept = _txt(g("Invoice Number")), g("Department")
+        out.append({"Date": _date(g("Date")), "Xero Invoice No": invno,
+                    "Client": _txt(g("Client")), "Job Number": _txt(g("Job Number")),
+                    "Description": _txt(g("Project Name")), "Team": "Consulting",
+                    "Cost Centre": CC_CONS.get(dept, "CONSULTING"),
+                    "Invoice Type": "Project", "Tax Code": "GST 10%",
+                    "Ex GST": _num(g("Invoice Value")),
+                    "Revenue GL": "42800" if dept == "Consulting" else "42300",
+                    "Posted to Xero": "Y" if invno else "N", "To WIP": "N",
+                    "Status": ST_CONS.get(g("Status"), "To Invoice"),
+                    "Notes": _txt(g("Notes"))})
+    return out
+
+
+def _accumulate(block, key_col, first_cols, sum_cols):
+    """Roll a v2 block up to one row per job: first value wins, amounts add."""
+    ix = _idx(block)
+    jobs = {}
+    for r in MIG[block]["rows"]:
+        g = lambda k: r[ix[k]] if k in ix else None
+        job = _txt(g(key_col))
+        if job is None:
+            continue
+        rec = jobs.setdefault(job, {"Job Number": job})
+        for src, dst in first_cols.items():
+            if rec.get(dst) in (None, "") and g(src) not in (None, ""):
+                rec[dst] = _date(g(src)) if "Date" in dst else _txt(g(src))
+        for src, dst in sum_cols.items():
+            v = _num(g(src))
+            if v:
+                rec[dst] = round(rec.get(dst, 0) + v, 2)
+    return list(jobs.values())
+
+
+def migrate_jobs(dept):
+    if dept == "Onsite":
+        ix = _idx("Support")
+        jobs = {}
+        for dt, client, invno, job, desc, amt, notes in MIG["Support"]["rows"]:
+            j = _txt(job)
+            if j is None:
+                continue
+            rec = jobs.setdefault(j, {"Job Number": j})
+            if not rec.get("Notes") and notes:
+                rec["Notes"] = _txt(notes)
+        return list(jobs.values())
+    if dept == "Production":
+        return _accumulate(
+            "Production", "Job Number",
+            {"Event Date": "Event Date", "Current Number": "Current RMS No",
+             "Zoho Number": "Zoho Number", "Closed": "Job Closed"},
+            {"Discounts Included": "Discounts Given",
+             "Cross Hire Expense": "Cross Hire Expense",
+             "Labour Expense (Internal)": "Labour Expense (Internal)",
+             "Video Filming": "Video Filming Hrs", "Video Editing": "Video Editing Hrs",
+             "Project Management": "Project Mgmt Hrs",
+             "Video Project Management": "Video Project Mgmt Hrs",
+             "Production Labour Hours": "Production Labour Hrs"})
+    return _accumulate(
+        "Consulting", "Job Number",
+        {"Qwilr Link": "Qwilr Link", "Notes": "Notes"},
+        {"Labour Revenue": "Labour Revenue", "Equipment Revenue": "Equipment Revenue",
+         "Subscription Revenue": "Subscription Revenue",
+         "Labour Expense (External)": "Labour Expense (External)",
+         "Equipment Expense (Internal)": "Equipment Expense (Internal)",
+         "Subscription & Licences Expense": "Subscription & Licences Expense"})
+
+
+def migrate_wip():
+    out = []
+    for dt, job, dept, client, desc, amt in MIG["WIP"]["rows"]:
+        amount = _num(amt)
+        out.append({"Month": _month_end(_date(dt)), "Job Number": _txt(job),
+                    "Client": _txt(client),
+                    "Cost Centre": CC_WIP.get(dept, dept if dept in COST_CENTRES else None),
+                    "Description": _txt(desc),
+                    "Type": ("Accrual - unbilled work" if (amount or 0) >= 0
+                             else "Deferral - invoiced in advance"),
+                    "Amount": amount, "GL Code": "11300", "Posted to Xero": "Y",
+                    "Notes": "Migrated from FY27 Revenue Tracker v2 - confirm type/sign"})
+    return out
+
+
+# ---------------------------------------------------------------- helpers
 def title_block(ws, title, sub):
     ws.sheet_view.showGridLines = False
     ws["A1"] = title
@@ -359,234 +410,8 @@ def col_heads(ws, row, labels, start=1):
     ws.row_dimensions[row].height = 30
 
 
-# --------------------------------------------------------------------------
-# Migration out of FY27_Revenue_Tracker_v2.xlsm. The old file kept each
-# department in a hidden 26-column storage block; those blocks are what
-# data/revenue_migration.json holds.
-def _date(s):
-    if isinstance(s, str) and len(s) == 10 and s[4] == "-":
-        return datetime.datetime.strptime(s, "%Y-%m-%d")
-    return s
-
-
-def _num(v):
-    return v if isinstance(v, (int, float)) and not isinstance(v, bool) else None
-
-
-def _txt(v):
-    return None if v in (None, "") else str(v)
-
-
-def _month_end(d):
-    if not isinstance(d, datetime.datetime):
-        return None
-    nxt = datetime.date(d.year + (d.month // 12), (d.month % 12) + 1, 1)
-    return datetime.datetime.combine(nxt - datetime.timedelta(days=1), datetime.time())
-
-
-def migrate_onsite():
-    rows = []
-    for dt, client, invno, job, desc, amt, notes in MIG["Support"]["rows"]:
-        rows.append({
-            "Date": _date(dt), "Team": "Onsite", "Cost Centre": "ONSITE",
-            "Client": _txt(client), "Job Number": _txt(job), "Description": _txt(desc),
-            "Invoice Type": "Contract", "Xero Invoice No": _txt(invno),
-            "Tax Code": "GST 10%", "Ex GST": _num(amt), "Revenue GL": "41100",
-            "Posted to Xero": "Y" if invno else "N", "To WIP": "N",
-            "Status": "Invoiced" if invno else "To Invoice",
-            "Notes": _txt(notes), "Ariba Status": "N/A"})
-    return rows
-
-
-CC_PROD = {"Production": "PRODUCTION", "Video": "VIDEO",
-           "Production/Video": "PRODUCTION", "Other": "CTS", None: "PRODUCTION"}
-
-
-def migrate_production():
-    ix = {k: i for i, k in enumerate(MIG["Production"]["headers"])}
-    rows = []
-    for r in MIG["Production"]["rows"]:
-        g = lambda k: r[ix[k]] if k in ix else None
-        invno = _txt(g("Xero Invoice No."))
-        dept = g("Department")
-        rows.append({
-            "Date": _date(g("Date")), "Team": "Production",
-            "Cost Centre": CC_PROD.get(dept, "PRODUCTION"),
-            "Client": _txt(g("Client")), "Job Number": _txt(g("Job Number")),
-            "Description": _txt(g("Project Name")), "Invoice Type": "Project",
-            "Xero Invoice No": invno, "Tax Code": "GST 10%",
-            "Ex GST": _num(g("Invoice Value")),
-            "Revenue GL": "42150" if dept == "Video" else "42100",
-            "Posted to Xero": _txt(g("Invoice Posted to Xero")) or ("Y" if invno else "N"),
-            "To WIP": "N", "Status": "Invoiced" if invno else "To Invoice",
-            "Client Email": _txt(g("Client Email")), "Event Date": _date(g("Event Date")),
-            "Current RMS No": _txt(g("Current Number")),
-            "Zoho Number": _txt(g("Zoho Number")), "Job Closed": _txt(g("Closed")),
-            "Video Revenue": _num(g("Video Total")),
-            "Discounts Included": _num(g("Discounts Included")),
-            "Cross Hire Expense": _num(g("Cross Hire Expense")),
-            "Labour Expense (Internal)": _num(g("Labour Expense (Internal)")),
-            "Video Filming Hrs": _num(g("Video Filming")),
-            "Video Editing Hrs": _num(g("Video Editing")),
-            "Project Mgmt Hrs": _num(g("Project Management")),
-            "Video Project Mgmt Hrs": _num(g("Video Project Management")),
-            "Production Labour Hrs": _num(g("Production Labour Hours"))})
-    return rows
-
-
-CC_CONS = {"Consulting": "CONSULTING", "Integration": "INTEGRATION", None: "CONSULTING"}
-ST_CONS = {"In Progress": "To Invoice", "Completed": "Invoiced",
-           "Closed": "Paid", "Cancelled": "Cancelled"}
-
-
-def migrate_consulting():
-    ix = {k: i for i, k in enumerate(MIG["Consulting"]["headers"])}
-    rows = []
-    for r in MIG["Consulting"]["rows"]:
-        g = lambda k: r[ix[k]] if k in ix else None
-        invno = _txt(g("Invoice Number"))
-        dept = g("Department")
-        rows.append({
-            "Date": _date(g("Date")), "Team": "Consulting",
-            "Cost Centre": CC_CONS.get(dept, "CONSULTING"),
-            "Client": _txt(g("Client")), "Job Number": _txt(g("Job Number")),
-            "Description": _txt(g("Project Name")), "Invoice Type": "Project",
-            "Xero Invoice No": invno, "Tax Code": "GST 10%",
-            "Ex GST": _num(g("Invoice Value")),
-            "Revenue GL": "42800" if dept == "Consulting" else "42300",
-            "Posted to Xero": "Y" if invno else "N", "To WIP": "N",
-            "Status": ST_CONS.get(g("Status"), "To Invoice"), "Notes": _txt(g("Notes")),
-            "Qwilr Link": _txt(g("Qwilr Link")),
-            "Labour Revenue": _num(g("Labour Revenue")),
-            "Equipment Revenue": _num(g("Equipment Revenue")),
-            "Subscription Revenue": _num(g("Subscription Revenue")),
-            "Labour Expense (External)": _num(g("Labour Expense (External)")),
-            "Equipment Expense (Internal)": _num(g("Equipment Expense (Internal)")),
-            "Subscription & Licences Expense": _num(g("Subscription & Licences Expense"))})
-    return rows
-
-
-CC_WIP = {"Production": "PRODUCTION", "Video": "VIDEO", "Integration": "INTEGRATION",
-          "Consulting": "CONSULTING", "Support": "ONSITE", "Onsite": "ONSITE", "CTS": "CTS"}
-
-
-def migrate_wip():
-    rows = []
-    for dt, job, dept, client, desc, amt in MIG["WIP"]["rows"]:
-        amount = _num(amt)
-        rows.append({
-            "Month": _month_end(_date(dt)), "Job Number": _txt(job),
-            "Client": _txt(client),
-            "Cost Centre": CC_WIP.get(dept, dept if dept in COST_CENTRES else None),
-            "Description": _txt(desc),
-            "Type": ("Accrual - unbilled work" if (amount or 0) >= 0
-                     else "Deferral - invoiced in advance"),
-            "Amount": amount, "GL Code": "11300", "Posted to Xero": "Y",
-            "Notes": "Migrated from FY27 Revenue Tracker v2 - confirm type/sign"})
-    return rows
-
-
-# --------------------------------------------------------------------------
-def build_lists(wb):
-    ws = wb.create_sheet("Lists")
-    title_block(ws, "Reference Lists",
-                "Every dropdown in this workbook reads from here. Add a value to the "
-                "bottom of a list and it appears in the dropdowns - no macros, nothing to re-run.")
-    simple = [
-        ("A", "Cost Centre", COST_CENTRES, "lst_CostCentre"),
-        ("B", "Invoice Type", ["Contract", "Chargeback", "Ad-hoc", "Project",
-                               "Progress Claim", "Milestone", "Subscription",
-                               "Equipment Sale", "Recharge", "Credit Note"], "lst_InvoiceType"),
-        ("C", "Tax Code", ["GST 10%", "GST Free", "Export (0%)", "BAS Excluded"], "lst_TaxCode"),
-        ("D", "Status", ["To Invoice", "Draft", "Awaiting Approval", "Invoiced",
-                         "Sent", "Paid", "On Hold", "Cancelled", "Credited"], "lst_Status"),
-        ("E", "Yes / No", ["Y", "N", "N/A"], "lst_YN"),
-        ("F", "Ariba Status", ["N/A", "Awaiting PO", "To Upload", "Uploaded",
-                               "Approved", "Rejected"], "lst_Ariba"),
-        ("G", "WIP Movement Type", ["Accrual - unbilled work", "Reversal of prior accrual",
-                                    "Deferral - invoiced in advance", "Release of deferral",
-                                    "Adjustment / correction", "Migrated opening balance"],
-         "lst_WIPType"),
-        ("H", "WIP GL Code", ACC["wip_gl"], "lst_WIPGL"),
-        ("I", "Production Cost Centre", ["PRODUCTION", "VIDEO"], "lst_CostCentrePrd"),
-    ]
-    for col, head, vals, name in simple:
-        ws[f"{col}4"] = head
-        for i, v in enumerate(vals):
-            c = ws[f"{col}{5 + i}"]
-            c.value, c.number_format, c.border = v, TXT, BOX
-        ws.column_dimensions[col].width = max(
-            14, len(head) + 4, max(len(str(v)) for v in vals) + 3)
-        wb.defined_names.add(DefinedName(
-            name, attr_text=f"Lists!${col}$5:${col}${4 + len(vals)}"))
-
-    ws["J4"], ws["K4"] = "Revenue GL", "GL Account Name (from Xero)"
-    for i, a in enumerate(ACC["revenue_gl"]):
-        for col, val in ((10, a["code"]), (11, a["name"])):
-            c = ws.cell(5 + i, col, val)
-            c.number_format, c.border = TXT, BOX
-    ws.column_dimensions["J"].width = 13
-    ws.column_dimensions["K"].width = 36
-    wb.defined_names.add(DefinedName(
-        "lst_RevGL", attr_text=f"Lists!$J$5:$J${4 + len(ACC['revenue_gl'])}"))
-
-    # FY24 to FY31, so nothing needs rebuilding for years
-    ws["M4"] = "Month (period end)"
-    months, y, m = [], 2023, 7
-    while (y, m) <= (2031, 6):
-        months.append(datetime.date(y + (m // 12), (m % 12) + 1, 1)
-                      - datetime.timedelta(days=1))
-        m += 1
-        if m == 12:
-            y, m = y + 1, 0
-    for i, d in enumerate(months):
-        c = ws.cell(5 + i, 13, d)
-        c.number_format, c.border = MON, BOX
-    ws.column_dimensions["M"].width = 18
-    wb.defined_names.add(DefinedName(
-        "lst_Months", attr_text=f"Lists!$M$5:$M${4 + len(months)}"))
-
-    ws["O4"], ws["P4"], ws["Q4"] = "Job Number", "Job Name (from Xero)", "CC"
-    dept_map = {"ONS": "ONSITE", "PRD": "PRODUCTION", "VID": "VIDEO",
-                "INT": "INTEGRATION", "CONS": "CONSULTING", "CTS": "CTS", "": ""}
-    for i, j in enumerate(sorted(JOBS, key=lambda x: str(x["job"]))):
-        for col, val in ((15, str(j["job"])), (16, j["name"]),
-                         (17, dept_map.get(j["dept"], j["dept"]))):
-            c = ws.cell(5 + i, col, val)
-            c.number_format, c.border = TXT, BOX
-    for col, width in (("O", 16), ("P", 48), ("Q", 14)):
-        ws.column_dimensions[col].width = width
-    # generous: used by COUNTIF only, so trailing blanks are harmless
-    for name, col in (("lst_Jobs", "O"), ("lst_JobName", "P"), ("lst_JobCC", "Q")):
-        wb.defined_names.add(DefinedName(name, attr_text=f"Lists!${col}$5:${col}$1500"))
-
-    for col in "ABCDEFGHIJKMOPQ":
-        c = ws[f"{col}4"]
-        c.font = Font(bold=True, color="FFFFFF", size=10)
-        c.fill = PatternFill("solid", fgColor=SLATE)
-        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        c.border = BOX
-    ws.row_dimensions[4].height = 30
-    ws.freeze_panes = "A5"
-
-
-# --------------------------------------------------------------------------
-BLURB = {
-    "Onsite": "Onsite / Support invoicing (ACC005 s.1). One row per Xero invoice. "
-              "Fill left to right - grey columns calculate themselves. Never insert rows above row 5.",
-    "Production": "Production & Video invoicing (ACC005 s.2). One row per Xero invoice. "
-                  "Set Cost Centre to VIDEO for the video half of a split job so Finance can report the split.",
-    "Consulting": "Consulting & Integration invoicing (ACC005 s.3). One row per Xero invoice. "
-                  "Split the revenue across Labour / Equipment / Subscription - the split check flags any mismatch.",
-    "Other": "Anything that is not Onsite, Production or Consulting - CTS internal recharges, "
-             "miscellaneous income, credit notes that do not belong to a department.",
-}
-
-
-def build_entry_sheet(wb, name, cols, formulas, team, rows, tblname, blurb,
-                      dv_override=None):
-    ws = wb.create_sheet(name)
-    title_block(ws, f"{name} - Revenue Entry" if team else name, blurb)
+def build_table(ws, cols, formulas, rows, tblname, spare=SPARE, dv_override=None):
+    """One entry table: header row, migrated rows, then blank rows ready to use."""
     heads = [c[0] for c in cols]
     for i, (h, w, fmt, kind) in enumerate(cols, start=1):
         c = ws.cell(HDR_ROW, i, h)
@@ -597,7 +422,7 @@ def build_entry_sheet(wb, name, cols, formulas, team, rows, tblname, blurb,
         ws.column_dimensions[gcl(i)].width = w
     ws.row_dimensions[HDR_ROW].height = 34
 
-    nrows = max(len(rows), 1)
+    nrows = len(rows) + spare
     for ri in range(nrows):
         rec = rows[ri] if ri < len(rows) else {}
         r = DATA_ROW + ri
@@ -607,324 +432,135 @@ def build_entry_sheet(wb, name, cols, formulas, team, rows, tblname, blurb,
             if kind == "f":
                 c.fill = CALC_FILL
                 c.font = Font(size=10, color="595959")
-                if h == "Team":
-                    c.value = f'="{team}"' if team else None
-                elif h in formulas:
-                    c.value = fx(render(formulas[h], heads, r))
+                if h in formulas:
+                    c.value = render(formulas[h], heads, r)
             elif rec.get(h) is not None:
                 c.value = rec[h]
         ws.row_dimensions[r].height = 15
 
-    ref = f"A{HDR_ROW}:{gcl(len(cols))}{DATA_ROW + nrows - 1}"
-    t = Table(displayName=tblname, ref=ref)
+    last = DATA_ROW + nrows - 1
+    t = Table(displayName=tblname, ref=f"A{HDR_ROW}:{gcl(len(cols))}{last}")
     t.tableStyleInfo = TableStyleInfo(name="TableStyleLight1", showRowStripes=True,
                                       showColumnStripes=False, showFirstColumn=False,
                                       showLastColumn=False)
     ws.add_table(t)
-
-    # Registering the calculated columns is what makes the formulas follow a new
-    # row when someone tabs off the end of the table.
-    calcs = dict(formulas)
-    if team:
-        calcs["Team"] = f'="{team}"'
     for col in t.tableColumns:
-        if col.name in calcs:
+        if col.name in formulas:
             col.calculatedColumnFormula = TableFormula(
-                attr_text=fx(render(calcs[col.name], heads, DATA_ROW)).lstrip("="))
+                attr_text=render(formulas[col.name], heads, DATA_ROW).lstrip("="))
 
     for ci, (h, w, fmt, kind) in enumerate(cols, start=1):
         source = (dv_override or {}).get(h, DV_FOR.get(h))
         if kind == "dv" and source:
-            # formula1 holds the formula WITHOUT a leading "=" - Excel treats
-            # "=name" as malformed and offers to repair the whole workbook.
             dv = DataValidation(
-                type="list", formula1=source, allow_blank=True,
-                showDropDown=False, errorStyle="warning", showErrorMessage=True,
-                errorTitle="Not on the list",
+                type="list", formula1=source, allow_blank=True, showDropDown=False,
+                errorStyle="warning", showErrorMessage=True, errorTitle="Not on the list",
                 error=f'"{h}" is not on the list in the Lists sheet. '
                       "Add it there if it is genuinely new.")
             ws.add_data_validation(dv)
             dv.add(f"{gcl(ci)}{DATA_ROW}:{gcl(ci)}{DV_LAST}")
 
-    for header, test, colour in (("Job in Xero?", '="CHECK"', WARN),
-                                 ("Posted to Xero", '="N"', BAD),
-                                 ("Revenue Split Check", '="MISMATCH"', BAD),
-                                 ("Video Split", '<>""', None)):
-        if header not in heads:
-            continue
-        c = gcl(heads.index(header) + 1)
-        if header == "Video Split":
-            # green for a clean split, red only when the numbers do not add up
-            for expr, fill in ((f'LEFT({c}{DATA_ROW},5)="CHECK"', BAD),
-                               (f'{c}{DATA_ROW}="Split"', WARN)):
-                ws.conditional_formatting.add(
-                    f"{c}{DATA_ROW}:{c}{CF_LAST}",
-                    FormulaRule(formula=[expr],
-                                fill=PatternFill("solid", fgColor=fill), stopIfTrue=False))
-            continue
-        ws.conditional_formatting.add(
-            f"{c}{DATA_ROW}:{c}{CF_LAST}",
-            FormulaRule(formula=[f"{c}{DATA_ROW}{test}"],
-                        fill=PatternFill("solid", fgColor=colour), stopIfTrue=False))
-
-    # The table supplies its own filter buttons; a second sheet-level autofilter
-    # over the same range gives Excel two competing sets of dropdowns.
-    ws.freeze_panes = f"F{DATA_ROW}"
+    for header, value, colour in (("Job in Xero?", "CHECK", WARN),
+                                  ("Posted to Xero", "N", BAD),
+                                  ("Revenue Split Check", "MISMATCH", BAD)):
+        if header in heads:
+            c = gcl(heads.index(header) + 1)
+            ws.conditional_formatting.add(f"{c}{DATA_ROW}:{c}{CF_LAST}", FormulaRule(
+                formula=[f'{c}{DATA_ROW}="{value}"'],
+                fill=PatternFill("solid", fgColor=colour), stopIfTrue=False))
+    if "Issue" in heads:
+        c = gcl(heads.index("Issue") + 1)
+        ws.conditional_formatting.add(f"{c}{DATA_ROW}:{c}{CF_LAST}", FormulaRule(
+            formula=[f'{c}{DATA_ROW}<>""'],
+            fill=PatternFill("solid", fgColor=BAD), stopIfTrue=False))
+    return heads
 
 
-# --------------------------------------------------------------------------
-ISSUE = ('dte,CHOOSECOLS(dat,1),job,CHOOSECOLS(dat,6),xer,CHOOSECOLS(dat,7),'
-         'inv,CHOOSECOLS(dat,10),tax,CHOOSECOLS(dat,11),exg,CHOOSECOLS(dat,12),'
-         'glc,CHOOSECOLS(dat,15),pst,CHOOSECOLS(dat,16),'
-         'iss,IF(dte="","No date - this row sits outside every month",'
-         'IF(job="","No job number",'
-         'IF(xer="CHECK","Job number is not in the Xero job list",'
-         'IF((pst="Y")*(inv=""),"Marked posted to Xero but has no invoice number",'
-         'IF((exg<>"")*(tax=""),"No tax code",'
-         'IF((exg<>"")*(glc=""),"No revenue GL code","")))))),')
-
-
-
-CHECK_TESTS = [
-    ("Does this Excel have the new array functions?", '_ok_', None),
-    ("1  rows in the Onsite table", 'ROWS(tbl_Onsite[#Data])', "54"),
-    ("2  columns in the Onsite table", 'COLUMNS(tbl_Onsite[#Data])', "23"),
-    ("3  CHOOSECOLS picks 3 columns", 'COLUMNS(CHOOSECOLS(tbl_Onsite[#Data],1,2,3))', "3"),
-    ("4  CHOOSECOLS picks 19 columns", 'COLUMNS(CHOOSECOLS(tbl_Onsite[#Data],1,2,3,4,5,6,7,8,'
-     '9,10,11,12,13,14,15,16,17,18,19))', "19"),
-    ("5  VSTACK of two tables", 'ROWS(VSTACK(CHOOSECOLS(tbl_Onsite[#Data],1,2),'
-     'CHOOSECOLS(tbl_Production[#Data],1,2)))', "115"),
-    ("6  rows in the full stack", 'ROWS(@@)', "150"),
-    ("7  columns in the full stack", 'COLUMNS(@@)', "19"),
-    ("8  LET returns the stack", 'LET(dat,@@,ROWS(dat))', "150"),
-    ("9  rows with any content", 'LET(dat,@@,SUM(--((CHOOSECOLS(dat,1)<>"")'
-     '+(CHOOSECOLS(dat,5)<>"")+(CHOOSECOLS(dat,10)<>"")+(CHOOSECOLS(dat,12)<>"")>0)))', "149"),
-    ("10 one filter flag", 'LET(dat,@@,SUM(IF(Finance!$A$5="All",1,'
-     '--(CHOOSECOLS(dat,3)=Finance!$A$5))))', "1"),
-    ("11 FILTER returns rows", 'LET(dat,@@,keep,--((CHOOSECOLS(dat,1)<>"")'
-     '+(CHOOSECOLS(dat,5)<>"")+(CHOOSECOLS(dat,10)<>"")+(CHOOSECOLS(dat,12)<>"")>0),'
-     'ROWS(FILTER(dat,keep=1,"none")))', "149"),
-    ("12 SORT on the date column", 'LET(dat,@@,keep,--((CHOOSECOLS(dat,1)<>"")'
-     '+(CHOOSECOLS(dat,5)<>"")+(CHOOSECOLS(dat,10)<>"")+(CHOOSECOLS(dat,12)<>"")>0),'
-     'ROWS(SORT(FILTER(dat,keep=1,"none"),1,-1)))', "149"),
-    ("13 text search across columns", 'LET(dat,@@,SUM(--ISNUMBER(SEARCH("a",'
-     'CHOOSECOLS(dat,5)&"|"&CHOOSECOLS(dat,6)))))', "a number"),
-    ("14 total Ex GST in the stack", 'LET(dat,@@,SUMPRODUCT(IFERROR('
-     'CHOOSECOLS(dat,12)*1,0)))', "1,830,857.54"),
-]
-
-
-def build_check(wb):
-    """A stage-by-stage test of what the Finance sheet depends on.
-
-    Finance is one long formula, so when it returns an error there is no way to
-    see which part failed. Each line here is the same work broken into a single
-    step: the first one showing an error is the step that this Excel cannot do.
-    """
-    ws = wb.create_sheet("Check", 0)
-    title_block(ws, "Check - is this Excel able to run the Finance sheet?",
-                "Send a picture of this tab. The first line showing an error is the one "
-                "that matters. Delete this sheet once Finance is working.")
-    ws.column_dimensions["A"].width = 46
-    ws.column_dimensions["B"].width = 20
-    ws.column_dimensions["C"].width = 22
-    for i, h in enumerate(("Step", "Result", "Should be"), start=1):
-        c = ws.cell(4, i, h)
-        c.font = Font(bold=True, color="FFFFFF", size=10)
-        c.fill = PatternFill("solid", fgColor=NAVY)
-        c.alignment = Alignment(horizontal="center", vertical="center")
-        c.border = BOX
-    for i, (label, formula, expect) in enumerate(CHECK_TESTS):
-        r = 5 + i
-        ws.cell(r, 1, label).font = Font(size=10)
-        vc = ws.cell(r, 2)
-        if formula == "_ok_":
-            vc.value = fx('=IFERROR(IF(COLUMNS(VSTACK(1,1))=1,"yes","yes"),"NO - too old")')
-        else:
-            vc.value = fx("=" + formula.replace("@@", stack()))
-        vc.border = BOX
-        vc.fill = CALC_FILL
-        vc.alignment = Alignment(horizontal="center")
-        vc.font = Font(bold=True, size=10)
-        vc.number_format = "#,##0.00" if "Ex GST" in label else "General"
-        ec = ws.cell(r, 3, expect or "yes")
-        ec.font = Font(size=10, italic=True, color="808080")
-        ec.alignment = Alignment(horizontal="center")
-        ec.border = BOX
-        ws.cell(r, 1).border = BOX
-    ws.freeze_panes = "A5"
-
-
+# ---------------------------------------------------------------- sheets
 def build_finance(wb):
-    ws = wb.create_sheet("Finance", 1)
-    title_block(ws, "Finance - All Departments",
-                "Live view of every department sheet. Change a filter and the list "
-                "rebuilds instantly. Row 8 down is one single formula - do not type in it. "
-                "Fix data on the department sheet it came from.")
-    filters = [("Team", "A", "B", '"All,Onsite,Production,Consulting,Other"', "All", TXT),
-               ("Cost Centre", "C", "D", "lst_CostCentre", "All", TXT),
-               ("Month", "E", "F", "lst_Months", "All", MON),
-               ("Status", "G", "H", "lst_Status", "All", TXT),
-               ("Search text", "I", "K", None, "", TXT)]
-    for label, c1, c2, dvf, default, fmt in filters:
-        ws.merge_cells(f"{c1}4:{c2}4")
-        ws.merge_cells(f"{c1}5:{c2}5")
-        lc = ws[f"{c1}4"]
-        lc.value = label
-        lc.font = Font(bold=True, size=9, color="FFFFFF")
-        lc.fill = PatternFill("solid", fgColor=SLATE)
-        lc.alignment = Alignment(horizontal="center", vertical="center")
-        vc = ws[f"{c1}5"]
-        vc.value, vc.number_format = default, fmt
-        vc.fill = INPUT_FILL
-        vc.font = Font(bold=True, size=11)
-        vc.alignment = Alignment(horizontal="center", vertical="center")
-        for cx in (c1, c2):
-            ws[f"{cx}4"].border = BOX
-            ws[f"{cx}5"].border = BOX
-        if dvf:
-            dv = DataValidation(type="list", formula1=dvf, allow_blank=True,
-                                errorStyle="warning", showErrorMessage=False)
-            ws.add_data_validation(dv)
-            dv.add(f"{c1}5")
-    ws["L5"] = "<- type All to clear a filter"
-    ws["L5"].font = Font(size=9, italic=True, color="808080")
-    ws.row_dimensions[4].height = 20
-    ws.row_dimensions[5].height = 20
-
-    ws.merge_cells("A6:S6")
-    ws["A6"] = fx(
-        f"=LET(dat,{stack()},{CRIT}"
-        "cnt,SUM(flag),tot,SUM(keep),"
-        "exg,SUMPRODUCT(flag,IFERROR(CHOOSECOLS(dat,12)*1,0)),"
-        "gst,SUMPRODUCT(flag,IFERROR(CHOOSECOLS(dat,13)*1,0)),"
-        "inc,SUMPRODUCT(flag,IFERROR(CHOOSECOLS(dat,14)*1,0)),"
-        '"Showing "&TEXT(cnt,"#,##0")&" of "&TEXT(tot,"#,##0")&" records"'
-        '&"      Ex GST "&TEXT(exg,"$#,##0.00")'
-        '&"      GST "&TEXT(gst,"$#,##0.00")'
-        '&"      Inc GST "&TEXT(inc,"$#,##0.00"))')
-    ws["A6"].font = Font(bold=True, size=11, color=NAVY)
-    ws["A6"].fill = PatternFill("solid", fgColor=LIGHT)
-    ws["A6"].alignment = Alignment(horizontal="left", vertical="center", indent=1)
-    ws["A6"].border = BOX
-    ws.row_dimensions[6].height = 22
-
-    for i, (h, w, fmt, kind) in enumerate(CORE, start=1):
-        c = ws.cell(7, i, h)
-        c.font = Font(bold=True, color="FFFFFF", size=10)
-        c.fill = PatternFill("solid", fgColor=NAVY)
-        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        c.border = BOX
-        # Column-level formats: the whole column reads correctly with no stored
-        # cells. Styling 8000 empty rows per column is its own kind of bloat.
-        dim = ws.column_dimensions[gcl(i)]
-        dim.width, dim.number_format, dim.font = w, fmt, Font(size=10)
-    ws.row_dimensions[7].height = 34
-    ws["A8"] = fx(
-        f"=LET(dat,{stack()},{CRIT}"
-        'FILTER(dat,flag=1,"No records match these filters - widen them '
-        'or check the department sheets"))')
-    ws.freeze_panes = "A8"
+    ws = wb.create_sheet("Finance")
+    title_block(ws, "Finance - Invoice Register",
+                "One row per invoice line, coded to one cost centre, the same way Xero "
+                "holds it. Finance types here and nowhere else. A job invoiced part "
+                "production and part video is two lines. Filter the Issue column to see "
+                "what needs fixing.")
+    build_table(ws, FIN_COLS, FIN_FORMULAS, migrate_finance(), FIN)
+    ws.freeze_panes = f"E{DATA_ROW}"
 
 
-# --------------------------------------------------------------------------
+DEPT_BLURB = {
+    "Onsite": "Onsite / Support jobs. One row per job number. Client, invoice count and "
+              "revenue come from the Finance sheet - fill in the columns from PO / "
+              "Reference onwards.",
+    "Production": "Production and Video jobs. One row per job number. Revenue comes from "
+                  "the Finance sheet, so margin is the whole job: every invoice against it "
+                  "less the costs you enter here.",
+    "Consulting": "Consulting and Integration jobs. One row per job number. Revenue comes "
+                  "from the Finance sheet; split it across Labour / Equipment / "
+                  "Subscription and the check column flags any mismatch.",
+}
+
+
+def build_dept(wb, dept):
+    ws = wb.create_sheet(dept)
+    title_block(ws, f"{dept} - Job Detail", DEPT_BLURB[dept])
+    formulas = dict(JOB_CORE_FORMULAS)
+    formulas.update(DEPT_EXTRA_FORMULAS.get(dept, {}))
+    build_table(ws, JOB_CORE + DEPT_EXTRA[dept], formulas,
+                migrate_jobs(dept), DEPT_TABLE[dept])
+    ws.freeze_panes = f"B{DATA_ROW}"
+
+
+def build_wip(wb):
+    ws = wb.create_sheet("WIP Movements")
+    title_block(ws, "WIP Movements",
+                "Every journal that moves revenue between the P&L and GL 11300 Work in "
+                "Progress. SIGN RULE: + = revenue recognised this month (WIP balance up). "
+                "- = revenue deferred out of this month (WIP balance down).")
+    build_table(ws, WIP_COLS, WIP_FORMULAS, migrate_wip(), "tbl_WIP", spare=200)
+    ws.freeze_panes = f"C{DATA_ROW}"
+
+
 CHECKS = [
-    ("Invoice rows with an amount but no date",
-     "+".join(f'SUMPRODUCT(--({t}[Date]=""),--({t}[Ex GST]<>""))' for t in REV)),
-    ("Invoice rows with an amount but no job number",
-     count_across([("Ex GST", '"<>"'), ("Job Number", '""')])),
+    ("Invoice lines with an amount but no date",
+     f'SUMPRODUCT(--({FIN}[Date]=""),--({FIN}[Ex GST]<>""))'),
+    ("Invoice lines with an amount but no job number",
+     f'COUNTIFS({FIN}[Ex GST],"<>",{FIN}[Job Number],"")'),
     ("Job numbers not found in the Xero job list",
-     "+".join(f'COUNTIF({t}[Job in Xero?],"CHECK")' for t in REV)),
-    ("Marked posted to Xero but no Xero invoice number",
-     count_across([("Posted to Xero", '"Y"'), ("Xero Invoice No", '""')])),
-    ("Duplicate Xero invoice numbers across all departments",
-     "IFERROR(LET(arr,VSTACK(" + ",".join(f"{t}[Xero Invoice No]" for t in REV)
-     + '),uni,FILTER(arr,arr<>""),ROWS(uni)-ROWS(UNIQUE(uni))),0)'),
-    ("Invoice rows with an amount but no tax code",
-     count_across([("Ex GST", '"<>"'), ("Tax Code", '""')])),
-    ("Invoice rows with an amount but no revenue GL code",
-     count_across([("Ex GST", '"<>"'), ("Revenue GL", '""')])),
+     f'COUNTIF({FIN}[Job in Xero?],"CHECK")'),
+    ("Marked posted to Xero but no invoice number",
+     f'COUNTIFS({FIN}[Posted to Xero],"Y",{FIN}[Xero Invoice No],"")'),
+    ("Invoice lines with an amount but no cost centre",
+     f'COUNTIFS({FIN}[Ex GST],"<>",{FIN}[Cost Centre],"")'),
+    ("Invoice lines with an amount but no tax code",
+     f'COUNTIFS({FIN}[Ex GST],"<>",{FIN}[Tax Code],"")'),
+    ("Invoice lines with an amount but no revenue GL code",
+     f'COUNTIFS({FIN}[Ex GST],"<>",{FIN}[Revenue GL],"")'),
+    ("Anything flagged in the Issue column",
+     f'COUNTIF({FIN}[Issue],"?*")'),
     ('Flagged "To WIP = Y" but no matching WIP movement',
-     "+".join(f'SUMPRODUCT(--({t}[To WIP]="Y"),--({t}[Xero Invoice No]<>""),'
-              f'--(COUNTIF(tbl_WIP[Xero Invoice No],{t}[Xero Invoice No]&"")=0))'
-              for t in REV)),
+     f'SUMPRODUCT(--({FIN}[To WIP]="Y"),--({FIN}[Xero Invoice No]<>""),'
+     f'--(COUNTIF(tbl_WIP[Xero Invoice No],{FIN}[Xero Invoice No]&"")=0))'),
     ("WIP movements with an amount but no month or no job",
      'COUNTIFS(tbl_WIP[Month],"",tbl_WIP[Amount],"<>")'
      '+COUNTIFS(tbl_WIP[Job Number],"",tbl_WIP[Amount],"<>")'),
     ("WIP job numbers not found in the Xero job list",
      'COUNTIF(tbl_WIP[Job in Xero?],"CHECK")'),
-    ("Consulting revenue split does not equal the invoice",
+    ("Consulting revenue split does not equal the job revenue",
      'COUNTIF(tbl_Consulting[Revenue Split Check],"MISMATCH")'),
-    ("Production rows where the video split does not add up",
-     'COUNTIF(tbl_Production[Video Split],"CHECK*")'),
-    ("Production rows coded to neither PRODUCTION nor VIDEO",
-     'SUMPRODUCT(--(tbl_Production[Cost Centre]<>"PRODUCTION"),'
-     '--(tbl_Production[Cost Centre]<>"VIDEO"),--(tbl_Production[Cost Centre]<>""))'),
-    ("Production rows with video hours but no video revenue",
-     'SUMPRODUCT(--(IFERROR(tbl_Production[Video Filming Hrs]*1,0)'
-     '+IFERROR(tbl_Production[Video Editing Hrs]*1,0)'
-     '+IFERROR(tbl_Production[Video Project Mgmt Hrs]*1,0)>0),'
-     '--(IFERROR(tbl_Production[Video Revenue]*1,0)=0))'),
+    ("Jobs on a department sheet with no invoice yet",
+     "+".join(f'COUNTIFS({DEPT_TABLE[d]}[Job Number],"<>",{DEPT_TABLE[d]}[Invoices],0)'
+              for d in DEPTS)),
     ('Still sitting at "To Invoice" for the selected month',
-     count_across([("Month", "$C$4"), ("Status", '"To Invoice"')])),
+     f'COUNTIFS({FIN}[Month],$C$4,{FIN}[Status],"To Invoice")'),
 ]
 
 
-
-def build_data_issues(wb):
-    """Every row that fails a check, named rather than merely counted.
-
-    Month-End reports that 21 rows have an amount but no date; this is the list
-    of which ones, so somebody can actually work through them.
-    """
-    ws = wb.create_sheet("Data Issues", 3)
-    title_block(ws, "Data Issues",
-                "Every invoice row that fails one of the month-end checks, worst first. "
-                "Fix them on the department sheet the row came from - this list is one "
-                "formula and clears itself as they are corrected.")
-    ws.merge_cells("A4:G4")
-    ws["A4"] = fx('="Rows needing attention: "&TEXT(LET(dat,' + stack() + ','
-                  'keep,--((CHOOSECOLS(dat,1)&CHOOSECOLS(dat,5)&CHOOSECOLS(dat,10)'
-                  '&CHOOSECOLS(dat,12))<>""),' + ISSUE + 'SUM(keep*--(iss<>""))),"#,##0")'
-                  '&"      Value with no date: "&TEXT(' +
-                  "+".join(f'SUMPRODUCT(--({t}[Date]=""),IFERROR({t}[Ex GST]*1,0))'
-                           for t in REV) + ',"$#,##0.00")')
-    ws["A4"].font = Font(bold=True, size=11, color=NAVY)
-    ws["A4"].fill = PatternFill("solid", fgColor=LIGHT)
-    ws["A4"].alignment = Alignment(horizontal="left", vertical="center", indent=1)
-    ws["A4"].border = BOX
-    ws.row_dimensions[4].height = 22
-
-    heads = [("Team", 13, TXT), ("Date", 11, DATE), ("Client", 26, TXT),
-             ("Job Number", 15, TXT), ("Xero Invoice No", 16, TXT),
-             ("Ex GST", 14, CUR), ("What is wrong", 46, TXT)]
-    for i, (h, w, fmt) in enumerate(heads, start=1):
-        c = ws.cell(6, i, h)
-        c.font = Font(bold=True, color="FFFFFF", size=10)
-        c.fill = PatternFill("solid", fgColor=NAVY)
-        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
-        c.border = BOX
-        dim = ws.column_dimensions[gcl(i)]
-        dim.width, dim.number_format, dim.font = w, fmt, Font(size=10)
-    ws.row_dimensions[6].height = 30
-    ws["A7"] = fx(
-        '=LET(dat,' + stack() + ','
-        'keep,--((CHOOSECOLS(dat,1)&CHOOSECOLS(dat,5)&CHOOSECOLS(dat,10)'
-        '&CHOOSECOLS(dat,12))<>""),' + ISSUE +
-        'flag,keep*--(iss<>""),'
-        'SORT(FILTER(HSTACK(CHOOSECOLS(dat,3),dte,CHOOSECOLS(dat,5),job,inv,exg,iss),'
-        'flag=1,"Nothing to fix - every row passes"),7))')
-    ws.freeze_panes = "A7"
-    ws.conditional_formatting.add("G7:G2000", FormulaRule(
-        formula=['ISNUMBER(SEARCH("no date",G7))'],
-        fill=PatternFill("solid", fgColor=BAD)))
-
-
 def build_month_end(wb):
-    ws = wb.create_sheet("Month-End", 2)
+    ws = wb.create_sheet("Month-End")
     title_block(ws, "Month-End Revenue Close",
-                "Pick the month, type the Xero figures into the yellow cells, and "
-                "work down. Everything white or grey calculates itself.")
+                "Pick the month, type the Xero figures into the yellow cells, and work "
+                "down. Everything white or grey calculates itself.")
     ws["A4"] = "Month being closed"
     ws["A4"].font = Font(bold=True, size=11)
     c = ws["C4"]
@@ -941,19 +577,20 @@ def build_month_end(wb):
     for col, width in zip("ABCDEFGHI", (22, 16, 14, 15, 16, 18, 17, 15, 20)):
         ws.column_dimensions[col].width = width
 
+    # ---- 1. revenue by cost centre, straight off the Finance register
     band(ws, 6, "1.  REVENUE BY COST CENTRE  -  tracker vs Xero")
     col_heads(ws, 7, ["Cost Centre", "Invoiced Ex GST", "GST", "Inc GST",
                       "WIP Movement", "Revenue Recognised", "Xero Revenue (type in)",
                       "Variance", "Check"])
-    r0 = MONTH_END_R0
+    r0 = 8
     for i, cc in enumerate(COST_CENTRES):
         r = r0 + i
         ws.cell(r, 1, cc).font = Font(bold=True, size=10)
-        ws.cell(r, 2).value = fx("=" + by_cost_centre("Ex GST", "Video Revenue", r))
-        ws.cell(r, 3).value = fx("=" + by_cost_centre("GST", "Video GST", r))
+        ws.cell(r, 2).value = f'=SUMIFS({FIN}[Ex GST],{FIN}[Month],$C$4,{FIN}[Cost Centre],$A{r})'
+        ws.cell(r, 3).value = f'=SUMIFS({FIN}[GST],{FIN}[Month],$C$4,{FIN}[Cost Centre],$A{r})'
         ws.cell(r, 4).value = f"=B{r}+C{r}"
-        ws.cell(r, 5).value = fx(f"=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4,"
-                                 f"tbl_WIP[Cost Centre],$A{r})")
+        ws.cell(r, 5).value = ('=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4,'
+                               f"tbl_WIP[Cost Centre],$A{r})")
         ws.cell(r, 6).value = f"=B{r}+E{r}"
         ws.cell(r, 8).value = f'=IF($G{r}="","",$F{r}-$G{r})'
         ws.cell(r, 9).value = (f'=IF($G{r}="","Enter Xero figure",IF(ROUND($H{r},2)=0,'
@@ -965,6 +602,9 @@ def build_month_end(wb):
     ws.cell(tot, 9).value = (f'=IF(COUNT($G{r0}:$G{tot - 1})=0,"Enter Xero figures",'
                              f'IF(ROUND($H{tot},2)=0,"Reconciled",'
                              f'"CHECK - "&TEXT($H{tot},"$#,##0.00")))')
+    ws.cell(tot + 1, 1, "Every line on the Finance sheet carries one cost centre, so "
+                        "these add to the month's invoicing exactly.").font = \
+        Font(size=9, italic=True, color="808080")
     for r in range(r0, tot + 1):
         for col in range(1, 10):
             cell = ws.cell(r, col)
@@ -982,75 +622,16 @@ def build_month_end(wb):
         test = (f'LEFT(I{r0},5)="CHECK"' if value == "CHECK" else f'I{r0}="Reconciled"')
         ws.conditional_formatting.add(f"I{r0}:I{tot}", FormulaRule(
             formula=[test], fill=PatternFill("solid", fgColor=colour)))
-    return ws, tot
 
-
-VIDEO_PANEL = [
-    ("Video revenue (ex GST)",
-     'SUMIFS(tbl_Production[Video Revenue],tbl_Production[Month],$C$4)', CUR),
-    ("Production revenue (ex GST)",
-     'SUMIFS(tbl_Production[Production Revenue],tbl_Production[Month],$C$4)', CUR),
-    ("Total Production sheet revenue (ex GST)", None, CUR),
-    ("Video as a share of the Production sheet", None, PCT),
-    # counts credit notes too, which a ">0" criterion would miss
-    ("Jobs with a video component",
-     'SUMPRODUCT(--(tbl_Production[Month]=$C$4),'
-     '--(IFERROR(tbl_Production[Video Revenue]*1,0)<>0))', INT),
-    ("Video hours (filming + editing + project management)",
-     'SUMPRODUCT(--(tbl_Production[Month]=$C$4),'
-     'IFERROR(tbl_Production[Video Filming Hrs]*1,0)'
-     '+IFERROR(tbl_Production[Video Editing Hrs]*1,0)'
-     '+IFERROR(tbl_Production[Video Project Mgmt Hrs]*1,0))', NUM),
-]
-
-
-def build_video_panel(ws, tot):
-    """Video and production revenue for the month, off the split columns.
-
-    The two revenue lines add back to the Production sheet total, so this is the
-    same money as section 1 - just shown as the split the department books it in.
-    """
-    s = tot + 2
-    band(ws, s, "2.  VIDEO / PRODUCTION SPLIT  -  from the Production sheet")
-    col_heads(ws, s + 1, ["", "Amount", "", "", "", "", "", "", ""])
-    b = s + 2
-    for i, (label, formula, fmt) in enumerate(VIDEO_PANEL):
-        r = b + i
-        ws.cell(r, 1, label).font = Font(size=10, bold=formula is None)
-        vc = ws.cell(r, 2)
-        vc.number_format, vc.border = fmt, BOX
-        if formula:
-            vc.value, vc.fill = fx("=" + formula), CALC_FILL
-        elif label.startswith("Total"):
-            vc.value = f"=B{b}+B{b + 1}"
-            vc.fill = PatternFill("solid", fgColor=LIGHT)
-            vc.font = Font(bold=True, size=10, color=NAVY)
-        else:
-            vc.value = f'=IFERROR(B{b}/B{b + 2},"")'
-            vc.fill = PatternFill("solid", fgColor=LIGHT)
-            vc.font = Font(bold=True, size=10, color=NAVY)
-    note = b + len(VIDEO_PANEL)
-    ws.cell(note, 1,
-            "Video revenue is typed on the Production sheet (column T). Production "
-            "Revenue next to it is the remainder, so one figure does the whole split."
-            ).font = Font(size=9, italic=True, color="808080")
-    return note
-
-
-def build_month_end_rest(ws, tot):
-    tot = build_video_panel(ws, tot)
-    # ---------------- 3. WIP reconciliation
-    s2 = tot + 2
-    band(ws, s2, "3.  WORK IN PROGRESS  -  GL 11300")
+    # ---- 2. WIP
+    s2 = tot + 3
+    band(ws, s2, "2.  WORK IN PROGRESS  -  GL 11300")
     col_heads(ws, s2 + 1, ["", "Amount", "", "", "", "", "", "", "Check"])
     b = s2 + 2
-    # A blank Month would otherwise count as zero and fall into the opening
-    # balance, so opening is guarded on the month being present.
     rows = [
         ("Opening WIP balance (all months before this one)",
-         fx('=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],"<>",tbl_WIP[Month],"<"&$C$4)'), "calc"),
-        ("Movement this month",
-         fx("=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4)"), "calc"),
+         '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],"<>",tbl_WIP[Month],"<"&$C$4)', "calc"),
+        ("Movement this month", "=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4)", "calc"),
         ("Closing WIP balance per this tracker", None, "sum"),
         ("Closing balance per the WIP Schedule file", None, "input"),
         ("Variance - tracker vs WIP Schedule", None, "var1"),
@@ -1090,16 +671,16 @@ def build_month_end_rest(ws, tot):
             "- = revenue deferred out of this month and WIP balance goes down."
             ).font = Font(size=9, italic=True, color="808080")
 
-    # ---------------- 3. data checks
+    # ---- 3. data checks
     s3 = sign + 2
-    band(ws, s3, "4.  DATA CHECKS  -  every count should be zero before you close")
+    band(ws, s3, "3.  DATA CHECKS  -  every count should be zero before you close")
     col_heads(ws, s3 + 1, ["Check", "Count", "", "", "", "", "", "", "Status"])
     cb = s3 + 2
     for i, (label, formula) in enumerate(CHECKS):
         r = cb + i
         ws.cell(r, 1, label).font = Font(size=10)
         vc = ws.cell(r, 2)
-        vc.value = fx("=" + formula)
+        vc.value = "=" + formula
         vc.number_format, vc.border, vc.fill = INT, BOX, CALC_FILL
         vc.alignment = Alignment(horizontal="center")
         vc.font = Font(bold=True, size=10)
@@ -1108,14 +689,11 @@ def build_month_end_rest(ws, tot):
         sc.border = BOX
         sc.alignment = Alignment(horizontal="center")
         sc.font = Font(bold=True, size=9)
-    # Undated rows hold real money ($93,346.99 at migration) and belong to no
-    # month, so the count alone understates them - show the dollars.
     money = cb + len(CHECKS)
-    ws.cell(money, 1, "Value of invoice rows with no date (excluded from every month)"
+    ws.cell(money, 1, "Value of invoice lines with no date (excluded from every month)"
             ).font = Font(bold=True, size=10)
     vc = ws.cell(money, 2)
-    vc.value = fx("=" + "+".join(
-        f'SUMPRODUCT(--({t}[Date]=""),IFERROR({t}[Ex GST]*1,0))' for t in REV))
+    vc.value = f'=SUMPRODUCT(--({FIN}[Date]=""),IFERROR({FIN}[Ex GST]*1,0))'
     vc.number_format, vc.border, vc.fill = CUR, BOX, CALC_FILL
     vc.alignment = Alignment(horizontal="center")
     vc.font = Font(bold=True, size=10)
@@ -1130,9 +708,9 @@ def build_month_end_rest(ws, tot):
     ws.conditional_formatting.add(f"B{cb}:B{money - 1}", CellIsRule(
         operator="greaterThan", formula=["0"], fill=PatternFill("solid", fgColor=WARN)))
 
-    # ---------------- 4. sign-off
+    # ---- 4. sign-off
     s4 = money + 2
-    band(ws, s4, "5.  SIGN-OFF")
+    band(ws, s4, "4.  SIGN-OFF")
     for i, (label, who) in enumerate([("Prepared by", "Accounts Assistant"),
                                       ("Reviewed by", "Finance Operations Manager"),
                                       ("Date closed", ""),
@@ -1149,11 +727,17 @@ def build_month_end_rest(ws, tot):
 
 
 def build_wip_summary(wb):
-    ws = wb.create_sheet("WIP Summary", 3)
+    """WIP by job, for the selected month.
+
+    The job list is the Xero job list, fixed, so this is plain SUMIFS with no
+    array formula to go wrong. Jobs on WIP Movements that Xero does not have are
+    counted separately rather than silently dropped.
+    """
+    ws = wb.create_sheet("WIP Summary")
     title_block(ws, "WIP Balance by Job",
                 "Job-level WIP for the month selected on the Month-End sheet. Paste the "
                 "matching balance from the WIP Schedule file into column G and the "
-                "variance column finds the breaks.")
+                "variance column finds the breaks. Filter column F to hide the nil rows.")
     ws["A4"] = "Month"
     ws["A4"].font = Font(bold=True, size=11)
     c = ws["C4"]
@@ -1164,164 +748,247 @@ def build_wip_summary(wb):
     ws["D4"] = "<- set this on the Month-End sheet"
     ws["D4"].font = Font(size=9, italic=True, color="808080")
 
-    totals = [("Opening total", fx('=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],"<>",'
-                                   'tbl_WIP[Month],"<"&$C$4)')),
-              ("Movement this month", fx("=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4)")),
-              ("Closing total", "=B6+B7")]
+    totals = [("Opening total",
+               '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],"<>",tbl_WIP[Month],"<"&$C$4)'),
+              ("Movement this month", "=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4)"),
+              ("Closing total", "=B6+B7"),
+              ("Of which is on a job Xero does not have",
+               '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Job in Xero?],"CHECK",'
+               'tbl_WIP[Month],"<="&$C$4)')]
     for i, (label, formula) in enumerate(totals):
         r = 6 + i
         ws.cell(r, 1, label).font = Font(bold=True, size=10)
         vc = ws.cell(r, 2)
         vc.value, vc.number_format, vc.border = formula, CUR, BOX
-        vc.fill = CALC_FILL if r < 8 else PatternFill("solid", fgColor=LIGHT)
+        vc.fill = CALC_FILL if r != 8 else PatternFill("solid", fgColor=LIGHT)
         vc.font = Font(bold=True, size=10, color=NAVY)
 
-    col_heads(ws, 10, ["Job Number", "Client", "Cost Centre", "Opening", "Movement",
-                       "Closing", "Per WIP Schedule (paste in)", "Variance"])
-    for i, w in enumerate((16, 26, 14, 15, 15, 15, 20, 14)):
-        dim = ws.column_dimensions[gcl(i + 1)]
-        dim.width, dim.number_format = w, (CUR if i >= 3 else TXT)
-    # One formula spills the whole block, so the job list maintains itself.
-    ws["A11"] = fx(
-        '=LET(mth,$C$4,'
-        'job,SORT(UNIQUE(FILTER(tbl_WIP[Job Number],tbl_WIP[Job Number]<>"","No WIP rows"))),'
-        'opn,SUMIFS(tbl_WIP[Amount],tbl_WIP[Job Number],job,tbl_WIP[Month],"<>",'
-        'tbl_WIP[Month],"<"&mth),'
-        'mvt,SUMIFS(tbl_WIP[Amount],tbl_WIP[Job Number],job,tbl_WIP[Month],mth),'
-        'HSTACK(job,XLOOKUP(job,tbl_WIP[Job Number],tbl_WIP[Client],""),'
-        'XLOOKUP(job,tbl_WIP[Job Number],tbl_WIP[Cost Centre],""),opn,mvt,opn+mvt))')
-    for r in range(11, 1211):
-        g = ws.cell(r, 7)
-        g.fill, g.number_format, g.border = INPUT_FILL, CUR, BOX
-        h = ws.cell(r, 8)
-        h.value = f'=IF($A{r}="","",IF($G{r}="","",$F{r}-$G{r}))'
-        h.number_format, h.border, h.fill = CUR, BOX, CALC_FILL
-    ws.conditional_formatting.add("H11:H1210", FormulaRule(
-        formula=['AND(H11<>"",ROUND(H11,2)<>0)'],
+    col_heads(ws, 11, ["Job Number", "Job Name (Xero)", "Opening", "Movement",
+                       "Closing", "Any balance?", "Per WIP Schedule (paste in)",
+                       "Variance"])
+    for i, w in enumerate((16, 42, 15, 15, 15, 13, 20, 14)):
+        ws.column_dimensions[gcl(i + 1)].width = w
+    joblist = sorted(JOBS, key=lambda x: str(x["job"]))
+    for i, j in enumerate(joblist):
+        r = 12 + i
+        ws.cell(r, 1, str(j["job"])).number_format = TXT
+        ws.cell(r, 2, j["name"]).number_format = TXT
+        ws.cell(r, 3).value = (f'=SUMIFS(tbl_WIP[Amount],tbl_WIP[Job Number],$A{r},'
+                               f'tbl_WIP[Month],"<>",tbl_WIP[Month],"<"&$C$4)')
+        ws.cell(r, 4).value = (f'=SUMIFS(tbl_WIP[Amount],tbl_WIP[Job Number],$A{r},'
+                               f"tbl_WIP[Month],$C$4)")
+        ws.cell(r, 5).value = f"=C{r}+D{r}"
+        ws.cell(r, 6).value = f'=IF(ROUND(C{r},2)+ROUND(D{r},2)=0,"","yes")'
+        ws.cell(r, 8).value = f'=IF($G{r}="","",$E{r}-$G{r})'
+        for col in range(1, 9):
+            cell = ws.cell(r, col)
+            cell.border = BOX
+            cell.font = Font(size=10)
+            if col in (3, 4, 5, 7, 8):
+                cell.number_format = CUR
+            if col == 7:
+                cell.fill = INPUT_FILL
+            elif col in (3, 4, 5, 6, 8):
+                cell.fill = CALC_FILL
+    last = 11 + len(joblist)
+    ws.auto_filter.ref = f"A11:H{last}"
+    ws.conditional_formatting.add(f"H12:H{last}", FormulaRule(
+        formula=['AND(H12<>"",ROUND(H12,2)<>0)'],
         fill=PatternFill("solid", fgColor=BAD)))
-    ws.freeze_panes = "A11"
+    ws.freeze_panes = "A12"
 
 
-# --------------------------------------------------------------------------
+def build_lists(wb):
+    ws = wb.create_sheet("Lists")
+    title_block(ws, "Reference Lists",
+                "Every dropdown in this workbook reads from here. Add a value to the "
+                "bottom of a list and it appears in the dropdowns - no macros, nothing "
+                "to re-run.")
+    simple = [
+        ("A", "Cost Centre", COST_CENTRES, "lst_CostCentre"),
+        ("B", "Invoice Type", ["Contract", "Chargeback", "Ad-hoc", "Project",
+                               "Progress Claim", "Milestone", "Subscription",
+                               "Equipment Sale", "Recharge", "Credit Note"], "lst_InvoiceType"),
+        ("C", "Tax Code", ["GST 10%", "GST Free", "Export (0%)", "BAS Excluded"], "lst_TaxCode"),
+        ("D", "Status", ["To Invoice", "Draft", "Awaiting Approval", "Invoiced",
+                         "Sent", "Paid", "On Hold", "Cancelled", "Credited"], "lst_Status"),
+        ("E", "Yes / No", ["Y", "N", "N/A"], "lst_YN"),
+        ("F", "Ariba Status", ["N/A", "Awaiting PO", "To Upload", "Uploaded",
+                               "Approved", "Rejected"], "lst_Ariba"),
+        ("G", "WIP Movement Type", ["Accrual - unbilled work", "Reversal of prior accrual",
+                                    "Deferral - invoiced in advance", "Release of deferral",
+                                    "Adjustment / correction", "Migrated opening balance"],
+         "lst_WIPType"),
+        ("H", "WIP GL Code", ACC["wip_gl"], "lst_WIPGL"),
+        ("I", "Team", DEPTS + ["Other"], "lst_Team"),
+    ]
+    for col, head, vals, name in simple:
+        ws[f"{col}4"] = head
+        for i, v in enumerate(vals):
+            c = ws[f"{col}{5 + i}"]
+            c.value, c.number_format, c.border = v, TXT, BOX
+        ws.column_dimensions[col].width = max(
+            14, len(head) + 4, max(len(str(v)) for v in vals) + 3)
+        wb.defined_names.add(DefinedName(
+            name, attr_text=f"Lists!${col}$5:${col}${4 + len(vals)}"))
+
+    ws["K4"], ws["L4"] = "Revenue GL", "GL Account Name (from Xero)"
+    for i, a in enumerate(ACC["revenue_gl"]):
+        for col, val in ((11, a["code"]), (12, a["name"])):
+            c = ws.cell(5 + i, col, val)
+            c.number_format, c.border = TXT, BOX
+    ws.column_dimensions["K"].width = 13
+    ws.column_dimensions["L"].width = 36
+    wb.defined_names.add(DefinedName(
+        "lst_RevGL", attr_text=f"Lists!$K$5:$K${4 + len(ACC['revenue_gl'])}"))
+
+    ws["N4"] = "Month (period end)"
+    months, y, m = [], 2023, 7
+    while (y, m) <= (2031, 6):
+        months.append(datetime.date(y + (m // 12), (m % 12) + 1, 1)
+                      - datetime.timedelta(days=1))
+        m += 1
+        if m == 12:
+            y, m = y + 1, 0
+    for i, d in enumerate(months):
+        c = ws.cell(5 + i, 14, d)
+        c.number_format, c.border = MON, BOX
+    ws.column_dimensions["N"].width = 18
+    wb.defined_names.add(DefinedName(
+        "lst_Months", attr_text=f"Lists!$N$5:$N${4 + len(months)}"))
+
+    ws["P4"], ws["Q4"], ws["R4"] = "Job Number", "Job Name (from Xero)", "CC"
+    dept_map = {"ONS": "ONSITE", "PRD": "PRODUCTION", "VID": "VIDEO",
+                "INT": "INTEGRATION", "CONS": "CONSULTING", "CTS": "CTS", "": ""}
+    for i, j in enumerate(sorted(JOBS, key=lambda x: str(x["job"]))):
+        for col, val in ((16, str(j["job"])), (17, j["name"]),
+                         (18, dept_map.get(j["dept"], j["dept"]))):
+            c = ws.cell(5 + i, col, val)
+            c.number_format, c.border = TXT, BOX
+    for col, width in (("P", 16), ("Q", 48), ("R", 14)):
+        ws.column_dimensions[col].width = width
+    # generous: used by COUNTIF and MATCH, so trailing blanks are harmless
+    for name, col in (("lst_Jobs", "P"), ("lst_JobName", "Q"), ("lst_JobCC", "R")):
+        wb.defined_names.add(DefinedName(name, attr_text=f"Lists!${col}$5:${col}$1500"))
+
+    for col in "ABCDEFGHIKLNPQR":
+        c = ws[f"{col}4"]
+        c.font = Font(bold=True, color="FFFFFF", size=10)
+        c.fill = PatternFill("solid", fgColor=SLATE)
+        c.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        c.border = BOX
+    ws.row_dimensions[4].height = 30
+    ws.freeze_panes = "A5"
+
+
 README = [
  ("T", "FY27 Revenue Tracker"),
- ("S", "Corporate Technology Services Pty Ltd  -  built to replace FY27_Revenue_Tracker_v2.xlsm"),
+ ("S", "Corporate Technology Services Pty Ltd  -  replaces FY27_Revenue_Tracker_v2.xlsm"),
  ("B", ""),
- ("H", "WHY THIS VERSION IS NOT SLOW"),
- ("P", "The old file was slow because of the macro, not the data. Every time you typed in a cell, the macro "
-       "copied 26 columns x 200 rows back into hidden storage columns, and every time you changed the department "
-       "dropdown it rewrote the column widths, number formats and dropdowns for the whole sheet."),
- ("P", "It also had a hard ceiling: 200 rows per department, 800 rows in total. It could never have held years of data."),
- ("P", "This workbook has no macros at all. Each department is a real sheet with a real Excel Table. "
-       "Finance pulls them together with one formula. Nothing is copied, nothing is rewritten, nothing runs when you type. "
-       "It is saved as .xlsx, so there is no macro warning and no blocked-file problem on SharePoint."),
- ("P", "Row limit: about a million rows per sheet. Realistically this holds a decade of invoicing without slowing down."),
+ ("H", "WHO TYPES WHERE"),
+ ("P", "Finance types on the Finance sheet. Nowhere else. Every invoice line, every month."),
+ ("P", "Each department types on its own sheet. Nowhere else. One row per job number."),
+ ("P", "The two meet on Job Number, which is a real Xero tracking category and is checked "
+       "against the live job list as you type. Nothing has to be kept lined up by hand."),
  ("B", ""),
  ("H", "HOW IT FITS TOGETHER"),
- ("R", "Onsite / Production / Consulting / Other",
-       "Where the departments work. One row per Xero invoice. Type left to right. Grey columns are formulas - leave them alone."),
- ("R", "WIP Movements",
-       "Every journal that moves revenue between the P&L and GL 11300 Work in Progress. One row per job per month."),
  ("R", "Finance",
-       "Read-only. Stacks all four department sheets into one list of 19 columns. Filter by team, cost centre, "
-       "month, status or free text. Rebuilds instantly - there is nothing to refresh."),
+       "The invoice register, and the only source of revenue. One row per invoice LINE, "
+       "coded to one cost centre, exactly as Xero holds it. Filter the Issue column to see "
+       "everything that needs fixing."),
+ ("R", "Onsite / Production / Consulting",
+       "One row per job. Client, invoice count and revenue come from Finance automatically; "
+       "the department fills in its own costs, hours and references."),
+ ("R", "WIP Movements",
+       "Every journal that moves revenue between the P&L and GL 11300 Work in Progress."),
  ("R", "Month-End",
-       "The close. Revenue by cost centre against Xero, the video/production split, the WIP reconciliation, sixteen data checks, and a sign-off box."),
- ("R", "Data Issues",
-       "Every invoice row that fails a month-end check, named rather than counted - no date, no job number, a job number Xero does not have, and so on. Work this list to zero before you close."),
+       "The close: revenue by cost centre against Xero, the WIP reconciliation, fifteen "
+       "data checks and a sign-off box."),
  ("R", "WIP Summary",
-       "WIP opening / movement / closing for every job, for the selected month, so you can tie job by job back to the WIP Schedule file."),
+       "WIP opening / movement / closing for every job, to tie job by job back to the WIP "
+       "Schedule file."),
  ("R", "Lists",
-       "Every dropdown reads from here. The cost centres, job numbers and revenue GL codes were pulled straight out of your Xero "
-       "organisation, so they already match. Add a new value at the bottom of a list and it appears in the dropdowns straight away."),
+       "Every dropdown. Cost centres, job numbers and revenue GL codes came straight out of "
+       "your Xero organisation, so they already match."),
  ("B", ""),
- ("H", "THE COLUMNS EVERY DEPARTMENT SHARES"),
- ("P", "Columns A to S are identical on all four department sheets - that is what lets Finance stack them. "
-       "Department-specific columns start at column T and Finance ignores them. "
-       "If you add a fifth department, copy any department sheet, keep columns A to S as they are, name the table, "
-       "and add it to the Finance formula."),
+ ("H", "VIDEO REVENUE"),
+ ("P", "There is no video split column any more, and nothing to keep honest. In Xero a "
+       "cost centre sits on the invoice LINE, so a job invoiced part production and part "
+       "video is simply two lines on the Finance sheet - one coded PRODUCTION, one coded "
+       "VIDEO. The VIDEO figure at month-end is then a plain sum of the lines coded VIDEO, "
+       "and it ties to the Xero VIDEO cost centre without any adjustment."),
+ ("P", "The 26 migrated invoices that carried a video amount were split into two lines "
+       "each on the way across. Ex GST in total is unchanged."),
  ("B", ""),
- ("H", "VIDEO REVENUE  -  how the Production sheet splits it"),
- ("P", "An invoice can carry both production and video work, and in Xero those are two different Cost "
-       "Centres on the same invoice. So the Production sheet splits the money rather than the row."),
- ("P", "   Video Revenue (column T) is the only figure you type. It is the ex-GST portion of the invoice "
-       "coded to VIDEO in Xero. Leave it blank for a job with no video."),
- ("P", "   Production Revenue (column U) is the remainder, worked out for you."),
- ("P", "   Video Split (column V) tells you what the row is: All production, Split, All video, or CHECK "
-       "if the numbers do not add up. Amber means split, red means something is wrong."),
- ("P", "   Video GST (column W) apportions the GST the same way, so Inc GST still adds up on every line "
-       "of the Month-End breakdown."),
- ("P", "For a pure video job set Cost Centre to VIDEO and put the full invoice in Video Revenue. The check "
-       "flags it if you set VIDEO but do not split the whole amount. The Cost Centre dropdown on this sheet "
-       "is limited to PRODUCTION and VIDEO - anything else belongs on another sheet."),
- ("P", "Month-End section 1 reads these two columns for the PRODUCTION and VIDEO lines, so video revenue "
-       "reconciles against the VIDEO cost centre in Xero. The two lines always add back to the Production "
-       "sheet total, so nothing can leak between them. Section 2 shows the split for the month on its own."),
- ("B", ""),
- ("H", "THE WIP SIGN RULE  -  read this once and it will always make sense"),
- ("P", "One signed Amount column does both jobs, because GL 11300 nets accrued and deferred revenue."),
- ("P", "   Positive  =  revenue recognised this month.  Work done but not yet invoiced (Dr 11300, Cr Revenue), "
-       "or a deferral being released."),
- ("P", "   Negative  =  revenue pushed out of this month.  Invoiced in advance (Dr Revenue, Cr 11300)."),
- ("P", "So: Revenue recognised  =  Invoiced Ex GST  +  WIP movement.  And the running total of the Amount column "
-       "is the GL 11300 balance. A negative closing balance means you are net deferred, which is what your current "
-       "WIP Schedule shows (-128,544.93 at Aug-26)."),
+ ("H", "WHY THIS VERSION IS NOT SLOW, AND WHY IT OPENS"),
+ ("P", "The v2 file was slow because of its macro: every keystroke copied 26 columns by 200 "
+       "rows into hidden storage, and it was capped at 200 rows per department. There are "
+       "no macros here at all, and it is a .xlsx, so no macro warning and nothing blocked "
+       "on SharePoint."),
+ ("P", "There are also no dynamic array formulas - no VSTACK, FILTER, SORT, UNIQUE or "
+       "XLOOKUP. Every sheet is a real Excel Table or a plain SUMIFS grid, which means the "
+       "filter buttons, sorting and PivotTables all work normally, and every formula runs "
+       "in any version of Excel."),
  ("B", ""),
  ("H", "MONTH-END, IN ORDER"),
- ("P", "1.  Chase the departments until every invoice for the month is on their sheet and Posted to Xero is Y."),
+ ("P", "1.  Chase the departments until every invoice for the month is on the Finance sheet "
+       "and Posted to Xero is Y."),
  ("P", "2.  Open Month-End and set the month."),
- ("P", "3.  Work section 3 (Data checks) first. Every count must be zero. Fix on the department sheet, not here."),
- ("P", "4.  Section 1: run the Xero P&L for the month by Cost Centre tracking category and type the revenue into "
-       "the yellow column. Each line should read Reconciled."),
- ("P", "5.  Section 2: type the WIP Schedule closing balance and the Xero GL 11300 balance. Both should read Reconciled."),
- ("P", "6.  Breaks in section 2 - open WIP Summary, paste the WIP Schedule balances into column G and the variance "
-       "column shows you which job is out."),
+ ("P", "3.  Work section 3 first. Every count must be zero. Fix on the Finance sheet, or "
+       "filter the Issue column there, which lists the same problems row by row."),
+ ("P", "4.  Section 1: run the Xero P&L for the month by Cost Centre and type the revenue "
+       "into the yellow column. Each line should read Reconciled."),
+ ("P", "5.  Section 2: type the WIP Schedule closing balance and the Xero GL 11300 balance."),
+ ("P", "6.  Breaks in section 2 - open WIP Summary, paste the WIP Schedule balances into "
+       "column G and the variance column shows which job is out."),
  ("P", "7.  Sign off in section 4."),
  ("B", ""),
+ ("H", "THE WIP SIGN RULE"),
+ ("P", "One signed Amount column does both jobs, because GL 11300 nets accrued and deferred "
+       "revenue. Positive = revenue recognised this month (work done but not yet invoiced, "
+       "or a deferral released). Negative = revenue pushed out of this month (invoiced in "
+       "advance). So revenue recognised = invoiced Ex GST + WIP movement, and the running "
+       "total of the Amount column is the GL 11300 balance."),
+ ("B", ""),
  ("H", "RULES THAT KEEP IT FAST"),
- ("P", "   Never insert or delete rows above the header row on a department sheet."),
- ("P", "   Add new rows by clicking the last cell of the table and pressing Tab - the table grows and the formulas follow."),
- ("P", "   Do not paste whole columns in. Paste values only, into the table."),
- ("P", "   Do not add conditional formatting over whole columns (A:A). That is the other classic way to make Excel crawl."),
- ("P", "   Leave calculation on Automatic. There is nothing volatile in here - no OFFSET, no INDIRECT, no TODAY in bulk."),
- ("P", "   Keep it as .xlsx. The moment someone saves it as .xlsm and adds a macro, you are back where you started."),
+ ("P", "   Never insert or delete rows above the header row."),
+ ("P", "   Add rows by typing in the next blank row of the table, or press Tab at the end "
+       "of the last row and the table grows with the formulas."),
+ ("P", "   Paste values only, never whole columns."),
+ ("P", "   Leave calculation on Automatic. Nothing here is volatile - no OFFSET, no "
+       "INDIRECT, no TODAY in bulk."),
+ ("P", "   Keep it as .xlsx. The moment someone saves it as .xlsm and adds a macro you are "
+       "back where you started."),
  ("B", ""),
- ("H", "WHAT WAS BROUGHT ACROSS FROM THE OLD FILE"),
- ("P", "   Onsite (was \"Support\"): 54 rows.   Production: 61 rows.   Consulting: 34 rows.   WIP Movements: 126 rows."),
- ("P", "   \"Support\" was renamed ONSITE to match the Cost Centre tracking category in Xero."),
- ("P", "   Department totals tie to the cent: Onsite 512,023.81, Production 460,883.46, Consulting 857,950.27, WIP 17,537.91."),
- ("P", "   Margins, GST, net totals and discount percentages were all recalculated by formula rather than copied, "
-       "so the numbers are derived, not stale."),
- ("P", "   Revenue GL codes were assigned by rule on migration (Onsite 41100, Production 42100, Video 42150, "
-       "Consulting 42800, Integration 42300). Spot-check these - they are a starting point, not gospel."),
- ("P", "   The 126 migrated WIP rows were given a Type based on the sign of the amount. Confirm those before you rely on them."),
- ("B", ""),
- ("H", "DISCOUNTS, AND WHY \"NET TOTAL\" IS GONE"),
- ("P", "Checked against Xero: for all 17 August Production invoices carrying a discount, the ex-GST total on the "
-       "Xero invoice equals this workbook's Ex GST exactly. Not one matched Ex GST minus the discount. So the "
-       "discount is taken off before the invoice is raised, and Ex GST is what reconciles to the P&L."),
- ("P", "That makes the old \"Net Total\" (Ex GST minus Discounts Included) a figure that matches neither Xero nor "
-       "the list price - on INV-10518 it gave $35.00 on a $500.00 invoice. It was also what the old Dashboard "
-       "reported Production on, which is why it showed $415,476.74 against $460,883.46 actually invoiced."),
- ("P", "Net Total has been replaced by Value Before Discount (Ex GST plus Discounts Included) - what the job was "
-       "worth before the discount - and Discount % is now measured against that. ASSUMPTION: Discounts Included "
-       "records what was given away off standard rates. If it means something else, tell me and this is a "
-       "two-line change."),
+ ("H", "WHAT CAME ACROSS FROM v2"),
+ ("P", "   Finance: 175 invoice lines from the 149 v2 records, the difference being the 26 "
+       "video splits now carried as their own line."),
+ ("P", "   Department sheets: one row per job - Onsite 28, Production 58, Consulting 28."),
+ ("P", "   WIP Movements: 126 rows."),
+ ("P", "   Totals tie to the cent: Onsite 512,023.81, Production 460,883.46, Consulting "
+       "857,950.27, WIP 17,537.91."),
+ ("P", "   Revenue GL codes were assigned by rule (Onsite 41100, Production 42100, Video "
+       "42150, Consulting 42800, Integration 42300). Spot-check them."),
+ ("P", "   The 126 WIP rows were given a Type from the sign of the amount. Confirm before "
+       "relying on them."),
  ("B", ""),
  ("W", "STILL TO CONFIRM"),
- ("P", "Undated rows. $93,346.99 across 21 migrated rows has an amount but no date, so it cannot belong to a month. "
-       "They show on the department sheets and on Finance when the month filter is All, and Month-End reports "
-       "the dollar value. Date them and the figure goes to zero."),
- ("P", "Separately: the old Dashboard only bucketed Jul-26 to Jun-27, so Consulting rows dated May-25 to Jun-26 were "
-       "counted as \"undated\" - that is why its reconciliation showed $495,403.50 unallocated against Consulting. "
-       "This workbook covers FY24 to FY31, so those rows land in their real month."),
+ ("P", "Discounts. Checked against Xero: for all 17 August production invoices carrying a "
+       "discount, the ex-GST total on the Xero invoice equals Ex GST here exactly, and not "
+       "one matched Ex GST minus the discount. So the discount comes off before the invoice "
+       "is raised and Ex GST is what reconciles. The old \"Net Total\" is gone; Discounts "
+       "Given now sits on the Production sheet at job level with Value Before Discount "
+       "beside it. ASSUMPTION: it records what was given away off standard rates."),
+ ("P", "23 migrated records have no invoice number and 21 have no date - $93,346.99 of "
+       "revenue that belongs to no month. They are on the Finance sheet with the Issue "
+       "column filled in. Filter that column and work the list to nothing."),
 ]
 
 
 def build_readme(wb):
-    ws = wb.create_sheet("Read Me", 0)
+    ws = wb.create_sheet("Read Me")
     ws.sheet_view.showGridLines = False
-    for col, width in (("A", 3), ("B", 30), ("C", 108)):
+    for col, width in (("A", 3), ("B", 30), ("C", 106)):
         ws.column_dimensions[col].width = width
     r = 2
     for item in README:
@@ -1331,7 +998,6 @@ def build_readme(wb):
             ws.row_dimensions[r].height = 28
         elif kind == "S":
             ws.cell(r, 2, body).font = Font(size=10, italic=True, color="595959")
-            ws.row_dimensions[r].height = 16
         elif kind == "B":
             ws.row_dimensions[r].height = 10
         elif kind in ("H", "W"):
@@ -1351,51 +1017,32 @@ def build_readme(wb):
             c.font = Font(size=10)
             c.alignment = Alignment(wrap_text=True, vertical="top")
             c.border = BOX
-            ws.row_dimensions[r].height = 15 * max(1, (len(item[2]) // 105) + 1)
+            ws.row_dimensions[r].height = 15 * max(1, (len(item[2]) // 103) + 1)
         else:
             c = ws.cell(r, 3, body)
             c.font = Font(size=10)
             c.alignment = Alignment(wrap_text=True, vertical="top")
-            ws.row_dimensions[r].height = 14 * max(1, (len(body) // 108) + 1)
+            ws.row_dimensions[r].height = 14 * max(1, (len(body) // 106) + 1)
         r += 1
 
 
-# --------------------------------------------------------------------------
 def main():
     wb = openpyxl.Workbook()
     wb.remove(wb.active)
     build_lists(wb)
-
-    data = {"Onsite": migrate_onsite(), "Production": migrate_production(),
-            "Consulting": migrate_consulting(), "Other": []}
-    for name in ("Onsite", "Production", "Consulting", "Other"):
-        formulas = dict(CORE_FORMULAS)
-        formulas.update(EXTRA_FORMULAS.get(name, {}))
-        build_entry_sheet(wb, name, CORE + EXTRA[name], formulas, name,
-                          data[name], TABLES[name], BLURB[name],
-                          dv_override={"Cost Centre": "lst_CostCentrePrd"}
-                          if name == "Production" else None)
-    build_entry_sheet(
-        wb, "WIP Movements", WIP_COLS, WIP_FORMULAS, None, migrate_wip(), "tbl_WIP",
-        "Every journal that moves revenue between the P&L and GL 11300 Work in Progress. "
-        "SIGN RULE: + = revenue recognised this month (WIP balance up). - = revenue "
-        "deferred out of this month (WIP balance down). One row per job per month.")
-
     build_finance(wb)
-    build_check(wb)
-    build_data_issues(wb)
-    ws, tot = build_month_end(wb)
-    build_month_end_rest(ws, tot)
+    for d in DEPTS:
+        build_dept(wb, d)
+    build_wip(wb)
+    build_month_end(wb)
     build_wip_summary(wb)
     build_readme(wb)
 
-    colours = {"Check": "C00000", "Read Me": "7F7F7F", "Finance": NAVY, "Month-End": "2E6B4F",
-               "WIP Summary": "2E6B4F", "Data Issues": "8B2B2B", "Onsite": SLATE, "Production": SLATE,
-               "Consulting": SLATE, "Other": SLATE, "WIP Movements": "8B6A2B",
-               "Lists": "A6A6A6"}
-    order = ["Check", "Read Me", "Finance", "Month-End", "Data Issues", "WIP Summary",
-             "Onsite", "Production",
-             "Consulting", "Other", "WIP Movements", "Lists"]
+    colours = {"Read Me": "7F7F7F", "Finance": NAVY, "Month-End": "2E6B4F",
+               "WIP Summary": "2E6B4F", "Onsite": SLATE, "Production": SLATE,
+               "Consulting": SLATE, "WIP Movements": "8B6A2B", "Lists": "A6A6A6"}
+    order = ["Read Me", "Finance", "Month-End", "WIP Summary",
+             "Onsite", "Production", "Consulting", "WIP Movements", "Lists"]
     for name, colour in colours.items():
         wb[name].sheet_properties.tabColor = colour
     wb._sheets = [wb[n] for n in order]
