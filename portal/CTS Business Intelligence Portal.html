@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en-AU" data-palette="#2a78d6,#eb6834,#1baf7a,#eda100,#e87ba4,#008300">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CTS Business Intelligence Portal</title>
+<meta name="description" content="Corporate Technology Services financial reporting. Runs entirely in the browser.">
+<style>
+/* ---------------------------------------------------------------- tokens */
+:root {
+  color-scheme: light;
+  --surface-0: #f4f4f2;
+  --surface-1: #fcfcfb;
+  --surface-2: #eeeeeb;
+  --surface-3: #e4e4e0;
+  --ink-strong: #0b0b0b;
+  --ink: #232321;
+  --ink-secondary: #52514e;
+  --ink-muted: #7b7a75;
+  --line: #dcdcd7;
+  --line-strong: #c4c4bd;
+  --accent: #1f3864;
+
+  --series-1: #2a78d6;  /* Onsite      */
+  --series-2: #eb6834;  /* Production  */
+  --series-3: #1baf7a;  /* Video       */
+  --series-4: #eda100;  /* Integration */
+  --series-5: #e87ba4;  /* Consulting  */
+  --series-6: #008300;  /* Admin       */
+  --series-7: #7b7a75;  /* Unallocated */
+
+  --status-good: #0ca30c;
+  --status-warning: #fab219;
+  --status-serious: #ec835a;
+  --status-critical: #d03b3b;
+
+  --radius: 8px;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --surface-0: #121211; --surface-1: #1a1a19; --surface-2: #232322;
+    --surface-3: #2c2c2a;
+    --ink-strong: #ffffff; --ink: #eceae2; --ink-secondary: #c3c2b7;
+    --ink-muted: #918f86;
+    --line: #34342f; --line-strong: #46453f; --accent: #8fb6ee;
+    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+    --series-4: #c98500; --series-5: #d55181; --series-6: #008300;
+    --series-7: #918f86;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-0: #121211; --surface-1: #1a1a19; --surface-2: #232322;
+  --surface-3: #2c2c2a;
+  --ink-strong: #ffffff; --ink: #eceae2; --ink-secondary: #c3c2b7;
+  --ink-muted: #918f86;
+  --line: #34342f; --line-strong: #46453f; --accent: #8fb6ee;
+  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
+  --series-4: #c98500; --series-5: #d55181; --series-6: #008300;
+  --series-7: #918f86;
+}
+
+/* ----------------------------------------------------------------- base */
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  background: var(--surface-0); color: var(--ink);
+  font: 14px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--accent); }
+
+/* ---------------------------------------------------------------- shell */
+.shell { display: grid; grid-template-columns: 224px 1fr; min-height: 100vh; }
+.side {
+  background: var(--surface-1); border-right: 1px solid var(--line);
+  padding: 0 0 2rem; position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+.brand { padding: 1.1rem 1rem .9rem; border-bottom: 1px solid var(--line); }
+.brand-name { font-weight: 700; color: var(--ink-strong); letter-spacing: -.01em; }
+.brand-sub { font-size: 11px; color: var(--ink-muted); margin-top: 2px; }
+.brand-meta { display: flex; gap: .4rem; align-items: center; margin-top: .55rem; flex-wrap: wrap; }
+.badge {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .04em;
+  padding: 2px 6px; border-radius: 99px; font-weight: 600;
+}
+.badge-warn { background: #fab21926; color: #8a6200; }
+.badge-good { background: #0ca30c26; color: #0a6b0a; }
+:root[data-theme="dark"] .badge-warn, :root:where(:not([data-theme="light"])) .badge-warn { color: #fab219; }
+:root[data-theme="dark"] .badge-good, :root:where(:not([data-theme="light"])) .badge-good { color: #4ec94e; }
+.rm { font-size: 11px; color: var(--ink-secondary); }
+
+.nav-group { padding: .8rem 0 0; }
+.nav-head {
+  font-size: 10px; text-transform: uppercase; letter-spacing: .07em;
+  color: var(--ink-muted); padding: 0 1rem .3rem; font-weight: 700;
+}
+.nav-list { list-style: none; margin: 0; padding: 0; }
+.nav-link {
+  display: block; padding: .32rem 1rem; color: var(--ink-secondary);
+  text-decoration: none; font-size: 13px; border-left: 2px solid transparent;
+}
+.nav-link:hover { background: var(--surface-2); color: var(--ink-strong); }
+.nav-link.on {
+  background: var(--surface-2); color: var(--ink-strong);
+  border-left-color: var(--accent); font-weight: 600;
+}
+.side-foot { padding: 1rem; margin-top: 1rem; border-top: 1px solid var(--line); }
+.btn-theme {
+  font: inherit; font-size: 12px; background: var(--surface-2); color: var(--ink-secondary);
+  border: 1px solid var(--line); border-radius: var(--radius); padding: .3rem .6rem; cursor: pointer;
+}
+
+main {
+  padding: 1.4rem 1.6rem 5rem; max-width: 1500px;
+  /* A 1fr grid item defaults to min-width:auto, so a wide table would push
+     the whole page sideways instead of scrolling inside its own wrapper. */
+  min-width: 0;
+}
+.page-head { margin: .2rem 0 1rem; }
+.page-head h1 { font-size: 24px; margin: 0; color: var(--ink-strong); letter-spacing: -.02em; }
+.page-sub { margin: .2rem 0 0; color: var(--ink-secondary); }
+
+/* -------------------------------------------------------------- banners */
+.banner {
+  border-radius: var(--radius); padding: .6rem .8rem; margin: 0 0 1rem;
+  font-size: 13px; border: 1px solid var(--line); background: var(--surface-1);
+}
+.banner-seed { border-left: 3px solid var(--status-warning); }
+.banner-warn { border-left: 3px solid var(--status-serious); }
+.banner-good { border-left: 3px solid var(--status-good); }
+
+/* -------------------------------------------------------------- toolbar */
+.toolbar {
+  display: flex; gap: .6rem; align-items: center; flex-wrap: wrap;
+  margin: 0 0 1rem; padding: .5rem .6rem; background: var(--surface-1);
+  border: 1px solid var(--line); border-radius: var(--radius);
+}
+.toolbar-right { margin-left: auto; display: flex; gap: .45rem; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.seg-btn {
+  font: inherit; font-size: 12px; padding: .3rem .7rem; border: 0; cursor: pointer;
+  background: var(--surface-1); color: var(--ink-secondary); border-right: 1px solid var(--line);
+}
+.seg-btn:last-child { border-right: 0; }
+.seg-btn.on { background: var(--accent); color: #fff; font-weight: 600; }
+.control {
+  font: inherit; font-size: 13px; padding: .28rem .45rem; border: 1px solid var(--line-strong);
+  border-radius: 6px; background: var(--surface-1); color: var(--ink); max-width: 20rem;
+}
+.control.small { font-size: 12px; padding: .15rem .3rem; }
+.control.grow { flex: 1 1 18rem; max-width: none; }
+label.inline { font-size: 12px; color: var(--ink-muted); }
+.readout { font-weight: 600; color: var(--ink-strong); }
+.checkbox { font-size: 13px; color: var(--ink-secondary); cursor: pointer; }
+.btn {
+  font: inherit; font-size: 13px; padding: .36rem .8rem; border-radius: 6px;
+  border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer;
+}
+.btn-quiet { background: var(--surface-2); color: var(--ink); border-color: var(--line-strong); }
+.row { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; margin-top: .5rem; }
+.fieldrow {
+  display: grid; grid-template-columns: 20rem auto 1fr; gap: .7rem;
+  align-items: center; padding: .3rem 0; border-bottom: 1px solid var(--line);
+}
+.fieldrow label { color: var(--ink-secondary); }
+
+/* ---------------------------------------------------------------- tiles */
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: .7rem; margin-bottom: 1.2rem; }
+.tile { background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius); padding: .7rem .85rem; }
+.tile-label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-muted); font-weight: 600; }
+.tile-value { font-size: 25px; font-weight: 700; color: var(--ink-strong); letter-spacing: -.02em; margin: .15rem 0; font-variant-numeric: tabular-nums; }
+.tile-sub { font-size: 12px; color: var(--ink-secondary); }
+.tile-note { font-size: 11px; color: var(--ink-muted); margin-top: .2rem; }
+.tone-good .tile-value { color: var(--status-good); }
+.tone-critical .tile-value { color: var(--status-critical); }
+.up { color: var(--status-good); }
+.down { color: var(--status-critical); }
+
+/* -------------------------------------------------------------- blocks */
+.block { margin: 0 0 1.6rem; min-width: 0; }
+.block h2 { font-size: 15px; margin: 0 0 .5rem; color: var(--ink-strong); letter-spacing: -.01em; }
+.note { font-size: 12.5px; color: var(--ink-secondary); margin: .3rem 0 .6rem; max-width: 74ch; }
+.note-warn { color: var(--ink); border-left: 2px solid var(--status-serious); padding-left: .6rem; }
+.note-muted { color: var(--ink-muted); }
+.source { font-size: 12px; color: var(--ink-muted); margin: .4rem 0 0; }
+.source-tag { text-transform: uppercase; font-size: 10px; letter-spacing: .05em; font-weight: 700; color: var(--ink-muted); }
+.muted { color: var(--ink-muted); font-size: 12px; }
+.small { font-size: 12px; }
+.mono { font-family: var(--mono); }
+ul.plain { list-style: none; margin: .3rem 0; padding: 0; }
+ul.plain li { padding: .22rem 0; border-bottom: 1px solid var(--line); display: flex; gap: .6rem; }
+ul.plain li:last-child { border-bottom: 0; }
+.li-name { flex: 1; }
+.li-val { font-variant-numeric: tabular-nums; color: var(--ink-secondary); }
+
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: .8rem; }
+.card { background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius); padding: .8rem .9rem; }
+.card h3 { font-size: 13px; margin: 0 0 .4rem; color: var(--ink-strong); }
+.loader textarea.paste {
+  width: 100%; font-family: var(--mono); font-size: 12px; border: 1px solid var(--line-strong);
+  border-radius: 6px; padding: .45rem; background: var(--surface-0); color: var(--ink); resize: vertical;
+}
+
+/* -------------------------------------------------------------- tables */
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-1); }
+table.grid { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+table.grid th, table.grid td { padding: .34rem .55rem; border-bottom: 1px solid var(--line); white-space: nowrap; }
+table.grid.dense th, table.grid.dense td { padding: .22rem .5rem; font-size: 12.5px; }
+table.grid th {
+  background: var(--surface-2); color: var(--ink-secondary); font-size: 11px;
+  text-transform: uppercase; letter-spacing: .03em; font-weight: 700;
+  position: sticky; top: 0; z-index: 1;
+}
+table.grid td.left, table.grid th.left { text-align: left; }
+table.grid td.right, table.grid th.right { text-align: right; }
+table.grid tbody tr:hover { background: var(--surface-2); }
+td.neg { color: var(--status-critical); }
+th.totalcol, td.totalcol { border-left: 1px solid var(--line-strong); font-weight: 600; }
+th.forecast-col { color: var(--ink-muted); font-style: italic; }
+tr.forecast td { color: var(--ink-muted); }
+tr.totalrow td { font-weight: 700; background: var(--surface-2); color: var(--ink-strong); }
+tr.pnl-lvl0 td { font-weight: 700; background: var(--surface-2); color: var(--ink-strong); }
+tr.pnl-lvl1 td { font-weight: 600; }
+tr.pnl-lvl2 td { color: var(--ink-secondary); }
+.pnl-label { display: inline-flex; align-items: center; gap: .35rem; }
+.lvl1 { padding-left: .9rem; }
+.lvl2 { padding-left: 1.9rem; }
+.twisty {
+  font: inherit; width: 16px; height: 16px; line-height: 1; padding: 0; cursor: pointer;
+  border: 1px solid var(--line-strong); border-radius: 3px; background: var(--surface-1);
+  color: var(--ink-secondary);
+}
+.twisty-spacer { display: inline-block; width: 16px; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: .4rem; vertical-align: -1px; }
+
+/* --------------------------------------------------------- chips, flags */
+.chip, .risk, .flag {
+  display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 7px;
+  border-radius: 99px; white-space: nowrap;
+}
+.risk-good, .chip-good { background: #0ca30c22; color: #0a6b0a; }
+.risk-warning, .chip-warning { background: #fab21929; color: #7d5800; }
+.risk-critical, .chip-critical { background: #d03b3b22; color: #a02020; }
+.risk-muted, .chip-muted { background: var(--surface-3); color: var(--ink-muted); }
+.flag-good { background: #0ca30c22; color: #0a6b0a; }
+.flag-warn { background: #fab21929; color: #7d5800; }
+:root[data-theme="dark"] .risk-good, :root:where(:not([data-theme="light"])) .risk-good,
+:root[data-theme="dark"] .chip-good, :root:where(:not([data-theme="light"])) .chip-good,
+:root[data-theme="dark"] .flag-good, :root:where(:not([data-theme="light"])) .flag-good { color: #4ec94e; }
+:root[data-theme="dark"] .risk-warning, :root:where(:not([data-theme="light"])) .risk-warning,
+:root[data-theme="dark"] .chip-warning, :root:where(:not([data-theme="light"])) .chip-warning,
+:root[data-theme="dark"] .flag-warn, :root:where(:not([data-theme="light"])) .flag-warn { color: #fab219; }
+:root[data-theme="dark"] .risk-critical, :root:where(:not([data-theme="light"])) .risk-critical,
+:root[data-theme="dark"] .chip-critical, :root:where(:not([data-theme="light"])) .chip-critical { color: #ee7070; }
+
+/* -------------------------------------------------------------- charts */
+.fig { margin: 0; }
+.fig figcaption { font-size: 12px; color: var(--ink-muted); margin-bottom: .4rem; }
+.fig-chart, .fig-table { min-width: 0; }
+.fig-body { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.fig-body > .fig-chart:only-child { grid-column: 1 / -1; }
+.chartwrap { position: relative; background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius); padding: .5rem; }
+svg.chart { width: 100%; height: auto; display: block; }
+svg.chart .grid { stroke: var(--line); stroke-width: 1; }
+svg.chart .zero { stroke: var(--line-strong); stroke-width: 1.5; }
+svg.chart .connector { stroke: var(--ink-muted); stroke-width: 1; stroke-dasharray: 2 2; }
+svg.chart .targetline { stroke: var(--ink-muted); stroke-width: 1.5; stroke-dasharray: 5 3; }
+svg.chart text.tick { fill: var(--ink-muted); font: 10px var(--sans); }
+svg.chart text.value { fill: var(--ink-secondary); font-weight: 600; }
+svg.chart .mark { transition: opacity .12s; }
+.chartwrap:hover .mark { opacity: .78; }
+.chartwrap .mark:hover { opacity: 1; }
+.charttip {
+  position: absolute; pointer-events: none; background: var(--ink-strong); color: var(--surface-1);
+  font-size: 12px; padding: .3rem .5rem; border-radius: 5px; z-index: 5; max-width: 200px;
+  box-shadow: 0 2px 10px #0003;
+}
+.legend { display: flex; gap: .9rem; flex-wrap: wrap; margin: 0 0 .4rem; font-size: 12px; color: var(--ink-secondary); }
+.legend-item { display: inline-flex; align-items: center; gap: .3rem; }
+.swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+/* -------------------------------------------------------------- splash */
+#splash {
+  position: fixed; inset: 0; background: var(--surface-0); display: grid; place-items: center;
+  z-index: 50; text-align: center; padding: 1rem;
+}
+#splash h1 { font-size: 20px; margin: 0 0 .3rem; color: var(--ink-strong); }
+#splash p { color: var(--ink-secondary); margin: .2rem 0; }
+.fatal { max-width: 34rem; border-left: 3px solid var(--status-critical); padding-left: 1rem; text-align: left; }
+
+@media (max-width: 900px) {
+  .shell { grid-template-columns: 1fr; }
+  .side { position: static; height: auto; }
+  .fig-body { grid-template-columns: 1fr; }
+  main { padding: 1rem 1rem 4rem; }
+}
+</style>
+</head>
+<body>
+<div id="splash"><div><h1>CTS Business Intelligence Portal</h1><p>Building the ledger index&hellip;</p></div></div>
+
+<div class="shell">
+  <aside class="side">
+    <div class="brand">
+      <div class="brand-name">CTS Business Intelligence</div>
+      <div class="brand-sub">Corporate Technology Services</div>
+      <div class="brand-meta">
+        <span id="databadge" class="badge">&nbsp;</span>
+        <span id="rmlabel" class="rm"></span>
+      </div>
+    </div>
+    <nav id="nav"></nav>
+    <div class="side-foot">
+      <button id="theme" class="btn-theme" type="button">Light / dark</button>
+    </div>
+  </aside>
+  <main id="main"></main>
+</div>
+
+<script>
+/* Each data file is loaded with its own error handler so one missing file
+   cannot stop the rest, and so the portal can say exactly which one failed.
+   Mandatory files take the portal down with a message; the rest degrade. */
+(function () {
+  var MANDATORY = ["CTS_config_data", "CTS_cal_data", "CTS_accounts_data",
+                   "CTS_gl_data", "CTS_fin_data"];
+  var OPTIONAL = ["CTS_util_data", "CTS_clients_data"];
+  var queue = MANDATORY.concat(OPTIONAL);
+  var failed = [];
+  var i = 0;
+
+  function next() {
+    if (i >= queue.length) return finish();
+    var name = queue[i++];
+    var s = document.createElement("script");
+    s.src = "data/" + name + ".js";
+    s.onload = next;
+    s.onerror = function () {
+      failed.push(name);
+      if (MANDATORY.indexOf(name) >= 0) {
+        document.getElementById("splash").innerHTML =
+          '<div class="fatal"><h1>Data load error</h1><p>Could not load <code>data/' +
+          name + '.js</code>, which the portal cannot run without.</p>' +
+          '<p class="small">If you opened this file directly, some browsers block ' +
+          'loading sibling files from a file:// path. Serve the folder instead: ' +
+          '<code>python -m http.server 3000</code> from the portal folder, then open ' +
+          '<code>http://localhost:3000/</code>.</p></div>';
+        return;
+      }
+      console.warn("Optional data file missing: " + name);
+      next();
+    };
+    document.head.appendChild(s);
+  }
+
+  function finish() {
+    if (failed.length) console.warn("Data files that did not load:", failed.join(", "));
+    var s = document.createElement("script");
+    s.src = "CTS_bi_bundle.js";
+    s.onload = function () { window.CTS.boot(); };
+    s.onerror = function () {
+      document.getElementById("splash").innerHTML =
+        '<div class="fatal"><h1>Application failed to load</h1>' +
+        '<p>CTS_bi_bundle.js could not be loaded.</p></div>';
+    };
+    document.head.appendChild(s);
+  }
+  next();
+})();
+</script>
+</body>
+</html>
