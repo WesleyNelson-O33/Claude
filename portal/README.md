@@ -7,17 +7,23 @@ Controller Pack re-aggregates a GL paste.
 
 ## Running it
 
+Double-click `CTS Business Intelligence Portal.html`. That is the whole
+procedure. Tested from a plain `file://` path in Chromium: the data files load
+and every page renders. Nothing needs installing and nothing needs a server.
+
+Keep the folder together. The HTML file needs `CTS_bi_bundle.js` and the `data`
+folder sitting beside it, so move or copy the whole `portal` folder, never the
+HTML on its own.
+
+If a locked-down browser ever refuses to load the data files from `file://`,
+serve the folder instead:
+
 ```
 cd portal
 python3 -m http.server 3000
 ```
 
 then open <http://localhost:3000/CTS%20Business%20Intelligence%20Portal.html>.
-
-Opening the HTML file directly by double-clicking mostly works, but some
-browsers refuse to load sibling files from a `file://` path, which stops the
-data files loading. If the portal shows a data load error, serve the folder as
-above. Nothing here needs installing.
 
 ## What is in it
 
