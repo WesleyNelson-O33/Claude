@@ -2376,28 +2376,59 @@
   var P = CTS.pages, seedBanner = CTS.seedBanner;
 
   /* ---- delimited paste parsing ---------------------------------------- */
+  /** Parse a pasted table, tab or comma separated.
+   *
+   *  Character by character, not line by line, because a real export has
+   *  quoted fields with newlines inside them: the Notes column of the
+   *  Employment Hero earnings report carries a shift note that wraps. Splitting
+   *  on newlines first would tear one row into several and throw the rest of
+   *  the file out of alignment.
+   */
   function parseTable(text) {
-    var lines = text.replace(/\r/g, "").split("\n").filter(function (l) { return l.trim(); });
-    if (!lines.length) return { head: [], rows: [] };
-    var delim = lines[0].indexOf("\t") >= 0 ? "\t" : ",";
-    function split(line) {
-      if (delim === "\t") return line.split("\t");
-      var out = [], cur = "", q = false;
-      for (var i = 0; i < line.length; i++) {
-        var c = line[i];
-        if (q) {
-          if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
-          else if (c === '"') q = false;
-          else cur += c;
-        } else if (c === '"') q = true;
-        else if (c === ",") { out.push(cur); cur = ""; }
-        else cur += c;
-      }
-      out.push(cur);
-      return out;
+    var src = String(text == null ? "" : text).replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+    if (!src.trim()) return { head: [], rows: [] };
+
+    // Decide the delimiter from the first line outside quotes.
+    var delim = "\t", q = false;
+    for (var i = 0; i < src.length; i++) {
+      var ch = src[i];
+      if (ch === '"') q = !q;
+      else if (!q && ch === "\n") break;
+      else if (!q && ch === ",") { delim = ","; }
+      else if (!q && ch === "\t") { delim = "\t"; break; }
     }
-    var rows = lines.map(split);
-    return { head: rows[0].map(function (s) { return s.trim(); }), rows: rows.slice(1) };
+
+    var rows = [], row = [], field = "", inQ = false;
+    for (var j = 0; j < src.length; j++) {
+      var c = src[j];
+      if (inQ) {
+        if (c === '"') {
+          if (src[j + 1] === '"') { field += '"'; j++; }
+          else inQ = false;
+        } else field += c;                 // newlines inside quotes are kept
+      } else if (c === '"') {
+        inQ = true;
+      } else if (c === delim) {
+        row.push(field); field = "";
+      } else if (c === "\n") {
+        row.push(field); field = "";
+        rows.push(row); row = [];
+      } else field += c;
+    }
+    row.push(field);
+    if (row.length > 1 || row[0] !== "") rows.push(row);
+
+    // Drop leading rows that are not the header: an export often opens with a
+    // title line such as "Earnings Details" in a single cell.
+    while (rows.length > 1 && rows[0].filter(function (x) { return String(x).trim(); }).length < 2) {
+      rows.shift();
+    }
+    if (!rows.length) return { head: [], rows: [] };
+    var head = rows[0].map(function (x) { return String(x).trim(); });
+    var body = rows.slice(1).filter(function (r) {
+      return r.some(function (x) { return String(x).trim(); });
+    });
+    return { head: head, rows: body };
   }
 
   function num(s) {
@@ -2433,328 +2464,462 @@
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 0);
   }
 
-  /* ---- the Employment Hero utilisation loader -------------------------
+  /* ---- the Employment Hero earnings loader ----------------------------
    *
-   * Built for the export CTS actually pulls, whose columns are:
+   * Built for the Earnings Details report, whose columns are:
    *
-   *   Pay Type | Company Client External Id | Company Client |
-   *   Counter Source Date | Employee Id | Worked Hours | Name |
-   *   Person Group | Job Group | Status | Chargeable Category |
-   *   Chargeable | Non-chargeable | Leave hours | Public Holiday |
-   *   Month | Payrun
+   *   Employee Id | Employee External Id | Employee Name | Pay Category Id |
+   *   Pay Category External Id | Pay Category Name | Units | Unit Type |
+   *   Location Id | Location External Id | Location Name | Notes | Rate |
+   *   Rate Type | Gross Earnings | Taxable Earnings | SG Super
    *
-   * The classification is already done in that export: chargeable,
-   * non-chargeable, leave and public holiday arrive as four separate hour
-   * columns, so nothing here has to infer them. One thing does still have to
-   * be mapped, and only CTS knows it: which reporting department each Person
-   * Group or Job Group belongs to. That is set once and remembered.
+   * Three things fall out of it without being asked for:
    *
-   * Columns are matched on header name, not position, so a reordered or
-   * partly renamed export still loads.
+   *   department   the Location Name carries it in brackets, as in
+   *                "PWC IT Support - Brisbane [ONS]", the same bracket tag
+   *                convention the general ledger uses on job numbers.
+   *   employment   the pay category says it: Casual Ordinary Hours against
+   *                Permanent Ordinary Hours. So someone moving from casual to
+   *                permanent shows up as their categories changing, and the
+   *                portal reports that rather than having to be told.
+   *   labour cost  Gross Earnings and SG Super, which the timesheet export
+   *                never carried.
+   *
+   * Two things still have to be decided by CTS and are remembered once set:
+   * whether a location is client work or internal, and what each pay category
+   * counts as.
    */
-  var EH_COLS = [
-    { key: "payType", label: "Pay Type", names: ["paytype"] },
-    { key: "clientId", label: "Company Client External Id", names: ["companyclientexternalid"] },
-    { key: "client", label: "Company Client", names: ["companyclient"] },
-    { key: "date", label: "Counter Source Date", names: ["countersourcedate", "date"] },
+  var EARN_COLS = [
     { key: "empId", label: "Employee Id", names: ["employeeid"] },
-    { key: "worked", label: "Worked Hours", names: ["workedhours"] },
-    { key: "name", label: "Name", names: ["name", "employeename"] },
-    { key: "personGroup", label: "Person Group", names: ["persongroup"] },
-    { key: "jobGroup", label: "Job Group", names: ["jobgroup"] },
-    { key: "status", label: "Status", names: ["status"] },
-    { key: "chargeCat", label: "Chargeable Category", names: ["chargeablecategory"] },
-    { key: "chargeable", label: "Chargeable", names: ["chargeable"] },
-    { key: "nonChargeable", label: "Non-chargeable", names: ["nonchargeable"] },
-    { key: "leave", label: "Leave hours", names: ["leavehours"] },
-    { key: "publicHoliday", label: "Public Holiday", names: ["publicholiday"] },
-    { key: "month", label: "Month", names: ["month"] },
-    { key: "payrun", label: "Payrun", names: ["payrun"] },
+    { key: "empExt", label: "Employee External Id", names: ["employeeexternalid"] },
+    { key: "empName", label: "Employee Name", names: ["employeename"] },
+    { key: "catId", label: "Pay Category Id", names: ["paycategoryid"] },
+    { key: "catExt", label: "Pay Category External Id", names: ["paycategoryexternalid"] },
+    { key: "catName", label: "Pay Category Name", names: ["paycategoryname"], need: true },
+    { key: "units", label: "Units", names: ["units"], need: true },
+    { key: "unitType", label: "Unit Type", names: ["unittype"] },
+    { key: "locId", label: "Location Id", names: ["locationid"] },
+    { key: "locExt", label: "Location External Id", names: ["locationexternalid"] },
+    { key: "locName", label: "Location Name", names: ["locationname"], need: true },
+    { key: "notes", label: "Notes", names: ["notes"] },
+    { key: "rate", label: "Rate", names: ["rate"] },
+    { key: "rateType", label: "Rate Type", names: ["ratetype"] },
+    { key: "gross", label: "Gross Earnings", names: ["grossearnings"] },
+    { key: "taxable", label: "Taxable Earnings", names: ["taxableearnings"] },
+    { key: "super", label: "SG Super", names: ["sgsuper"] },
   ];
-  var EH_BUCKETS = [
-    { key: "chargeable", label: "Chargeable" },
-    { key: "nonChargeable", label: "Non-chargeable" },
-    { key: "leave", label: "Leave" },
-    { key: "publicHoliday", label: "Public holiday" },
+
+  var CAT_KINDS = [
+    { v: "work", l: "Worked time" },
+    { v: "leave", l: "Leave" },
+    { v: "publicHoliday", l: "Public holiday" },
+    { v: "exclude", l: "Not hours (pay only)" },
   ];
 
   function norm(sv) { return String(sv || "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
 
-  /** A duration comes through as 7.5 or as 7:30. Both mean seven and a half. */
-  function hoursOf(v) {
-    var t = String(v == null ? "" : v).trim();
-    if (!t) return 0;
-    var m = t.match(/^(\d+):([0-5]\d)$/);
-    if (m) return +m[1] + +m[2] / 60;
-    return num(t);
+  function money(v) {
+    var t = String(v == null ? "" : v).replace(/[$,\s]/g, "").trim();
+    if (!t || t === "-") return 0;
+    var neg = /^\(.*\)$/.test(t);
+    if (neg) t = t.slice(1, -1);
+    var n = parseFloat(t);
+    return isNaN(n) ? 0 : (neg ? -n : n);
   }
 
-  /** Month headings resolve from 2026-08, Aug-26, Aug 2026, August, or a
-   *  date Excel has already formatted. */
-  function findMonth(v, fallbackYear) {
-    if (v == null) return null;
-    var t0 = String(v).trim();
-    if (!t0) return null;
-    var lower = t0.toLowerCase();
-    var hit = E.months.filter(function (x) {
-      return x.key === t0 || x.label.toLowerCase() === lower || x.long.toLowerCase() === lower;
-    })[0];
-    if (hit) return hit;
-    var iso = isoDate(t0);
-    if (iso) return E.monthIdx[iso.slice(0, 7)] || null;
-    var names = ["january","february","march","april","may","june","july",
-                 "august","september","october","november","december"];
-    for (var i = 0; i < names.length; i++) {
-      if (names[i].indexOf(lower) === 0 && lower.length >= 3 && fallbackYear) {
-        return E.monthIdx[fallbackYear + "-" + ("0" + (i + 1)).slice(-2)] || null;
-      }
-    }
+  /** What a pay category counts as, guessed from its name. Grounded in the
+   *  categories the payroll manuals name: Permanent and Casual Ordinary Hours,
+   *  the overtime multipliers, leave without pay, time in lieu taken, bonus
+   *  leave, per diem, back pay and the termination payouts. */
+  function guessCategory(name) {
+    var n = String(name || "").toLowerCase();
+    if (/leave without pay|lwop/.test(n)) return "exclude";
+    if (/public holiday/.test(n)) return "publicHoliday";
+    if (/annual leave|personal|carer|compassion|long service|parental|bereave|bonus leave|in lieu taken|til taken|leave loading|unused leave|leave payment/.test(n)) return "leave";
+    if (/back ?pay|bonus|per diem|allowance|reimburse|termination|redundan|commission|deduction|salary sacrifice|expense/.test(n)) return "exclude";
+    if (/ordinary|overtime|shift|penalty|meal break|hours|time in lieu accru/.test(n)) return "work";
+    return "work";
+  }
+
+  /** Casual or permanent, straight off the pay category name. */
+  function guessEmployment(name) {
+    var n = String(name || "").toLowerCase();
+    if (/casual/.test(n)) return "Casual";
+    if (/permanent|salaried|full ?time|part ?time/.test(n)) return "Permanent";
     return null;
   }
 
-  function buildEhLoader() {
-    var state = { parsed: null, col: {}, panel: h("div.ehpanel") };
-    var ta = h("textarea.paste", { rows: 7,
-      placeholder: "Paste the Employment Hero export here, including its header row" });
+  /** The shift date at the front of a Notes entry, as in
+   *  "7/09/2026 - 08:45 to 13:00.". A fortnight that crosses a month boundary
+   *  then splits properly instead of landing wholly in the pay run's month. */
+  function noteDate(v) {
+    var m = String(v || "").match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+    if (!m) return null;
+    return m[3] + "-" + ("0" + m[2]).slice(-2) + "-" + ("0" + m[1]).slice(-2);
+  }
 
-    function deptSource() { return CTS.store.get("ehDeptSource", "personGroup"); }
-    function groupMap() { return CTS.store.get("ehGroupMap", {}); }
+  function buildEarningsLoader() {
+    var st = { parsed: null, col: {}, panel: h("div.ehpanel") };
+    var ta = h("textarea.paste", { rows: 7,
+      placeholder: "Paste the Employment Hero Earnings Details report here, title row and all" });
+    var periodSel = h("select.control", {}, E.months.map(function (m) {
+      return h("option", { value: m.key, selected: m.key === E.reportingMonth() }, m.long);
+    }));
+
+    function locMap() { return CTS.store.get("ehLocations", {}); }
+    function catMap() { return CTS.store.get("ehCategories", {}); }
 
     function analyse() {
-      state.panel.innerHTML = "";
+      st.panel.innerHTML = "";
       var t = parseTable(ta.value);
       if (!t.head.length || !t.rows.length) {
-        state.panel.appendChild(h("div.banner.banner-warn",
-          "Nothing to read. Copy the export including its header row and paste it in."));
+        st.panel.appendChild(h("div.banner.banner-warn",
+          "Nothing to read. Copy the report including its header row and paste it in."));
         return;
       }
-      state.parsed = t;
+      st.parsed = t;
       var normed = t.head.map(norm);
-      EH_COLS.forEach(function (c) {
-        var found = -1;
-        // exact header match only: a loose match would put Non-chargeable
-        // and Chargeable Category into the Chargeable column
-        for (var i = 0; i < c.names.length && found < 0; i++) {
-          found = normed.indexOf(c.names[i]);
-        }
-        state.col[c.key] = found;
+      EARN_COLS.forEach(function (c) {
+        var f = -1;
+        for (var i = 0; i < c.names.length && f < 0; i++) f = normed.indexOf(c.names[i]);
+        st.col[c.key] = f;
       });
-      renderPanel();
+      render();
     }
 
-    function renderPanel() {
-      var t = state.parsed;
-      state.panel.innerHTML = "";
-      var matched = EH_COLS.filter(function (c) { return state.col[c.key] >= 0; });
-      var missing = EH_COLS.filter(function (c) { return state.col[c.key] < 0; });
+    function render() {
+      var t = st.parsed, c = st.col;
+      st.panel.innerHTML = "";
+      var missing = EARN_COLS.filter(function (x) { return x.need && c[x.key] < 0; });
+      var matched = EARN_COLS.filter(function (x) { return c[x.key] >= 0; });
 
-      state.panel.appendChild(h("h4", "1. Columns"));
-      state.panel.appendChild(U.note(
-        t.rows.length + " rows read. " + matched.length + " of the " + EH_COLS.length +
-        " expected columns were recognised by name." +
-        (missing.length ? " Point the rest at the right column, or leave them out if your export does not carry them." : "")));
-
-      var interesting = EH_COLS.filter(function (c) {
-        return state.col[c.key] < 0 ||
-               ["date", "month", "personGroup", "jobGroup", "chargeable",
-                "nonChargeable", "leave", "publicHoliday", "worked"].indexOf(c.key) >= 0;
-      });
-      interesting.forEach(function (c) {
-        var sel = h("select.control", {
-          onchange: function (e) { state.col[c.key] = +e.target.value; renderPanel(); },
-        }, [h("option", { value: -1, selected: state.col[c.key] < 0 }, "— not present —")]
-          .concat(t.head.map(function (hd, i) {
-            return h("option", { value: i, selected: state.col[c.key] === i },
-                     hd || "(column " + (i + 1) + ")");
-          })));
-        state.panel.appendChild(h("div.fieldrow", [
-          h("label", c.label),
-          sel,
-          state.col[c.key] >= 0 ? U.flag("good", "matched") : U.flag("warn", "not found"),
+      st.panel.appendChild(h("h4", "1. Columns"));
+      st.panel.appendChild(U.note(t.rows.length + " rows read, " + matched.length +
+        " of " + EARN_COLS.length + " expected columns matched by name."));
+      EARN_COLS.filter(function (x) { return x.need || c[x.key] < 0; }).forEach(function (x) {
+        st.panel.appendChild(h("div.fieldrow", [
+          h("label", x.label + (x.need ? "" : " (optional)")),
+          h("select.control", {
+            onchange: function (e) { c[x.key] = +e.target.value; render(); },
+          }, [h("option", { value: -1, selected: c[x.key] < 0 }, "— not present —")]
+            .concat(t.head.map(function (hd, i) {
+              return h("option", { value: i, selected: c[x.key] === i }, hd || "(col " + (i + 1) + ")");
+            }))),
+          c[x.key] >= 0 ? U.flag("good", "matched") : U.flag("warn", "needed"),
         ]));
       });
-
-      var hasPeriod = state.col.month >= 0 || state.col.date >= 0;
-      var hasBucket = EH_BUCKETS.some(function (b) { return state.col[b.key] >= 0; });
-      var src = deptSource();
-      var hasDept = state.col[src] >= 0;
-      if (!hasPeriod || !hasBucket) {
-        state.panel.appendChild(h("div.banner.banner-warn",
-          !hasPeriod ? "Need either a Month or a Counter Source Date column."
-                     : "Need at least a Chargeable column. The four hour columns are what the utilisation figures are built from."));
+      if (missing.length) {
+        st.panel.appendChild(h("div.banner.banner-warn", "Still need: " +
+          missing.map(function (x) { return x.label; }).join(", ") + "."));
         return;
       }
 
-      state.panel.appendChild(h("h4", "2. Which column is the department"));
-      state.panel.appendChild(h("div.row", [
-        h("div.seg", [["personGroup", "Person Group"], ["jobGroup", "Job Group"]].map(function (o) {
-          return h("button.seg-btn" + (o[0] === src ? ".on" : ""), {
-            onclick: function () { CTS.store.set("ehDeptSource", o[0]); renderPanel(); },
-          }, o[1]);
-        })),
+      st.panel.appendChild(h("h4", "2. Which period this pay run belongs to"));
+      st.panel.appendChild(h("div.fieldrow", [
+        h("label", "Pay run period"), periodSel,
+        h("span.muted", "Used only where a line's note carries no date"),
       ]));
-      state.panel.appendChild(U.note(
-        "Person Group follows the person, Job Group follows the work. Person Group is the default because it is what the monthly report's full time equivalent method needs: that method adds a department's own hours to its Other CC hours, which is the hours its people worked on somebody else's cost centre. Switch to Job Group if you want utilisation measured by where the work was done instead."));
-      if (!hasDept) {
-        state.panel.appendChild(h("div.banner.banner-warn",
-          "No " + (src === "personGroup" ? "Person Group" : "Job Group") +
-          " column was found, so every line would fall to Unallocated. Map it in step 1 or switch to the other source."));
-        return;
-      }
-      renderGroups();
+      var withDate = c.notes >= 0
+        ? t.rows.filter(function (r) { return noteDate(r[c.notes]); }).length : 0;
+      st.panel.appendChild(U.note(withDate
+        ? withDate + " of " + t.rows.length + " lines carry a shift date in the note, so a fortnight crossing a month boundary splits between the two months instead of landing wholly in one. The rest fall to the period above."
+        : "No shift dates were found in the notes, so every line falls to the period above. A fortnight crossing a month end will land wholly in that period."));
+
+      renderLocations();
+      renderCategories();
+      st.panel.appendChild(h("div.row", [
+        h("button.btn", { onclick: apply }, "Load this pay run"),
+        h("span.muted", "Adds to whatever is already loaded, month by month."),
+      ]));
     }
 
-    function scanGroups() {
-      var t = state.parsed, c = state.col, src = deptSource();
-      var found = {};
+    function scanLocations() {
+      var t = st.parsed, c = st.col, out = {};
       t.rows.forEach(function (r) {
-        var g = String(r[c[src]] == null ? "" : r[c[src]]).trim() || "(blank)";
-        var f = found[g] || (found[g] = { group: g, rows: 0, chargeable: 0,
-                  nonChargeable: 0, leave: 0, publicHoliday: 0, worked: 0 });
-        f.rows++;
-        EH_BUCKETS.forEach(function (b) {
-          if (c[b.key] >= 0) f[b.key] += hoursOf(r[c[b.key]]);
-        });
-        if (c.worked >= 0) f.worked += hoursOf(r[c.worked]);
+        var name = String(r[c.locName] || "").trim() || "(blank)";
+        var o = out[name] || (out[name] = { name: name, rows: 0, hours: 0, gross: 0,
+                 ext: c.locExt >= 0 ? String(r[c.locExt] || "") : "" });
+        o.rows++;
+        if (c.unitType < 0 || /hour/i.test(String(r[c.unitType]))) o.hours += num(r[c.units]);
+        if (c.gross >= 0) o.gross += money(r[c.gross]);
       });
-      return Object.keys(found).sort().map(function (k) { return found[k]; });
+      return Object.keys(out).sort().map(function (k) { return out[k]; });
     }
 
-    function renderGroups() {
-      var groups = scanGroups();
-      var src = deptSource();
-      var saved = groupMap();
-      groups.forEach(function (g) {
-        if (!saved[g.group]) saved[g.group] = E.resolveDept(g.group, "");
+    function renderLocations() {
+      var locs = scanLocations(), saved = locMap();
+      locs.forEach(function (l) {
+        if (!saved[l.name]) {
+          var dept = E.resolveDept("", l.name);            // the [ONS] bracket tag
+          saved[l.name] = { dept: dept,
+            // internal cost centres are not client work; everything else is
+            chargeable: dept !== "ADMIN" && dept !== "UNALLOCATED" };
+        }
       });
-      CTS.store.set("ehGroupMap", saved);
+      CTS.store.set("ehLocations", saved);
 
-      state.panel.appendChild(h("h4", "3. Which department each group belongs to"));
-      state.panel.appendChild(U.note(
-        "Employment Hero knows the group; only CTS knows which reporting department it is. Set each one once and it is remembered for next month. Anything guessed from the name is shown already matched."));
-
-      state.panel.appendChild(U.table([
-        { key: "group", label: (src === "personGroup" ? "Person Group" : "Job Group") + " in Employment Hero", align: "left" },
+      st.panel.appendChild(h("h4", "3. Locations"));
+      st.panel.appendChild(U.note("The department is read from the bracket tag on the location name, the same way the ledger reads it off a job number. Whether a location is client work or internal is the one thing the export cannot say, so it is set here and remembered."));
+      st.panel.appendChild(U.table([
+        { key: "name", label: "Location in Employment Hero", align: "left" },
+        { key: "ext", label: "External Id", align: "left" },
         { key: "rows", label: "Lines" },
-        { key: "chargeable", label: "Chargeable", fmt: function (v) { return F.num(v, 1); } },
-        { key: "nonChargeable", label: "Non-chargeable", fmt: function (v) { return F.num(v, 1); } },
-        { key: "leave", label: "Leave", fmt: function (v) { return F.num(v, 1); } },
-        { key: "publicHoliday", label: "Public holiday", fmt: function (v) { return F.num(v, 1); } },
-        { key: "dept", label: "Reporting department", align: "left",
+        { key: "hours", label: "Hours", fmt: function (v) { return F.num(v, 2); } },
+        { key: "gross", label: "Gross", fmt: function (v) { return "$" + F.num(v, 0); } },
+        { key: "dept", label: "Department", align: "left",
           value: function (r) {
-            return h("select.control.small", {
-              onchange: function (e) {
-                var m = groupMap(); m[r.group] = e.target.value;
-                CTS.store.set("ehGroupMap", m);
-              },
-            }, E.postingDepts.map(function (d) {
-              return h("option", { value: d.code, selected: d.code === saved[r.group] }, d.short);
+            return h("select.control.small", { onchange: function (e) {
+              var m = locMap(); m[r.name].dept = e.target.value; CTS.store.set("ehLocations", m);
+            } }, E.postingDepts.map(function (d) {
+              return h("option", { value: d.code, selected: d.code === saved[r.name].dept }, d.short);
             }).concat([h("option", { value: "UNALLOCATED",
-                                     selected: saved[r.group] === "UNALLOCATED" }, "Unallocated")]));
+              selected: saved[r.name].dept === "UNALLOCATED" }, "Unallocated")]));
           } },
-      ], groups, { dense: true }));
+        { key: "chg", label: "Client work", align: "left",
+          value: function (r) {
+            return h("select.control.small", { onchange: function (e) {
+              var m = locMap(); m[r.name].chargeable = e.target.value === "yes";
+              CTS.store.set("ehLocations", m);
+            } }, [h("option", { value: "yes", selected: saved[r.name].chargeable }, "Chargeable"),
+                  h("option", { value: "no", selected: !saved[r.name].chargeable }, "Non-chargeable")]);
+          } },
+      ], locs, { dense: true }));
+    }
 
-      // Control: the four buckets should add back to Worked Hours.
-      if (state.col.worked >= 0) {
-        var sumB = 0, sumW = 0;
-        groups.forEach(function (g) {
-          sumB += g.chargeable + g.nonChargeable + g.leave + g.publicHoliday;
-          sumW += g.worked;
-        });
-        var diff = sumB - sumW;
-        state.panel.appendChild(h("div.banner.banner-" + (Math.abs(diff) < 0.5 ? "good" : "warn"), [
-          h("strong", Math.abs(diff) < 0.5
-            ? "The four hour columns add back to Worked Hours. "
-            : "The four hour columns do not add back to Worked Hours. "),
-          "Chargeable, non-chargeable, leave and public holiday total " + F.num(sumB, 1) +
-          " against Worked Hours of " + F.num(sumW, 1) +
-          (Math.abs(diff) < 0.5 ? "." : ", a difference of " + F.num(diff, 1) +
-           ". Worked Hours may exclude leave and public holiday in your export, in which case this is expected; if not, a column is mapped wrongly."),
-        ]));
-      }
+    function scanCategories() {
+      var t = st.parsed, c = st.col, out = {};
+      t.rows.forEach(function (r) {
+        var name = String(r[c.catName] || "").trim() || "(blank)";
+        var o = out[name] || (out[name] = { name: name, rows: 0, hours: 0, gross: 0,
+                 unit: c.unitType >= 0 ? String(r[c.unitType] || "") : "" });
+        o.rows++;
+        if (c.unitType < 0 || /hour/i.test(String(r[c.unitType]))) o.hours += num(r[c.units]);
+        if (c.gross >= 0) o.gross += money(r[c.gross]);
+      });
+      return Object.keys(out).sort().map(function (k) { return out[k]; });
+    }
 
-      state.panel.appendChild(h("div.row", [
-        h("button.btn", { onclick: apply }, "Load these hours"),
-        h("span.muted", "Aggregates to month by department, the shape the utilisation pages read."),
-      ]));
+    function renderCategories() {
+      var cats = scanCategories(), saved = catMap();
+      cats.forEach(function (x) { if (!saved[x.name]) saved[x.name] = guessCategory(x.name); });
+      CTS.store.set("ehCategories", saved);
+
+      st.panel.appendChild(h("h4", "4. Pay categories"));
+      st.panel.appendChild(U.note("Worked time splits into chargeable or non-chargeable by its location. Leave and public holiday are paid but not worked, so they stay out of both sides of the utilisation ratio. Anything set to pay only, a back pay or a per diem for instance, still counts as cost but contributes no hours."));
+      st.panel.appendChild(U.table([
+        { key: "name", label: "Pay category", align: "left" },
+        { key: "unit", label: "Unit type", align: "left" },
+        { key: "rows", label: "Lines" },
+        { key: "hours", label: "Hours", fmt: function (v) { return F.num(v, 2); } },
+        { key: "gross", label: "Gross", fmt: function (v) { return "$" + F.num(v, 0); } },
+        { key: "emp", label: "Employment", align: "left",
+          value: function (r) {
+            var e = guessEmployment(r.name);
+            return e ? h("span.chip.chip-muted", e) : h("span.muted", "—");
+          } },
+        { key: "kind", label: "Counts as", align: "left",
+          value: function (r) {
+            return h("select.control.small", { onchange: function (e) {
+              var m = catMap(); m[r.name] = e.target.value; CTS.store.set("ehCategories", m);
+            } }, CAT_KINDS.map(function (k) {
+              return h("option", { value: k.v, selected: k.v === saved[r.name] }, k.l);
+            }));
+          } },
+      ], cats, { dense: true }));
     }
 
     function apply() {
-      var t = state.parsed, c = state.col, src = deptSource(), saved = groupMap();
-      var bucket = {}, skipped = { period: 0 }, monthsSeen = {};
-      var fallbackYear = String(E.currentFY() - 1 + 2000).slice(0, 4);
+      var t = st.parsed, c = st.col;
+      var locs = locMap(), cats = catMap(), fallback = periodSel.value;
+      var bucket = {}, labour = {}, people = {}, skipped = 0, monthsSeen = {};
+      var usedFallback = 0, payOnly = {}, hourMonths = {};
 
       t.rows.forEach(function (r) {
-        var m = null;
-        if (c.month >= 0) m = findMonth(r[c.month], fallbackYear);
-        if (!m && c.date >= 0) {
-          var iso = isoDate(r[c.date]);
-          if (iso) m = E.monthIdx[iso.slice(0, 7)] || null;
-        }
-        if (!m) { skipped.period++; return; }
-        var g = String(r[c[src]] == null ? "" : r[c[src]]).trim() || "(blank)";
-        var dept = saved[g] || "UNALLOCATED";
-        monthsSeen[m.key] = 1;
-        var key = m.key + "|" + dept;
-        var b = bucket[key] || (bucket[key] = { month: m.key, dept: dept,
+        var locName = String(r[c.locName] || "").trim() || "(blank)";
+        var loc = locs[locName] || { dept: "UNALLOCATED", chargeable: false };
+        var catName = String(r[c.catName] || "").trim() || "(blank)";
+        var kind = cats[catName] || guessCategory(catName);
+
+        var iso = c.notes >= 0 ? noteDate(r[c.notes]) : null;
+        var mk = iso ? iso.slice(0, 7) : fallback;
+        if (!iso) usedFallback++;
+        if (!E.monthIdx[mk]) { skipped++; return; }
+        monthsSeen[mk] = 1;
+
+        var isHours = c.unitType < 0 || /hour/i.test(String(r[c.unitType]));
+        var units = isHours ? num(r[c.units]) : 0;
+        var gross = c.gross >= 0 ? money(r[c.gross]) : 0;
+        var sup = c["super"] >= 0 ? money(r[c["super"]]) : 0;
+
+        var key = mk + "|" + loc.dept;
+        var b = bucket[key] || (bucket[key] = { month: mk, dept: loc.dept,
                   chargeable: 0, nonChargeable: 0, leave: 0, publicHoliday: 0 });
-        EH_BUCKETS.forEach(function (bk) {
-          if (c[bk.key] >= 0) b[bk.key] += hoursOf(r[c[bk.key]]);
-        });
+        if (kind === "work") b[loc.chargeable ? "chargeable" : "nonChargeable"] += units;
+        else if (kind === "leave") b.leave += units;
+        else if (kind === "publicHoliday") b.publicHoliday += units;
+
+        var lb = labour[key] || (labour[key] = { month: mk, dept: loc.dept, gross: 0, sup: 0 });
+        lb.gross += gross; lb.sup += sup;
+
+        // A line carrying hours is what makes a month real for someone. A pay
+        // only line, a back pay or a per diem, must not: one of those with no
+        // date would otherwise invent a month and make everybody look like a
+        // new starter.
+        if (units > 0) hourMonths[mk] = 1;
+        if (kind === "exclude" || units === 0) {
+          var po = payOnly[catName] || (payOnly[catName] = { cat: catName, lines: 0,
+                     gross: 0, dated: 0 });
+          po.lines++; po.gross += gross; if (iso) po.dated++;
+        }
+
+        var pid = (c.empExt >= 0 && String(r[c.empExt]).trim()) ||
+                  (c.empId >= 0 && String(r[c.empId]).trim()) || catName;
+        var p = people[pid] || (people[pid] = { id: pid,
+                  name: c.empName >= 0 ? String(r[c.empName] || "").trim() : pid, months: {} });
+        var pm = p.months[mk] || (p.months[mk] = { hours: 0, gross: 0, types: {}, depts: {} });
+        pm.hours += units; pm.gross += gross;
+        if (units > 0) p.hasHours = true;
+        var emp = guessEmployment(catName);
+        if (emp) pm.types[emp] = (pm.types[emp] || 0) + 1;
+        pm.depts[loc.dept] = (pm.depts[loc.dept] || 0) + 1;
       });
 
       var rows = Object.keys(bucket).sort().map(function (k) {
         var b = bucket[k];
-        function r1(v) { return Math.round(v * 10) / 10; }
+        function r1(v) { return Math.round(v * 100) / 100; }
         return [b.month, b.dept, r1(b.chargeable), r1(b.nonChargeable),
                 r1(b.leave), r1(b.publicHoliday), 0];
       });
 
-      state.panel.appendChild(h("h4", "4. What was loaded"));
+      st.panel.appendChild(h("h4", "5. What was loaded"));
       if (!rows.length) {
-        state.panel.appendChild(h("div.banner.banner-warn",
-          "Nothing could be loaded. " + skipped.period +
-          " lines had no readable month or date, or fell outside FY" +
-          (E.currentFY() - 1) + " and FY" + E.currentFY() + "."));
+        st.panel.appendChild(h("div.banner.banner-warn", "Nothing could be loaded."));
         return;
       }
 
       var payload = { meta: { seed: false, built: new Date().toISOString().slice(0, 10),
                               hoursPerDay: E.hoursPerDay(), state: E.utilState(),
-                              source: "Employment Hero export, department from " +
-                                      (src === "personGroup" ? "Person Group" : "Job Group") },
+                              source: "Employment Hero Earnings Details" },
                       cols: ["month", "dept", "chargeable", "nonChargeable", "leave",
                              "publicHoliday", "fte"],
                       rows: rows };
       E.loadUtil(payload);
+      E.labour = labour;
 
       var keys = Object.keys(monthsSeen).sort();
       var u = E.utilFor(keys);
-      state.panel.appendChild(h("div.banner.banner-good",
-        rows.length + " department months loaded, covering " +
-        (E.monthIdx[keys[0]] || {}).long + " to " +
-        (E.monthIdx[keys[keys.length - 1]] || {}).long + "."));
-      state.panel.appendChild(U.table([
+      st.panel.appendChild(h("div.banner.banner-good",
+        rows.length + " department months loaded from " + t.rows.length + " earnings lines" +
+        (skipped ? ", " + skipped + " skipped for a period outside the two loaded years" : "") + "."));
+
+      st.panel.appendChild(U.table([
         { key: "d", label: "Department", align: "left" },
         { key: "c", label: "Chargeable", fmt: F.hours },
         { key: "n", label: "Non-chargeable", fmt: F.hours },
         { key: "l", label: "Leave", fmt: F.hours },
         { key: "p", label: "Public holiday", fmt: F.hours },
         { key: "u", label: "Utilisation", fmt: function (v) { return F.pct(v); } },
-        { key: "f", label: "FTE", fmt: function (v) { return v == null ? "-" : v.toFixed(2); } },
+        { key: "g", label: "Gross earnings", fmt: function (v) { return "$" + F.num(v, 0); } },
+        { key: "s", label: "SG super", fmt: function (v) { return "$" + F.num(v, 0); } },
       ], u.rows.filter(function (r) { return r.total; }).map(function (r) {
+        var g = 0, sp = 0;
+        Object.keys(labour).forEach(function (k) {
+          if (labour[k].dept === r.code) { g += labour[k].gross; sp += labour[k].sup; }
+        });
         return { d: r.dept.short, c: r.chargeable, n: r.nonChargeable, l: r.leave,
-                 p: r.publicHoliday, u: r.util, f: r.fte };
-      }).concat([{ d: "Total", c: u.total.chargeable, n: u.total.nonChargeable,
-                   l: u.total.leave, p: u.total.publicHoliday,
-                   u: u.total.util, f: u.total.fte, _cls: "totalrow" }])));
-      state.panel.appendChild(U.note(
-        "Utilisation is chargeable over chargeable plus non-chargeable. Leave and public holiday are excluded from both sides, because neither is worked time." +
-        (skipped.period ? " " + skipped.period + " lines were skipped for no readable month or date." : "")));
-      state.panel.appendChild(h("div.row", [
+                 p: r.publicHoliday, u: r.util, g: g, s: sp };
+      })));
+
+      /* People changes.
+       *
+       * Only months in which someone was actually paid for hours count, and
+       * a first or last month is only worth calling out when there are enough
+       * months either side to mean anything. Casuals work some months and not
+       * others, so on a short span every casual would look like a starter and
+       * a leaver at once. Employment type changes are reported whatever the
+       * span, because a category changing from casual to permanent says so on
+       * its own. */
+      var allMonths = Object.keys(hourMonths).sort();
+      var enoughSpan = allMonths.length >= 3;
+      var changes = [];
+      Object.keys(people).forEach(function (id) {
+        var p = people[id];
+        if (!p.hasHours) return;
+        var pm = Object.keys(p.months).filter(function (m) {
+          return p.months[m].hours > 0;
+        }).sort();
+        if (!pm.length) return;
+        var typeOf = function (m) {
+          var ts = Object.keys(p.months[m].types);
+          return ts.length ? ts.sort(function (a, b) {
+            return p.months[m].types[b] - p.months[m].types[a]; })[0] : null;
+        };
+        for (var i = 1; i < pm.length; i++) {
+          var a = typeOf(pm[i - 1]), b2 = typeOf(pm[i]);
+          if (a && b2 && a !== b2) {
+            changes.push({ who: p.name, what: a + " to " + b2,
+              when: (E.monthIdx[pm[i]] || {}).long || pm[i], sort: 0,
+              detail: "Pay category changed from " + a.toLowerCase() + " to " + b2.toLowerCase() });
+          }
+        }
+        if (!enoughSpan) return;
+        if (pm[0] > allMonths[0]) {
+          changes.push({ who: p.name, what: "First month with hours",
+            when: (E.monthIdx[pm[0]] || {}).long || pm[0], sort: 1,
+            detail: "Nothing paid before this month across the pay runs loaded" });
+        }
+        if (pm[pm.length - 1] < allMonths[allMonths.length - 1]) {
+          changes.push({ who: p.name, what: "Last month with hours",
+            when: (E.monthIdx[pm[pm.length - 1]] || {}).long || pm[pm.length - 1], sort: 2,
+            detail: "Nothing paid after this month. Normal for a casual between jobs." });
+        }
+      });
+      changes.sort(function (a, b) { return (a.sort - b.sort) || (a.who < b.who ? -1 : 1); });
+
+      st.panel.appendChild(h("h4", "People changes the export shows"));
+      if (changes.length) {
+        st.panel.appendChild(U.table([
+          { key: "who", label: "Employee", align: "left" },
+          { key: "what", label: "Change", align: "left" },
+          { key: "when", label: "Month", align: "left" },
+          { key: "detail", label: "How it was spotted", align: "left" },
+        ], changes, { dense: true }));
+        st.panel.appendChild(U.note("Read off the pay categories, not from a list anyone maintains: someone moving from casual to permanent changes from Casual Ordinary Hours to Permanent Ordinary Hours, and that is what this is reading. Load several pay runs together and it covers the whole span."));
+      } else {
+        st.panel.appendChild(U.note(allMonths.length < 2
+          ? "Only one month carries hours, so there is nothing to compare against. Paste several pay runs together and casual to permanent moves, starters and leavers are listed here."
+          : "Nobody changed employment type across the months loaded."));
+      }
+      if (!enoughSpan) {
+        st.panel.appendChild(U.note("First and last months are not reported on a span of " +
+          allMonths.length + (allMonths.length === 1 ? " month" : " months") +
+          ". Casuals work some months and not others, so on a short span every casual reads as a starter and a leaver at once. Three months or more and they appear.", "muted"));
+      }
+
+      // The adjustment lines: back pay, per diem, anything paid but not worked.
+      var po = Object.keys(payOnly).sort().map(function (k) { return payOnly[k]; });
+      if (po.length) {
+        st.panel.appendChild(h("h4", "Paid but not worked"));
+        st.panel.appendChild(U.table([
+          { key: "cat", label: "Pay category", align: "left" },
+          { key: "lines", label: "Lines" },
+          { key: "dated", label: "With a date in the note" },
+          { key: "gross", label: "Gross", fmt: function (v) { return "$" + F.num(v, 0); } },
+        ], po, { dense: true }));
+        st.panel.appendChild(U.note("These carry cost but no hours, so they move labour cost without touching utilisation. A back pay belongs to the period it corrects, not the one it is paid in: where the note carries no date it has fallen to the pay run period above, and " + (po.reduce(function (a, x) { return a + (x.lines - x.dated); }, 0)) + " of these did."));
+      }
+      if (usedFallback) {
+        st.panel.appendChild(h("div.banner.banner-warn", [
+          h("strong", usedFallback + " of " + t.rows.length + " lines had no date in their note. "),
+          "They were put in " + ((E.monthIdx[fallback] || {}).long || fallback) +
+          ". If any of them belong to an earlier period, load that pay run separately with the period set to the month it corrects.",
+        ]));
+      }
+
+      st.panel.appendChild(h("div.row", [
         h("button.btn", { onclick: function () {
           download("CTS_util_data.js",
-            "// Loaded " + payload.meta.built + " from an Employment Hero export.\n" +
+            "// Loaded " + payload.meta.built + " from the Employment Hero earnings report.\n" +
             "window.CTS_UTIL = " + JSON.stringify(payload) + ";\n");
         } }, "Save as CTS_util_data.js"),
         h("span.muted", "Put it in portal/data to keep it. Without this the load lasts until you reload the page."),
@@ -2762,12 +2927,12 @@
     }
 
     return h("div.card.loader.wide", [
-      h("h3", "Utilisation hours, from Employment Hero"),
-      U.note("Run the export in Employment Hero, copy it in Excel including the header row, and paste it here. It expects the Pay Type to Payrun layout you already pull; anything it cannot match by name you point at the right column once, and it is remembered."),
-      U.note("The export already splits the hours four ways, so nothing here has to work out what is chargeable. The one thing only CTS knows is which reporting department each Person Group belongs to, and that is step 3.", "muted"),
+      h("h3", "Utilisation and labour cost, from the Employment Hero earnings report"),
+      U.note("Run the Earnings Details report for a pay run, copy it in Excel including the header row, and paste it here. The title row above the headings is fine, and so is a Notes column with line breaks inside it."),
+      U.note("The department comes from the bracket tag on the location name, as in PWC IT Support - Brisbane [ONS]. Casual against permanent comes from the pay category. Both are read out of the export rather than maintained anywhere.", "muted"),
       ta,
       h("div.row", [h("button.btn", { onclick: analyse }, "Read the columns")]),
-      state.panel,
+      st.panel,
     ]);
   }
 
@@ -2977,7 +3142,7 @@
               ]));
             },
           }),
-          buildEhLoader(),
+          buildEarningsLoader(),
         ]),
         out,
         U.section("Rolling back", [
