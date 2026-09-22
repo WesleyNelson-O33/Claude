@@ -119,7 +119,29 @@ FIN_COLS = [
     # Deferred Revenue sheet. Leave both blank for a normal one-off invoice.
     ("Defer Start", 12, DATE, "in"), ("Defer End", 12, DATE, "in"),
     ("Status", 14, TXT, "dv"), ("Notes", 40, TXT, "in"), ("Issue", 34, TXT, "f"),
+    # Columns above are the invoice LINE, which is what Xero holds and what the
+    # cost centres reconcile on. Columns below are the whole JOB that line
+    # belongs to, so a job split over several lines reads as one job. They
+    # repeat on each of its lines - never add them up.
+    ("Job Name (Xero)", 34, TXT, "f"), ("Lines on this Job", 12, INT, "f"),
+    ("Job Total Ex GST", 15, CUR, "f"), ("Job Invoiced", 14, CUR, "f"),
+    ("Job To Invoice", 14, CUR, "f"), ("Job Quote / Ref", 34, TXT, "f"),
+    ("Open Quote", 13, TXT, "f"), ("Job Expense", 14, CUR, "f"),
+    ("Job Margin", 14, CUR, "f"), ("Job Margin %", 12, PCT, "f"),
+    ("Dept Notes", 34, TXT, "f"),
 ]
+
+
+def _dept_pick(col_by_team, default='""'):
+    """Read a job-level column from whichever department sheet owns the job."""
+    out = default
+    for team in reversed(DEPTS):
+        col = col_by_team.get(team)
+        if col is None:
+            continue
+        out = (f'IF({{Team}}="{team}",IFERROR(INDEX(tbl_{team}[{col}],'
+               f'MATCH({{Job Number}}&"",tbl_{team}[Job Number],0)),{default}),{out})')
+    return out
 FIN_FORMULAS = {
     "Month": '=IF({Date}="","",EOMONTH({Date},0))',
     "Job in Xero?": '=IF({Job Number}="","",IF(COUNTIF(lst_Jobs,{Job Number}&"")>0,"OK","CHECK"))',
@@ -128,6 +150,22 @@ FIN_FORMULAS = {
     "Inc GST": '=IF({Ex GST}="","",{Ex GST}+{GST})',
     # One filterable column instead of a separate exceptions sheet: turn on the
     # filter for Issue and the list of what needs fixing is right here.
+    "Job Name (Xero)": '=IF({Job Number}="","",IFERROR(INDEX(lst_JobName,'
+                       'MATCH({Job Number}&"",lst_Jobs,0)),""))',
+    "Lines on this Job": '=IF({Job Number}="","",COUNTIFS(' + FIN + '[Job Number],'
+                         '{Job Number}&"",' + FIN + '[Ex GST],"<>"))',
+    "Job Total Ex GST": '=IF({Job Number}="","",SUMIFS(' + FIN + '[Ex GST],'
+                        + FIN + '[Job Number],{Job Number}&""))',
+    "Job Invoiced": '=IF({Job Number}="","",SUMIFS(' + FIN + '[Ex GST],'
+                    + FIN + '[Job Number],{Job Number}&"",'
+                    + FIN + '[Xero Invoice No],"<>"))',
+    "Job To Invoice": '=IF({Job Number}="","",{Job Total Ex GST}-{Job Invoiced})',
+    "Job Quote / Ref": None,        # filled in below - needs _dept_pick
+    "Open Quote": None,
+    "Job Expense": None,
+    "Job Margin": '=IF({Job Number}="","",{Job Total Ex GST}-N({Job Expense}))',
+    "Job Margin %": '=IFERROR({Job Margin}/{Job Total Ex GST},"")',
+    "Dept Notes": None,
     "Issue":
         '=IF(COUNTA({Date},{Client},{Xero Invoice No},{Ex GST})=0,"",'
         'IF({Date}="","No date - sits outside every month",'
@@ -150,7 +188,8 @@ JOB_CORE = [
     ("Invoice Date", 12, DATE, "f"), ("Invoice No", 16, TXT, "f"),
     ("Job Number", 15, TXT, "in"), ("Job in Xero?", 12, TXT, "f"),
     ("Job Name (Xero)", 38, TXT, "f"), ("Client", 24, TXT, "f"),
-    ("Invoices", 10, INT, "f"), ("Revenue Ex GST", 16, CUR, "f"),
+    ("Lines on Job", 11, INT, "f"), ("Revenue Ex GST", 16, CUR, "f"),
+    ("Invoiced", 14, CUR, "f"), ("To Invoice", 14, CUR, "f"),
     ("Cost Centres", 16, TXT, "f"),
 ]
 JOB_CORE_FORMULAS = {
@@ -166,8 +205,13 @@ JOB_CORE_FORMULAS = {
                        'MATCH({Job Number}&"",lst_Jobs,0)),""))',
     "Client": '=IF({Job Number}="","",IFERROR(INDEX(' + FIN + '[Client],'
               'MATCH({Job Number}&"",' + FIN + '[Job Number],0)),""))',
-    "Invoices": '=IF({Job Number}="","",COUNTIFS(' + FIN + '[Job Number],{Job Number}&"",'
-                + FIN + '[Ex GST],"<>"))',
+    "Lines on Job": '=IF({Job Number}="","",COUNTIFS(' + FIN + '[Job Number],'
+                    '{Job Number}&"",' + FIN + '[Ex GST],"<>"))',
+    # A job's revenue is not all invoiced yet, so say which part is which
+    "Invoiced": '=IF({Job Number}="","",SUMIFS(' + FIN + '[Ex GST],'
+                + FIN + '[Job Number],{Job Number}&"",'
+                + FIN + '[Xero Invoice No],"<>"))',
+    "To Invoice": '=IF({Job Number}="","",{Revenue Ex GST}-{Invoiced})',
     "Revenue Ex GST": '=IF({Job Number}="","",SUMIFS(' + FIN + '[Ex GST],'
                       + FIN + '[Job Number],{Job Number}&""))',
     "Cost Centres": '=IF({Job Number}="","",IFERROR(INDEX(' + FIN + '[Cost Centre],'
@@ -253,6 +297,18 @@ WIP_FORMULAS = {
     "Invoice Date": '=IF({Xero Invoice No}="","",IFERROR(INDEX(' + FIN + '[Date],'
                     'MATCH({Xero Invoice No}&"",' + FIN + '[Xero Invoice No],0)),""))',
 }
+
+FIN_FORMULAS["Job Quote / Ref"] = '=IF({Job Number}="","",' + _dept_pick(
+    {"Onsite": "Qwilr Quote", "Consulting": "Qwilr Quote",
+     "Production": "Current RMS No"}) + ')'
+FIN_FORMULAS["Open Quote"] = (
+    '=IF({Job Quote / Ref}="","",HYPERLINK(IF(LEFT({Job Quote / Ref},4)="http",'
+    '{Job Quote / Ref},IF({Team}="Production",set_RMSBase,set_QwilrBase)'
+    '&{Job Quote / Ref}),"Open"))')
+FIN_FORMULAS["Job Expense"] = '=IF({Job Number}="","",' + _dept_pick(
+    {"Production": "Total Expense", "Consulting": "Total Expense"}, default="0") + ')'
+FIN_FORMULAS["Dept Notes"] = '=IF({Job Number}="","",' + _dept_pick(
+    {"Onsite": "Notes", "Production": "Notes", "Consulting": "Notes"}) + ')'
 
 DV_FOR = {"Cost Centre": "lst_CostCentre", "Invoice Type": "lst_InvoiceType",
           "Tax Code": "lst_TaxCode", "Revenue GL": "lst_RevGL",
@@ -626,7 +682,7 @@ CHECKS = [
     ("Consulting revenue split does not equal the job revenue",
      'COUNTIF(tbl_Consulting[Revenue Split Check],"MISMATCH")'),
     ("Jobs on a department sheet with no invoice yet",
-     "+".join(f'COUNTIFS({DEPT_TABLE[d]}[Job Number],"<>",{DEPT_TABLE[d]}[Invoices],0)'
+     "+".join(f'COUNTIFS({DEPT_TABLE[d]}[Job Number],"<>",{DEPT_TABLE[d]}[Lines on Job],0)'
               for d in DEPTS)),
     ("Deferred lines that also have a manual WIP journal (would double count)",
      f'SUMPRODUCT(--({FIN}[Defer Start]<>""),--({FIN}[Xero Invoice No]<>""),'
