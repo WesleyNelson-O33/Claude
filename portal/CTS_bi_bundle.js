@@ -2612,34 +2612,157 @@
                   (unknown.length > 6 ? " and others." : ""),
                 ]));
               }
+              node.appendChild(h("div.row", [
+                h("button.btn", { onclick: function () {
+                  download("CTS_fin_data.js",
+                    "// Loaded " + new Date().toISOString().slice(0, 10) + " from a Xero paste.\n" +
+                    "window.CTS_FIN = " + JSON.stringify({
+                      meta: { seed: false, basis: "accrual", currency: "AUD" },
+                      actual: actual, budget: E.finBudget,
+                      months: E.months.map(function (m) { return m.key; }),
+                    }) + ";\n");
+                } }, "Save as CTS_fin_data.js"),
+                h("span.muted", "Keeps the budget that is already loaded."),
+              ]));
             },
           }),
           loader({
             title: "Utilisation hours",
-            note: "From the saved utilisation report file. Filter it to a rolling twelve months, not the month and not the year to date. Add each department's Other CC hours into its own line before you paste.",
-            columns: "Month, Department, Chargeable, Non-chargeable, Leave",
-            placeholder: "Month\tDepartment\tChargeable\tNon-chargeable\tLeave\n2026-08\tONSITE\t640\t250\t80",
+            note: "Two layouts are accepted. Either the long one, a row per month and department, or the wide one your Controller Pack already uses: Department and Hour Type down the side with the months across the top. Filter the source to a rolling twelve months, not the month and not the year to date, and add each department's Other CC hours into its own line before you paste.",
+            columns: "Long: Month, Department, Chargeable, Non-chargeable, Leave.  Wide: Department, Hour Type, then one column per month.",
+            placeholder: "Department\tHour Type\tJul-26\tAug-26\nOnsite\tChargeable\t1535\t1620\nOnsite\tNon-chargeable\t597\t540\nOnsite\tLeave\t156\t96",
             action: "Load hours",
             run: function (t, node) {
               var ci = {};
               t.head.forEach(function (c, i) { ci[c.toLowerCase().replace(/[^a-z]/g, "")] = i; });
-              var cM = ci.month, cD = ci.department != null ? ci.department : ci.dept;
-              if (cM == null || cD == null) throw new Error("Need a Month and a Department column.");
-              var rows = [], skipped = 0;
-              t.rows.forEach(function (r) {
-                var mk = String(r[cM]).trim();
-                var m = E.months.filter(function (x) {
-                  return x.key === mk || x.label.toLowerCase() === mk.toLowerCase();
+
+              /* A month column can be headed 2026-08, Aug-26, Aug 2026, or a
+                 real date that Excel has already formatted. All four resolve. */
+              function findMonth(v) {
+                if (v == null) return null;
+                var t0 = String(v).trim();
+                if (!t0) return null;
+                var lower = t0.toLowerCase();
+                var hit = E.months.filter(function (x) {
+                  return x.key === t0 || x.label.toLowerCase() === lower ||
+                         x.long.toLowerCase() === lower;
                 })[0];
-                var code = E.resolveDept(String(r[cD]), "");
-                if (!m || code === "UNALLOCATED") { skipped++; return; }
-                rows.push([m.key, code, num(r[ci.chargeable]), num(r[ci.nonchargeable]),
-                           num(r[ci.leave]), 0]);
+                if (hit) return hit;
+                var d = new Date(t0);
+                if (!isNaN(d)) {
+                  var k = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2);
+                  return E.monthIdx[k] || null;
+                }
+                return null;
+              }
+
+              function hourType(v) {
+                var t0 = String(v || "").toLowerCase().replace(/[^a-z]/g, "");
+                if (t0.indexOf("nonchargeable") >= 0 || t0.indexOf("noncharge") >= 0) return "nonChargeable";
+                if (t0.indexOf("charge") >= 0) return "chargeable";
+                if (t0.indexOf("leave") >= 0) return "leave";
+                return null;
+              }
+
+              var cD = ci.department != null ? ci.department : ci.dept;
+              if (cD == null) throw new Error("Could not find a Department column in the header row.");
+
+              var bucket = {}, skipped = [], wide = ci.hourtype != null || ci.type != null;
+              function put(mk, code, field, v) {
+                var key = mk + "|" + code;
+                var b = bucket[key] || (bucket[key] = { month: mk, dept: code,
+                          chargeable: 0, nonChargeable: 0, leave: 0 });
+                b[field] += v;
+              }
+
+              if (wide) {
+                /* Wide: Department and Hour Type down, months across. This is
+                   the layout of the Controller Pack's own Utilisation sheet. */
+                var cT = ci.hourtype != null ? ci.hourtype : ci.type;
+                var monthCols = [];
+                t.head.forEach(function (label, i) {
+                  var m = findMonth(label);
+                  if (m) monthCols.push({ i: i, key: m.key });
+                });
+                if (!monthCols.length) {
+                  throw new Error("Found an Hour Type column but no month columns. Head them Jul-26, Aug-26 or 2026-07.");
+                }
+                t.rows.forEach(function (r) {
+                  var code = E.resolveDept(String(r[cD] || ""), "");
+                  var field = hourType(r[cT]);
+                  if (code === "UNALLOCATED") { skipped.push("department " + (r[cD] || "blank")); return; }
+                  if (!field) { skipped.push("hour type " + (r[cT] || "blank")); return; }
+                  monthCols.forEach(function (mc) { put(mc.key, code, field, num(r[mc.i])); });
+                });
+              } else {
+                /* Long: a row per month and department. */
+                var cM = ci.month;
+                if (cM == null) {
+                  throw new Error("Need either a Month column, or an Hour Type column with the months across the top.");
+                }
+                t.rows.forEach(function (r) {
+                  var m = findMonth(r[cM]);
+                  var code = E.resolveDept(String(r[cD] || ""), "");
+                  if (!m) { skipped.push("month " + (r[cM] || "blank")); return; }
+                  if (code === "UNALLOCATED") { skipped.push("department " + (r[cD] || "blank")); return; }
+                  put(m.key, code, "chargeable", num(r[ci.chargeable]));
+                  put(m.key, code, "nonChargeable", num(r[ci.nonchargeable]));
+                  put(m.key, code, "leave", num(r[ci.leave]));
+                });
+              }
+
+              var rows = Object.keys(bucket).sort().map(function (k) {
+                var b = bucket[k];
+                return [b.month, b.dept, b.chargeable, b.nonChargeable, b.leave, 0];
               });
-              if (!rows.length) throw new Error("No usable rows found.");
-              E.loadUtil({ meta: { seed: false }, cols: ["month", "dept", "chargeable",
-                           "nonChargeable", "leave", "fte"], rows: rows });
-              ok(node, rows.length + " rows loaded" + (skipped ? ", " + skipped + " skipped" : "") + ".");
+              if (!rows.length) {
+                throw new Error("No usable rows found. " +
+                  (skipped.length ? "Nothing matched: " + skipped.slice(0, 3).join("; ") + "." : ""));
+              }
+              var payload = { meta: { seed: false, built: new Date().toISOString().slice(0, 10),
+                                      hoursPerDay: E.hoursPerDay(), state: E.utilState(),
+                                      note: "Loaded from a paste." },
+                              cols: ["month", "dept", "chargeable", "nonChargeable", "leave", "fte"],
+                              rows: rows };
+              E.loadUtil(payload);
+
+              var months = {}, depts = {};
+              rows.forEach(function (r) { months[r[0]] = 1; depts[r[1]] = 1; });
+              ok(node, rows.length + " department months loaded, read as the " +
+                 (wide ? "wide" : "long") + " layout.");
+
+              var u = E.utilFor(Object.keys(months).sort());
+              node.appendChild(U.table([
+                { key: "d", label: "Department", align: "left" },
+                { key: "c", label: "Chargeable", fmt: F.hours },
+                { key: "n", label: "Non-chargeable", fmt: F.hours },
+                { key: "l", label: "Leave", fmt: F.hours },
+                { key: "u", label: "Utilisation", fmt: function (v) { return F.pct(v); } },
+                { key: "f", label: "FTE", fmt: function (v) { return v == null ? "-" : v.toFixed(2); } },
+              ], u.rows.filter(function (r) { return r.total; }).map(function (r) {
+                return { d: r.dept.short, c: r.chargeable, n: r.nonChargeable,
+                         l: r.leave, u: r.util, f: r.fte };
+              }).concat([{ d: "Total", c: u.total.chargeable,
+                           n: u.rows.reduce(function (a, r) { return a + r.nonChargeable; }, 0),
+                           l: u.total.leave, u: u.total.util, f: u.total.fte, _cls: "totalrow" }])));
+              node.appendChild(U.note("Covering " + Object.keys(months).length + " months and " +
+                Object.keys(depts).length + " departments. Check the totals against the source " +
+                "before you rely on them: a column read as the wrong hour type shows up here first."));
+              if (skipped.length) {
+                node.appendChild(h("div.banner.banner-warn", [
+                  h("strong", skipped.length + " rows or cells were skipped. "),
+                  "Unrecognised: " + skipped.slice(0, 5).join("; ") +
+                  (skipped.length > 5 ? " and others." : ""),
+                ]));
+              }
+              node.appendChild(h("div.row", [
+                h("button.btn", { onclick: function () {
+                  download("CTS_util_data.js",
+                    "// Loaded " + payload.meta.built + " from a paste.\nwindow.CTS_UTIL = " +
+                    JSON.stringify(payload) + ";\n");
+                } }, "Save as CTS_util_data.js"),
+                h("span.muted", "Put the saved file in portal/data to keep it. Without this the load lasts only until you reload the page."),
+              ]));
             },
           }),
         ]),
