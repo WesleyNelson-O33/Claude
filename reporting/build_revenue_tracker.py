@@ -83,7 +83,7 @@ def balanced(formula):
     return depth == 0
 
 
-A1_MODE = False          # True only for the test twin, which can be recalculated
+A1_MODE = True           # A1 addresses: the form proven to open in Excel
 
 
 def render(template, headers, row):
@@ -123,7 +123,8 @@ FIN_COLS = [
 FIN_FORMULAS = {
     "Month": '=IF({Date}="","",EOMONTH({Date},0))',
     "Job in Xero?": '=IF({Job Number}="","",IF(COUNTIF(lst_Jobs,{Job Number}&"")>0,"OK","CHECK"))',
-    "GST": '=IF({Ex GST}="","",IF({Tax Code}="GST 10%",ROUND({Ex GST}*0.1,2),0))',
+    "GST": '=IF({Ex GST}="","",IF({Tax Code}="GST 10%",'
+           'ROUND({Ex GST}*set_GSTRate,2),0))',
     "Inc GST": '=IF({Ex GST}="","",{Ex GST}+{GST})',
     # One filterable column instead of a separate exceptions sheet: turn on the
     # filter for Issue and the list of what needs fixing is right here.
@@ -507,10 +508,9 @@ def build_table(ws, cols, formulas, rows, tblname, spare=SPARE, dv_override=None
                                       showColumnStripes=False, showFirstColumn=False,
                                       showLastColumn=False)
     ws.add_table(t)
-    for col in t.tableColumns:
-        if col.name in formulas:
-            col.calculatedColumnFormula = TableFormula(
-                attr_text=render(formulas[col.name], heads, DATA_ROW).lstrip("="))
+    # Deliberately no calculatedColumnFormula: the version that opened cleanly in
+    # Excel had none, and every row including the spare ones already carries the
+    # formula, so there is nothing to propagate until the table is extended.
 
     for ci, (h, w, fmt, kind) in enumerate(cols, start=1):
         source = (dv_override or {}).get(h, DV_FOR.get(h))
@@ -1018,7 +1018,12 @@ def build_lists(wb):
             name, attr_text=f"Lists!${col}$5:${col}${4 + len(vals)}"))
 
     # link bases used by the Qwilr / Current RMS hyperlink columns
-    ws["T4"] = "Link settings"
+    ws["T4"] = "Settings"
+    ws["T8"], ws["U8"] = "GST rate", 0.1
+    ws.cell(8, 20).font = Font(size=10, bold=True)
+    gc = ws.cell(8, 21)
+    gc.fill, gc.border, gc.number_format = INPUT_FILL, BOX, "0.0%"
+    wb.defined_names.add(DefinedName("set_GSTRate", attr_text="Lists!$U$8"))
     ws["T5"], ws["U5"] = "Qwilr base address", "https://cts.qwilr.com/"
     ws["T6"], ws["U6"] = "Current RMS base address", ""
     ws["T7"] = "Paste your Current RMS opportunity address above, ending with a slash, " \
@@ -1178,6 +1183,8 @@ README = [
        "Lists column U, row 6, and the Production links switch on."),
  ("P", "Each sheet shows its total ex-GST at the top, and it follows the filter - filter to "
        "one client or one month and the total follows. Finance shows Ex GST, GST and Inc GST."),
+ ("P", "The GST rate is no longer buried in the formula. It sits on the Lists sheet, column U "
+       "row 8, and every GST cell reads it from there."),
  ("B", ""),
  ("H", "RULES THAT KEEP IT FAST"),
  ("P", "   Never insert or delete rows above the header row."),
