@@ -264,7 +264,12 @@
     cols.forEach(function (c, i) { ci[c] = i; });
     E.utilRows = (data.rows || []).map(function (r) {
       return { month: r[ci.month], dept: r[ci.dept], chargeable: +r[ci.chargeable],
-               nonChargeable: +r[ci.nonChargeable], leave: +r[ci.leave], fte: +r[ci.fte] };
+               nonChargeable: +r[ci.nonChargeable], leave: +r[ci.leave],
+               // Public holiday is its own bucket. Like leave it is paid but
+               // not worked, so it is excluded from the utilisation
+               // denominator rather than counted as non-chargeable.
+               publicHoliday: ci.publicHoliday == null ? 0 : (+r[ci.publicHoliday] || 0),
+               fte: +r[ci.fte] };
     });
     E.utilIdx = {};
     E.utilRows.forEach(function (r) {
@@ -631,15 +636,18 @@
     var wd = E.workingDays(monthKeys);
     var perHead = wd * E.hoursPerDay();
     var rows = E.postingDepts.map(function (d) {
-      var chg = 0, non = 0, lv = 0;
+      var chg = 0, non = 0, lv = 0, ph = 0;
       monthKeys.forEach(function (k) {
         var r = (E.utilIdx[d.code] || {})[k];
-        if (r) { chg += r.chargeable; non += r.nonChargeable; lv += r.leave; }
+        if (r) {
+          chg += r.chargeable; non += r.nonChargeable; lv += r.leave;
+          ph += r.publicHoliday || 0;
+        }
       });
       var worked = chg + non;
       return {
         code: d.code, dept: d, chargeable: chg, nonChargeable: non, leave: lv,
-        worked: worked, total: worked + lv,
+        publicHoliday: ph, worked: worked, total: worked + lv + ph,
         util: worked ? chg / worked : null,
         fte: perHead ? worked / perHead : null,
         target: d.utilTarget,
@@ -647,11 +655,14 @@
       };
     });
     var tc = rows.reduce(function (a, r) { return a + r.chargeable; }, 0);
+    var tn = rows.reduce(function (a, r) { return a + r.nonChargeable; }, 0);
     var tw = rows.reduce(function (a, r) { return a + r.worked; }, 0);
     var tl = rows.reduce(function (a, r) { return a + r.leave; }, 0);
+    var tp = rows.reduce(function (a, r) { return a + (r.publicHoliday || 0); }, 0);
     return {
       rows: rows, workingDays: wd, hoursPerHead: perHead, state: E.utilState(),
-      total: { chargeable: tc, worked: tw, leave: tl,
+      total: { chargeable: tc, nonChargeable: tn, worked: tw, leave: tl,
+               publicHoliday: tp, total: tw + tl + tp,
                util: tw ? tc / tw : null, fte: perHead ? tw / perHead : null },
     };
   };
@@ -2205,7 +2216,8 @@
         seedBanner(), CTS.periodBar(), U.h1("Utilisation", p.label),
         h("div.tiles", [
           U.tile({ label: "Utilisation, this period", value: F.pct(u.total.util),
-                   sub: F.hours(u.total.chargeable) + " chargeable of " + F.hours(u.total.worked) + " worked" }),
+                   sub: F.hours(u.total.chargeable) + " chargeable of " + F.hours(u.total.worked) + " worked",
+                   note: "Leave and public holidays are excluded from both sides" }),
           U.tile({ label: "Full time equivalents", value: (u.total.fte || 0).toFixed(1),
                    sub: "worked hours over " + u.hoursPerHead + " available", note: "Pack method" }),
           U.tile({ label: "Rolling twelve months", value: F.pct(roll.total.util),
@@ -2238,6 +2250,7 @@
           { key: "chargeable", label: "Chargeable", fmt: F.hours },
           { key: "nonChargeable", label: "Non-chargeable", fmt: F.hours },
           { key: "leave", label: "Leave", fmt: F.hours },
+          { key: "publicHoliday", label: "Public holiday", fmt: F.hours },
           { key: "util", label: "Utilisation", fmt: function (v) { return F.pct(v); } },
           { key: "target", label: "Target", fmt: function (v) { return v == null ? "-" : F.pct(v, 0); } },
           { key: "gap", label: "Gap", fmt: function (v) { return v == null ? "-" : F.pct(v); },
@@ -2418,6 +2431,344 @@
     document.body.appendChild(a);
     a.click();
     setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+  }
+
+  /* ---- the Employment Hero utilisation loader -------------------------
+   *
+   * Built for the export CTS actually pulls, whose columns are:
+   *
+   *   Pay Type | Company Client External Id | Company Client |
+   *   Counter Source Date | Employee Id | Worked Hours | Name |
+   *   Person Group | Job Group | Status | Chargeable Category |
+   *   Chargeable | Non-chargeable | Leave hours | Public Holiday |
+   *   Month | Payrun
+   *
+   * The classification is already done in that export: chargeable,
+   * non-chargeable, leave and public holiday arrive as four separate hour
+   * columns, so nothing here has to infer them. One thing does still have to
+   * be mapped, and only CTS knows it: which reporting department each Person
+   * Group or Job Group belongs to. That is set once and remembered.
+   *
+   * Columns are matched on header name, not position, so a reordered or
+   * partly renamed export still loads.
+   */
+  var EH_COLS = [
+    { key: "payType", label: "Pay Type", names: ["paytype"] },
+    { key: "clientId", label: "Company Client External Id", names: ["companyclientexternalid"] },
+    { key: "client", label: "Company Client", names: ["companyclient"] },
+    { key: "date", label: "Counter Source Date", names: ["countersourcedate", "date"] },
+    { key: "empId", label: "Employee Id", names: ["employeeid"] },
+    { key: "worked", label: "Worked Hours", names: ["workedhours"] },
+    { key: "name", label: "Name", names: ["name", "employeename"] },
+    { key: "personGroup", label: "Person Group", names: ["persongroup"] },
+    { key: "jobGroup", label: "Job Group", names: ["jobgroup"] },
+    { key: "status", label: "Status", names: ["status"] },
+    { key: "chargeCat", label: "Chargeable Category", names: ["chargeablecategory"] },
+    { key: "chargeable", label: "Chargeable", names: ["chargeable"] },
+    { key: "nonChargeable", label: "Non-chargeable", names: ["nonchargeable"] },
+    { key: "leave", label: "Leave hours", names: ["leavehours"] },
+    { key: "publicHoliday", label: "Public Holiday", names: ["publicholiday"] },
+    { key: "month", label: "Month", names: ["month"] },
+    { key: "payrun", label: "Payrun", names: ["payrun"] },
+  ];
+  var EH_BUCKETS = [
+    { key: "chargeable", label: "Chargeable" },
+    { key: "nonChargeable", label: "Non-chargeable" },
+    { key: "leave", label: "Leave" },
+    { key: "publicHoliday", label: "Public holiday" },
+  ];
+
+  function norm(sv) { return String(sv || "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
+
+  /** A duration comes through as 7.5 or as 7:30. Both mean seven and a half. */
+  function hoursOf(v) {
+    var t = String(v == null ? "" : v).trim();
+    if (!t) return 0;
+    var m = t.match(/^(\d+):([0-5]\d)$/);
+    if (m) return +m[1] + +m[2] / 60;
+    return num(t);
+  }
+
+  /** Month headings resolve from 2026-08, Aug-26, Aug 2026, August, or a
+   *  date Excel has already formatted. */
+  function findMonth(v, fallbackYear) {
+    if (v == null) return null;
+    var t0 = String(v).trim();
+    if (!t0) return null;
+    var lower = t0.toLowerCase();
+    var hit = E.months.filter(function (x) {
+      return x.key === t0 || x.label.toLowerCase() === lower || x.long.toLowerCase() === lower;
+    })[0];
+    if (hit) return hit;
+    var iso = isoDate(t0);
+    if (iso) return E.monthIdx[iso.slice(0, 7)] || null;
+    var names = ["january","february","march","april","may","june","july",
+                 "august","september","october","november","december"];
+    for (var i = 0; i < names.length; i++) {
+      if (names[i].indexOf(lower) === 0 && lower.length >= 3 && fallbackYear) {
+        return E.monthIdx[fallbackYear + "-" + ("0" + (i + 1)).slice(-2)] || null;
+      }
+    }
+    return null;
+  }
+
+  function buildEhLoader() {
+    var state = { parsed: null, col: {}, panel: h("div.ehpanel") };
+    var ta = h("textarea.paste", { rows: 7,
+      placeholder: "Paste the Employment Hero export here, including its header row" });
+
+    function deptSource() { return CTS.store.get("ehDeptSource", "personGroup"); }
+    function groupMap() { return CTS.store.get("ehGroupMap", {}); }
+
+    function analyse() {
+      state.panel.innerHTML = "";
+      var t = parseTable(ta.value);
+      if (!t.head.length || !t.rows.length) {
+        state.panel.appendChild(h("div.banner.banner-warn",
+          "Nothing to read. Copy the export including its header row and paste it in."));
+        return;
+      }
+      state.parsed = t;
+      var normed = t.head.map(norm);
+      EH_COLS.forEach(function (c) {
+        var found = -1;
+        // exact header match only: a loose match would put Non-chargeable
+        // and Chargeable Category into the Chargeable column
+        for (var i = 0; i < c.names.length && found < 0; i++) {
+          found = normed.indexOf(c.names[i]);
+        }
+        state.col[c.key] = found;
+      });
+      renderPanel();
+    }
+
+    function renderPanel() {
+      var t = state.parsed;
+      state.panel.innerHTML = "";
+      var matched = EH_COLS.filter(function (c) { return state.col[c.key] >= 0; });
+      var missing = EH_COLS.filter(function (c) { return state.col[c.key] < 0; });
+
+      state.panel.appendChild(h("h4", "1. Columns"));
+      state.panel.appendChild(U.note(
+        t.rows.length + " rows read. " + matched.length + " of the " + EH_COLS.length +
+        " expected columns were recognised by name." +
+        (missing.length ? " Point the rest at the right column, or leave them out if your export does not carry them." : "")));
+
+      var interesting = EH_COLS.filter(function (c) {
+        return state.col[c.key] < 0 ||
+               ["date", "month", "personGroup", "jobGroup", "chargeable",
+                "nonChargeable", "leave", "publicHoliday", "worked"].indexOf(c.key) >= 0;
+      });
+      interesting.forEach(function (c) {
+        var sel = h("select.control", {
+          onchange: function (e) { state.col[c.key] = +e.target.value; renderPanel(); },
+        }, [h("option", { value: -1, selected: state.col[c.key] < 0 }, "— not present —")]
+          .concat(t.head.map(function (hd, i) {
+            return h("option", { value: i, selected: state.col[c.key] === i },
+                     hd || "(column " + (i + 1) + ")");
+          })));
+        state.panel.appendChild(h("div.fieldrow", [
+          h("label", c.label),
+          sel,
+          state.col[c.key] >= 0 ? U.flag("good", "matched") : U.flag("warn", "not found"),
+        ]));
+      });
+
+      var hasPeriod = state.col.month >= 0 || state.col.date >= 0;
+      var hasBucket = EH_BUCKETS.some(function (b) { return state.col[b.key] >= 0; });
+      var src = deptSource();
+      var hasDept = state.col[src] >= 0;
+      if (!hasPeriod || !hasBucket) {
+        state.panel.appendChild(h("div.banner.banner-warn",
+          !hasPeriod ? "Need either a Month or a Counter Source Date column."
+                     : "Need at least a Chargeable column. The four hour columns are what the utilisation figures are built from."));
+        return;
+      }
+
+      state.panel.appendChild(h("h4", "2. Which column is the department"));
+      state.panel.appendChild(h("div.row", [
+        h("div.seg", [["personGroup", "Person Group"], ["jobGroup", "Job Group"]].map(function (o) {
+          return h("button.seg-btn" + (o[0] === src ? ".on" : ""), {
+            onclick: function () { CTS.store.set("ehDeptSource", o[0]); renderPanel(); },
+          }, o[1]);
+        })),
+      ]));
+      state.panel.appendChild(U.note(
+        "Person Group follows the person, Job Group follows the work. Person Group is the default because it is what the monthly report's full time equivalent method needs: that method adds a department's own hours to its Other CC hours, which is the hours its people worked on somebody else's cost centre. Switch to Job Group if you want utilisation measured by where the work was done instead."));
+      if (!hasDept) {
+        state.panel.appendChild(h("div.banner.banner-warn",
+          "No " + (src === "personGroup" ? "Person Group" : "Job Group") +
+          " column was found, so every line would fall to Unallocated. Map it in step 1 or switch to the other source."));
+        return;
+      }
+      renderGroups();
+    }
+
+    function scanGroups() {
+      var t = state.parsed, c = state.col, src = deptSource();
+      var found = {};
+      t.rows.forEach(function (r) {
+        var g = String(r[c[src]] == null ? "" : r[c[src]]).trim() || "(blank)";
+        var f = found[g] || (found[g] = { group: g, rows: 0, chargeable: 0,
+                  nonChargeable: 0, leave: 0, publicHoliday: 0, worked: 0 });
+        f.rows++;
+        EH_BUCKETS.forEach(function (b) {
+          if (c[b.key] >= 0) f[b.key] += hoursOf(r[c[b.key]]);
+        });
+        if (c.worked >= 0) f.worked += hoursOf(r[c.worked]);
+      });
+      return Object.keys(found).sort().map(function (k) { return found[k]; });
+    }
+
+    function renderGroups() {
+      var groups = scanGroups();
+      var src = deptSource();
+      var saved = groupMap();
+      groups.forEach(function (g) {
+        if (!saved[g.group]) saved[g.group] = E.resolveDept(g.group, "");
+      });
+      CTS.store.set("ehGroupMap", saved);
+
+      state.panel.appendChild(h("h4", "3. Which department each group belongs to"));
+      state.panel.appendChild(U.note(
+        "Employment Hero knows the group; only CTS knows which reporting department it is. Set each one once and it is remembered for next month. Anything guessed from the name is shown already matched."));
+
+      state.panel.appendChild(U.table([
+        { key: "group", label: (src === "personGroup" ? "Person Group" : "Job Group") + " in Employment Hero", align: "left" },
+        { key: "rows", label: "Lines" },
+        { key: "chargeable", label: "Chargeable", fmt: function (v) { return F.num(v, 1); } },
+        { key: "nonChargeable", label: "Non-chargeable", fmt: function (v) { return F.num(v, 1); } },
+        { key: "leave", label: "Leave", fmt: function (v) { return F.num(v, 1); } },
+        { key: "publicHoliday", label: "Public holiday", fmt: function (v) { return F.num(v, 1); } },
+        { key: "dept", label: "Reporting department", align: "left",
+          value: function (r) {
+            return h("select.control.small", {
+              onchange: function (e) {
+                var m = groupMap(); m[r.group] = e.target.value;
+                CTS.store.set("ehGroupMap", m);
+              },
+            }, E.postingDepts.map(function (d) {
+              return h("option", { value: d.code, selected: d.code === saved[r.group] }, d.short);
+            }).concat([h("option", { value: "UNALLOCATED",
+                                     selected: saved[r.group] === "UNALLOCATED" }, "Unallocated")]));
+          } },
+      ], groups, { dense: true }));
+
+      // Control: the four buckets should add back to Worked Hours.
+      if (state.col.worked >= 0) {
+        var sumB = 0, sumW = 0;
+        groups.forEach(function (g) {
+          sumB += g.chargeable + g.nonChargeable + g.leave + g.publicHoliday;
+          sumW += g.worked;
+        });
+        var diff = sumB - sumW;
+        state.panel.appendChild(h("div.banner.banner-" + (Math.abs(diff) < 0.5 ? "good" : "warn"), [
+          h("strong", Math.abs(diff) < 0.5
+            ? "The four hour columns add back to Worked Hours. "
+            : "The four hour columns do not add back to Worked Hours. "),
+          "Chargeable, non-chargeable, leave and public holiday total " + F.num(sumB, 1) +
+          " against Worked Hours of " + F.num(sumW, 1) +
+          (Math.abs(diff) < 0.5 ? "." : ", a difference of " + F.num(diff, 1) +
+           ". Worked Hours may exclude leave and public holiday in your export, in which case this is expected; if not, a column is mapped wrongly."),
+        ]));
+      }
+
+      state.panel.appendChild(h("div.row", [
+        h("button.btn", { onclick: apply }, "Load these hours"),
+        h("span.muted", "Aggregates to month by department, the shape the utilisation pages read."),
+      ]));
+    }
+
+    function apply() {
+      var t = state.parsed, c = state.col, src = deptSource(), saved = groupMap();
+      var bucket = {}, skipped = { period: 0 }, monthsSeen = {};
+      var fallbackYear = String(E.currentFY() - 1 + 2000).slice(0, 4);
+
+      t.rows.forEach(function (r) {
+        var m = null;
+        if (c.month >= 0) m = findMonth(r[c.month], fallbackYear);
+        if (!m && c.date >= 0) {
+          var iso = isoDate(r[c.date]);
+          if (iso) m = E.monthIdx[iso.slice(0, 7)] || null;
+        }
+        if (!m) { skipped.period++; return; }
+        var g = String(r[c[src]] == null ? "" : r[c[src]]).trim() || "(blank)";
+        var dept = saved[g] || "UNALLOCATED";
+        monthsSeen[m.key] = 1;
+        var key = m.key + "|" + dept;
+        var b = bucket[key] || (bucket[key] = { month: m.key, dept: dept,
+                  chargeable: 0, nonChargeable: 0, leave: 0, publicHoliday: 0 });
+        EH_BUCKETS.forEach(function (bk) {
+          if (c[bk.key] >= 0) b[bk.key] += hoursOf(r[c[bk.key]]);
+        });
+      });
+
+      var rows = Object.keys(bucket).sort().map(function (k) {
+        var b = bucket[k];
+        function r1(v) { return Math.round(v * 10) / 10; }
+        return [b.month, b.dept, r1(b.chargeable), r1(b.nonChargeable),
+                r1(b.leave), r1(b.publicHoliday), 0];
+      });
+
+      state.panel.appendChild(h("h4", "4. What was loaded"));
+      if (!rows.length) {
+        state.panel.appendChild(h("div.banner.banner-warn",
+          "Nothing could be loaded. " + skipped.period +
+          " lines had no readable month or date, or fell outside FY" +
+          (E.currentFY() - 1) + " and FY" + E.currentFY() + "."));
+        return;
+      }
+
+      var payload = { meta: { seed: false, built: new Date().toISOString().slice(0, 10),
+                              hoursPerDay: E.hoursPerDay(), state: E.utilState(),
+                              source: "Employment Hero export, department from " +
+                                      (src === "personGroup" ? "Person Group" : "Job Group") },
+                      cols: ["month", "dept", "chargeable", "nonChargeable", "leave",
+                             "publicHoliday", "fte"],
+                      rows: rows };
+      E.loadUtil(payload);
+
+      var keys = Object.keys(monthsSeen).sort();
+      var u = E.utilFor(keys);
+      state.panel.appendChild(h("div.banner.banner-good",
+        rows.length + " department months loaded, covering " +
+        (E.monthIdx[keys[0]] || {}).long + " to " +
+        (E.monthIdx[keys[keys.length - 1]] || {}).long + "."));
+      state.panel.appendChild(U.table([
+        { key: "d", label: "Department", align: "left" },
+        { key: "c", label: "Chargeable", fmt: F.hours },
+        { key: "n", label: "Non-chargeable", fmt: F.hours },
+        { key: "l", label: "Leave", fmt: F.hours },
+        { key: "p", label: "Public holiday", fmt: F.hours },
+        { key: "u", label: "Utilisation", fmt: function (v) { return F.pct(v); } },
+        { key: "f", label: "FTE", fmt: function (v) { return v == null ? "-" : v.toFixed(2); } },
+      ], u.rows.filter(function (r) { return r.total; }).map(function (r) {
+        return { d: r.dept.short, c: r.chargeable, n: r.nonChargeable, l: r.leave,
+                 p: r.publicHoliday, u: r.util, f: r.fte };
+      }).concat([{ d: "Total", c: u.total.chargeable, n: u.total.nonChargeable,
+                   l: u.total.leave, p: u.total.publicHoliday,
+                   u: u.total.util, f: u.total.fte, _cls: "totalrow" }])));
+      state.panel.appendChild(U.note(
+        "Utilisation is chargeable over chargeable plus non-chargeable. Leave and public holiday are excluded from both sides, because neither is worked time." +
+        (skipped.period ? " " + skipped.period + " lines were skipped for no readable month or date." : "")));
+      state.panel.appendChild(h("div.row", [
+        h("button.btn", { onclick: function () {
+          download("CTS_util_data.js",
+            "// Loaded " + payload.meta.built + " from an Employment Hero export.\n" +
+            "window.CTS_UTIL = " + JSON.stringify(payload) + ";\n");
+        } }, "Save as CTS_util_data.js"),
+        h("span.muted", "Put it in portal/data to keep it. Without this the load lasts until you reload the page."),
+      ]));
+    }
+
+    return h("div.card.loader.wide", [
+      h("h3", "Utilisation hours, from Employment Hero"),
+      U.note("Run the export in Employment Hero, copy it in Excel including the header row, and paste it here. It expects the Pay Type to Payrun layout you already pull; anything it cannot match by name you point at the right column once, and it is remembered."),
+      U.note("The export already splits the hours four ways, so nothing here has to work out what is chargeable. The one thing only CTS knows is which reporting department each Person Group belongs to, and that is step 3.", "muted"),
+      ta,
+      h("div.row", [h("button.btn", { onclick: analyse }, "Read the columns")]),
+      state.panel,
+    ]);
   }
 
   /* ========================================================== Setup ==== */
@@ -2626,145 +2977,7 @@
               ]));
             },
           }),
-          loader({
-            title: "Utilisation hours",
-            note: "Two layouts are accepted. Either the long one, a row per month and department, or the wide one your Controller Pack already uses: Department and Hour Type down the side with the months across the top. Filter the source to a rolling twelve months, not the month and not the year to date, and add each department's Other CC hours into its own line before you paste.",
-            columns: "Long: Month, Department, Chargeable, Non-chargeable, Leave.  Wide: Department, Hour Type, then one column per month.",
-            placeholder: "Department\tHour Type\tJul-26\tAug-26\nOnsite\tChargeable\t1535\t1620\nOnsite\tNon-chargeable\t597\t540\nOnsite\tLeave\t156\t96",
-            action: "Load hours",
-            run: function (t, node) {
-              var ci = {};
-              t.head.forEach(function (c, i) { ci[c.toLowerCase().replace(/[^a-z]/g, "")] = i; });
-
-              /* A month column can be headed 2026-08, Aug-26, Aug 2026, or a
-                 real date that Excel has already formatted. All four resolve. */
-              function findMonth(v) {
-                if (v == null) return null;
-                var t0 = String(v).trim();
-                if (!t0) return null;
-                var lower = t0.toLowerCase();
-                var hit = E.months.filter(function (x) {
-                  return x.key === t0 || x.label.toLowerCase() === lower ||
-                         x.long.toLowerCase() === lower;
-                })[0];
-                if (hit) return hit;
-                var d = new Date(t0);
-                if (!isNaN(d)) {
-                  var k = d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2);
-                  return E.monthIdx[k] || null;
-                }
-                return null;
-              }
-
-              function hourType(v) {
-                var t0 = String(v || "").toLowerCase().replace(/[^a-z]/g, "");
-                if (t0.indexOf("nonchargeable") >= 0 || t0.indexOf("noncharge") >= 0) return "nonChargeable";
-                if (t0.indexOf("charge") >= 0) return "chargeable";
-                if (t0.indexOf("leave") >= 0) return "leave";
-                return null;
-              }
-
-              var cD = ci.department != null ? ci.department : ci.dept;
-              if (cD == null) throw new Error("Could not find a Department column in the header row.");
-
-              var bucket = {}, skipped = [], wide = ci.hourtype != null || ci.type != null;
-              function put(mk, code, field, v) {
-                var key = mk + "|" + code;
-                var b = bucket[key] || (bucket[key] = { month: mk, dept: code,
-                          chargeable: 0, nonChargeable: 0, leave: 0 });
-                b[field] += v;
-              }
-
-              if (wide) {
-                /* Wide: Department and Hour Type down, months across. This is
-                   the layout of the Controller Pack's own Utilisation sheet. */
-                var cT = ci.hourtype != null ? ci.hourtype : ci.type;
-                var monthCols = [];
-                t.head.forEach(function (label, i) {
-                  var m = findMonth(label);
-                  if (m) monthCols.push({ i: i, key: m.key });
-                });
-                if (!monthCols.length) {
-                  throw new Error("Found an Hour Type column but no month columns. Head them Jul-26, Aug-26 or 2026-07.");
-                }
-                t.rows.forEach(function (r) {
-                  var code = E.resolveDept(String(r[cD] || ""), "");
-                  var field = hourType(r[cT]);
-                  if (code === "UNALLOCATED") { skipped.push("department " + (r[cD] || "blank")); return; }
-                  if (!field) { skipped.push("hour type " + (r[cT] || "blank")); return; }
-                  monthCols.forEach(function (mc) { put(mc.key, code, field, num(r[mc.i])); });
-                });
-              } else {
-                /* Long: a row per month and department. */
-                var cM = ci.month;
-                if (cM == null) {
-                  throw new Error("Need either a Month column, or an Hour Type column with the months across the top.");
-                }
-                t.rows.forEach(function (r) {
-                  var m = findMonth(r[cM]);
-                  var code = E.resolveDept(String(r[cD] || ""), "");
-                  if (!m) { skipped.push("month " + (r[cM] || "blank")); return; }
-                  if (code === "UNALLOCATED") { skipped.push("department " + (r[cD] || "blank")); return; }
-                  put(m.key, code, "chargeable", num(r[ci.chargeable]));
-                  put(m.key, code, "nonChargeable", num(r[ci.nonchargeable]));
-                  put(m.key, code, "leave", num(r[ci.leave]));
-                });
-              }
-
-              var rows = Object.keys(bucket).sort().map(function (k) {
-                var b = bucket[k];
-                return [b.month, b.dept, b.chargeable, b.nonChargeable, b.leave, 0];
-              });
-              if (!rows.length) {
-                throw new Error("No usable rows found. " +
-                  (skipped.length ? "Nothing matched: " + skipped.slice(0, 3).join("; ") + "." : ""));
-              }
-              var payload = { meta: { seed: false, built: new Date().toISOString().slice(0, 10),
-                                      hoursPerDay: E.hoursPerDay(), state: E.utilState(),
-                                      note: "Loaded from a paste." },
-                              cols: ["month", "dept", "chargeable", "nonChargeable", "leave", "fte"],
-                              rows: rows };
-              E.loadUtil(payload);
-
-              var months = {}, depts = {};
-              rows.forEach(function (r) { months[r[0]] = 1; depts[r[1]] = 1; });
-              ok(node, rows.length + " department months loaded, read as the " +
-                 (wide ? "wide" : "long") + " layout.");
-
-              var u = E.utilFor(Object.keys(months).sort());
-              node.appendChild(U.table([
-                { key: "d", label: "Department", align: "left" },
-                { key: "c", label: "Chargeable", fmt: F.hours },
-                { key: "n", label: "Non-chargeable", fmt: F.hours },
-                { key: "l", label: "Leave", fmt: F.hours },
-                { key: "u", label: "Utilisation", fmt: function (v) { return F.pct(v); } },
-                { key: "f", label: "FTE", fmt: function (v) { return v == null ? "-" : v.toFixed(2); } },
-              ], u.rows.filter(function (r) { return r.total; }).map(function (r) {
-                return { d: r.dept.short, c: r.chargeable, n: r.nonChargeable,
-                         l: r.leave, u: r.util, f: r.fte };
-              }).concat([{ d: "Total", c: u.total.chargeable,
-                           n: u.rows.reduce(function (a, r) { return a + r.nonChargeable; }, 0),
-                           l: u.total.leave, u: u.total.util, f: u.total.fte, _cls: "totalrow" }])));
-              node.appendChild(U.note("Covering " + Object.keys(months).length + " months and " +
-                Object.keys(depts).length + " departments. Check the totals against the source " +
-                "before you rely on them: a column read as the wrong hour type shows up here first."));
-              if (skipped.length) {
-                node.appendChild(h("div.banner.banner-warn", [
-                  h("strong", skipped.length + " rows or cells were skipped. "),
-                  "Unrecognised: " + skipped.slice(0, 5).join("; ") +
-                  (skipped.length > 5 ? " and others." : ""),
-                ]));
-              }
-              node.appendChild(h("div.row", [
-                h("button.btn", { onclick: function () {
-                  download("CTS_util_data.js",
-                    "// Loaded " + payload.meta.built + " from a paste.\nwindow.CTS_UTIL = " +
-                    JSON.stringify(payload) + ";\n");
-                } }, "Save as CTS_util_data.js"),
-                h("span.muted", "Put the saved file in portal/data to keep it. Without this the load lasts only until you reload the page."),
-              ]));
-            },
-          }),
+          buildEhLoader(),
         ]),
         out,
         U.section("Rolling back", [

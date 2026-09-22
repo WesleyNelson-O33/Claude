@@ -726,16 +726,23 @@ util_rows = []
 for month in ALL_MONTHS:
     info = CAL_INDEX[month]
     mi = MONTH_ORDER.index(info["m"])
-    hours_avail = info["wd"]["VIC"] * 8
+    # A person is paid for every weekday. Public holidays are paid but not
+    # worked, so they come out first and are their own bucket, the way the
+    # Employment Hero export reports them. What is left splits into leave and
+    # worked time, and worked time splits into chargeable and non-chargeable.
+    paid_hours = info["bd"] * 8
+    holiday_hours = (info["bd"] - info["wd"]["VIC"]) * 8
+    workable = paid_hours - holiday_hours
     for dept in DEPTS:
-        total = FTE[dept] * hours_avail
-        leave = total * LEAVE_SHARE[dept] * LEAVE_SHAPE[mi]
-        worked = total - leave
+        ph = holiday_hours * FTE[dept]
+        remaining = workable * FTE[dept]
+        leave = remaining * LEAVE_SHARE[dept] * LEAVE_SHAPE[mi]
+        worked = remaining - leave
         # utilisation tracks the department's own season
         season = SHAPE[dept][mi] * 12
         chg = worked * min(0.95, UTIL[dept] * (0.82 + 0.18 * season))
         util_rows.append([month, dept, round(chg, 1), round(worked - chg, 1),
-                          round(leave, 1), FTE[dept]])
+                          round(leave, 1), round(ph, 1), FTE[dept]])
 
 # ---------------------------------------------------------------- the clients
 client_meta = []
@@ -826,11 +833,13 @@ SEED_NOTE = ("Seed data. The FY26 totals, the July 2025 month and the August 202
 
 (OUT / "CTS_util_data.js").write_text(js("CTS_UTIL", {
     "meta": {"seed": True, "built": BUILT, "hoursPerDay": 8, "state": "VIC",
-             "note": "Hours by department by month. Anchors: about 19.5 full time "
+             "note": "Hours by department by month, split the four ways the "
+                     "Employment Hero export splits them. Anchors: about 19.5 full time "
                      "equivalents across the business and six in production, both "
                      "from Monthly Reporting Part 2; consulting running in the mid "
                      "forties against a 65% target, from Part 3."},
-    "cols": ["month", "dept", "chargeable", "nonChargeable", "leave", "fte"],
+    "cols": ["month", "dept", "chargeable", "nonChargeable", "leave",
+             "publicHoliday", "fte"],
     "rows": util_rows,
 }, "CTS utilisation hours by department"))
 
