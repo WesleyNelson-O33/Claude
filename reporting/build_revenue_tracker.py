@@ -26,7 +26,8 @@ from pathlib import Path
 
 import openpyxl
 from openpyxl.formatting.rule import CellIsRule, FormulaRule
-from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.styles import (Alignment, Border, Font, PatternFill,
+                             Protection, Side)
 from openpyxl.utils import get_column_letter as gcl
 from openpyxl.workbook.defined_name import DefinedName
 from openpyxl.worksheet.datavalidation import DataValidation
@@ -82,11 +83,20 @@ def balanced(formula):
     return depth == 0
 
 
+A1_MODE = False          # True only for the test twin, which can be recalculated
+
+
 def render(template, headers, row):
-    """Turn {Column Name} placeholders into plain A1 references for one row."""
+    """Resolve {Column Name} placeholders.
+
+    Normally to a structured reference - [@[Ex GST]] - which is what Excel
+    itself writes and what survives a column being moved or inserted. A1 mode
+    produces the same logic with plain cell addresses, for the test copy.
+    """
     out = template
     for name in sorted(headers, key=len, reverse=True):
-        out = out.replace("{" + name + "}", gcl(headers.index(name) + 1) + str(row))
+        ref = (gcl(headers.index(name) + 1) + str(row)) if A1_MODE else f"[@[{name}]]"
+        out = out.replace("{" + name + "}", ref)
     if "{" in out:
         raise ValueError("unresolved placeholder in: " + out)
     if not balanced(out):
@@ -104,8 +114,11 @@ FIN_COLS = [
     ("Tax Code", 12, TXT, "dv"), ("Ex GST", 14, CUR, "in"),
     ("GST", 12, CUR, "f"), ("Inc GST", 14, CUR, "f"),
     ("Revenue GL", 13, TXT, "dv"), ("Posted to Xero", 14, TXT, "dv"),
-    ("To WIP", 9, TXT, "dv"), ("Status", 14, TXT, "dv"),
-    ("Notes", 40, TXT, "in"), ("Issue", 34, TXT, "f"),
+    ("To WIP", 9, TXT, "dv"),
+    # A16: fill both and the deferral releases itself every month - see the
+    # Deferred Revenue sheet. Leave both blank for a normal one-off invoice.
+    ("Defer Start", 12, DATE, "in"), ("Defer End", 12, DATE, "in"),
+    ("Status", 14, TXT, "dv"), ("Notes", 40, TXT, "in"), ("Issue", 34, TXT, "f"),
 ]
 FIN_FORMULAS = {
     "Month": '=IF({Date}="","",EOMONTH({Date},0))',
@@ -129,13 +142,24 @@ FIN_FORMULAS = {
 # ---------------------------------------------------------------- departments
 # Columns 1-7 are the same on every department sheet: the job, and what Finance
 # has invoiced against it. Everything from column 8 is that department's own.
+# A12: invoice date and number come first. A2/A7/A8: both are pulled from the
+# Finance sheet, matched on the job. A job invoiced more than once shows its
+# most recent invoice, and the Invoices column says how many there are.
 JOB_CORE = [
+    ("Invoice Date", 12, DATE, "f"), ("Invoice No", 16, TXT, "f"),
     ("Job Number", 15, TXT, "in"), ("Job in Xero?", 12, TXT, "f"),
-    ("Job Name (Xero)", 40, TXT, "f"), ("Client", 24, TXT, "f"),
+    ("Job Name (Xero)", 38, TXT, "f"), ("Client", 24, TXT, "f"),
     ("Invoices", 10, INT, "f"), ("Revenue Ex GST", 16, CUR, "f"),
     ("Cost Centres", 16, TXT, "f"),
 ]
 JOB_CORE_FORMULAS = {
+    "Invoice Date": '=IF({Job Number}="","",IFERROR(IF(SUMPRODUCT(MAX((' + FIN +
+                    '[Job Number]={Job Number}&"")*' + FIN + '[Date]))=0,"",'
+                    'SUMPRODUCT(MAX((' + FIN + '[Job Number]={Job Number}&"")*'
+                    + FIN + '[Date]))),""))',
+    "Invoice No": '=IF({Invoice Date}="","",IFERROR(LOOKUP(2,1/((' + FIN +
+                  '[Job Number]={Job Number}&"")*(' + FIN + '[Date]={Invoice Date})),'
+                  + FIN + '[Xero Invoice No]),""))',
     "Job in Xero?": '=IF({Job Number}="","",IF(COUNTIF(lst_Jobs,{Job Number}&"")>0,"OK","CHECK"))',
     "Job Name (Xero)": '=IF({Job Number}="","",IFERROR(INDEX(lst_JobName,'
                        'MATCH({Job Number}&"",lst_Jobs,0)),""))',
@@ -150,31 +174,46 @@ JOB_CORE_FORMULAS = {
 }
 
 DEPT_EXTRA = {
-    "Onsite": [("PO / Reference", 18, TXT, "in"), ("Ariba Status", 15, TXT, "dv"),
-               ("Billable Hours", 13, NUM, "in"), ("Approved By", 16, TXT, "in"),
-               ("Notes", 40, TXT, "in")],
+    # A6: Ariba Status removed. A10: Onsite gains a Qwilr quote, hyperlinked.
+    "Onsite": [("PO / Reference", 18, TXT, "in"), ("Qwilr Quote", 40, TXT, "in"),
+               ("Open Qwilr", 14, TXT, "f"), ("Billable Hours", 13, NUM, "in"),
+               ("Approved By", 16, TXT, "in"), ("Notes", 38, TXT, "in")],
+    # A3: Zoho is the job number, so it is a formula now, not something to type.
+    # A5: the Current RMS number is hyperlinked.
     "Production": [
         ("Event Date", 12, DATE, "in"), ("Current RMS No", 14, TXT, "in"),
-        ("Zoho Number", 14, TXT, "in"), ("Job Closed", 11, TXT, "dv"),
+        ("Open in Current RMS", 18, TXT, "f"), ("Zoho Number", 14, TXT, "f"),
+        ("Job Closed", 11, TXT, "dv"),
         ("Discounts Given", 16, CUR, "in"), ("Value Before Discount", 20, CUR, "f"),
         ("Discount %", 11, PCT, "f"), ("Cross Hire Expense", 17, CUR, "in"),
         ("Labour Expense (Internal)", 22, CUR, "in"), ("Total Expense", 14, CUR, "f"),
         ("Margin", 14, CUR, "f"), ("Margin %", 10, PCT, "f"),
         ("Video Filming Hrs", 15, NUM, "in"), ("Video Editing Hrs", 15, NUM, "in"),
         ("Project Mgmt Hrs", 15, NUM, "in"), ("Video Project Mgmt Hrs", 19, NUM, "in"),
-        ("Production Labour Hrs", 18, NUM, "in"), ("Notes", 40, TXT, "in")],
+        ("Production Labour Hrs", 18, NUM, "in"), ("Notes", 38, TXT, "in")],
+    # A11 / A13: Opportunity No removed - it is the job number.
     "Consulting": [
-        ("Qwilr Link", 42, TXT, "in"), ("Opportunity No", 15, TXT, "in"),
+        ("Qwilr Quote", 40, TXT, "in"), ("Open Qwilr", 14, TXT, "f"),
         ("Labour Revenue", 15, CUR, "in"), ("Equipment Revenue", 17, CUR, "in"),
         ("Subscription Revenue", 19, CUR, "in"), ("Revenue Split Check", 18, TXT, "f"),
         ("Labour Expense (External)", 22, CUR, "in"),
         ("Equipment Expense (Internal)", 26, CUR, "in"),
         ("Subscription & Licences Expense", 28, CUR, "in"),
         ("Total Expense", 14, CUR, "f"), ("Margin", 14, CUR, "f"),
-        ("Margin %", 10, PCT, "f"), ("Notes", 40, TXT, "in")],
+        ("Margin %", 10, PCT, "f"), ("Notes", 38, TXT, "in")],
 }
+# A5 / A10: a quote reference becomes a clickable link. A pasted full URL is used
+# as it stands; a bare number is appended to the base address on the Lists sheet.
+QWILR = ('=IF({Qwilr Quote}="","",HYPERLINK(IF(LEFT({Qwilr Quote},4)="http",{Qwilr Quote},'
+         'set_QwilrBase&{Qwilr Quote}),"Open quote"))')
+RMS = ('=IF(OR({Current RMS No}="",set_RMSBase=""),"",'
+       'HYPERLINK(set_RMSBase&{Current RMS No},"Open "&{Current RMS No}))')
+
 DEPT_EXTRA_FORMULAS = {
+    "Onsite": {"Open Qwilr": QWILR},
     "Production": {
+        "Open in Current RMS": RMS,
+        "Zoho Number": '=IF({Job Number}="","",{Job Number})',
         "Value Before Discount": '=IF({Job Number}="","",{Revenue Ex GST}+N({Discounts Given}))',
         "Discount %": '=IFERROR({Discounts Given}/{Value Before Discount},"")',
         "Total Expense": '=IF({Job Number}="","",N({Cross Hire Expense})'
@@ -183,6 +222,7 @@ DEPT_EXTRA_FORMULAS = {
         "Margin %": '=IFERROR({Margin}/{Revenue Ex GST},"")',
     },
     "Consulting": {
+        "Open Qwilr": QWILR,
         "Revenue Split Check":
             '=IF({Job Number}="","",IF(N({Labour Revenue})+N({Equipment Revenue})'
             '+N({Subscription Revenue})=0,"Not split",'
@@ -197,16 +237,20 @@ DEPT_EXTRA_FORMULAS = {
 }
 
 WIP_COLS = [
-    ("Month", 10, MON, "in"), ("Job Number", 15, TXT, "in"),
+    ("Month", 10, MON, "in"), ("Invoice Date", 12, DATE, "f"),
+    ("Xero Invoice No", 16, TXT, "in"), ("Job Number", 15, TXT, "in"),
     ("Job in Xero?", 12, TXT, "f"), ("Client", 26, TXT, "in"),
     ("Cost Centre", 14, TXT, "dv"), ("Description", 50, TXT, "in"),
-    ("Type", 26, TXT, "dv"), ("Xero Invoice No", 16, TXT, "in"),
+    ("Type", 26, TXT, "dv"),
     ("Amount", 15, CUR, "in"), ("GL Code", 11, TXT, "dv"),
     ("Journal Ref", 14, TXT, "in"), ("Posted to Xero", 14, TXT, "dv"),
     ("Notes", 40, TXT, "in"),
 ]
 WIP_FORMULAS = {
     "Job in Xero?": '=IF({Job Number}="","",IF(COUNTIF(lst_Jobs,{Job Number}&"")>0,"OK","CHECK"))',
+    # A15: the invoice date follows the invoice number in from Finance
+    "Invoice Date": '=IF({Xero Invoice No}="","",IFERROR(INDEX(' + FIN + '[Date],'
+                    'MATCH({Xero Invoice No}&"",' + FIN + '[Xero Invoice No],0)),""))',
 }
 
 DV_FOR = {"Cost Centre": "lst_CostCentre", "Invoice Type": "lst_InvoiceType",
@@ -356,7 +400,7 @@ def migrate_jobs(dept):
              "Production Labour Hours": "Production Labour Hrs"})
     return _accumulate(
         "Consulting", "Job Number",
-        {"Qwilr Link": "Qwilr Link", "Notes": "Notes"},
+        {"Qwilr Link": "Qwilr Quote", "Notes": "Notes"},
         {"Labour Revenue": "Labour Revenue", "Equipment Revenue": "Equipment Revenue",
          "Subscription Revenue": "Subscription Revenue",
          "Labour Expense (External)": "Labour Expense (External)",
@@ -410,6 +454,22 @@ def col_heads(ws, row, labels, start=1):
     ws.row_dimensions[row].height = 30
 
 
+def totals_strip(ws, cols, tblname, money_cols):
+    """A14: the totals for this sheet, sitting above the table."""
+    parts = []
+    for name in money_cols:
+        parts.append(f'"{name}  "&TEXT(SUBTOTAL(109,{tblname}[{name}]),"$#,##0.00")')
+    ws.merge_cells(start_row=3, start_column=1, end_row=3,
+                   end_column=min(len(cols), 12))
+    c = ws.cell(3, 1)
+    c.value = "=" + '&"      "&'.join(parts)
+    c.font = Font(bold=True, size=11, color=NAVY)
+    c.fill = PatternFill("solid", fgColor=LIGHT)
+    c.alignment = Alignment(horizontal="left", vertical="center", indent=1)
+    c.border = BOX
+    ws.row_dimensions[3].height = 22
+
+
 def build_table(ws, cols, formulas, rows, tblname, spare=SPARE, dv_override=None):
     """One entry table: header row, migrated rows, then blank rows ready to use."""
     heads = [c[0] for c in cols]
@@ -434,8 +494,11 @@ def build_table(ws, cols, formulas, rows, tblname, spare=SPARE, dv_override=None
                 c.font = Font(size=10, color="595959")
                 if h in formulas:
                     c.value = render(formulas[h], heads, r)
-            elif rec.get(h) is not None:
-                c.value = rec[h]
+            else:
+                # A4: only the cells a person is meant to fill stay unlocked
+                c.protection = Protection(locked=False)
+                if rec.get(h) is not None:
+                    c.value = rec[h]
         ws.row_dimensions[r].height = 15
 
     last = DATA_ROW + nrows - 1
@@ -460,6 +523,16 @@ def build_table(ws, cols, formulas, rows, tblname, spare=SPARE, dv_override=None
             ws.add_data_validation(dv)
             dv.add(f"{gcl(ci)}{DATA_ROW}:{gcl(ci)}{DV_LAST}")
 
+    # A4: the sheet is protected without a password - it stops a stray keystroke
+    # landing in a formula, and anyone who needs to can turn it off in two clicks.
+    ws.protection.sheet = True
+    ws.protection.autoFilter = False
+    ws.protection.sort = False
+    ws.protection.formatCells = False
+    ws.protection.formatColumns = False
+    ws.protection.formatRows = False
+    ws.protection.insertRows = False
+
     for header, value, colour in (("Job in Xero?", "CHECK", WARN),
                                   ("Posted to Xero", "N", BAD),
                                   ("Revenue Split Check", "MISMATCH", BAD)):
@@ -473,7 +546,7 @@ def build_table(ws, cols, formulas, rows, tblname, spare=SPARE, dv_override=None
         ws.conditional_formatting.add(f"{c}{DATA_ROW}:{c}{CF_LAST}", FormulaRule(
             formula=[f'{c}{DATA_ROW}<>""'],
             fill=PatternFill("solid", fgColor=BAD), stopIfTrue=False))
-    return heads
+    return heads, nrows
 
 
 # ---------------------------------------------------------------- sheets
@@ -484,8 +557,10 @@ def build_finance(wb):
                 "holds it. Finance types here and nowhere else. A job invoiced part "
                 "production and part video is two lines. Filter the Issue column to see "
                 "what needs fixing.")
-    build_table(ws, FIN_COLS, FIN_FORMULAS, migrate_finance(), FIN)
+    nrows = build_table(ws, FIN_COLS, FIN_FORMULAS, migrate_finance(), FIN)[1]
+    totals_strip(ws, FIN_COLS, FIN, ["Ex GST", "GST", "Inc GST"])
     ws.freeze_panes = f"E{DATA_ROW}"
+    return nrows
 
 
 DEPT_BLURB = {
@@ -508,7 +583,8 @@ def build_dept(wb, dept):
     formulas.update(DEPT_EXTRA_FORMULAS.get(dept, {}))
     build_table(ws, JOB_CORE + DEPT_EXTRA[dept], formulas,
                 migrate_jobs(dept), DEPT_TABLE[dept])
-    ws.freeze_panes = f"B{DATA_ROW}"
+    totals_strip(ws, JOB_CORE, DEPT_TABLE[dept], ["Revenue Ex GST"])
+    ws.freeze_panes = f"C{DATA_ROW}"
 
 
 def build_wip(wb):
@@ -518,7 +594,8 @@ def build_wip(wb):
                 "Progress. SIGN RULE: + = revenue recognised this month (WIP balance up). "
                 "- = revenue deferred out of this month (WIP balance down).")
     build_table(ws, WIP_COLS, WIP_FORMULAS, migrate_wip(), "tbl_WIP", spare=200)
-    ws.freeze_panes = f"C{DATA_ROW}"
+    totals_strip(ws, WIP_COLS, "tbl_WIP", ["Amount"])
+    ws.freeze_panes = f"D{DATA_ROW}"
 
 
 CHECKS = [
@@ -551,12 +628,17 @@ CHECKS = [
     ("Jobs on a department sheet with no invoice yet",
      "+".join(f'COUNTIFS({DEPT_TABLE[d]}[Job Number],"<>",{DEPT_TABLE[d]}[Invoices],0)'
               for d in DEPTS)),
+    ("Deferred lines that also have a manual WIP journal (would double count)",
+     f'SUMPRODUCT(--({FIN}[Defer Start]<>""),--({FIN}[Xero Invoice No]<>""),'
+     f'--(COUNTIF(tbl_WIP[Xero Invoice No],{FIN}[Xero Invoice No]&"")>0))'),
+    ("Deferred lines missing an end date",
+     f'SUMPRODUCT(--({FIN}[Defer Start]<>""),--({FIN}[Defer End]=""))'),
     ('Still sitting at "To Invoice" for the selected month',
      f'COUNTIFS({FIN}[Month],$C$4,{FIN}[Status],"To Invoice")'),
 ]
 
 
-def build_month_end(wb):
+def build_month_end(wb, dlast):
     ws = wb.create_sheet("Month-End")
     title_block(ws, "Month-End Revenue Close",
                 "Pick the month, type the Xero figures into the yellow cells, and work "
@@ -589,8 +671,11 @@ def build_month_end(wb):
         ws.cell(r, 2).value = f'=SUMIFS({FIN}[Ex GST],{FIN}[Month],$C$4,{FIN}[Cost Centre],$A{r})'
         ws.cell(r, 3).value = f'=SUMIFS({FIN}[GST],{FIN}[Month],$C$4,{FIN}[Cost Centre],$A{r})'
         ws.cell(r, 4).value = f"=B{r}+C{r}"
-        ws.cell(r, 5).value = ('=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4,'
-                               f"tbl_WIP[Cost Centre],$A{r})")
+        # manual journals plus whatever the deferral engine releases this month
+        ws.cell(r, 5).value = (
+            '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4,'
+            f"tbl_WIP[Cost Centre],$A{r})"
+            f'+SUMIF({defer_range("F", dlast)},$A{r},{defer_range("Q", dlast)})')
         ws.cell(r, 6).value = f"=B{r}+E{r}"
         ws.cell(r, 8).value = f'=IF($G{r}="","",$F{r}-$G{r})'
         ws.cell(r, 9).value = (f'=IF($G{r}="","Enter Xero figure",IF(ROUND($H{r},2)=0,'
@@ -630,8 +715,11 @@ def build_month_end(wb):
     b = s2 + 2
     rows = [
         ("Opening WIP balance (all months before this one)",
-         '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],"<>",tbl_WIP[Month],"<"&$C$4)', "calc"),
-        ("Movement this month", "=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4)", "calc"),
+         '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],"<>",tbl_WIP[Month],"<"&$C$4)'
+         f'+SUM({defer_range("P", dlast)})', "calc"),
+        ("Movement this month",
+         "=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4)"
+         f'+SUM({defer_range("Q", dlast)})', "calc"),
         ("Closing WIP balance per this tracker", None, "sum"),
         ("Closing balance per the WIP Schedule file", None, "input"),
         ("Variance - tracker vs WIP Schedule", None, "var1"),
@@ -726,7 +814,98 @@ def build_month_end(wb):
     ws.freeze_panes = "A5"
 
 
-def build_wip_summary(wb):
+
+# A16: deferred revenue, released automatically.
+#
+# Put a start and an end date on a Finance line and the revenue spreads evenly
+# across those months instead of landing all in the month invoiced. No monthly
+# journal to remember and no rows to add.
+#
+#   in the month invoiced : recognise one month, defer the rest  (WIP down)
+#   every month after     : recognise one more month             (WIP up)
+#
+# Each row mirrors one Finance line by position - INDEX into the table, nothing
+# typed - so there is nothing here that can fall out of step.
+DEFER_COLS = [
+    ("Line", 7, INT, 'ROW()-{hdr}'),
+    ("Date", 11, DATE, 'IFERROR(INDEX(F[Date],$A{r}),"")'),
+    ("Xero Invoice No", 15, TXT, 'IFERROR(INDEX(F[Xero Invoice No],$A{r}),"")'),
+    ("Client", 22, TXT, 'IFERROR(INDEX(F[Client],$A{r}),"")'),
+    ("Job Number", 14, TXT, 'IFERROR(INDEX(F[Job Number],$A{r}),"")'),
+    ("Cost Centre", 14, TXT, 'IFERROR(INDEX(F[Cost Centre],$A{r}),"")'),
+    ("Ex GST", 14, CUR, 'IFERROR(INDEX(F[Ex GST],$A{r}),"")'),
+    ("Defer Start", 12, DATE, 'IFERROR(INDEX(F[Defer Start],$A{r}),"")'),
+    ("Defer End", 12, DATE, 'IFERROR(INDEX(F[Defer End],$A{r}),"")'),
+    ("Months", 9, INT,
+     'IF(OR($H{r}="",$I{r}="",$G{r}=""),"",'
+     'MAX(1,(YEAR($I{r})-YEAR($H{r}))*12+MONTH($I{r})-MONTH($H{r})+1))'),
+    ("Per Month", 14, CUR, 'IF($J{r}="","",$G{r}/$J{r})'),
+    ("Recognised to date", 17, CUR,
+     'IF($J{r}="",0,$K{r}*MAX(0,MIN(YEAR($C$3)*12+MONTH($C$3),'
+     'YEAR($I{r})*12+MONTH($I{r}))-(YEAR($H{r})*12+MONTH($H{r}))+1))'),
+    ("Recognised to prior", 18, CUR,
+     'IF($J{r}="",0,$K{r}*MAX(0,MIN(YEAR($C$3)*12+MONTH($C$3)-1,'
+     'YEAR($I{r})*12+MONTH($I{r}))-(YEAR($H{r})*12+MONTH($H{r}))+1))'),
+    ("Invoiced to date", 16, CUR,
+     'IF(OR($J{r}="",$B{r}=""),0,'
+     'IF(YEAR($B{r})*12+MONTH($B{r})<=YEAR($C$3)*12+MONTH($C$3),$G{r},0))'),
+    ("Invoiced to prior", 17, CUR,
+     'IF(OR($J{r}="",$B{r}=""),0,'
+     'IF(YEAR($B{r})*12+MONTH($B{r})<=YEAR($C$3)*12+MONTH($C$3)-1,$G{r},0))'),
+    ("Opening WIP", 14, CUR, '$M{r}-$O{r}'),
+    # movement = what is recognised this month, less what is invoiced this month
+    ("Movement", 14, CUR, '($L{r}-$M{r})-($N{r}-$O{r})'),
+    ("Closing WIP", 14, CUR, '$L{r}-$N{r}'),
+]
+DEFER_FIRST = 6          # first data row on the Deferred Revenue sheet
+
+
+def build_deferred(wb, nlines):
+    ws = wb.create_sheet("Deferred Revenue")
+    title_block(ws, "Deferred Revenue - released automatically",
+                "Every Finance line that carries a Defer Start and a Defer End. The "
+                "revenue spreads evenly across those months and the WIP movement works "
+                "itself out. Nothing is typed on this sheet - fill the two dates on "
+                "Finance and this follows.")
+    ws["A3"] = "Month"
+    ws["A3"].font = Font(bold=True, size=11)
+    c = ws["C3"]
+    c.value = "='Month-End'!C4"
+    c.number_format, c.fill, c.border = MON, CALC_FILL, BOX
+    c.font = Font(bold=True, size=12, color=NAVY)
+    c.alignment = Alignment(horizontal="center")
+    ws["D3"] = "<- set on the Month-End sheet"
+    ws["D3"].font = Font(size=9, italic=True, color="808080")
+
+    hdr = DEFER_FIRST - 1
+    for i, (h, w, fmt, _f) in enumerate(DEFER_COLS, start=1):
+        cell = ws.cell(hdr, i, h)
+        cell.font = Font(bold=True, color="FFFFFF", size=9)
+        cell.fill = PatternFill("solid", fgColor=NAVY)
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = BOX
+        ws.column_dimensions[gcl(i)].width = w
+    ws.row_dimensions[hdr].height = 32
+
+    for k in range(nlines):
+        r = DEFER_FIRST + k
+        for i, (h, w, fmt, f) in enumerate(DEFER_COLS, start=1):
+            cell = ws.cell(r, i)
+            cell.value = "=" + f.replace("F[", FIN + "[").format(r=r, hdr=hdr)
+            cell.number_format, cell.border = fmt, BOX
+            cell.font = Font(size=9, color="595959")
+            cell.fill = CALC_FILL
+    last = DEFER_FIRST + nlines - 1
+    ws.auto_filter.ref = f"A{hdr}:{gcl(len(DEFER_COLS))}{last}"
+    ws.freeze_panes = f"B{DEFER_FIRST}"
+    return last
+
+
+def defer_range(col, last):
+    return f"'Deferred Revenue'!${col}${DEFER_FIRST}:${col}${last}"
+
+
+def build_wip_summary(wb, dlast):
     """WIP by job, for the selected month.
 
     The job list is the Xero job list, fixed, so this is plain SUMIFS with no
@@ -749,8 +928,10 @@ def build_wip_summary(wb):
     ws["D4"].font = Font(size=9, italic=True, color="808080")
 
     totals = [("Opening total",
-               '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],"<>",tbl_WIP[Month],"<"&$C$4)'),
-              ("Movement this month", "=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4)"),
+               '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],"<>",tbl_WIP[Month],"<"&$C$4)'
+               f'+SUM({defer_range("P", dlast)})'),
+              ("Movement this month", "=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4)"
+               f'+SUM({defer_range("Q", dlast)})'),
               ("Closing total", "=B6+B7"),
               ("Of which is on a job Xero does not have",
                '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Job in Xero?],"CHECK",'
@@ -774,9 +955,13 @@ def build_wip_summary(wb):
         ws.cell(r, 1, str(j["job"])).number_format = TXT
         ws.cell(r, 2, j["name"]).number_format = TXT
         ws.cell(r, 3).value = (f'=SUMIFS(tbl_WIP[Amount],tbl_WIP[Job Number],$A{r},'
-                               f'tbl_WIP[Month],"<>",tbl_WIP[Month],"<"&$C$4)')
+                               f'tbl_WIP[Month],"<>",tbl_WIP[Month],"<"&$C$4)'
+                               f'+SUMIF({defer_range("E", dlast)},$A{r},'
+                               f'{defer_range("P", dlast)})')
         ws.cell(r, 4).value = (f'=SUMIFS(tbl_WIP[Amount],tbl_WIP[Job Number],$A{r},'
-                               f"tbl_WIP[Month],$C$4)")
+                               f"tbl_WIP[Month],$C$4)"
+                               f'+SUMIF({defer_range("E", dlast)},$A{r},'
+                               f'{defer_range("Q", dlast)})')
         ws.cell(r, 5).value = f"=C{r}+D{r}"
         ws.cell(r, 6).value = f'=IF(ROUND(C{r},2)+ROUND(D{r},2)=0,"","yes")'
         ws.cell(r, 8).value = f'=IF($G{r}="","",$E{r}-$G{r})'
@@ -832,6 +1017,22 @@ def build_lists(wb):
         wb.defined_names.add(DefinedName(
             name, attr_text=f"Lists!${col}$5:${col}${4 + len(vals)}"))
 
+    # link bases used by the Qwilr / Current RMS hyperlink columns
+    ws["T4"] = "Link settings"
+    ws["T5"], ws["U5"] = "Qwilr base address", "https://cts.qwilr.com/"
+    ws["T6"], ws["U6"] = "Current RMS base address", ""
+    ws["T7"] = "Paste your Current RMS opportunity address above, ending with a slash, " \
+               "and the Production links switch on."
+    ws["T7"].font = Font(size=9, italic=True, color="808080")
+    for r in (5, 6):
+        ws.cell(r, 20).font = Font(size=10, bold=True)
+        c = ws.cell(r, 21)
+        c.fill, c.border, c.number_format = INPUT_FILL, BOX, TXT
+    ws.column_dimensions["T"].width = 26
+    ws.column_dimensions["U"].width = 44
+    wb.defined_names.add(DefinedName("set_QwilrBase", attr_text="Lists!$U$5"))
+    wb.defined_names.add(DefinedName("set_RMSBase", attr_text="Lists!$U$6"))
+
     ws["K4"], ws["L4"] = "Revenue GL", "GL Account Name (from Xero)"
     for i, a in enumerate(ACC["revenue_gl"]):
         for col, val in ((11, a["code"]), (12, a["name"])):
@@ -871,7 +1072,7 @@ def build_lists(wb):
     for name, col in (("lst_Jobs", "P"), ("lst_JobName", "Q"), ("lst_JobCC", "R")):
         wb.defined_names.add(DefinedName(name, attr_text=f"Lists!${col}$5:${col}$1500"))
 
-    for col in "ABCDEFGHIKLNPQR":
+    for col in "ABCDEFGHIKLNPQRT":
         c = ws[f"{col}4"]
         c.font = Font(bold=True, color="FFFFFF", size=10)
         c.fill = PatternFill("solid", fgColor=SLATE)
@@ -900,7 +1101,11 @@ README = [
        "One row per job. Client, invoice count and revenue come from Finance automatically; "
        "the department fills in its own costs, hours and references."),
  ("R", "WIP Movements",
-       "Every journal that moves revenue between the P&L and GL 11300 Work in Progress."),
+       "Manual journals between the P&L and GL 11300 Work in Progress. Anything with a "
+       "defer start and end on Finance does not belong here - it is handled automatically."),
+ ("R", "Deferred Revenue",
+       "The workings behind the automatic deferrals. Nothing is typed here; it mirrors the "
+       "Finance lines that carry a defer start and end."),
  ("R", "Month-End",
        "The close: revenue by cost centre against Xero, the WIP reconciliation, fifteen "
        "data checks and a sign-off box."),
@@ -910,6 +1115,19 @@ README = [
  ("R", "Lists",
        "Every dropdown. Cost centres, job numbers and revenue GL codes came straight out of "
        "your Xero organisation, so they already match."),
+ ("B", ""),
+ ("H", "DEFERRED REVENUE  -  it releases itself"),
+ ("P", "Put a Defer Start and a Defer End on a Finance line and the revenue spreads evenly "
+       "across those months instead of landing all in the month you invoiced. Leave both "
+       "blank for an ordinary one-off invoice."),
+ ("P", "   In the month invoiced: one month is recognised, the rest goes to WIP."),
+ ("P", "   Every month after: one more month is released, automatically."),
+ ("P", "Worked example - $12,000 invoiced 15 Sep 2025 for Sep 2025 to Aug 2026. September "
+       "recognises $1,000 and defers $11,000. Each month after releases $1,000. By August "
+       "2026 the balance is nil. Nothing is typed each month and no journal is needed."),
+ ("P", "The Deferred Revenue sheet shows the workings line by line, and Month-End and WIP "
+       "Summary already include it. One warning: a deferred line must not ALSO have a "
+       "manual row on WIP Movements or it counts twice - Month-End checks for that."),
  ("B", ""),
  ("H", "VIDEO REVENUE"),
  ("P", "There is no video split column any more, and nothing to keep honest. In Xero a "
@@ -949,6 +1167,17 @@ README = [
        "or a deferral released). Negative = revenue pushed out of this month (invoiced in "
        "advance). So revenue recognised = invoiced Ex GST + WIP movement, and the running "
        "total of the Amount column is the GL 11300 balance."),
+ ("B", ""),
+ ("H", "LOCKED CELLS, LINKS AND TOTALS"),
+ ("P", "Every sheet is protected with no password. Only the cells you are meant to fill are "
+       "open; the grey calculated ones are locked so a stray keystroke cannot wipe a "
+       "formula. To turn it off: Review, Unprotect Sheet. Sorting and filtering still work."),
+ ("P", "Qwilr quotes and Current RMS numbers are clickable. Paste a full web address and it "
+       "is used as it stands; type a bare number and it is added to the base address on the "
+       "Lists sheet. The Qwilr base is already set. Paste your Current RMS address into "
+       "Lists column U, row 6, and the Production links switch on."),
+ ("P", "Each sheet shows its total ex-GST at the top, and it follows the filter - filter to "
+       "one client or one month and the total follows. Finance shows Ex GST, GST and Inc GST."),
  ("B", ""),
  ("H", "RULES THAT KEEP IT FAST"),
  ("P", "   Never insert or delete rows above the header row."),
@@ -1030,18 +1259,20 @@ def main():
     wb = openpyxl.Workbook()
     wb.remove(wb.active)
     build_lists(wb)
-    build_finance(wb)
+    nlines = build_finance(wb)
     for d in DEPTS:
         build_dept(wb, d)
     build_wip(wb)
-    build_month_end(wb)
-    build_wip_summary(wb)
+    dlast = build_deferred(wb, nlines)
+    build_month_end(wb, dlast)
+    build_wip_summary(wb, dlast)
     build_readme(wb)
 
     colours = {"Read Me": "7F7F7F", "Finance": NAVY, "Month-End": "2E6B4F",
-               "WIP Summary": "2E6B4F", "Onsite": SLATE, "Production": SLATE,
+               "WIP Summary": "2E6B4F", "Deferred Revenue": "8B6A2B",
+               "Onsite": SLATE, "Production": SLATE,
                "Consulting": SLATE, "WIP Movements": "8B6A2B", "Lists": "A6A6A6"}
-    order = ["Read Me", "Finance", "Month-End", "WIP Summary",
+    order = ["Read Me", "Finance", "Month-End", "WIP Summary", "Deferred Revenue",
              "Onsite", "Production", "Consulting", "WIP Movements", "Lists"]
     for name, colour in colours.items():
         wb[name].sheet_properties.tabColor = colour
