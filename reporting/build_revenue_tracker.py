@@ -253,8 +253,9 @@ DEPT_EXTRA = {
 # as it stands; a bare number is appended to the base address on the Lists sheet.
 QWILR = ('=IF({Qwilr Quote}="","",HYPERLINK(IF(LEFT({Qwilr Quote},4)="http",{Qwilr Quote},'
          'set_QwilrBase&{Qwilr Quote}),"Open quote"))')
-RMS = ('=IF(OR({Current RMS No}="",set_RMSBase=""),"",'
-       'HYPERLINK(set_RMSBase&{Current RMS No},"Open "&{Current RMS No}))')
+RMS = ('=IF({Current RMS No}="","",IF(AND(LEFT({Current RMS No},4)<>"http",'
+       'set_RMSBase=""),"",HYPERLINK(IF(LEFT({Current RMS No},4)="http",'
+       '{Current RMS No},set_RMSBase&{Current RMS No}),"Open opportunity")))')
 
 DEPT_EXTRA_FORMULAS = {
     "Onsite": {"Open Qwilr": QWILR},
@@ -304,9 +305,11 @@ FIN_FORMULAS["Job Quote / Ref"] = '=IF({Job Number}="","",' + _dept_pick(
     {"Onsite": "Qwilr Quote", "Consulting": "Qwilr Quote",
      "Production": "Current RMS No"}) + ')'
 FIN_FORMULAS["Open Quote"] = (
-    '=IF({Job Quote / Ref}="","",HYPERLINK(IF(LEFT({Job Quote / Ref},4)="http",'
+    '=IF({Job Quote / Ref}="","",IF(AND(LEFT({Job Quote / Ref},4)<>"http",'
+    'IF({Team}="Production",set_RMSBase,set_QwilrBase)=""),"",'
+    'HYPERLINK(IF(LEFT({Job Quote / Ref},4)="http",'
     '{Job Quote / Ref},IF({Team}="Production",set_RMSBase,set_QwilrBase)'
-    '&{Job Quote / Ref}),"Open"))')
+    '&{Job Quote / Ref}),"Open")))')
 FIN_FORMULAS["Job Expense"] = '=IF({Job Number}="","",' + _dept_pick(
     {"Production": "Total Expense", "Consulting": "Total Expense"}, default="0") + ')'
 FIN_FORMULAS["Dept Notes"] = '=IF({Job Number}="","",' + _dept_pick(
@@ -1092,8 +1095,9 @@ def build_lists(wb):
     wb.defined_names.add(DefinedName("set_GSTRate", attr_text="Lists!$U$8"))
     ws["T5"], ws["U5"] = "Qwilr base address", "https://cts.qwilr.com/"
     ws["T6"], ws["U6"] = "Current RMS base address", ""
-    ws["T7"] = "Paste your Current RMS opportunity address above, ending with a slash, " \
-               "and the Production links switch on."
+    ws["T7"] = "Optional. Paste the whole Current RMS address straight onto the " \
+               "Production sheet and it links without this. Fill this in only if " \
+               "you would rather type the bare opportunity number - end it with a slash."
     ws["T7"].font = Font(size=9, italic=True, color="808080")
     for r in (5, 6):
         ws.cell(r, 20).font = Font(size=10, bold=True)
@@ -1245,8 +1249,10 @@ README = [
        "formula. To turn it off: Review, Unprotect Sheet. Sorting and filtering still work."),
  ("P", "Qwilr quotes and Current RMS numbers are clickable. Paste a full web address and it "
        "is used as it stands; type a bare number and it is added to the base address on the "
-       "Lists sheet. The Qwilr base is already set. Paste your Current RMS address into "
-       "Lists column U, row 6, and the Production links switch on."),
+       "Lists sheet. The Qwilr base is already set, and Current RMS on the Production "
+       "sheet now works exactly the same way - paste the whole Current RMS address into "
+       "the Current RMS No cell and it links straight away. Only fill in Lists column U "
+       "row 6 if you would rather type the bare opportunity number."),
  ("P", "Each sheet shows its total ex-GST at the top, and it follows the filter - filter to "
        "one client or one month and the total follows. Finance shows Ex GST, GST and Inc GST."),
  ("P", "The GST rate is no longer buried in the formula. It sits on the Lists sheet, column U "
