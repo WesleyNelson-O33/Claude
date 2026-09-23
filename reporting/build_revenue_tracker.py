@@ -193,13 +193,13 @@ JOB_CORE = [
     ("Cost Centres", 16, TXT, "f"),
 ]
 JOB_CORE_FORMULAS = {
-    "Invoice Date": '=IF({Job Number}="","",IFERROR(IF(SUMPRODUCT(MAX((' + FIN +
-                    '[Job Number]={Job Number}&"")*' + FIN + '[Date]))=0,"",'
-                    'SUMPRODUCT(MAX((' + FIN + '[Job Number]={Job Number}&"")*'
-                    + FIN + '[Date]))),""))',
-    "Invoice No": '=IF({Invoice Date}="","",IFERROR(LOOKUP(2,1/((' + FIN +
-                  '[Job Number]={Job Number}&"")*(' + FIN + '[Date]={Invoice Date})),'
-                  + FIN + '[Xero Invoice No]),""))',
+    "Invoice Date": '=IF({Job Number}="","",IFERROR(IF(SUMPRODUCT(MAX((tbl_Finance[Job Number]={Job Number}&"")*(tbl_Finance[Xero Invoice No]<>"")*tbl_Finance[Date]))=0,"",'
+                    'SUMPRODUCT(MAX((tbl_Finance[Job Number]={Job Number}&"")*(tbl_Finance[Xero Invoice No]<>"")*tbl_Finance[Date]))),""))',
+    # The most recent invoice number on the job. If the job carries more than
+    # one, say so rather than quietly showing just the last.
+    "Invoice No": '=IF({Job Number}="","",IF(COUNTIFS(tbl_Finance[Job Number],{Job Number}&"",tbl_Finance[Xero Invoice No],"<>")=0,"",'
+                  'IFERROR(IF(COUNTIFS(tbl_Finance[Job Number],{Job Number}&"",tbl_Finance[Xero Invoice No],LOOKUP(2,1/((tbl_Finance[Job Number]={Job Number}&"")*(tbl_Finance[Xero Invoice No]<>"")),tbl_Finance[Xero Invoice No]))=COUNTIFS(tbl_Finance[Job Number],{Job Number}&"",tbl_Finance[Xero Invoice No],"<>"),LOOKUP(2,1/((tbl_Finance[Job Number]={Job Number}&"")*(tbl_Finance[Xero Invoice No]<>"")),tbl_Finance[Xero Invoice No]),'
+                  'LOOKUP(2,1/((tbl_Finance[Job Number]={Job Number}&"")*(tbl_Finance[Xero Invoice No]<>"")),tbl_Finance[Xero Invoice No])&" +more"),"")))',
     "Job in Xero?": '=IF({Job Number}="","",IF(COUNTIF(lst_Jobs,{Job Number}&"")>0,"OK","CHECK"))',
     "Job Name (Xero)": '=IF({Job Number}="","",IFERROR(INDEX(lst_JobName,'
                        'MATCH({Job Number}&"",lst_Jobs,0)),""))',
@@ -214,8 +214,10 @@ JOB_CORE_FORMULAS = {
     "To Invoice": '=IF({Job Number}="","",{Revenue Ex GST}-{Invoiced})',
     "Revenue Ex GST": '=IF({Job Number}="","",SUMIFS(' + FIN + '[Ex GST],'
                       + FIN + '[Job Number],{Job Number}&""))',
-    "Cost Centres": '=IF({Job Number}="","",IFERROR(INDEX(' + FIN + '[Cost Centre],'
-                    'MATCH({Job Number}&"",' + FIN + '[Job Number],0)),"not invoiced yet"))',
+    # A job can be invoiced across several cost centres - list every one
+    # of them, not just the first line's.
+    "Cost Centres": '=IF({Job Number}="","",IF({Lines on Job}=0,"not invoiced yet",'
+                    'SUBSTITUTE(TRIM(IF(COUNTIFS(tbl_Finance[Job Number],{Job Number}&"",tbl_Finance[Cost Centre],"ONSITE")>0,"ONSITE ","")&IF(COUNTIFS(tbl_Finance[Job Number],{Job Number}&"",tbl_Finance[Cost Centre],"PRODUCTION")>0,"PRODUCTION ","")&IF(COUNTIFS(tbl_Finance[Job Number],{Job Number}&"",tbl_Finance[Cost Centre],"VIDEO")>0,"VIDEO ","")&IF(COUNTIFS(tbl_Finance[Job Number],{Job Number}&"",tbl_Finance[Cost Centre],"INTEGRATION")>0,"INTEGRATION ","")&IF(COUNTIFS(tbl_Finance[Job Number],{Job Number}&"",tbl_Finance[Cost Centre],"CONSULTING")>0,"CONSULTING ","")&IF(COUNTIFS(tbl_Finance[Job Number],{Job Number}&"",tbl_Finance[Cost Centre],"CTS")>0,"CTS ",""))," ",", ")))',
 }
 
 DEPT_EXTRA = {
@@ -989,16 +991,24 @@ def build_wip_summary(wb, dlast):
               ("Movement this month", "=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4)"
                f'+SUM({defer_range("Q", dlast)})'),
               ("Closing total", "=B6+B7"),
-              ("Of which is on a job Xero does not have",
+              # A WIP row on a job number Xero does not have cannot appear in
+              # the job list below, so say what it is worth and what the list
+              # below therefore adds up to. Otherwise the job-by-job total
+              # quietly disagrees with the closing total.
+              ("Of which is on a job Xero does not have - fix these",
                '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Job in Xero?],"CHECK",'
-               'tbl_WIP[Month],"<="&$C$4)')]
+               'tbl_WIP[Month],"<="&$C$4)'),
+              ("Closing listed below, job by job", "=B8-B9")]
     for i, (label, formula) in enumerate(totals):
         r = 6 + i
         ws.cell(r, 1, label).font = Font(bold=True, size=10)
         vc = ws.cell(r, 2)
         vc.value, vc.number_format, vc.border = formula, CUR, BOX
-        vc.fill = CALC_FILL if r != 8 else PatternFill("solid", fgColor=LIGHT)
+        vc.fill = CALC_FILL if r not in (8, 10) else PatternFill("solid", fgColor=LIGHT)
         vc.font = Font(bold=True, size=10, color=NAVY)
+
+    ws.conditional_formatting.add("B9", FormulaRule(
+        formula=['ROUND(B9,2)<>0'], fill=PatternFill("solid", fgColor=BAD)))
 
     col_heads(ws, 11, ["Job Number", "Job Name (Xero)", "Opening", "Movement",
                        "Closing", "Any balance?", "Per WIP Schedule (paste in)",
@@ -1255,7 +1265,7 @@ README = [
  ("H", "WHAT CAME ACROSS FROM v2"),
  ("P", "   Finance: 175 invoice lines from the 149 v2 records, the difference being the 26 "
        "video splits now carried as their own line."),
- ("P", "   Department sheets: one row per job - Onsite 28, Production 58, Consulting 28."),
+ ("P", "   Department sheets: one row per job - Onsite 27, Production 58, Consulting 28."),
  ("P", "   WIP Movements: 126 rows."),
  ("P", "   Totals tie to the cent: Onsite 512,023.81, Production 460,883.46, Consulting "
        "857,950.27, WIP 17,537.91."),
@@ -1277,45 +1287,177 @@ README = [
 ]
 
 
-def build_readme(wb):
-    ws = wb.create_sheet("Read Me")
+# Words that must keep their capitals when the easy-read version drops SHOUTING.
+# Real acronyms - these keep their capitals even in a heading.
+KEEP_CAPS = {"GST", "WIP", "GL", "PO", "P&L", "VBA", "CSV", "FY27", "CTS"}
+# Shouted words inside body text that are only there for emphasis. Cost centre
+# codes (PRODUCTION, VIDEO) and function names (VSTACK) are left alone - they
+# are literal values you will see in the sheet.
+DESHOUT = {"LINE": "line", "ALSO": "also", "LINES": "lines",
+           "ASSUMPTION": "Assumption", "NOT": "not"}
+
+ABBREV = {"no", "mr", "dr", "eg", "ie", "vs", "st", "ltd", "pty", "inc"}
+
+
+def sentence_case(text):
+    """WHO TYPES WHERE -> Who types where, without flattening real acronyms."""
+    out = []
+    for word in text.split(" "):
+        core = word.strip(",.:;()-")
+        if core and core.isupper() and core not in KEEP_CAPS and not core.isdigit():
+            word = word.replace(core, core.lower())
+        out.append(word)
+    text = " ".join(out)
+    for i, ch in enumerate(text):
+        if ch.isalpha():
+            return text[:i] + ch.upper() + text[i + 1:]
+    return text
+
+
+def split_sentences(text):
+    """One sentence per line reads far easier. Split only where it is safe."""
+    parts, start = [], 0
+    for m in re.finditer(r"\.\s+", text):
+        before = text[:m.start()]
+        words = re.findall(r"[A-Za-z0-9&%]+", before)
+        word = words[-1] if words else ""
+        after = text[m.end():m.end() + 1]
+        if not before or before[-1] not in (
+                "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789)%"):
+            continue
+        if len(word) < 2 or word.lower() in ABBREV:
+            continue
+        if word.isdigit() and not before[:m.start()].strip():
+            continue
+        if not (after.isupper() or after.isdigit() or after in "$"):
+            continue
+        parts.append(text[start:m.start() + 1].strip())
+        start = m.end()
+    tail = text[start:].strip()
+    if tail:
+        parts.append(tail)
+    return parts or [text]
+
+
+def deshout(text):
+    for word, plain in DESHOUT.items():
+        text = re.sub(r"\b" + word + r"\b", plain, text)
+    return text
+
+
+# Two ways to read the same words. "normal" is the compact original.
+# "easy" follows the British Dyslexia Association style guide: sans-serif
+# Verdana, 13pt, off-white background, dark grey rather than black, short
+# lines, one sentence per line, 1.5 line spacing, no italics, no SHOUTING.
+STYLE = {
+    "normal": dict(sheet="Read Me", font=None, size=10, head=11, title=20,
+                   sub=10, ink="000000", paper=None, widths=(3, 30, 106),
+                   chars=106, line=14, gap=1.0, italic_sub=True, split=False),
+    "easy":   dict(sheet="Read Me (Easy Read)", font="Verdana", size=13,
+                   head=14, title=22, sub=13, ink="1F1F1F", paper="FFFBF0",
+                   widths=(4, 34, 92), chars=62, line=17, gap=1.55,
+                   italic_sub=False, split=True),
+}
+
+POINTER = {
+    "normal": "Bigger text, shorter lines, one sentence per line: open the "
+              "Read Me (Easy Read) tab. Same words, easier on the eye.",
+    "easy":   "This is the easy-read version. The standard, more compact "
+              "version is on the Read Me tab.",
+}
+
+
+def build_readme(wb, mode="normal"):
+    st = STYLE[mode]
+    ws = wb.create_sheet(st["sheet"])
     ws.sheet_view.showGridLines = False
-    for col, width in (("A", 3), ("B", 30), ("C", 106)):
+    for col, width in zip(("A", "B", "C"), st["widths"]):
         ws.column_dimensions[col].width = width
+
+    def font(size=None, bold=False, italic=False, colour=None):
+        kw = dict(size=size or st["size"], bold=bold, italic=italic,
+                  color=colour or st["ink"])
+        if st["font"]:
+            kw["name"] = st["font"]
+        return Font(**kw)
+
+    def height(text, size=None):
+        per = st["chars"] * (st["size"] / (size or st["size"]))
+        lines = max(1, int(len(text) // per) + 1)
+        return st["line"] * st["gap"] * lines
+
     r = 2
     for item in README:
         kind, body = item[0], item[1]
         if kind == "T":
-            ws.cell(r, 2, body).font = Font(size=20, bold=True, color=NAVY)
-            ws.row_dimensions[r].height = 28
+            ws.cell(r, 2, body).font = font(st["title"], bold=True, colour=NAVY)
+            ws.row_dimensions[r].height = st["title"] * 1.4
+            r += 1
+            if mode == "easy":
+                continue
         elif kind == "S":
-            ws.cell(r, 2, body).font = Font(size=10, italic=True, color="595959")
+            ws.cell(r, 2, body).font = font(st["sub"], italic=st["italic_sub"],
+                                            colour="595959")
         elif kind == "B":
-            ws.row_dimensions[r].height = 10
+            ws.row_dimensions[r].height = 10 * st["gap"]
         elif kind in ("H", "W"):
+            text = sentence_case(body) if mode == "easy" else body
             ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=3)
-            c = ws.cell(r, 2, body)
-            c.font = Font(size=11, bold=True, color="FFFFFF")
+            c = ws.cell(r, 2, text)
+            c.font = font(st["head"], bold=True, colour="FFFFFF")
             c.fill = PatternFill("solid", fgColor=(NAVY if kind == "H" else "8B2B2B"))
             c.alignment = Alignment(vertical="center", indent=1)
-            ws.row_dimensions[r].height = 22
+            ws.row_dimensions[r].height = st["head"] * 2.0
         elif kind == "R":
-            lc = ws.cell(r, 2, body)
-            lc.font = Font(size=10, bold=True, color=NAVY)
-            lc.alignment = Alignment(vertical="top")
-            lc.fill = PatternFill("solid", fgColor=LIGHT)
+            label = item[1]
+            text = deshout(item[2]) if mode == "easy" else item[2]
+            lc = ws.cell(r, 2, label)
+            lc.font = font(bold=True, colour=NAVY)
+            lc.alignment = Alignment(vertical="top", wrap_text=True, indent=1)
+            lc.fill = PatternFill("solid", fgColor=(LIGHT if mode == "normal" else "F4EDDD"))
             lc.border = BOX
-            c = ws.cell(r, 3, item[2])
-            c.font = Font(size=10)
-            c.alignment = Alignment(wrap_text=True, vertical="top")
+            if mode == "easy":
+                text = "\n".join(split_sentences(text))
+            c = ws.cell(r, 3, text)
+            c.font = font()
+            c.alignment = Alignment(wrap_text=True, vertical="top", indent=1)
             c.border = BOX
-            ws.row_dimensions[r].height = 15 * max(1, (len(item[2]) // 103) + 1)
+            ws.row_dimensions[r].height = height(text) + (
+                st["line"] * st["gap"] * text.count("\n"))
         else:
+            if mode == "easy":
+                lines = split_sentences(deshout(body))
+                for line in lines:
+                    c = ws.cell(r, 3, line)
+                    c.font = font()
+                    c.alignment = Alignment(wrap_text=True, vertical="top")
+                    ws.row_dimensions[r].height = height(line)
+                    r += 1
+                ws.row_dimensions[r].height = 6
+                r += 1
+                continue
             c = ws.cell(r, 3, body)
-            c.font = Font(size=10)
+            c.font = font()
             c.alignment = Alignment(wrap_text=True, vertical="top")
-            ws.row_dimensions[r].height = 14 * max(1, (len(body) // 106) + 1)
+            ws.row_dimensions[r].height = height(body)
         r += 1
+
+    # Cross-reference so nobody has to be told the other version exists.
+    r += 1
+    ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=3)
+    c = ws.cell(r, 2, POINTER[mode])
+    c.font = font(bold=True, colour=NAVY)
+    c.fill = PatternFill("solid", fgColor=(LIGHT if mode == "normal" else "F4EDDD"))
+    c.alignment = Alignment(vertical="center", wrap_text=True, indent=1)
+    c.border = BOX
+    ws.row_dimensions[r].height = st["line"] * st["gap"] * 2
+
+    if st["paper"]:
+        paper = PatternFill("solid", fgColor=st["paper"])
+        for row in ws.iter_rows(min_row=1, max_row=r + 2, min_col=1, max_col=4):
+            for cell in row:
+                if cell.fill is None or cell.fill.fgColor.rgb in (None, "00000000"):
+                    cell.fill = paper
 
 
 def main():
@@ -1329,13 +1471,14 @@ def main():
     dlast = build_deferred(wb, nlines)
     build_month_end(wb, dlast)
     build_wip_summary(wb, dlast)
-    build_readme(wb)
+    build_readme(wb, "normal")
+    build_readme(wb, "easy")
 
-    colours = {"Read Me": "7F7F7F", "Finance": NAVY, "Month-End": "2E6B4F",
+    colours = {"Read Me": "7F7F7F", "Read Me (Easy Read)": "A6A6A6", "Finance": NAVY, "Month-End": "2E6B4F",
                "WIP Summary": "2E6B4F", "Deferred Revenue": "8B6A2B",
                "Onsite": SLATE, "Production": SLATE,
                "Consulting": SLATE, "WIP Movements": "8B6A2B", "Lists": "A6A6A6"}
-    order = ["Read Me", "Finance", "Month-End", "WIP Summary", "Deferred Revenue",
+    order = ["Read Me", "Read Me (Easy Read)", "Finance", "Month-End", "WIP Summary", "Deferred Revenue",
              "Onsite", "Production", "Consulting", "WIP Movements", "Lists"]
     for name, colour in colours.items():
         wb[name].sheet_properties.tabColor = colour
