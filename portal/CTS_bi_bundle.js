@@ -154,6 +154,7 @@
     E.loadGL(window.CTS_GL);
     E.loadFin(window.CTS_FIN);
     E.loadUtil(window.CTS_UTIL);
+    E.loadStaff(window.CTS_STAFF);
     E.loadUsers(window.CTS_USERS);
     E.clients = window.CTS_CLIENTS || { clients: [], schedule: [] };
     E.clientMeta = {};
@@ -373,6 +374,81 @@
     list = list || E.depts;
     if (!scope) return list;
     return list.filter(function (d) { return d.code === scope; });
+  };
+
+  /* ---- people ---------------------------------------------------------- */
+  E.loadStaff = function (data) {
+    var d = data || { cols: [], rows: [] };
+    var ci = {};
+    (d.cols || []).forEach(function (c, i) { ci[c] = i; });
+    E.staffRows = (d.rows || []).map(function (r) {
+      return { month: r[ci.month], empId: r[ci.empId], name: r[ci.name], dept: r[ci.dept],
+               chargeable: +r[ci.chargeable] || 0, nonChargeable: +r[ci.nonChargeable] || 0,
+               leave: +r[ci.leave] || 0, publicHoliday: +r[ci.publicHoliday] || 0,
+               gross: +r[ci.grossCents] || 0, sup: +r[ci.superCents] || 0,
+               employment: r[ci.employment] || null };
+    });
+    E.staffMeta = d.meta || {};
+    E.hasStaff = E.staffRows.length > 0;
+    return E;
+  };
+
+  /** Profitability per person.
+   *
+   *  Revenue is not billed per person anywhere, so it is attributed: each
+   *  department's revenue for the period is spread across its people on their
+   *  share of that department's chargeable hours. That is a fair way to read
+   *  who is carrying the work, and it is not the same as what someone earned.
+   *  Anyone with no chargeable hours receives none, which is why support staff
+   *  show a loss and should be read as a cost, not a performance.
+   */
+  E.staffFor = function (monthKeys) {
+    var byEmp = {}, deptChg = {}, deptRev = {};
+    var keys = {};
+    monthKeys.forEach(function (k) { keys[k] = 1; });
+
+    E.staffRows.forEach(function (r) {
+      if (!keys[r.month]) return;
+      var e = byEmp[r.empId] || (byEmp[r.empId] = {
+        empId: r.empId, name: r.name, dept: r.dept, employment: r.employment,
+        chargeable: 0, nonChargeable: 0, leave: 0, publicHoliday: 0, gross: 0, sup: 0,
+        months: {} });
+      e.chargeable += r.chargeable; e.nonChargeable += r.nonChargeable;
+      e.leave += r.leave; e.publicHoliday += r.publicHoliday;
+      e.gross += r.gross; e.sup += r.sup;
+      e.months[r.month] = 1;
+      if (r.employment) e.employment = r.employment;
+      deptChg[r.dept] = (deptChg[r.dept] || 0) + r.chargeable;
+    });
+
+    E.postingDepts.forEach(function (d) {
+      deptRev[d.code] = E.sumMonths((E.idx.deptCatMonth[d.code] || {}).income, monthKeys);
+    });
+
+    var rows = Object.keys(byEmp).map(function (id) {
+      var e = byEmp[id];
+      var worked = e.chargeable + e.nonChargeable;
+      var cost = e.gross + e.sup;
+      var share = deptChg[e.dept] ? e.chargeable / deptChg[e.dept] : 0;
+      var revenue = Math.round((deptRev[e.dept] || 0) * share);
+      var margin = revenue - cost;
+      return {
+        empId: e.empId, name: e.name, dept: e.dept, deptShort: (E.deptOf[e.dept] || {}).short || e.dept,
+        employment: e.employment, months: Object.keys(e.months).length,
+        chargeable: e.chargeable, nonChargeable: e.nonChargeable,
+        leave: e.leave, publicHoliday: e.publicHoliday, worked: worked,
+        util: worked ? e.chargeable / worked : null,
+        gross: e.gross, sup: e.sup, cost: cost,
+        revenue: revenue, margin: margin,
+        marginPct: revenue ? margin / revenue : null,
+        recovery: cost ? revenue / cost : null,
+        chargeRate: e.chargeable ? Math.round(revenue / e.chargeable) : null,
+        costRate: worked ? Math.round(cost / worked) : null,
+        billable: e.chargeable > 0,
+      };
+    });
+    rows.sort(function (a, b) { return b.margin - a.margin; });
+    return { rows: rows, deptRevenue: deptRev, deptChargeable: deptChg };
   };
 
   /* ---- period helpers ------------------------------------------------ */
@@ -2734,6 +2810,7 @@
 
       renderLocations();
       renderCategories();
+      renderAdjustments();
       st.panel.appendChild(h("div.row", [
         h("button.btn", { onclick: apply }, "Load this pay run"),
         h("span.muted", "Adds to whatever is already loaded, month by month."),
@@ -2835,17 +2912,111 @@
       ], cats, { dense: true }));
     }
 
+    /** A line that carries pay but no hours: a back pay, a bonus, a per diem
+     *  in nights. Left alone it moves labour cost without touching utilisation,
+     *  which is right for a bonus and wrong for a back pay: a back pay is hours
+     *  somebody actually worked, they were just paid for them late. This table
+     *  is where those become hours again, against a cost centre and a name. */
+    function lineSig(r) {
+      var c = st.col;
+      return [c.empExt >= 0 ? r[c.empExt] : "", c.catName >= 0 ? r[c.catName] : "",
+              c.gross >= 0 ? r[c.gross] : "",
+              c.notes >= 0 ? String(r[c.notes] || "").slice(0, 28) : ""].join("|");
+    }
+    function adjustMap() { return CTS.store.get("ehLineAdjust", {}); }
+    function setAdjust(sig, field, value) {
+      var m = adjustMap();
+      m[sig] = m[sig] || {};
+      m[sig][field] = value;
+      CTS.store.set("ehLineAdjust", m);
+    }
+
+    function payOnlyLines() {
+      var t = st.parsed, c = st.col, cats = catMap(), out = [];
+      t.rows.forEach(function (r, i) {
+        var catName = String(r[c.catName] || "").trim() || "(blank)";
+        var kind = cats[catName] || guessCategory(catName);
+        var isHours = c.unitType < 0 || /hour/i.test(String(r[c.unitType]));
+        var units = isHours ? num(r[c.units]) : 0;
+        if (kind !== "exclude" && units > 0) return;
+        out.push({ i: i, row: r, sig: lineSig(r), cat: catName,
+          who: c.empName >= 0 ? String(r[c.empName] || "").trim() : "",
+          loc: String(r[c.locName] || "").trim(),
+          note: c.notes >= 0 ? String(r[c.notes] || "").replace(/\s+/g, " ").trim() : "",
+          gross: c.gross >= 0 ? money(r[c.gross]) : 0,
+          units: num(r[c.units]) });
+      });
+      return out;
+    }
+
+    function renderAdjustments() {
+      var lines = payOnlyLines();
+      st.panel.appendChild(h("h4", "5. Paid but not worked"));
+      if (!lines.length) {
+        st.panel.appendChild(U.note("Every line in this pay run carries hours. Nothing to reallocate."));
+        return;
+      }
+      var adj = adjustMap(), locs = locMap();
+      var locNames = Object.keys(locs).sort();
+      st.panel.appendChild(U.note("These carry pay but no hours, so as they stand they move labour cost without touching utilisation. That is right for a bonus and wrong for a back pay: a back pay is hours somebody worked, paid late. Type the hours in and pick the cost centre they belong to, and they count as worked time against that person and department."));
+
+      st.panel.appendChild(U.table([
+        { key: "who", label: "Employee", align: "left",
+          value: function (r) { return r.who || h("span.muted", "not named"); } },
+        { key: "cat", label: "Pay category", align: "left" },
+        { key: "note", label: "Note", align: "left",
+          value: function (r) {
+            return h("span", { title: r.note }, r.note.length > 44 ? r.note.slice(0, 43) + "\u2026" : r.note);
+          } },
+        { key: "gross", label: "Gross", fmt: function (v) { return "$" + F.num(v, 2); } },
+        { key: "hours", label: "Hours worked", align: "left",
+          value: function (r) {
+            return h("input.control.small", { type: "number", step: "0.25", min: "0",
+              style: { width: "5.5rem" },
+              value: (adj[r.sig] && adj[r.sig].hours) || "",
+              placeholder: "0",
+              onchange: function (e) { setAdjust(r.sig, "hours", e.target.value); } });
+          } },
+        { key: "loc", label: "Cost centre to post to", align: "left",
+          value: function (r) {
+            var cur = (adj[r.sig] && adj[r.sig].loc) || r.loc;
+            return h("select.control.small", {
+              onchange: function (e) { setAdjust(r.sig, "loc", e.target.value); },
+            }, locNames.map(function (n) {
+              return h("option", { value: n, selected: n === cur },
+                n + "  \u2192  " + ((E.deptOf[locs[n].dept] || {}).short || locs[n].dept));
+            }));
+          } },
+        { key: "kind", label: "Counts as", align: "left",
+          value: function (r) {
+            var typed = parseFloat(adj[r.sig] && adj[r.sig].hours);
+            var cur = (adj[r.sig] && adj[r.sig].kind) ||
+                      (!isNaN(typed) && typed > 0 ? "work" : "exclude");
+            return h("select.control.small", {
+              onchange: function (e) { setAdjust(r.sig, "kind", e.target.value); },
+            }, [{ v: "exclude", l: "Pay only" }, { v: "work", l: "Worked time" },
+                { v: "leave", l: "Leave" }, { v: "publicHoliday", l: "Public holiday" }]
+              .map(function (k) {
+                return h("option", { value: k.v, selected: k.v === cur }, k.l);
+              }));
+          } },
+      ], lines, { dense: true }));
+      st.panel.appendChild(U.note("Enter hours and the line becomes worked time automatically; whether those hours are chargeable then follows the cost centre you pick, the same as every other line. Set it back to pay only if you want the cost without the hours. Entries are remembered, so re-pasting the same pay run keeps them.", "muted"));
+    }
+
     function apply() {
       var t = st.parsed, c = st.col;
       var locs = locMap(), cats = catMap(), fallback = periodSel.value;
       var bucket = {}, labour = {}, people = {}, skipped = 0, monthsSeen = {};
       var usedFallback = 0, payOnly = {}, hourMonths = {};
+      var adj = adjustMap(), staff = {}, reallocated = 0;
 
       t.rows.forEach(function (r) {
         var locName = String(r[c.locName] || "").trim() || "(blank)";
         var loc = locs[locName] || { dept: "UNALLOCATED", chargeable: false };
         var catName = String(r[c.catName] || "").trim() || "(blank)";
         var kind = cats[catName] || guessCategory(catName);
+        var emp = guessEmployment(catName);
 
         var iso = c.notes >= 0 ? noteDate(r[c.notes]) : null;
         var mk = iso ? iso.slice(0, 7) : fallback;
@@ -2857,6 +3028,22 @@
         var units = isHours ? num(r[c.units]) : 0;
         var gross = c.gross >= 0 ? money(r[c.gross]) : 0;
         var sup = c["super"] >= 0 ? money(r[c["super"]]) : 0;
+
+        // a line the reallocation table has given hours and a cost centre
+        var a = adj[lineSig(r)];
+        if (a) {
+          var ah = parseFloat(a.hours);
+          if (a.loc && locs[a.loc]) { locName = a.loc; loc = locs[a.loc]; }
+          if (a.kind) kind = a.kind;
+          if (!isNaN(ah) && ah > 0 && units === 0) {
+            units = ah;
+            // Typing hours against a line is the whole point of the table, so
+            // a line still marked pay only becomes worked time rather than
+            // reporting a reallocation that went nowhere.
+            if (kind === "exclude") kind = "work";
+            reallocated++;
+          }
+        }
 
         var key = mk + "|" + loc.dept;
         var b = bucket[key] || (bucket[key] = { month: mk, dept: loc.dept,
@@ -2886,7 +3073,18 @@
         var pm = p.months[mk] || (p.months[mk] = { hours: 0, gross: 0, types: {}, depts: {} });
         pm.hours += units; pm.gross += gross;
         if (units > 0) p.hasHours = true;
-        var emp = guessEmployment(catName);
+
+        // person level, which is what the profitability by employee page reads
+        var skey = mk + "|" + pid + "|" + loc.dept;
+        var sr = staff[skey] || (staff[skey] = { month: mk, empId: pid,
+          name: (c.empName >= 0 ? String(r[c.empName] || "").trim() : pid) || pid,
+          dept: loc.dept, chargeable: 0, nonChargeable: 0, leave: 0,
+          publicHoliday: 0, gross: 0, sup: 0, employment: null });
+        if (kind === "work") sr[loc.chargeable ? "chargeable" : "nonChargeable"] += units;
+        else if (kind === "leave") sr.leave += units;
+        else if (kind === "publicHoliday") sr.publicHoliday += units;
+        sr.gross += gross; sr.sup += sup;
+        if (emp) sr.employment = emp;
         if (emp) pm.types[emp] = (pm.types[emp] || 0) + 1;
         pm.depts[loc.dept] = (pm.depts[loc.dept] || 0) + 1;
       });
@@ -2913,10 +3111,26 @@
       E.loadUtil(payload);
       E.labour = labour;
 
+      // people, so Profitability by Employee reads the real pay run
+      var staffRows = Object.keys(staff).sort().map(function (k) {
+        var x = staff[k];
+        function r2(v) { return Math.round(v * 100) / 100; }
+        return [x.month, x.empId, x.name, x.dept, r2(x.chargeable), r2(x.nonChargeable),
+                r2(x.leave), r2(x.publicHoliday), Math.round(x.gross * 100),
+                Math.round(x.sup * 100), x.employment];
+      });
+      E.loadStaff({ meta: { seed: false, built: payload.meta.built,
+                            note: "From the Employment Hero earnings report." },
+                    cols: ["month", "empId", "name", "dept", "chargeable", "nonChargeable",
+                           "leave", "publicHoliday", "grossCents", "superCents", "employment"],
+                    rows: staffRows });
+
       var keys = Object.keys(monthsSeen).sort();
       var u = E.utilFor(keys);
       st.panel.appendChild(h("div.banner.banner-good",
-        rows.length + " department months loaded from " + t.rows.length + " earnings lines" +
+        rows.length + " department months loaded from " + t.rows.length + " earnings lines, " +
+        staffRows.length + " people months" +
+        (reallocated ? ", " + reallocated + " reallocated to worked hours" : "") +
         (skipped ? ", " + skipped + " skipped for a period outside the two loaded years" : "") + "."));
 
       st.panel.appendChild(U.table([
@@ -3348,6 +3562,108 @@
           } }, "Clear saved settings"),
           h("span.muted", "Reporting month, split overrides, period and filters are saved in this browser only."),
         ])),
+      ];
+    },
+  };
+
+  /* ============================================ Profit by Employee ===== */
+  P["staff-profit"] = {
+    section: "Utilisation", title: "Profitability by Employee",
+    sub: "Who is carrying the work, and what it costs.",
+    render: function () {
+      var p = CTS.period();
+      if (!E.hasStaff) {
+        return [CTS.seedBanner(), CTS.periodBar(),
+          U.h1("Profitability by Employee", p.label),
+          h("div.banner.banner-warn", [
+            h("strong", "No people loaded. "),
+            "This page reads the Employment Hero earnings export, which is the only source that carries who worked, on what, and what they were paid. Load it on ",
+            h("a", { href: "#/loaders" }, "Data Loaders"), ".",
+          ])];
+      }
+      var showAll = CTS.store.get("staffShowAll", false);
+      var res = E.staffFor(p.keys);
+      var scope = E.deptScope();
+      var rows = res.rows.filter(function (r) {
+        if (scope && r.dept !== scope) return false;
+        return showAll || r.billable;
+      });
+
+      var tot = rows.reduce(function (a, r) {
+        a.chg += r.chargeable; a.worked += r.worked; a.cost += r.cost;
+        a.rev += r.revenue; a.margin += r.margin; return a;
+      }, { chg: 0, worked: 0, cost: 0, rev: 0, margin: 0 });
+
+      var top = rows.slice(0, 12);
+      // Two series, so colour means margin against cost and nothing else.
+      // Department identity sits in the table beside it rather than being
+      // painted onto bars whose legend already says something different.
+      var chart = U.bars({
+        rows: top.map(function (r) {
+          return { label: r.name + "  \u00b7  " + r.deptShort,
+                   value: r.margin, value2: r.cost };
+        }),
+        label1: "Margin over labour", label2: "Labour cost",
+        width: 620, labelWidth: 210,
+      });
+
+      return [
+        CTS.seedBanner(), CTS.periodBar(),
+        U.h1("Profitability by Employee", p.label),
+        h("div.banner.banner-warn", [
+          h("strong", "Revenue here is attributed, not earned. "),
+          "Nothing bills per person, so each department's revenue is spread across its people on their share of that department's chargeable hours. It is a fair reading of who is carrying the work. It is not what any individual brought in, and it should not be used as one.",
+        ]),
+        h("div.tiles", [
+          U.tile({ label: "Billable people", value: String(rows.filter(function (r) { return r.billable; }).length),
+                   sub: showAll ? "showing everyone" : "with chargeable hours this period" }),
+          U.tile({ label: "Chargeable hours", value: F.hours(tot.chg),
+                   sub: F.pct(tot.worked ? tot.chg / tot.worked : null) + " of hours worked" }),
+          U.tile({ label: "Labour cost", value: F.dollars(tot.cost),
+                   sub: "gross plus superannuation" }),
+          U.tile({ label: "Margin over labour", value: F.dollars(tot.margin),
+                   tone: tot.margin >= 0 ? "good" : "critical",
+                   sub: tot.rev ? F.pct(tot.margin / tot.rev) + " of attributed revenue" : null }),
+        ]),
+        h("div.toolbar", [
+          h("label.checkbox", [
+            h("input", { type: "checkbox", checked: showAll,
+              onchange: function (e) { CTS.store.set("staffShowAll", e.target.checked); CTS.router.reload(); } }),
+            " Include people with no chargeable hours",
+          ]),
+          h("div.toolbar-right", h("span.muted",
+            "Recovery is attributed revenue over labour cost. Under 1.0 means the person costs more than the work attributed to them.")),
+        ]),
+        U.section("Margin against cost, top twelve",
+          U.figure("Ranked by margin over labour cost", chart, null)),
+        U.section("Every person", U.table([
+          { key: "name", label: "Employee", align: "left" },
+          { key: "deptShort", label: "Department", align: "left",
+            value: function (r) {
+              return h("span", [h("span.dot", { style: { background: U.colourOf(r.dept) } }), r.deptShort]);
+            } },
+          { key: "employment", label: "Type", align: "left",
+            value: function (r) {
+              return r.employment ? h("span.chip.chip-muted", r.employment) : h("span.muted", "\u2014");
+            } },
+          { key: "chargeable", label: "Chargeable", fmt: F.hours },
+          { key: "nonChargeable", label: "Non-charge", fmt: F.hours },
+          { key: "util", label: "Util", fmt: function (v) { return F.pct(v, 0); } },
+          { key: "chargeRate", label: "Rate per chargeable hour", fmt: function (v) { return v == null ? "-" : F.dollars(v); } },
+          { key: "costRate", label: "Cost per hour worked", fmt: function (v) { return v == null ? "-" : F.dollars(v); } },
+          { key: "revenue", label: "Revenue attributed", fmt: F.money },
+          { key: "cost", label: "Labour cost", fmt: F.money },
+          { key: "margin", label: "Margin", fmt: F.money, cell: U.moneyCell },
+          { key: "recovery", label: "Recovery", fmt: function (v) { return v == null ? "-" : v.toFixed(2) + "x"; },
+            cell: function (r) { return r.recovery != null && r.recovery < 1 ? "neg" : ""; } },
+        ], rows.concat([{ name: "Total", deptShort: "", employment: null,
+            chargeable: tot.chg, nonChargeable: tot.worked - tot.chg,
+            util: tot.worked ? tot.chg / tot.worked : null,
+            chargeRate: tot.chg ? Math.round(tot.rev / tot.chg) : null,
+            costRate: tot.worked ? Math.round(tot.cost / tot.worked) : null,
+            revenue: tot.rev, cost: tot.cost, margin: tot.margin,
+            recovery: tot.cost ? tot.rev / tot.cost : null, _cls: "totalrow" }]), { dense: true }),
+          "Cost is gross earnings plus superannuation, straight off the pay run. Leave and public holidays are in the cost but not in the hours worked, which is why somebody on leave shows a higher cost per hour."),
       ];
     },
   };

@@ -41,6 +41,7 @@ window.CTS_USERS = {
     { id: "client-dept",  section: "Revenue",     title: "Clients by Department" },
     { id: "util",         section: "Utilisation", title: "Utilisation" },
     { id: "profit-fte",   section: "Utilisation", title: "Profitability per FTE", sensitive: true },
+    { id: "staff-profit", section: "Utilisation", title: "Profitability by Employee", sensitive: true },
     { id: "ledger",       section: "Ledger",      title: "Detail Records", sensitive: true },
     { id: "charts",       section: "Ledger",      title: "Charts" },
     { id: "setup",        section: "Admin",       title: "Setup" },
@@ -59,7 +60,7 @@ window.CTS_USERS = {
       note: "Everything, including who sees what. Intended for one person.",
       pages: ["home","context","pnl","pnl-dept","pnl-spread","allocation","control",
               "bva","actions","rev-summary","rev-schedule","clients","client-dept",
-              "util","profit-fte","ledger","charts","setup","loaders","config",
+              "util","profit-fte","staff-profit","ledger","charts","setup","loaders","config",
               "access","about"],
     },
     {
@@ -67,14 +68,14 @@ window.CTS_USERS = {
       note: "Everything except changing who sees what. The person who runs the month.",
       pages: ["home","context","pnl","pnl-dept","pnl-spread","allocation","control",
               "bva","actions","rev-summary","rev-schedule","clients","client-dept",
-              "util","profit-fte","ledger","charts","setup","loaders","config","about"],
+              "util","profit-fte","staff-profit","ledger","charts","setup","loaders","config","about"],
     },
     {
       id: "exec", label: "Executive", admin: false, ownDeptOnly: false,
       note: "The whole company result, but not the ledger, the loaders or the workings.",
       pages: ["home","context","pnl","pnl-dept","pnl-spread","bva","actions",
               "rev-summary","rev-schedule","clients","client-dept","util",
-              "profit-fte","charts","about"],
+              "profit-fte","staff-profit","charts","about"],
     },
     {
       id: "deptHead", label: "Department head", admin: false, ownDeptOnly: true,

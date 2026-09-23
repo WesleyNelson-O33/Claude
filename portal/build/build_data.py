@@ -855,3 +855,83 @@ SEED_NOTE = ("Seed data. The FY26 totals, the July 2025 month and the August 202
 print("wrote", len(list(OUT.glob("*.js"))), "data files to", OUT)
 for f in sorted(OUT.glob("*.js")):
     print("   %-28s %6.0f KB" % (f.name, f.stat().st_size / 1024))
+
+# --------------------------------------------------------------------- staff
+# People, so profitability can be read per billable employee. Headcount per
+# department follows the FTE anchors above. Names are fictional, like the
+# client names: the real ones arrive with the real earnings export.
+#
+# Superannuation is 12 per cent of gross, which is the rate from 1 July 2025
+# and is what the sample earnings line shows ($20.13 on $167.71).
+SG_RATE = 0.12
+
+STAFF = {
+    "ONSITE": ["Tessa Moreau", "Ryan Kalb", "Priya Anand", "Dominic Ferrer",
+               "Kelly Ashworth", "Nate Iverson", "Sam Blackwood"],
+    "PRODUCTION": ["Marcus Held", "Joely Fenwick", "Aaron Pike", "Carla Mendes",
+                   "Dev Raman", "Hugh Latimer"],
+    "VIDEO": ["Ines Kovac", "Tom Bright"],
+    "INTEGRATION": ["Wes Corrigan", "Anika Roth"],
+    "CONSULTING": ["Lena Ormsby"],
+    "ADMIN": ["Bridget Cole", "Marco Silva", "Faye Truong"],
+}
+# A salaried person is steady; a casual moves with the work. Consulting is a
+# casual engaged ad hoc, which is why its FTE barely registers.
+CASUAL = {"Lena Ormsby", "Sam Blackwood", "Nate Iverson", "Hugh Latimer", "Dev Raman"}
+
+
+staff_rows = []
+for month in ALL_MONTHS:
+    info = CAL_INDEX[month]
+    for dept in DEPTS:
+        names = STAFF[dept]
+        # the department's hours this month, from the utilisation rows already built
+        ur = [r for r in util_rows if r[0] == month and r[1] == dept][0]
+        chg, non, lv, ph = ur[2], ur[3], ur[4], ur[5]
+        # weights: casuals carry less, and swing more with the season
+        mi = MONTH_ORDER.index(info["m"])
+        season = SHAPE[dept][mi] * 12
+        ws = []
+        for n in names:
+            base = 0.55 * (0.6 + 0.8 * season) if n in CASUAL else 1.0
+            ws.append(base * R.jitter(0.85, 1.15))
+        tw = sum(ws)
+        parts = {k: split_exact(int(round(v * 100)), [w / tw for w in ws])
+                 for k, v in (("chg", chg), ("non", non), ("lv", lv), ("ph", ph))}
+        # the wage bill posted to this department this month, off the ledger
+        wages = 0
+        for a in ACCOUNTS:
+            if not (a["sub"].endswith("Salaries") or a["sub"].endswith("Wages")):
+                continue
+            if a["dept"] != dept:
+                continue
+            wages += -fin.get(a["account"], {}).get(month, 0)
+        if wages <= 0:
+            # departments whose labour sits in unsuffixed accounts: fall back to
+            # the department's share of hours against an average rate
+            wages = int(round((chg + non + lv + ph) * 6200))
+        hours_all = [parts["chg"][i] + parts["non"][i] + parts["lv"][i] + parts["ph"][i]
+                     for i in range(len(names))]
+        th = sum(hours_all) or 1
+        gross = split_exact(wages, [x / th for x in hours_all])
+        for i, n in enumerate(names):
+            staff_rows.append([
+                month, "E%03d" % (abs(hash(n)) % 900 + 100), n, dept,
+                round(parts["chg"][i] / 100.0, 2), round(parts["non"][i] / 100.0, 2),
+                round(parts["lv"][i] / 100.0, 2), round(parts["ph"][i] / 100.0, 2),
+                gross[i], int(round(gross[i] * SG_RATE)),
+                "Casual" if n in CASUAL else "Permanent",
+            ])
+
+(OUT / "CTS_staff_data.js").write_text(js("CTS_STAFF", {
+    "meta": {"seed": True, "built": BUILT, "sgRate": SG_RATE,
+             "note": "People, hours and pay by month. Rolls up to exactly the "
+                     "department totals in CTS_util_data.js, and the wage bill "
+                     "ties to the salary and wage accounts in the ledger. Names "
+                     "are fictional; the real ones arrive with the Employment "
+                     "Hero earnings export."},
+    "cols": ["month", "empId", "name", "dept", "chargeable", "nonChargeable",
+             "leave", "publicHoliday", "grossCents", "superCents", "employment"],
+    "rows": staff_rows,
+}, "CTS people, hours and pay by month"))
+print("staff rows:", len(staff_rows), "people:", sum(len(v) for v in STAFF.values()))
