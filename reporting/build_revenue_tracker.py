@@ -139,8 +139,16 @@ def _dept_pick(col_by_team, default='""'):
         col = col_by_team.get(team)
         if col is None:
             continue
-        out = (f'IF({{Team}}="{team}",IFERROR(INDEX(tbl_{team}[{col}],'
-               f'MATCH({{Job Number}}&"",tbl_{team}[Job Number],0)),{default}),{out})')
+        if isinstance(col, tuple):
+            # Try the first column, fall back to the second when it is blank.
+            first, second = (
+                f'INDEX(tbl_{team}[{c}],MATCH({{Job Number}}&"",'
+                f'tbl_{team}[Job Number],0))' for c in col)
+            pick = f'IF({first}="",{second},{first})'
+        else:
+            pick = (f'INDEX(tbl_{team}[{col}],'
+                    f'MATCH({{Job Number}}&"",tbl_{team}[Job Number],0))')
+        out = (f'IF({{Team}}="{team}",IFERROR({pick},{default}),{out})')
     return out
 FIN_FORMULAS = {
     "Month": '=IF({Date}="","",EOMONTH({Date},0))',
@@ -226,14 +234,27 @@ DEPT_EXTRA = {
                ("Open Qwilr", 14, TXT, "f"), ("Billable Hours", 13, NUM, "in"),
                ("Approved By", 16, TXT, "in"), ("Notes", 38, TXT, "in")],
     # A3: Zoho is the job number, so it is a formula now, not something to type.
-    # A5: the Current RMS number is hyperlinked.
+    # A5: the Current RMS number is hyperlinked. Production carries a Qwilr
+    # quote as well, linked exactly the way Consulting's is.
     "Production": [
+        ("Total Inc GST", 14, CUR, "f"),
+        ("Company", 18, TXT, "in"), ("Event Name", 34, TXT, "f"),
+        ("Client Email", 30, TXT, "in"), ("Event Grouping", 20, TXT, "in"),
         ("Event Date", 12, DATE, "in"), ("Current RMS No", 14, TXT, "in"),
-        ("Open in Current RMS", 18, TXT, "f"), ("Zoho Number", 14, TXT, "f"),
+        ("Open in Current RMS", 18, TXT, "f"),
+        ("Qwilr Quote", 40, TXT, "in"), ("Open Qwilr", 14, TXT, "f"),
+        ("Zoho Number", 14, TXT, "f"),
         ("Job Closed", 11, TXT, "dv"),
         ("Discounts Given", 16, CUR, "in"), ("Value Before Discount", 20, CUR, "f"),
         ("Discount %", 11, PCT, "f"), ("Cross Hire Expense", 17, CUR, "in"),
-        ("Labour Expense (Internal)", 22, CUR, "in"), ("Total Expense", 14, CUR, "f"),
+        # v2 had these two on screen but its macro never saved them, so they
+        # come across empty - and v2's margin never counted them either.
+        ("Conf. Call Costs", 15, CUR, "in"), ("Transcription Costs", 18, CUR, "in"),
+        ("Labour Expense (Internal)", 22, CUR, "in"),
+        # The video slice of the job, straight off the Finance lines coded
+        # VIDEO. Revenue, not a cost - it stays out of Total Expense.
+        ("Video Revenue", 14, CUR, "f"), ("Video % of Revenue", 16, PCT, "f"),
+        ("Total Expense", 14, CUR, "f"),
         ("Margin", 14, CUR, "f"), ("Margin %", 10, PCT, "f"),
         ("Video Filming Hrs", 15, NUM, "in"), ("Video Editing Hrs", 15, NUM, "in"),
         ("Project Mgmt Hrs", 15, NUM, "in"), ("Video Project Mgmt Hrs", 19, NUM, "in"),
@@ -261,11 +282,22 @@ DEPT_EXTRA_FORMULAS = {
     "Onsite": {"Open Qwilr": QWILR},
     "Production": {
         "Open in Current RMS": RMS,
+        "Open Qwilr": QWILR,
+        "Video Revenue": '=IF({Job Number}="","",SUMIFS(' + FIN + '[Ex GST],'
+                         + FIN + '[Job Number],{Job Number}&"",'
+                         + FIN + '[Cost Centre],"VIDEO"))',
         "Zoho Number": '=IF({Job Number}="","",{Job Number})',
         "Value Before Discount": '=IF({Job Number}="","",{Revenue Ex GST}+N({Discounts Given}))',
         "Discount %": '=IFERROR({Discounts Given}/{Value Before Discount},"")',
         "Total Expense": '=IF({Job Number}="","",N({Cross Hire Expense})'
+                         '+N({Conf. Call Costs})+N({Transcription Costs})'
                          '+N({Labour Expense (Internal)}))',
+        "Video % of Revenue": '=IFERROR({Video Revenue}/{Revenue Ex GST},"")',
+        "Total Inc GST": '=IF({Job Number}="","",SUMIFS(' + FIN + '[Inc GST],'
+                         + FIN + '[Job Number],{Job Number}&""))',
+        # The crew's own name for the event, as Finance typed it on the invoice.
+        "Event Name": '=IF({Job Number}="","",IFERROR(INDEX(' + FIN + '[Description],'
+                      'MATCH({Job Number}&"",' + FIN + '[Job Number],0)),""))',
         "Margin": '=IF({Job Number}="","",{Revenue Ex GST}-{Total Expense})',
         "Margin %": '=IFERROR({Margin}/{Revenue Ex GST},"")',
     },
@@ -303,7 +335,7 @@ WIP_FORMULAS = {
 
 FIN_FORMULAS["Job Quote / Ref"] = '=IF({Job Number}="","",' + _dept_pick(
     {"Onsite": "Qwilr Quote", "Consulting": "Qwilr Quote",
-     "Production": "Current RMS No"}) + ')'
+     "Production": ("Current RMS No", "Qwilr Quote")}) + ')'
 FIN_FORMULAS["Open Quote"] = (
     '=IF({Job Quote / Ref}="","",IF(AND(LEFT({Job Quote / Ref},4)<>"http",'
     'IF({Team}="Production",set_RMSBase,set_QwilrBase)=""),"",'
@@ -387,14 +419,21 @@ def migrate_finance():
                 "Posted to Xero": _txt(g("Invoice Posted to Xero")) or ("Y" if invno else "N"),
                 "To WIP": "N", "Status": "Invoiced" if invno else "To Invoice"}
         cc = CC_PROD.get(dept, "PRODUCTION")
-        if video and ex is not None and 0 < abs(video) <= abs(ex) and cc != "VIDEO":
+        # The residual is whatever is not video, so it is never VIDEO itself.
+        # A job the crew tagged Video can still carry production labour: Xero
+        # codes $380.00 of INV-10600 to 42100 and v2's own Video Total agreed.
+        rest = "PRODUCTION" if cc == "VIDEO" else cc
+        if video and ex is not None and 0 < abs(video) < abs(ex):
             # split the line the way Xero codes it: production part, video part
-            out.append(dict(base, **{"Cost Centre": cc, "Ex GST": round(ex - video, 2),
+            out.append(dict(base, **{"Cost Centre": rest, "Ex GST": round(ex - video, 2),
                                      "Revenue GL": "42100",
                                      "Notes": "Production portion of this invoice"}))
             out.append(dict(base, **{"Cost Centre": "VIDEO", "Ex GST": video,
                                      "Revenue GL": "42150",
                                      "Notes": "Video portion of this invoice"}))
+        elif video and ex is not None and abs(video) == abs(ex):
+            out.append(dict(base, **{"Cost Centre": "VIDEO", "Ex GST": ex,
+                                     "Revenue GL": "42150"}))
         else:
             out.append(dict(base, **{"Cost Centre": cc, "Ex GST": ex,
                                      "Revenue GL": "42150" if cc == "VIDEO" else "42100"}))
@@ -452,7 +491,8 @@ def migrate_jobs(dept):
         return _accumulate(
             "Production", "Job Number",
             {"Event Date": "Event Date", "Current Number": "Current RMS No",
-             "Zoho Number": "Zoho Number", "Closed": "Job Closed"},
+             "Zoho Number": "Zoho Number", "Closed": "Job Closed",
+             "Client Email": "Client Email"},
             {"Discounts Included": "Discounts Given",
              "Cross Hire Expense": "Cross Hire Expense",
              "Labour Expense (Internal)": "Labour Expense (Internal)",
@@ -1212,6 +1252,10 @@ README = [
        "and it ties to the Xero VIDEO cost centre without any adjustment."),
  ("P", "The 26 migrated invoices that carried a video amount were split into two lines "
        "each on the way across. Ex GST in total is unchanged."),
+ ("P", "The Production sheet carries a Video Revenue column beside the expenses, and Video "
+       "% of Revenue next to it. Both read the Finance lines coded VIDEO, so nothing is "
+       "typed. Job by job they reproduce the old Video Total column to the cent - 38,484.75 "
+       "in total across 28 jobs."),
  ("B", ""),
  ("H", "WHY THIS VERSION IS NOT SLOW, AND WHY IT OPENS"),
  ("P", "The v2 file was slow because of its macro: every keystroke copied 26 columns by 200 "
@@ -1279,6 +1323,13 @@ README = [
        "42150, Consulting 42800, Integration 42300). Spot-check them."),
  ("P", "   The 126 WIP rows were given a Type from the sign of the amount. Confirm before "
        "relying on them."),
+ ("P", "   Production keeps its v2 columns. Client Email came across (57 of 58 jobs). "
+       "Company, Event Grouping, Conf. Call Costs and Transcription Costs are there but "
+       "empty - v2 showed them on screen and its macro never saved them, so there is "
+       "nothing to bring. Conf. Call and Transcription now feed Total Expense, which v2 "
+       "never did."),
+ ("P", "   Job Type is gone - Cost Centres says the same thing and fills itself. Net Total "
+       "and Discount as % of Net Total are gone for the reason under STILL TO CONFIRM."),
  ("B", ""),
  ("W", "STILL TO CONFIRM"),
  ("P", "Discounts. Checked against Xero: for all 17 August production invoices carrying a "
