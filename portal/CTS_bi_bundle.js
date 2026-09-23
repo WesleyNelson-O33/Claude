@@ -154,6 +154,7 @@
     E.loadGL(window.CTS_GL);
     E.loadFin(window.CTS_FIN);
     E.loadUtil(window.CTS_UTIL);
+    E.loadUsers(window.CTS_USERS);
     E.clients = window.CTS_CLIENTS || { clients: [], schedule: [] };
     E.clientMeta = {};
     (E.clients.clients || []).forEach(function (c) { E.clientMeta[c.contact] = c; });
@@ -277,6 +278,101 @@
     });
     E.utilMeta = data.meta || {};
     return E;
+  };
+
+  /* ---- access ---------------------------------------------------------
+   *
+   * This decides which tabs a person is shown. It is not a security boundary
+   * and the portal says so wherever it comes up: the whole thing is a file
+   * running in the browser with no server behind it, so anyone who can open
+   * the folder can read every data file whatever their role says. It is here
+   * because showing a department head twenty two tabs they do not want is a
+   * real problem worth solving, not because it locks anything.
+   */
+  E.loadUsers = function (data) {
+    if (!data) {
+      // No access file. Since none of this protects anything, the safe
+      // failure is an open portal with a note, not one nobody can get into.
+      data = { meta: { missing: true }, PAGES: [], USERS: [], DEFAULT_ROLE: "open",
+               ROLES: [{ id: "open", label: "Everything", admin: true,
+                         ownDeptOnly: false, pages: null,
+                         note: "No access file was loaded." }] };
+    }
+    E.users = data;
+    E.pageMeta = {};
+    (E.users.PAGES || []).forEach(function (p) { E.pageMeta[p.id] = p; });
+    return E;
+  };
+
+  /** Role page lists, with any change the finance head has made on top. */
+  E.rolePages = function (roleId) {
+    var r = (E.users.ROLES || []).filter(function (x) { return x.id === roleId; })[0];
+    if (r && r.pages === null) return Object.keys(CTS.pages || {});   // the open fallback
+    var over = store.get("accessRoles", {});
+    if (over[roleId]) return over[roleId];
+    return r ? r.pages.slice() : [];
+  };
+  E.setRolePages = function (roleId, pages) {
+    var over = store.get("accessRoles", {});
+    over[roleId] = pages;
+    store.set("accessRoles", over);
+  };
+  E.role = function (id) {
+    return (E.users.ROLES || []).filter(function (r) { return r.id === id; })[0] || null;
+  };
+  E.userList = function () {
+    return store.get("accessUsers", null) || (E.users.USERS || []).slice();
+  };
+  E.setUserList = function (list) { store.set("accessUsers", list); };
+
+  E.identity = function () { return store.get("identity", null); };
+  E.setIdentity = function (name) {
+    store.set("identity", name);
+    store.set("previewRole", null);
+  };
+  E.currentUser = function () {
+    var n = E.identity();
+    if (!n) return null;
+    return E.userList().filter(function (u) { return u.name === n; })[0] || null;
+  };
+  /** The role actually in force, which may be one the admin is previewing. */
+  E.currentRole = function () {
+    var preview = store.get("previewRole", null);
+    if (preview && E.isRealAdmin()) return E.role(preview);
+    var u = E.currentUser();
+    return E.role(u ? u.role : E.users.DEFAULT_ROLE) || E.role(E.users.DEFAULT_ROLE);
+  };
+  E.isRealAdmin = function () {
+    var u = E.currentUser();
+    var r = u ? E.role(u.role) : null;
+    return !!(r && r.admin);
+  };
+  E.isAdmin = function () {
+    var r = E.currentRole();
+    return !!(r && r.admin);
+  };
+  E.previewRole = function () { return store.get("previewRole", null); };
+  E.setPreviewRole = function (id) { store.set("previewRole", id); };
+
+  E.can = function (pageId) {
+    var r = E.currentRole();
+    if (!r) return false;
+    return E.rolePages(r.id).indexOf(pageId) >= 0;
+  };
+
+  /** A department head sees their own department only. Everyone else sees all
+   *  of them. Applied wherever a page lists departments. */
+  E.deptScope = function () {
+    var r = E.currentRole();
+    if (!r || !r.ownDeptOnly) return null;
+    var u = E.currentUser();
+    return (u && u.dept) || null;
+  };
+  E.visibleDepts = function (list) {
+    var scope = E.deptScope();
+    list = list || E.depts;
+    if (!scope) return list;
+    return list.filter(function (d) { return d.code === scope; });
   };
 
   /* ---- period helpers ------------------------------------------------ */
@@ -1540,8 +1636,10 @@
       var p = CTS.period();
       var alloc = E.allocate(p.keys);
       var showAlloc = CTS.store.get("showAlloc", true);
+      var scoped = E.visibleDepts();
       var rows = alloc.rows.filter(function (r) {
-        return r.income || r.cos || r.ownExpenses || r.allocated;
+        return (r.income || r.cos || r.ownExpenses || r.allocated) &&
+               scoped.some(function (d) { return d.code === r.code; });
       });
 
       var cols = [
@@ -1989,7 +2087,7 @@
       var p = CTS.period();
       var fyKeys = E.monthsOfFY(p.fy);
       var labels = fyKeys.map(function (k) { return E.monthIdx[k].label; });
-      var depts = E.depts.filter(function (d) { return d.isRevenue; });
+      var depts = E.visibleDepts().filter(function (d) { return d.isRevenue; });
       var series = depts.map(function (d) {
         return { label: d.short, colour: U.colourOf(d.code), key: d.code,
                  values: fyKeys.map(function (k) {
@@ -2041,14 +2139,20 @@
     sub: "Per role for onsite, per client elsewhere.",
     render: function () {
       var p = CTS.period();
+      var allowed = E.visibleDepts().filter(function (d) {
+        return d.isRevenue && d.code !== "ADMIN";
+      }).map(function (d) { return d.code; });
       var dept = CTS.store.get("schedDept", "PRODUCTION");
+      if (allowed.indexOf(dept) < 0) dept = allowed[0] || "PRODUCTION";
       var s = E.schedule(dept, p.keys);
       var d = E.deptOf[dept];
 
       return [
         seedBanner(), CTS.periodBar(), U.h1("Revenue Schedule", d.short + ", " + p.label),
         h("div.toolbar", [
-          h("div.seg", ["ONSITE", "PRODUCTION", "VIDEO", "INTEGRATION", "CONSULTING"].map(function (c) {
+          h("div.seg", E.visibleDepts().filter(function (d) {
+            return d.isRevenue && d.code !== "ADMIN";
+          }).map(function (d) { return d.code; }).map(function (c) {
             return h("button.seg-btn" + (c === dept ? ".on" : ""), {
               onclick: function () { CTS.store.set("schedDept", c); CTS.router.reload(); },
             }, E.deptOf[c].short);
@@ -2147,7 +2251,7 @@
     render: function () {
       var p = CTS.period();
       var rows = E.clientRows(p.keys);
-      var depts = E.depts.filter(function (d) { return d.isRevenue; });
+      var depts = E.visibleDepts().filter(function (d) { return d.isRevenue; });
       var cols = [{ key: "display", label: "Client", align: "left" }]
         .concat(depts.map(function (d) {
           return { key: d.code, label: d.short, fmt: F.money,
@@ -2194,7 +2298,7 @@
       var roll = E.utilRolling(p.rm);
       var fyKeys = E.monthsOfFY(p.fy);
       var labels = fyKeys.map(function (k) { return E.monthIdx[k].label; });
-      var depts = E.postingDepts;
+      var depts = E.visibleDepts(E.postingDepts);
 
       var chart = U.lines({
         labels: labels, width: 780, height: 280,
@@ -2282,7 +2386,10 @@
       var u = E.utilFor(p.keys);
       var byCode = {};
       u.rows.forEach(function (r) { byCode[r.code] = r; });
-      var rows = alloc.rows.filter(function (r) { return r.dept.isRevenue; }).map(function (r) {
+      var vis = E.visibleDepts();
+      var rows = alloc.rows.filter(function (r) {
+        return r.dept.isRevenue && vis.some(function (d) { return d.code === r.code; });
+      }).map(function (r) {
         var fte = (byCode[r.code] || {}).fte || null;
         return { d: r.dept.short, code: r.code, fte: fte, np: r.netProfit,
                  gp: r.grossProfit, rev: r.income,
@@ -3245,6 +3352,198 @@
     },
   };
 
+  /* ================================================= Access Control ==== */
+  P.access = {
+    section: "Admin", title: "Access Control",
+    sub: "Who sees what.",
+    render: function () {
+      if (!E.isAdmin()) {
+        return [U.h1("Access Control", "Not available to you"),
+                U.note("Only the finance head role can change who sees what.")];
+      }
+      var pages = E.users.PAGES || [];
+      var roles = E.users.ROLES || [];
+      var users = E.userList();
+      var sections = [];
+      pages.forEach(function (pg) {
+        if (sections.indexOf(pg.section) < 0) sections.push(pg.section);
+      });
+
+      function toggle(roleId, pageId, on) {
+        var cur = E.rolePages(roleId).slice();
+        var i = cur.indexOf(pageId);
+        if (on && i < 0) cur.push(pageId);
+        if (!on && i >= 0) cur.splice(i, 1);
+        E.setRolePages(roleId, cur);
+        CTS.router.reload();
+      }
+
+      // the matrix: one row per page, one column per role
+      var matrixRows = [];
+      sections.forEach(function (sec) {
+        matrixRows.push({ _cls: "totalrow", page: sec, _section: true });
+        pages.filter(function (pg) { return pg.section === sec; }).forEach(function (pg) {
+          matrixRows.push({ page: pg.title, id: pg.id, sensitive: pg.sensitive });
+        });
+      });
+
+      var matrixCols = [
+        { key: "page", label: "Tab", align: "left", width: "16rem",
+          value: function (r) {
+            if (r._section) return h("strong", r.page);
+            return h("span", [r.page, " ",
+              r.sensitive ? U.flag("warn", "sensitive",
+                "Carries cost, pay or transaction level detail") : null]);
+          } },
+      ];
+      roles.forEach(function (role) {
+        matrixCols.push({ key: role.id, label: role.label, align: "left",
+          value: function (r) {
+            if (r._section) return h("span", "");
+            var on = E.rolePages(role.id).indexOf(r.id) >= 0;
+            if (role.admin) {
+              return h("span.muted", { title: "The finance head role always sees everything" }, "always");
+            }
+            return h("input", { type: "checkbox", checked: on,
+              onchange: function (e) { toggle(role.id, r.id, e.target.checked); } });
+          } });
+      });
+
+      // people
+      function setUser(i, field, value) {
+        var list = E.userList().slice();
+        list[i] = Object.assign({}, list[i]);
+        list[i][field] = value;
+        E.setUserList(list);
+        CTS.router.reload();
+      }
+      var userRows = users.map(function (u, i) {
+        var role = E.role(u.role);
+        return {
+          name: u.name, i: i, note: u.note || "",
+          roleCell: h("select.control.small", {
+            onchange: function (e) { setUser(i, "role", e.target.value); },
+          }, roles.map(function (r) {
+            return h("option", { value: r.id, selected: r.id === u.role }, r.label);
+          })),
+          deptCell: role && role.ownDeptOnly
+            ? h("select.control.small", {
+                onchange: function (e) { setUser(i, "dept", e.target.value || null); },
+              }, [h("option", { value: "", selected: !u.dept }, "\u2014 not set \u2014")]
+                .concat(E.postingDepts.map(function (d) {
+                  return h("option", { value: d.code, selected: d.code === u.dept }, d.short);
+                })))
+            : h("span.muted", "all departments"),
+          tabs: E.rolePages(u.role).length,
+          remove: h("button.btn.btn-quiet.small", {
+            onclick: function () {
+              if (!confirm("Remove " + u.name + "?")) return;
+              var list = E.userList().slice();
+              list.splice(i, 1);
+              E.setUserList(list);
+              CTS.router.reload();
+            },
+          }, "Remove"),
+        };
+      });
+
+      var newName = h("input.control", { placeholder: "Name" });
+      var newRole = h("select.control", {}, roles.map(function (r) {
+        return h("option", { value: r.id }, r.label);
+      }));
+
+      function exportUsers() {
+        var out = {
+          meta: { version: (E.users.meta.version || 1) + 1,
+                  updated: new Date().toISOString().slice(0, 10),
+                  note: "Visibility only. Not a security boundary." },
+          PAGES: pages,
+          ROLES: roles.map(function (r) {
+            return Object.assign({}, r, { pages: E.rolePages(r.id) });
+          }),
+          USERS: E.userList(),
+          DEFAULT_ROLE: E.users.DEFAULT_ROLE,
+        };
+        download("CTS_users_data.js",
+          "// CTS Business Intelligence Portal - people and access\n" +
+          "// Exported " + out.meta.updated + " from the Access Control page.\n" +
+          "// Visibility only. This does not protect anything: the portal is a file\n" +
+          "// in a browser and every data file beside it is readable regardless.\n" +
+          "window.CTS_USERS = " + JSON.stringify(out, null, 2) + ";\n");
+      }
+
+      var preview = E.previewRole();
+
+      return [
+        U.h1("Access Control", "Which tabs each role is shown"),
+        h("div.banner.banner-warn", [
+          h("strong", "Read this before you rely on it. "),
+          "This decides what people are ", h("em", "shown"), ". It does not stop anyone seeing anything. The portal is a single file running in a browser with no server behind it, so every data file sitting beside it can be opened by anyone who can open the folder, whatever their role says here. It is worth setting up because showing a department head twenty two tabs they do not want is a real problem. It is not worth treating as confidentiality.",
+        ]),
+        U.section("If something genuinely must not be seen", [
+          U.note("Then it must not be in the copy that person opens. Build them their own copy with the data left out: portal/build/build_data.py writes the data files, so a run that omits the ledger, or writes only one department's figures, produces a portal that physically cannot show the rest. That is the only version of this that holds. Ask for it and it can be set up."),
+        ]),
+        U.section("Preview", [
+          U.note("Check what someone else is shown without signing in as them. The tabs on the left change to match while a preview is on."),
+          h("div.row", [
+            h("div.seg", [{ id: null, label: "Off" }].concat(roles).map(function (r) {
+              var id = r.id || null;
+              return h("button.seg-btn" + ((preview || null) === id ? ".on" : ""), {
+                onclick: function () { E.setPreviewRole(id); location.hash = "#/access"; location.reload(); },
+              }, r.label || "Off");
+            })),
+          ]),
+          preview ? h("div.banner.banner-warn",
+            "Previewing as " + (E.role(preview) || {}).label + ". Turn it off to get your own tabs back.") : null,
+        ]),
+        U.section("Which tabs each role sees", [
+          U.table(matrixCols, matrixRows, { dense: true }),
+          U.note("Sensitive marks the tabs carrying cost, pay or transaction level detail, so you can see at a glance what a tick hands out. Changes take effect immediately and are saved in this browser."),
+        ]),
+        U.section("Roles", U.table([
+          { key: "label", label: "Role", align: "left" },
+          { key: "tabs", label: "Tabs", value: function (r) { return E.rolePages(r.id).length; } },
+          { key: "scope", label: "Departments", align: "left",
+            value: function (r) { return r.ownDeptOnly ? "Own department only" : "All"; } },
+          { key: "note", label: "Intended for", align: "left" },
+        ], roles)),
+        U.section("People", [
+          U.table([
+            { key: "name", label: "Name", align: "left" },
+            { key: "roleCell", label: "Role", align: "left", value: function (r) { return r.roleCell; } },
+            { key: "deptCell", label: "Department", align: "left", value: function (r) { return r.deptCell; } },
+            { key: "tabs", label: "Tabs shown" },
+            { key: "note", label: "Note", align: "left" },
+            { key: "remove", label: "", align: "left", value: function (r) { return r.remove; } },
+          ], userRows),
+          h("div.row", [newName, newRole,
+            h("button.btn", { onclick: function () {
+              var n = newName.value.trim();
+              if (!n) return;
+              var list = E.userList().slice();
+              list.push({ name: n, role: newRole.value, dept: null, note: "" });
+              E.setUserList(list);
+              CTS.router.reload();
+            } }, "Add person"),
+          ]),
+          U.note("There is no password. People identify themselves by picking their name in the sidebar, which is an honour system, not a login. CTS has no single sign on wired to this portal."),
+        ]),
+        U.section("Keeping the changes", [
+          U.note("Everything above is saved in this browser only, so it follows you rather than the portal. Export it and put the file in portal/data to make it what everyone gets."),
+          h("div.row", [
+            h("button.btn", { onclick: exportUsers }, "Export as CTS_users_data.js"),
+            h("button.btn.btn-quiet", { onclick: function () {
+              if (!confirm("Discard your changes to roles and people and go back to the file?")) return;
+              CTS.store.set("accessRoles", {});
+              CTS.store.set("accessUsers", null);
+              CTS.router.reload();
+            } }, "Reset to the file"),
+          ]),
+        ]),
+      ];
+    },
+  };
+
   /* ========================================================== About ==== */
   P.about = {
     section: "Admin", title: "About",
@@ -3366,6 +3665,21 @@
     render: function (id) {
       var page = CTS.pages[id];
       if (!page) { id = "home"; page = CTS.pages.home; }
+      if (!E.can(id)) {
+        // Land somewhere the person can actually see rather than an error.
+        var first = Object.keys(CTS.pages).filter(function (k) { return E.can(k); })[0];
+        if (id !== first && first) {
+          router.current = first;
+          return router.render(first);
+        }
+        page = { title: "Not available", section: "", render: function () {
+          var r = E.currentRole();
+          return [CTS.ui.h1("Not available to you",
+            "This tab is not part of the " + ((r && r.label) || "current") + " role."),
+            CTS.ui.note("Whoever holds the finance head role sets which tabs each role sees, on the Access Control page. Ask them if you need this one."),
+          ];
+        } };
+      }
       router.current = id;
       var main = document.getElementById("main");
       main.innerHTML = "";
@@ -3396,7 +3710,7 @@
     nav.innerHTML = "";
     SECTIONS.forEach(function (sec) {
       var ids = Object.keys(CTS.pages).filter(function (id) {
-        return CTS.pages[id].section === sec;
+        return CTS.pages[id].section === sec && E.can(id);
       });
       if (!ids.length) return;
       nav.appendChild(h("div.nav-group", [
@@ -3408,6 +3722,34 @@
         })),
       ]));
     });
+  }
+
+  /** Identification, not authentication: people pick their name. There is no
+   *  password because there is nothing behind this to protect. */
+  function buildWhoAmI() {
+    var slot = document.getElementById("whoami");
+    if (!slot) return;
+    slot.innerHTML = "";
+    var users = E.userList();
+    if (!users.length) return;
+    var me = E.identity();
+    var role = E.currentRole();
+    var sel = h("select.control.small", {
+      onchange: function (e) { E.setIdentity(e.target.value || null); location.reload(); },
+    }, [h("option", { value: "", selected: !me }, "Not signed in")]
+      .concat(users.map(function (u) {
+        return h("option", { value: u.name, selected: u.name === me }, u.name);
+      })));
+    slot.appendChild(h("div.whoami-label", "Viewing as"));
+    slot.appendChild(sel);
+    if (role) {
+      slot.appendChild(h("div.whoami-role", [
+        role.label,
+        E.previewRole() ? h("span.chip.chip-warning", "preview") : null,
+        E.deptScope() ? h("span.chip.chip-muted",
+          (E.deptOf[E.deptScope()] || {}).short || E.deptScope()) : null,
+      ]));
+    }
   }
 
   function themeToggle() {
@@ -3444,6 +3786,7 @@
     }
     var rm = document.getElementById("rmlabel");
     if (rm) rm.textContent = (E.monthIdx[E.reportingMonth()] || {}).long || "";
+    buildWhoAmI();
 
     window.addEventListener("hashchange", function () {
       router.render((location.hash || "#/home").replace(/^#\/?/, "") || "home");

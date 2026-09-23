@@ -92,6 +92,11 @@ a { color: var(--accent); }
 :root[data-theme="dark"] .badge-warn, :root:where(:not([data-theme="light"])) .badge-warn { color: #fab219; }
 :root[data-theme="dark"] .badge-good, :root:where(:not([data-theme="light"])) .badge-good { color: #4ec94e; }
 .rm { font-size: 11px; color: var(--ink-secondary); }
+.whoami { margin-top: .6rem; }
+.whoami-label { font-size: 10px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink-muted); font-weight: 700; margin-bottom: .2rem; }
+.whoami select { width: 100%; }
+.whoami-role { font-size: 11px; color: var(--ink-secondary); margin-top: .25rem; display: flex; gap: .3rem; align-items: center; flex-wrap: wrap; }
+.btn.small { font-size: 11px; padding: .15rem .45rem; }
 
 .nav-group { padding: .8rem 0 0; }
 .nav-head {
@@ -312,6 +317,7 @@ svg.chart .mark { transition: opacity .12s; }
         <span id="databadge" class="badge">&nbsp;</span>
         <span id="rmlabel" class="rm"></span>
       </div>
+      <div id="whoami" class="whoami"></div>
     </div>
     <nav id="nav"></nav>
     <div class="side-foot">
@@ -328,7 +334,7 @@ svg.chart .mark { transition: opacity .12s; }
 (function () {
   var MANDATORY = ["CTS_config_data", "CTS_cal_data", "CTS_accounts_data",
                    "CTS_gl_data", "CTS_fin_data"];
-  var OPTIONAL = ["CTS_util_data", "CTS_clients_data"];
+  var OPTIONAL = ["CTS_util_data", "CTS_clients_data", "CTS_users_data"];
   var queue = MANDATORY.concat(OPTIONAL);
   var failed = [];
   var i = 0;
