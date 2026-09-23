@@ -322,11 +322,24 @@ WIP_COLS = [
     ("Job in Xero?", 12, TXT, "f"), ("Client", 26, TXT, "in"),
     ("Cost Centre", 14, TXT, "dv"), ("Description", 50, TXT, "in"),
     ("Type", 26, TXT, "dv"),
-    ("Amount", 15, CUR, "in"), ("GL Code", 11, TXT, "dv"),
+    ("Amount", 15, CUR, "in"),
+    # A17: say which account to debit, which to credit and for how much, so
+    # the journal can be keyed straight into Xero. GL Code is gone - it said
+    # 11300 on every row and the two columns below replace it.
+    ("Debit Account", 30, TXT, "f"), ("Credit Account", 30, TXT, "f"),
+    ("Journal Amount", 14, CUR, "f"), ("Journal Narration", 52, TXT, "f"),
     ("Journal Ref", 14, TXT, "in"), ("Posted to Xero", 14, TXT, "dv"),
     ("Notes", 40, TXT, "in"),
 ]
 WIP_FORMULAS = {
+    # A positive amount puts revenue back into the month, so WIP goes up:
+    # debit the balance sheet, credit the P&L. A negative amount reverses it.
+    "Debit Account": '=IF(N({Amount})=0,"",IF({Amount}>0,set_WIPAsset,set_WIPIncome))',
+    "Credit Account": '=IF(N({Amount})=0,"",IF({Amount}>0,set_WIPIncome,set_WIPAsset))',
+    "Journal Amount": '=IF(N({Amount})=0,"",ABS({Amount}))',
+    "Journal Narration": '=IF(N({Amount})=0,"","WIP "&{Type}&IF({Job Number}="",""," - "'
+                         '&{Job Number})&IF({Client}="",""," "&{Client})'
+                         '&IF({Description}="",""," - "&{Description}))',
     "Job in Xero?": '=IF({Job Number}="","",IF(COUNTIF(lst_Jobs,{Job Number}&"")>0,"OK","CHECK"))',
     # A15: the invoice date follows the invoice number in from Finance
     "Invoice Date": '=IF({Xero Invoice No}="","",IFERROR(INDEX(' + FIN + '[Date],'
@@ -386,8 +399,14 @@ CC_PROD = {"Production": "PRODUCTION", "Video": "VIDEO",
 CC_CONS = {"Consulting": "CONSULTING", "Integration": "INTEGRATION", None: "CONSULTING"}
 ST_CONS = {"In Progress": "To Invoice", "Completed": "Invoiced",
            "Closed": "Paid", "Cancelled": "Cancelled"}
-CC_WIP = {"Production": "PRODUCTION", "Video": "VIDEO", "Integration": "INTEGRATION",
-          "Consulting": "CONSULTING", "Support": "ONSITE", "Onsite": "ONSITE", "CTS": "CTS"}
+# v2 wrote the department on a WIP row several ways - "Production", "PRD",
+# "VID " with a trailing space. Match on the trimmed upper-case value so every
+# row lands on a cost centre; 9 August rows worth $58.73 net came across blank.
+CC_WIP = {"PRODUCTION": "PRODUCTION", "PRD": "PRODUCTION",
+          "VIDEO": "VIDEO", "VID": "VIDEO",
+          "INTEGRATION": "INTEGRATION", "INT": "INTEGRATION",
+          "CONSULTING": "CONSULTING", "CONS": "CONSULTING",
+          "SUPPORT": "ONSITE", "ONSITE": "ONSITE", "ONS": "ONSITE", "CTS": "CTS"}
 
 
 def _idx(block):
@@ -516,7 +535,7 @@ def migrate_wip():
         amount = _num(amt)
         out.append({"Month": _month_end(_date(dt)), "Job Number": _txt(job),
                     "Client": _txt(client),
-                    "Cost Centre": CC_WIP.get(dept, dept if dept in COST_CENTRES else None),
+                    "Cost Centre": CC_WIP.get(str(dept or "").strip().upper()),
                     "Description": _txt(desc),
                     "Type": ("Accrual - unbilled work" if (amount or 0) >= 0
                              else "Deferral - invoiced in advance"),
@@ -897,9 +916,78 @@ def build_month_end(wb, dlast):
     ws.conditional_formatting.add(f"B{cb}:B{money - 1}", CellIsRule(
         operator="greaterThan", formula=["0"], fill=PatternFill("solid", fgColor=WARN)))
 
-    # ---- 4. sign-off
-    s4 = money + 2
-    band(ws, s4, "4.  SIGN-OFF")
+    # ---- 4. the journal to post. Section 1 already worked out the movement
+    # by cost centre, so this reads straight off it and cannot disagree.
+    sj = money + 2
+    band(ws, sj, "4.  WIP JOURNAL FOR THE MONTH  -  post this one journal in Xero")
+    col_heads(ws, sj + 1, ["Account", "Cost Centre", "Debit", "Credit"])
+    jr = sj + 2
+    whole = ('(SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4)'
+             f'+SUM({defer_range("Q", dlast)}))')
+    lines = [("=set_WIPAsset", '"(no tracking)"', whole, True)]
+    for i, cc in enumerate(COST_CENTRES):
+        lines.append(("=set_WIPIncome", f'$A${r0 + i}', f"$E${r0 + i}", False))
+    # whatever is left over has no cost centre on it - never let it disappear
+    lines.append(("=set_WIPIncome", '"(cost centre not set - fix it)"',
+                  f"({whole}-$E${tot})", False))
+    for i, (acct, cc, src, is_bs) in enumerate(lines):
+        r = jr + i
+        ws.cell(r, 1).value = acct
+        ws.cell(r, 2).value = "=" + cc
+        # the balance sheet takes the debit when WIP goes up; the P&L takes it
+        # when WIP goes down. One signed movement, two sides, always equal.
+        if is_bs:
+            ws.cell(r, 3).value = f'=IF(ROUND({src},2)>0,{src},"")'
+            ws.cell(r, 4).value = f'=IF(ROUND({src},2)<0,-{src},"")'
+        else:
+            ws.cell(r, 3).value = f'=IF(ROUND({src},2)<0,-{src},"")'
+            ws.cell(r, 4).value = f'=IF(ROUND({src},2)>0,{src},"")'
+    jtot = jr + len(lines)
+    ws.cell(jtot, 1, "TOTAL").font = Font(bold=True, size=10)
+    for col in (3, 4):
+        ws.cell(jtot, col).value = f"=SUM({gcl(col)}{jr}:{gcl(col)}{jtot - 1})"
+    ws.cell(jtot, 5).value = (f'=IF(ROUND($C${jtot},2)=ROUND($D${jtot},2),'
+                              f'"Balanced","CHECK - does not balance")')
+    ws.cell(jtot, 5).font = Font(bold=True, size=10)
+    for r in range(jr, jtot + 1):
+        for col in range(1, 5):
+            cell = ws.cell(r, col)
+            cell.border, cell.font = BOX, Font(size=10, bold=(r == jtot))
+            cell.fill = CALC_FILL
+            if col in (3, 4):
+                cell.number_format = CUR
+    ws.conditional_formatting.add(f"E{jtot}", FormulaRule(
+        formula=[f'LEFT($E${jtot},5)="CHECK"'], fill=PatternFill("solid", fgColor=BAD)))
+    # a leftover line with anything on it means a row is missing its cost centre
+    ws.conditional_formatting.add(f"A{jtot - 1}:D{jtot - 1}", FormulaRule(
+        formula=[f'ROUND(N($C${jtot - 1})+N($D${jtot - 1}),2)<>0'],
+        fill=PatternFill("solid", fgColor=BAD)))
+
+    made = jtot + 1
+    for i, (label, formula) in enumerate([
+            ("Narration to use", '="WIP movement "&TEXT($C$4,"mmmm yyyy")'),
+            ("Made up of - manual rows on WIP Movements",
+             '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4)'),
+            ("Made up of - automatic deferrals",
+             f'=SUM({defer_range("Q", dlast)})'),
+            ("Total movement  -  must equal section 2", "=" + whole)]):
+        r = made + i
+        ws.cell(r, 1, label).font = Font(size=9, italic=True, color="808080")
+        c2 = ws.cell(r, 3)
+        c2.value, c2.border, c2.fill = formula, BOX, CALC_FILL
+        c2.font = Font(size=10, bold=(i == 3))
+        if i:
+            c2.number_format = CUR
+        else:
+            ws.merge_cells(start_row=r, start_column=3, end_row=r, end_column=4)
+    ws.cell(made + 4, 1, "Nothing here posts itself. The tracker works the movement "
+                         "out; you key this journal into Xero and put the reference "
+                         "back on the WIP Movements rows.").font = \
+        Font(size=9, italic=True, color="808080")
+
+    # ---- 5. sign-off
+    s4 = made + 6
+    band(ws, s4, "5.  SIGN-OFF")
     for i, (label, who) in enumerate([("Prepared by", "Accounts Assistant"),
                                       ("Reviewed by", "Finance Operations Manager"),
                                       ("Date closed", ""),
@@ -1133,6 +1221,13 @@ def build_lists(wb):
     gc = ws.cell(8, 21)
     gc.fill, gc.border, gc.number_format = INPUT_FILL, BOX, "0.0%"
     wb.defined_names.add(DefinedName("set_GSTRate", attr_text="Lists!$U$8"))
+    ws["T9"], ws["U9"] = "WIP balance sheet account", "11300 Work in Progress"
+    ws["T10"], ws["U10"] = "WIP P&L account", "44200 Closing Work in Progress"
+    ws["T11"] = "The two accounts the WIP journal uses. Change them here and every " \
+                "Debit / Credit on WIP Movements and Month-End follows."
+    ws["T11"].font = Font(size=9, italic=True, color="808080")
+    for cell in ("U9", "U10"):
+        ws[cell].fill, ws[cell].border = INPUT_FILL, BOX
     ws["T5"], ws["U5"] = "Qwilr base address", "https://cts.qwilr.com/"
     ws["T6"], ws["U6"] = "Current RMS base address", ""
     ws["T7"] = "Optional. Paste the whole Current RMS address straight onto the " \
@@ -1147,6 +1242,8 @@ def build_lists(wb):
     ws.column_dimensions["U"].width = 44
     wb.defined_names.add(DefinedName("set_QwilrBase", attr_text="Lists!$U$5"))
     wb.defined_names.add(DefinedName("set_RMSBase", attr_text="Lists!$U$6"))
+    wb.defined_names.add(DefinedName("set_WIPAsset", attr_text="Lists!$U$9"))
+    wb.defined_names.add(DefinedName("set_WIPIncome", attr_text="Lists!$U$10"))
 
     ws["K4"], ws["L4"] = "Revenue GL", "GL Account Name (from Xero)"
     for i, a in enumerate(ACC["revenue_gl"]):
@@ -1278,7 +1375,10 @@ README = [
  ("P", "5.  Section 2: type the WIP Schedule closing balance and the Xero GL 11300 balance."),
  ("P", "6.  Breaks in section 2 - open WIP Summary, paste the WIP Schedule balances into "
        "column G and the variance column shows which job is out."),
- ("P", "7.  Sign off in section 4."),
+ ("P", "7.  Section 4 is the journal. It names the account to debit, the account to "
+       "credit and the amount, split by cost centre. Key it into Xero as one manual "
+       "journal, then put the journal reference back on the WIP Movements rows."),
+ ("P", "8.  Sign off in section 5."),
  ("B", ""),
  ("H", "THE WIP SIGN RULE"),
  ("P", "One signed Amount column does both jobs, because GL 11300 nets accrued and deferred "
@@ -1286,6 +1386,17 @@ README = [
        "or a deferral released). Negative = revenue pushed out of this month (invoiced in "
        "advance). So revenue recognised = invoiced Ex GST + WIP movement, and the running "
        "total of the Amount column is the GL 11300 balance."),
+ ("P", "Every row on WIP Movements now says which account to debit, which to credit and "
+       "for how much, and gives you a narration to paste. A positive amount puts revenue "
+       "back into the month, so WIP goes up: debit 11300 Work in Progress, credit 44200 "
+       "Closing Work in Progress. A negative amount is the other way round. The old GL "
+       "Code column is gone - it said 11300 on every row and these two columns replace it."),
+ ("P", "Month-End section 4 adds those rows up with the automatic deferrals and gives you "
+       "the whole month as one journal, split by cost centre so it can carry tracking in "
+       "Xero. Debit and credit must agree and the sheet says Balanced when they do. Nothing "
+       "posts itself - you key it in and put the reference back on the rows."),
+ ("P", "The two accounts are set on the Lists sheet, column U rows 9 and 10. Change them "
+       "there and every Debit / Credit follows."),
  ("B", ""),
  ("H", "LOCKED CELLS, LINKS AND TOTALS"),
  ("P", "Every sheet is protected with no password. Only the cells you are meant to fill are "
