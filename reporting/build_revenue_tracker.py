@@ -21,6 +21,7 @@ organisation, so the tracker ties to Xero without a mapping table.
 """
 import datetime
 import json
+import os
 import re
 from pathlib import Path
 
@@ -37,7 +38,13 @@ ROOT = Path("/home/user/Claude/reporting")
 JOBS = json.loads((ROOT / "data/revenue_jobs.json").read_text())
 MIG = json.loads((ROOT / "data/revenue_migration.json").read_text())
 ACC = json.loads((ROOT / "data/revenue_accounts.json").read_text())
-OUT = ROOT / "FY27_Revenue_Tracker_v3.xlsx"
+# BLANK=1 builds the identical workbook with no transactions in it - every
+# formula, dropdown, lock and check intact, nothing to delete before testing.
+# The Xero job list, cost centres and GL codes stay: they are reference data,
+# not transactions, and the dropdowns and job checks need them.
+BLANK = os.environ.get("BLANK") == "1"
+OUT = ROOT / ("FY27_Revenue_Tracker_v3_BLANK.xlsx" if BLANK
+              else "FY27_Revenue_Tracker_v3.xlsx")
 
 NAVY, SLATE, LIGHT = "3E5066", "5B708A", "EDF1F6"
 CALC_BG, BORDER = "F2F2F2", "B7B7B7"
@@ -414,6 +421,8 @@ def _idx(block):
 
 
 def migrate_finance():
+    if BLANK:
+        return []
     """Every invoice line, from all four v2 blocks."""
     out = []
 
@@ -495,6 +504,8 @@ def _accumulate(block, key_col, first_cols, sum_cols):
 
 
 def migrate_jobs(dept):
+    if BLANK:
+        return []
     if dept == "Onsite":
         ix = _idx("Support")
         jobs = {}
@@ -530,6 +541,8 @@ def migrate_jobs(dept):
 
 
 def migrate_wip():
+    if BLANK:
+        return []
     out = []
     for dt, job, dept, client, desc, amt in MIG["WIP"]["rows"]:
         amount = _num(amt)
@@ -1533,6 +1546,28 @@ POINTER = {
     "easy":   "This is the easy-read version. The standard, more compact "
               "version is on the Read Me tab.",
 }
+
+
+if BLANK:
+    # No migration to describe, and no migrated exceptions to chase.
+    _a = README.index(("H", "WHAT CAME ACROSS FROM v2"))
+    _b = README.index(("W", "STILL TO CONFIRM"))
+    README[_a:_b] = [
+        ("H", "THIS IS THE EMPTY TEST COPY"),
+        ("P", "Nothing has been migrated into this file. Every sheet is empty and ready to "
+              "type into, and every formula, dropdown, lock, hyperlink and month-end check "
+              "is exactly the same as the live workbook."),
+        ("P", "What is still here is reference data, because the dropdowns and the job "
+              "checks need it: the Xero job list, the cost centres, the revenue GL codes "
+              "and the month list on the Lists sheet."),
+        ("P", "To test it end to end: type an invoice line on the Finance sheet, then type "
+              "the same job number on the matching department sheet, then open Month-End, "
+              "set the month and work down. Section 3 should go to nil and section 1 should "
+              "add up to what you typed."),
+        ("B", ""),
+    ]
+    README[:] = [r for r in README
+                 if not (r[0] == "P" and r[1].startswith("23 migrated records"))]
 
 
 def build_readme(wb, mode="normal"):
