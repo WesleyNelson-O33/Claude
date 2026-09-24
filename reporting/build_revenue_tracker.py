@@ -31,6 +31,7 @@ from openpyxl.styles import (Alignment, Border, Font, PatternFill,
                              Protection, Side)
 from openpyxl.utils import get_column_letter as gcl
 from openpyxl.workbook.defined_name import DefinedName
+from openpyxl.workbook.protection import WorkbookProtection
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.worksheet.table import Table, TableFormula, TableStyleInfo
 
@@ -60,6 +61,7 @@ CALC_FILL = PatternFill("solid", fgColor=CALC_BG)
 COST_CENTRES = ACC["cost_centres"]
 HDR_ROW, DATA_ROW, DV_LAST, CF_LAST = 4, 5, 20000, 5000
 SPARE = 400                      # blank rows kept ready on each entry table
+SHEET_PASSWORD = "CTS1234"       # Review, Unprotect Sheet - then edit anything
 
 FIN = "tbl_Finance"
 DEPTS = ["Onsite", "Production", "Consulting"]
@@ -672,9 +674,10 @@ def build_table(ws, cols, formulas, rows, tblname, spare=SPARE, dv_override=None
             ws.add_data_validation(dv)
             dv.add(f"{gcl(ci)}{DATA_ROW}:{gcl(ci)}{DV_LAST}")
 
-    # A4: the sheet is protected without a password - it stops a stray keystroke
-    # landing in a formula, and anyone who needs to can turn it off in two clicks.
+    # A4 / A20: protected with SHEET_PASSWORD. It stops a stray keystroke landing
+    # in a formula; Review, Unprotect Sheet and the password turns it off.
     ws.protection.sheet = True
+    ws.protection.password = SHEET_PASSWORD
     ws.protection.autoFilter = False
     ws.protection.sort = False
     ws.protection.formatCells = False
@@ -1705,9 +1708,12 @@ README = [
        "there and every Debit / Credit follows."),
  ("B", ""),
  ("H", "LOCKED CELLS, LINKS AND TOTALS"),
- ("P", "Every sheet is protected with no password. Only the cells you are meant to fill are "
-       "open; the grey calculated ones are locked so a stray keystroke cannot wipe a "
-       "formula. To turn it off: Review, Unprotect Sheet. Sorting and filtering still work."),
+ ("P", "Every sheet is protected with the password CTS1234. Only the cells you are meant "
+       "to fill are open; the grey calculated ones are locked so a stray keystroke "
+       "cannot wipe a formula. To edit a locked cell: Review, Unprotect Sheet, type "
+       "CTS1234. Sorting and filtering work without unprotecting anything. The "
+       "workbook structure uses the same password, so sheets cannot be renamed, "
+       "reordered or deleted by accident either."),
  ("P", "Qwilr quotes and Current RMS numbers are clickable. Paste a full web address and it "
        "is used as it stands; type a bare number and it is added to the base address on the "
        "Lists sheet. The Qwilr base is already set, and Current RMS on the Production "
@@ -1985,6 +1991,8 @@ def main():
         sh.sheet_view.zoomScale = 90
         sh.sheet_view.tabSelected = False
     wb["Read Me"].sheet_view.tabSelected = True
+    wb.security = WorkbookProtection(lockStructure=True)
+    wb.security.workbookPassword = SHEET_PASSWORD
     wb.calculation.fullCalcOnLoad = True
     wb.save(OUT)
     print(f"wrote {OUT} ({OUT.stat().st_size:,} bytes)")
