@@ -1346,8 +1346,8 @@
     var two = rows.some(function (r) { return r.value2 != null; });
     rows.forEach(function (r, i) {
       var bh = two ? rh * 0.34 : rh * 0.52;
-      [["value", r.colour || "var(--series-1)", 0],
-       ["value2", "var(--series-2)", bh + 2]].forEach(function (pair) {
+      [["value", r.colour || "var(--measure-1)", 0],
+       ["value2", "var(--measure-3)", bh + 2]].forEach(function (pair) {
         var v = r[pair[0]];
         if (v == null) return;
         var y0 = f.pad.t + rh * i + (rh - (two ? bh * 2 + 2 : bh)) / 2 + pair[2];
@@ -1372,8 +1372,8 @@
     wrap.appendChild(f.node);
     wrap.appendChild(t.el);
     return h("div", [
-      two ? U.legend([{ label: opts.label1 || "This period", colour: "var(--series-1)" },
-                      { label: opts.label2 || "Prior", colour: "var(--series-2)" }]) : null,
+      two ? U.legend([{ label: opts.label1 || "This period", colour: "var(--measure-1)" },
+                      { label: opts.label2 || "Prior", colour: "var(--measure-3)" }]) : null,
       wrap,
     ]);
   };
@@ -1541,9 +1541,9 @@
       var trend = U.columns({
         labels: labels, width: 760, height: 250,
         series: [
-          { label: "Revenue", colour: "var(--series-1)", values: full.income },
-          { label: "Gross profit", colour: "var(--series-3)", values: full.grossProfit },
-          { label: "Net profit", colour: "var(--series-2)", values: full.netProfit },
+          { label: "Revenue", colour: "var(--measure-1)", values: full.income },
+          { label: "Gross profit", colour: "var(--measure-2)", values: full.grossProfit },
+          { label: "Net profit", colour: "var(--measure-3)", values: full.netProfit },
         ],
       });
       var trendTable = U.table([
@@ -1568,9 +1568,9 @@
         labels: deptRows.map(function (r) { return r.dept.short; }),
         width: 520, height: 250,
         series: [
-          { label: "Revenue", colour: "var(--series-1)", values: deptRows.map(function (r) { return r.income; }) },
-          { label: "Gross profit", colour: "var(--series-3)", values: deptRows.map(function (r) { return r.grossProfit; }) },
-          { label: "Net profit after allocation", colour: "var(--series-2)", values: deptRows.map(function (r) { return r.netProfit; }) },
+          { label: "Revenue", colour: "var(--measure-1)", values: deptRows.map(function (r) { return r.income; }) },
+          { label: "Gross profit", colour: "var(--measure-2)", values: deptRows.map(function (r) { return r.grossProfit; }) },
+          { label: "Net profit after allocation", colour: "var(--measure-3)", values: deptRows.map(function (r) { return r.netProfit; }) },
         ],
       });
       var deptTable = U.table([
@@ -1821,7 +1821,7 @@
       var mix = U.columns({
         labels: rows.filter(function (r) { return r.dept.isRevenue; }).map(function (r) { return r.dept.short; }),
         width: 520, height: 230,
-        series: [{ label: "Revenue", colour: "var(--series-1)",
+        series: [{ label: "Revenue", colour: "var(--measure-1)",
                    values: rows.filter(function (r) { return r.dept.isRevenue; }).map(function (r) { return r.income; }) }],
         tipfmt: F.dollars,
       });
@@ -1865,9 +1865,9 @@
       var chart = U.lines({
         labels: labels, width: 860, height: 280, zero: true,
         series: [
-          { label: "Revenue", colour: "var(--series-1)", values: pnl.income },
-          { label: "Gross profit", colour: "var(--series-3)", values: pnl.grossProfit },
-          { label: "Net profit", colour: "var(--series-2)", values: pnl.netProfit },
+          { label: "Revenue", colour: "var(--measure-1)", values: pnl.income },
+          { label: "Gross profit", colour: "var(--measure-2)", values: pnl.grossProfit },
+          { label: "Net profit", colour: "var(--measure-3)", values: pnl.netProfit },
         ],
       });
       var tbl = U.table([
@@ -1947,7 +1947,7 @@
       var chart = U.columns({
         labels: targets.map(function (d) { return E.deptOf[d].short; }),
         width: 520, height: 220,
-        series: [{ label: "Share of the Admin pool", colour: "var(--series-4)",
+        series: [{ label: "Share of the Admin pool", colour: "var(--measure-3)",
                    values: totalsRow.map(function (v) { return -v; }) }],
       });
 
@@ -4083,17 +4083,17 @@
           U.figure("Revenue, gross profit and net profit by month", U.columns({
             labels: labels, width: 780, height: 260,
             series: [
-              { label: "Revenue", colour: "var(--series-1)", values: pnl.income },
-              { label: "Gross profit", colour: "var(--series-3)", values: pnl.grossProfit },
-              { label: "Net profit", colour: "var(--series-2)", values: pnl.netProfit },
+              { label: "Revenue", colour: "var(--measure-1)", values: pnl.income },
+              { label: "Gross profit", colour: "var(--measure-2)", values: pnl.grossProfit },
+              { label: "Net profit", colour: "var(--measure-3)", values: pnl.netProfit },
             ],
           }), null)),
         U.section("Budget against actual, as a running total",
           U.figure("Net profit, cumulative", U.lines({
             labels: labels, width: 780, height: 250, zero: true,
             series: [
-              { label: "Actual, running total", colour: "var(--series-1)", values: run },
-              { label: "Budget, running total", colour: "var(--series-2)", values: runB },
+              { label: "Actual, running total", colour: "var(--measure-1)", values: run },
+              { label: "Budget, running total", colour: "var(--measure-3)", values: runB },
             ],
           }), null,
             "It has to be a running total. Enter the month on its own and the line goes up and down instead of climbing. It looks odd two months into the year and improves as the months build up.")),
@@ -4200,6 +4200,29 @@
 
   /** Identification, not authentication: people pick their name. There is no
    *  password because there is nothing behind this to protect. */
+  /** The logo travels inside the brand data file, so it cannot go missing
+   *  when the folder is moved, and it swaps with the theme. */
+  function buildLogo() {
+    var img = document.getElementById("brandlogo");
+    var b = window.CTS_BRAND;
+    if (!img || !b || !b.logo) return;
+    function pick() {
+      var stamp = document.documentElement.getAttribute("data-theme");
+      var dark = stamp === "dark" || (!stamp && window.matchMedia &&
+                 window.matchMedia("(prefers-color-scheme: dark)").matches);
+      img.src = dark ? b.logo.dark : b.logo.light;
+      img.alt = b.logo.alt || "CTS";
+      img.hidden = false;
+    }
+    pick();
+    CTS.repaintLogo = pick;
+    if (window.matchMedia) {
+      try {
+        window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", pick);
+      } catch (e) {}
+    }
+  }
+
   function buildWhoAmI() {
     var slot = document.getElementById("whoami");
     if (!slot) return;
@@ -4237,6 +4260,7 @@
         : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark");
       document.documentElement.setAttribute("data-theme", next);
       CTS.store.set("theme", next);
+      if (CTS.repaintLogo) CTS.repaintLogo();
     });
   }
 
@@ -4260,6 +4284,7 @@
     }
     var rm = document.getElementById("rmlabel");
     if (rm) rm.textContent = (E.monthIdx[E.reportingMonth()] || {}).long || "";
+    buildLogo();
     buildWhoAmI();
 
     window.addEventListener("hashchange", function () {

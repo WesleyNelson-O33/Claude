@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en-AU" data-palette="#2a78d6,#eb6834,#1baf7a,#eda100,#e87ba4,#008300">
+<html lang="en-AU" data-palette="#f1323c,#14a3a3,#c58501,#db7099,#646ef8,#018301">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -19,15 +19,32 @@
   --ink-muted: #7b7a75;
   --line: #dcdcd7;
   --line-strong: #c4c4bd;
-  --accent: #1f3864;
+  --brand-ink: #181818;          /* the wordmark charcoal */
+  --accent: #4f58e0;             /* brand periwinkle, darkened to 5.4:1 on white */
 
-  --series-1: #2a78d6;  /* Onsite      */
-  --series-2: #eb6834;  /* Production  */
-  --series-3: #1baf7a;  /* Video       */
-  --series-4: #eda100;  /* Integration */
-  --series-5: #e87ba4;  /* Consulting  */
-  --series-6: #008300;  /* Admin       */
-  --series-7: #7b7a75;  /* Unallocated */
+  /* The department colours are CTS's own. Support red, Production teal and
+     Consulting periwinkle are the three waveform peaks in the logo, each
+     taken from its own sub brand file and snapped to a step that holds up
+     under colour vision deficiency. Video, Integration and Admin have no
+     brand colour, so they take hues chosen to stay apart from the three that
+     do. Validated as a set: every check passes in both modes, worst adjacent
+     CVD deltaE 13.4 light and 12.9 dark against a target of 8. */
+  --series-1: #f1323c;  /* Onsite       brand Support red      */
+  --series-2: #14a3a3;  /* Production   brand Production teal  */
+  --series-3: #c58501;  /* Video                               */
+  --series-4: #db7099;  /* Integration                         */
+  --series-5: #646ef8;  /* Consulting   brand Consulting blue  */
+  --series-6: #018301;  /* Admin                               */
+  --series-7: #7b7a75;  /* Unallocated                         */
+
+  /* Measures are a different job from departments. A chart of revenue,
+     gross profit and net profit is not showing identity, so it must not
+     borrow the department ramp: revenue painted in Onsite's red reads as a
+     loss. These three are for measures, and red stays reserved for Onsite
+     and for a critical status. */
+  --measure-1: #646ef8;  /* primary   revenue, actual   */
+  --measure-2: #14a3a3;  /* secondary gross profit      */
+  --measure-3: #c58501;  /* tertiary  net profit        */
 
   --status-good: #0ca30c;
   --status-warning: #fab219;
@@ -45,10 +62,12 @@
     --surface-3: #2c2c2a;
     --ink-strong: #ffffff; --ink: #eceae2; --ink-secondary: #c3c2b7;
     --ink-muted: #918f86;
-    --line: #34342f; --line-strong: #46453f; --accent: #8fb6ee;
-    --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
-    --series-4: #c98500; --series-5: #d55181; --series-6: #008300;
+    --line: #34342f; --line-strong: #46453f;
+    --brand-ink: #ffffff; --accent: #8f96ff;
+    --series-1: #f1323c; --series-2: #18a5a5; --series-3: #c0830a;
+    --series-4: #d26991; --series-5: #646ef8; --series-6: #018301;
     --series-7: #918f86;
+    --measure-1: #646ef8; --measure-2: #18a5a5; --measure-3: #c0830a;
   }
 }
 :root[data-theme="dark"] {
@@ -57,10 +76,12 @@
   --surface-3: #2c2c2a;
   --ink-strong: #ffffff; --ink: #eceae2; --ink-secondary: #c3c2b7;
   --ink-muted: #918f86;
-  --line: #34342f; --line-strong: #46453f; --accent: #8fb6ee;
-  --series-1: #3987e5; --series-2: #d95926; --series-3: #199e70;
-  --series-4: #c98500; --series-5: #d55181; --series-6: #008300;
+  --line: #34342f; --line-strong: #46453f;
+  --brand-ink: #ffffff; --accent: #8f96ff;
+  --series-1: #f1323c; --series-2: #18a5a5; --series-3: #c0830a;
+  --series-4: #d26991; --series-5: #646ef8; --series-6: #018301;
   --series-7: #918f86;
+  --measure-1: #646ef8; --measure-2: #18a5a5; --measure-3: #c0830a;
 }
 
 /* ----------------------------------------------------------------- base */
@@ -80,7 +101,8 @@ a { color: var(--accent); }
   padding: 0 0 2rem; position: sticky; top: 0; height: 100vh; overflow-y: auto;
 }
 .brand { padding: 1.1rem 1rem .9rem; border-bottom: 1px solid var(--line); }
-.brand-name { font-weight: 700; color: var(--ink-strong); letter-spacing: -.01em; }
+.brand-logo { display: block; width: 100%; max-width: 168px; height: auto; margin: 0 0 .55rem; }
+.brand-name { font-weight: 700; color: var(--brand-ink); letter-spacing: -.01em; }
 .brand-sub { font-size: 11px; color: var(--ink-muted); margin-top: 2px; }
 .brand-meta { display: flex; gap: .4rem; align-items: center; margin-top: .55rem; flex-wrap: wrap; }
 .badge {
@@ -126,7 +148,7 @@ main {
   min-width: 0;
 }
 .page-head { margin: .2rem 0 1rem; }
-.page-head h1 { font-size: 24px; margin: 0; color: var(--ink-strong); letter-spacing: -.02em; }
+.page-head h1 { font-size: 24px; margin: 0; color: var(--brand-ink); letter-spacing: -.02em; }
 .page-sub { margin: .2rem 0 0; color: var(--ink-secondary); }
 
 /* -------------------------------------------------------------- banners */
@@ -187,7 +209,7 @@ label.inline { font-size: 12px; color: var(--ink-muted); }
 
 /* -------------------------------------------------------------- blocks */
 .block { margin: 0 0 1.6rem; min-width: 0; }
-.block h2 { font-size: 15px; margin: 0 0 .5rem; color: var(--ink-strong); letter-spacing: -.01em; }
+.block h2 { font-size: 15px; margin: 0 0 .5rem; color: var(--brand-ink); letter-spacing: -.01em; }
 .note { font-size: 12.5px; color: var(--ink-secondary); margin: .3rem 0 .6rem; max-width: 74ch; }
 .note-warn { color: var(--ink); border-left: 2px solid var(--status-serious); padding-left: .6rem; }
 .note-muted { color: var(--ink-muted); }
@@ -317,7 +339,8 @@ svg.chart .mark { transition: opacity .12s; }
 <div class="shell">
   <aside class="side">
     <div class="brand">
-      <div class="brand-name">CTS Business Intelligence</div>
+      <img id="brandlogo" class="brand-logo" alt="cts Seamless AV" hidden>
+      <div class="brand-name">Business Intelligence</div>
       <div class="brand-sub">Corporate Technology Services</div>
       <div class="brand-meta">
         <span id="databadge" class="badge">&nbsp;</span>
@@ -340,7 +363,7 @@ svg.chart .mark { transition: opacity .12s; }
 (function () {
   var MANDATORY = ["CTS_config_data", "CTS_cal_data", "CTS_accounts_data",
                    "CTS_gl_data", "CTS_fin_data"];
-  var OPTIONAL = ["CTS_util_data", "CTS_clients_data", "CTS_users_data", "CTS_staff_data"];
+  var OPTIONAL = ["CTS_util_data", "CTS_clients_data", "CTS_users_data", "CTS_staff_data", "CTS_brand_data"];
   var queue = MANDATORY.concat(OPTIONAL);
   var failed = [];
   var i = 0;
