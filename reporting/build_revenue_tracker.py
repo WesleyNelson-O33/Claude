@@ -761,17 +761,19 @@ WON_COLS = [
     ("Cost Centre", 14, TXT, "dv"), ("Description", 44, TXT, "in"),
     ("Value Ex GST", 15, CUR, "in"), ("Status", 12, TXT, "dv"),
     ("Date Won", 12, DATE, "in"), ("Expected Invoice Month", 20, MON, "in"),
-    ("Invoiced Ex GST", 15, CUR, "f"), ("Still to Invoice", 15, CUR, "f"),
+    ("On the Finance Sheet", 19, CUR, "f"), ("Still to Invoice", 15, CUR, "f"),
     ("Notes", 38, TXT, "in"),
 ]
 WON_FORMULAS = {
     "Job in Xero?": '=IF({Job Number}="","",IF(COUNTIF(lst_Jobs,{Job Number}&"")>0,'
                     '"OK","CHECK"))',
-    # what Finance has actually raised against that job, whatever the month
-    "Invoiced Ex GST": '=IF({Job Number}="","",SUMIFS(' + FIN + '[Ex GST],'
-                       + FIN + '[Job Number],{Job Number}&""))',
-    "Still to Invoice": '=IF({Job Number}="","",IF({Status}<>"Won","",'
-                        '{Value Ex GST}-{Invoiced Ex GST}))',
+    # Everything Finance holds against that job, invoiced or not. Subtracting
+    # all of it is what stops the forecast counting the same work twice.
+    "On the Finance Sheet": '=IF({Job Number}="","",SUMIFS(' + FIN + '[Ex GST],'
+                            + FIN + '[Job Number],{Job Number}&""))',
+    # No job number yet means nothing has been raised against it at all
+    "Still to Invoice": '=IF({Status}<>"Won","",IF({Job Number}="",N({Value Ex GST}),'
+                        '{Value Ex GST}-{On the Finance Sheet}))',
 }
 
 
@@ -784,7 +786,7 @@ def build_won(wb):
                 "row and it will tell you what has been invoiced against it.")
     build_table(ws, WON_COLS, WON_FORMULAS, [], "tbl_Won", spare=600,
                 dv_override={"Status": "lst_WonStatus"})
-    totals_strip(ws, WON_COLS, "tbl_Won", ["Value Ex GST", "Invoiced Ex GST",
+    totals_strip(ws, WON_COLS, "tbl_Won", ["Value Ex GST", "On the Finance Sheet",
                                            "Still to Invoice"])
     ws.freeze_panes = f"C{DATA_ROW}"
 
@@ -833,6 +835,10 @@ CHECKS = [
      'tbl_WIP[Amount],"<>")'),
     ('Still sitting at "To Invoice" for the selected month',
      f'COUNTIFS({FIN}[Month],$C$4,{FIN}[Status],"To Invoice")'),
+    # These carry revenue into the month that Xero has not raised, so section 1
+    # will not tie until they are invoiced or moved out. They are the forecast.
+    ("Revenue dated this month with no invoice number - it is in the forecast",
+     f'COUNTIFS({FIN}[Month],$C$4,{FIN}[Xero Invoice No],"",{FIN}[Ex GST],"<>")'),
 ]
 
 
@@ -1152,9 +1158,58 @@ def build_month_end(wb, dlast):
             "invoiced, or invoiced with no opportunity behind it."
             ).font = Font(size=9, italic=True, color="808080")
 
-    # ---- 6. sign-off
-    s4 = wtot + 7
-    band(ws, s4, "6.  SIGN-OFF")
+    # ---- 6. forecast: everything with no invoice raised against it yet
+    sf = wtot + 7
+    band(ws, sf, "6.  FORECAST  -  work with no invoice against it")
+    col_heads(ws, sf + 1, ["Cost Centre", "Finance: to invoice", "Won, not invoiced",
+                           "Total forecast", "", "", "", "", ""])
+    f0 = sf + 2
+    for i, cc in enumerate(COST_CENTRES):
+        r = f0 + i
+        ws.cell(r, 1, cc).font = Font(bold=True, size=10)
+        # a Finance line with a value but no invoice number is work done or
+        # agreed that nobody has billed yet, whatever month it is sitting in
+        ws.cell(r, 2).value = (f'=SUMIFS({FIN}[Ex GST],{FIN}[Cost Centre],$A{r},'
+                               f'{FIN}[Xero Invoice No],"")')
+        ws.cell(r, 3).value = ('=SUMIFS(tbl_Won[Still to Invoice],tbl_Won[Cost Centre],'
+                               f'$A{r},tbl_Won[Status],"Won")')
+        ws.cell(r, 4).value = f"=B{r}+C{r}"
+    ftot = f0 + len(COST_CENTRES)
+    ws.cell(ftot, 1, "TOTAL FORECAST").font = Font(bold=True, size=10)
+    for col in range(2, 5):
+        ws.cell(ftot, col).value = f"=SUM({gcl(col)}{f0}:{gcl(col)}{ftot - 1})"
+    for r in range(f0, ftot + 1):
+        for col in range(1, 5):
+            cell = ws.cell(r, col)
+            cell.border, cell.fill = BOX, CALC_FILL
+            cell.font = Font(size=10, bold=(r == ftot))
+            if col > 1:
+                cell.number_format = CUR
+    memo = [("Not in the forecast above  -  open opportunities, not yet won",
+             '=SUMIFS(tbl_Won[Value Ex GST],tbl_Won[Status],"Open")'),
+            ("Not in the forecast above  -  deferred revenue still to release "
+             "(already invoiced)",
+             f'=-SUMIFS({defer_range("R", dlast)},{defer_range("T", dlast)},"<>Cost")'),
+            ("Jobs on a department sheet with no invoice line at all (count)",
+             "+".join(f'COUNTIFS({DEPT_TABLE[d]}[Job Number],"<>",'
+                      f'{DEPT_TABLE[d]}[Lines on Job],0)' for d in DEPTS))]
+    for i, (label, formula) in enumerate(memo):
+        r = ftot + 1 + i
+        ws.cell(r, 1, label).font = Font(size=10)
+        vc = ws.cell(r, 4)
+        vc.value = formula if formula.startswith("=") else "=" + formula
+        vc.fill, vc.border = CALC_FILL, BOX
+        vc.number_format = "#,##0" if i == 2 else CUR
+    ws.cell(ftot + 4, 1,
+            "Nothing here is revenue yet. Finance: to invoice is a line already on the "
+            "Finance sheet with no invoice number on it. Won, not invoiced is the value "
+            "won less everything Finance already holds against that job, so the two "
+            "columns add up without counting the same work twice."
+            ).font = Font(size=9, italic=True, color="808080")
+
+    # ---- 7. sign-off
+    s4 = ftot + 6
+    band(ws, s4, "7.  SIGN-OFF")
     for i, (label, who) in enumerate([("Prepared by", "Accounts Assistant"),
                                       ("Reviewed by", "Finance Operations Manager"),
                                       ("Date closed", ""),
@@ -1607,6 +1662,12 @@ README = [
        "it catches is work won and never invoiced, and invoicing with no opportunity "
        "behind it. Put a job number on a row and it also tells you what has been raised "
        "against that job so far."),
+ ("P", "Month-End section 6 turns the same sheet into the forecast. It adds two "
+       "things that have no invoice against them: a Finance line carrying a value but "
+       "no invoice number, and work marked Won less everything Finance already holds "
+       "against that job. Subtracting all of it is what stops the same work being "
+       "counted twice. Open opportunities and deferred revenue still to release sit "
+       "underneath as memos, deliberately outside the total."),
  ("B", ""),
  ("H", "MONTH-END, IN ORDER"),
  ("P", "1.  Chase the departments until every invoice for the month is on the Finance sheet "
@@ -1623,7 +1684,7 @@ README = [
        "credit and the amount, split by cost centre. Key it into Xero as one manual "
        "journal, then put the journal reference back on the WIP Movements rows."),
  ("P", "8.  Section 5 is the Work Won sense check against ZOHO, Current RMS and Qwilr."),
- ("P", "9.  Sign off in section 6."),
+
  ("B", ""),
  ("H", "THE WIP SIGN RULE"),
  ("P", "One signed Amount column does both jobs, because GL 11300 nets accrued and deferred "
