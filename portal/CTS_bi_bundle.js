@@ -161,6 +161,7 @@
     (E.clients.clients || []).forEach(function (c) { E.clientMeta[c.contact] = c; });
 
     E.seed = !!(window.CTS_GL.meta && window.CTS_GL.meta.seed);
+    E.restoreSnapshots();
     E.ready = true;
     return E;
   };
@@ -374,6 +375,64 @@
     list = list || E.depts;
     if (!scope) return list;
     return list.filter(function (d) { return d.code === scope; });
+  };
+
+  /* ---- keeping a load -------------------------------------------------
+   *
+   * A load used to last until the page was reloaded, and the only way to make
+   * it stick was to download a file and drop it in portal/data. That does not
+   * work everywhere: a page served in a sandboxed frame has downloads blocked
+   * outright. So a load is kept in the browser instead, which needs no
+   * download, survives a reload, and works the same whether the portal is
+   * opened from a folder or from a link.
+   *
+   * It is per browser and per person. It is not shared, and it is not a
+   * substitute for putting the file in portal/data when everyone should get it.
+   */
+  var SNAP = { gl: "snap.gl", fin: "snap.fin", util: "snap.util", staff: "snap.staff" };
+
+  E.snapshot = function (kind, payload) {
+    var key = SNAP[kind];
+    if (!key) return { ok: false, why: "unknown data set" };
+    try {
+      localStorage.setItem("cts.bi." + key, JSON.stringify(
+        { saved: new Date().toISOString(), payload: payload }));
+      return { ok: true };
+    } catch (err) {
+      // usually the 5MB per origin quota, which a full year of ledger can pass
+      return { ok: false, why: /quota/i.test(String(err && err.name || err))
+        ? "it is too big for what the browser will keep, which is about five megabytes"
+        : String(err && err.message || err) };
+    }
+  };
+
+  E.snapshots = function () {
+    var out = {};
+    Object.keys(SNAP).forEach(function (k) {
+      var raw = store.get(SNAP[k], null);
+      if (raw && raw.payload) out[k] = raw;
+    });
+    return out;
+  };
+
+  E.clearSnapshots = function (kind) {
+    Object.keys(SNAP).forEach(function (k) {
+      if (kind && k !== kind) return;
+      try { localStorage.removeItem("cts.bi." + SNAP[k]); } catch (e) {}
+    });
+  };
+
+  E.restoreSnapshots = function () {
+    var snaps = E.snapshots();
+    var restored = [];
+    if (snaps.gl) { E.loadGL(snaps.gl.payload); E._deptShare = null; restored.push("ledger"); }
+    if (snaps.fin) { E.fin = snaps.fin.payload; E.loadFin(E.fin); restored.push("profit and loss"); }
+    if (snaps.util) { E.loadUtil(snaps.util.payload); restored.push("utilisation"); }
+    if (snaps.staff) { E.loadStaff(snaps.staff.payload); restored.push("people"); }
+    if (restored.length) E.seed = false;
+    E.restored = restored;
+    E.restoredAt = (snaps.util || snaps.gl || snaps.fin || snaps.staff || {}).saved || null;
+    return restored;
   };
 
   /* ---- people ---------------------------------------------------------- */
@@ -1412,6 +1471,15 @@
   }
 
   function seedBanner() {
+    if (E.restored && E.restored.length) {
+      return h("div.banner.banner-good", [
+        h("strong", "Using data you kept in this browser. "),
+        "Restored " + E.restored.join(", ") +
+        (E.restoredAt ? ", saved " + F.date(E.restoredAt.slice(0, 10)) : "") +
+        ". It is on this machine only. Clear it on ",
+        h("a", { href: "#/setup" }, "Setup"), " to go back to the files.",
+      ]);
+    }
     if (!E.seed) return null;
     return h("div.banner.banner-seed", [
       h("strong", "Seed data. "),
@@ -2640,11 +2708,60 @@
   }
 
   function download(name, text) {
-    var blob = new Blob([text], { type: "text/javascript" });
-    var a = h("a", { href: URL.createObjectURL(blob), download: name });
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+    try {
+      var blob = new Blob([text], { type: "text/javascript" });
+      var a = h("a", { href: URL.createObjectURL(blob), download: name });
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 0);
+      return true;
+    } catch (e) { return false; }
+  }
+
+  /** Three ways to hold on to a load, because only one of them works
+   *  everywhere. Keeping it in the browser needs nothing and survives a
+   *  reload. Showing the file works even where downloads are blocked, which
+   *  they are in a sandboxed frame. Downloading is offered last because it is
+   *  the one that silently does nothing when the frame forbids it. */
+  function keepOrShow(opts) {
+    var wrap = h("div.keeprow");
+    var msg = h("div.keepmsg");
+    var box = h("div.keepbox", { style: { display: "none" } });
+
+    function show() {
+      box.innerHTML = "";
+      box.style.display = "block";
+      var ta = h("textarea.paste", { rows: 8, readonly: true }, opts.text());
+      box.appendChild(U.note("Select all of this and paste it into a file called " +
+        opts.name + " in portal/data. That makes it what the portal loads every time, for everyone."));
+      box.appendChild(ta);
+      ta.focus();
+      ta.select();
+    }
+
+    wrap.appendChild(h("div.row", [
+      opts.keep ? h("button.btn", { onclick: function () {
+        var bad = null;
+        opts.keep.forEach(function (k) {
+          var r = E.snapshot(k.kind, k.payload());
+          if (!r.ok && !bad) bad = r.why;
+        });
+        msg.innerHTML = "";
+        msg.appendChild(!bad
+          ? h("div.banner.banner-good", "Kept in this browser. It will still be here after a reload, on this machine, for you. To give it to everyone, use Show the file.")
+          : h("div.banner.banner-warn", "Could not keep it in the browser: " + bad +
+              ". Use Show the file instead."));
+      } }, "Keep in this browser") : null,
+      h("button.btn.btn-quiet", { onclick: show }, "Show the file"),
+      h("button.btn.btn-quiet", { onclick: function () {
+        download(opts.name, opts.text());
+        msg.innerHTML = "";
+        msg.appendChild(h("p.note", "If no download appeared, this page is in a frame that blocks them. Use Show the file."));
+      } }, "Download"),
+    ]));
+    wrap.appendChild(msg);
+    wrap.appendChild(box);
+    return wrap;
   }
 
   /* ---- the Employment Hero earnings loader ----------------------------
@@ -3237,14 +3354,25 @@
         ]));
       }
 
-      st.panel.appendChild(h("div.row", [
-        h("button.btn", { onclick: function () {
-          download("CTS_util_data.js",
-            "// Loaded " + payload.meta.built + " from the Employment Hero earnings report.\n" +
-            "window.CTS_UTIL = " + JSON.stringify(payload) + ";\n");
-        } }, "Save as CTS_util_data.js"),
-        h("span.muted", "Put it in portal/data to keep it. Without this the load lasts until you reload the page."),
-      ]));
+      var staffPayload = { meta: { seed: false, built: payload.meta.built,
+                                   note: "From the Employment Hero earnings report." },
+                           cols: ["month", "empId", "name", "dept", "chargeable",
+                                  "nonChargeable", "leave", "publicHoliday",
+                                  "grossCents", "superCents", "employment"],
+                           rows: staffRows };
+      st.panel.appendChild(h("h4", "Keeping this load"));
+      st.panel.appendChild(U.note("Without one of these the load lasts only until you reload the page."));
+      st.panel.appendChild(keepOrShow({
+        name: "CTS_util_data.js",
+        keep: [{ kind: "util", payload: function () { return payload; } },
+               { kind: "staff", payload: function () { return staffPayload; } }],
+        payload: function () { return payload; },
+        text: function () {
+          return "// Loaded " + payload.meta.built + " from the Employment Hero earnings report.\n" +
+                 "window.CTS_UTIL = " + JSON.stringify(payload) + ";\n";
+        },
+      }));
+      st.panel.appendChild(U.note("Showing the file gives the utilisation half. The people half is CTS_staff_data.js; keeping it in the browser covers both.", "muted"));
     }
 
     return h("div.card.loader.wide", [
@@ -3319,8 +3447,39 @@
           { l: "Lines on an unknown account", v: F.num(E.quality.unknownAcct) },
           { l: "Accounts in the chart", v: F.num(E.accounts.length) },
           { l: "Months with a posted actual", v: F.num(E.actualMonths.length) },
-          { l: "Data origin", v: E.seed ? "seed" : "loaded" },
+          { l: "Data origin", v: E.seed ? "seed" : (E.restored && E.restored.length ? "kept in this browser" : "loaded this session") },
         ])),
+        U.section("Data kept in this browser", (function () {
+          var snaps = E.snapshots();
+          var keys = Object.keys(snaps);
+          var label = { gl: "Ledger", fin: "Profit and loss", util: "Utilisation", staff: "People" };
+          return [
+            U.note("A load is kept here so it survives a reload, on this machine and for you only. It is not shared with anyone else and it is not what the portal loads for everybody. For that the file has to go in portal/data, which the Show the file button on each loader gives you."),
+            keys.length ? U.table([
+              { key: "what", label: "Data set", align: "left" },
+              { key: "when", label: "Kept", align: "left" },
+              { key: "size", label: "Size" },
+              { key: "clear", label: "", align: "left", value: function (r) { return r.clear; } },
+            ], keys.map(function (k) {
+              var raw = JSON.stringify(snaps[k].payload).length;
+              return { what: label[k] || k,
+                       when: F.date(String(snaps[k].saved).slice(0, 10)),
+                       size: (raw / 1024).toFixed(0) + " KB",
+                       clear: h("button.btn.btn-quiet.small", { onclick: function () {
+                         if (!confirm("Discard the kept " + (label[k] || k) + " and go back to the file?")) return;
+                         E.clearSnapshots(k);
+                         location.reload();
+                       } }, "Discard") };
+            })) : U.note("Nothing kept. The portal is reading the files in portal/data.", "muted"),
+            keys.length ? h("div.row", [
+              h("button.btn.btn-quiet", { onclick: function () {
+                if (!confirm("Discard every kept data set and go back to the files?")) return;
+                E.clearSnapshots();
+                location.reload();
+              } }, "Discard everything kept"),
+            ]) : null,
+          ];
+        })()),
       ];
     },
   };
@@ -3401,14 +3560,14 @@
                 { l: "Revenue lines with no contact", v: F.num(E.quality.noContact) },
                 { l: "Date range", v: F.date(E.quality.minDate) + " to " + F.date(E.quality.maxDate) },
               ]));
-              node.appendChild(h("div.row", [
-                h("button.btn", { onclick: function () {
-                  download("CTS_gl_data.js",
-                    "// Loaded " + payload.meta.built + " from a Xero paste.\nwindow.CTS_GL = " +
-                    JSON.stringify(payload) + ";\n");
-                } }, "Save as CTS_gl_data.js"),
-                h("span.muted", "Put the saved file in portal/data to make it the default next time."),
-              ]));
+              node.appendChild(keepOrShow({
+                name: "CTS_gl_data.js",
+                keep: [{ kind: "gl", payload: function () { return payload; } }],
+                text: function () {
+                  return "// Loaded " + payload.meta.built + " from a Xero paste.\n" +
+                         "window.CTS_GL = " + JSON.stringify(payload) + ";\n";
+                },
+              }));
             },
           }),
           loader({
@@ -3449,18 +3608,18 @@
                   (unknown.length > 6 ? " and others." : ""),
                 ]));
               }
-              node.appendChild(h("div.row", [
-                h("button.btn", { onclick: function () {
-                  download("CTS_fin_data.js",
-                    "// Loaded " + new Date().toISOString().slice(0, 10) + " from a Xero paste.\n" +
-                    "window.CTS_FIN = " + JSON.stringify({
-                      meta: { seed: false, basis: "accrual", currency: "AUD" },
-                      actual: actual, budget: E.finBudget,
-                      months: E.months.map(function (m) { return m.key; }),
-                    }) + ";\n");
-                } }, "Save as CTS_fin_data.js"),
-                h("span.muted", "Keeps the budget that is already loaded."),
-              ]));
+              var finPayload = { meta: { seed: false, basis: "accrual", currency: "AUD" },
+                                 actual: actual, budget: E.finBudget,
+                                 months: E.months.map(function (m) { return m.key; }) };
+              node.appendChild(keepOrShow({
+                name: "CTS_fin_data.js",
+                keep: [{ kind: "fin", payload: function () { return finPayload; } }],
+                text: function () {
+                  return "// Loaded " + new Date().toISOString().slice(0, 10) + " from a Xero paste.\n" +
+                         "window.CTS_FIN = " + JSON.stringify(finPayload) + ";\n";
+                },
+              }));
+              node.appendChild(U.note("Keeping it also keeps the budget already loaded.", "muted"));
             },
           }),
           buildEarningsLoader(),
@@ -3768,7 +3927,7 @@
         return h("option", { value: r.id }, r.label);
       }));
 
-      function exportUsers() {
+      function usersText() {
         var out = {
           meta: { version: (E.users.meta.version || 1) + 1,
                   updated: new Date().toISOString().slice(0, 10),
@@ -3780,12 +3939,11 @@
           USERS: E.userList(),
           DEFAULT_ROLE: E.users.DEFAULT_ROLE,
         };
-        download("CTS_users_data.js",
-          "// CTS Business Intelligence Portal - people and access\n" +
+        return "// CTS Business Intelligence Portal - people and access\n" +
           "// Exported " + out.meta.updated + " from the Access Control page.\n" +
           "// Visibility only. This does not protect anything: the portal is a file\n" +
           "// in a browser and every data file beside it is readable regardless.\n" +
-          "window.CTS_USERS = " + JSON.stringify(out, null, 2) + ";\n");
+          "window.CTS_USERS = " + JSON.stringify(out, null, 2) + ";\n";
       }
 
       var preview = E.previewRole();
@@ -3846,8 +4004,8 @@
         ]),
         U.section("Keeping the changes", [
           U.note("Everything above is saved in this browser only, so it follows you rather than the portal. Export it and put the file in portal/data to make it what everyone gets."),
+          keepOrShow({ name: "CTS_users_data.js", text: usersText }),
           h("div.row", [
-            h("button.btn", { onclick: exportUsers }, "Export as CTS_users_data.js"),
             h("button.btn.btn-quiet", { onclick: function () {
               if (!confirm("Discard your changes to roles and people and go back to the file?")) return;
               CTS.store.set("accessRoles", {});

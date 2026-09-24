@@ -205,6 +205,12 @@ ul.plain li:last-child { border-bottom: 0; }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: .8rem; }
 .card { background: var(--surface-1); border: 1px solid var(--line); border-radius: var(--radius); padding: .8rem .9rem; }
 .card h3 { font-size: 13px; margin: 0 0 .4rem; color: var(--ink-strong); }
+.keeprow { margin-top: .6rem; }
+.keepmsg:empty { display: none; }
+.keepbox { margin-top: .6rem; }
+.keepbox textarea.paste { width: 100%; font-family: var(--mono); font-size: 11px;
+  border: 1px solid var(--line-strong); border-radius: 6px; padding: .45rem;
+  background: var(--surface-0); color: var(--ink); resize: vertical; }
 .loader textarea.paste {
   width: 100%; font-family: var(--mono); font-size: 12px; border: 1px solid var(--line-strong);
   border-radius: 6px; padding: .45rem; background: var(--surface-0); color: var(--ink); resize: vertical;
