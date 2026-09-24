@@ -328,8 +328,12 @@ WIP_COLS = [
     ("Xero Invoice No", 16, TXT, "in"), ("Job Number", 15, TXT, "in"),
     ("Job in Xero?", 12, TXT, "f"), ("Client", 26, TXT, "in"),
     ("Cost Centre", 14, TXT, "dv"), ("Description", 50, TXT, "in"),
-    ("Type", 26, TXT, "dv"),
-    ("Amount", 15, CUR, "in"),
+    ("Type", 30, TXT, "dv"),
+    # A19: which side of the P&L this belongs to, and the dates if it spreads.
+    ("Revenue or Cost", 15, TXT, "dv"),
+    ("Defer Start", 12, DATE, "in"), ("Defer End", 12, DATE, "in"),
+    ("Spread", 30, TXT, "f"),
+    ("Amount", 15, CUR, "in"), ("P&L Account", 30, TXT, "in"),
     # A17: say which account to debit, which to credit and for how much, so
     # the journal can be keyed straight into Xero. GL Code is gone - it said
     # 11300 on every row and the two columns below replace it.
@@ -341,12 +345,23 @@ WIP_COLS = [
 WIP_FORMULAS = {
     # A positive amount puts revenue back into the month, so WIP goes up:
     # debit the balance sheet, credit the P&L. A negative amount reverses it.
-    "Debit Account": '=IF(N({Amount})=0,"",IF({Amount}>0,set_WIPAsset,set_WIPIncome))',
-    "Credit Account": '=IF(N({Amount})=0,"",IF({Amount}>0,set_WIPIncome,set_WIPAsset))',
-    "Journal Amount": '=IF(N({Amount})=0,"",ABS({Amount}))',
-    "Journal Narration": '=IF(N({Amount})=0,"","WIP "&{Type}&IF({Job Number}="",""," - "'
+    # A revenue row credits 44200. A cost row credits the expense account the
+    # bill came from, which is typed in P&L Account - Xero puts both in 11300
+    # but they are not the same thing.
+    "Debit Account": '=IF(N({Amount})=0,"",IF({Amount}>0,set_WIPAsset,IF({Revenue or Cost}="Cost",IF({P&L Account}="","(set the P&L Account)",{P&L Account}),IF({P&L Account}="",set_WIPIncome,{P&L Account}))))',
+    "Credit Account": '=IF(N({Amount})=0,"",IF({Amount}>0,IF({Revenue or Cost}="Cost",IF({P&L Account}="","(set the P&L Account)",{P&L Account}),IF({P&L Account}="",set_WIPIncome,{P&L Account})),set_WIPAsset))',
+    # A row that spreads is posted monthly, not in one hit, so its journal
+    # amount comes off the Deferred Revenue sheet and the Month-End journal.
+    "Journal Amount": '=IF(OR(N({Amount})=0,{Defer Start}<>""),"",ABS({Amount}))',
+    "Spread": '=IF({Amount}="","",IF(OR({Defer Start}="",{Defer End}=""),'
+              '"one month",TEXT(MAX(1,(YEAR({Defer End})-YEAR({Defer Start}))*12'
+              '+MONTH({Defer End})-MONTH({Defer Start})+1),"0")'
+              '&" months - see Deferred Revenue"))',
+    "Journal Narration": '=IF(N({Amount})=0,"",IF({Defer Start}<>"",'
+                         '"spreads monthly - see Deferred Revenue","WIP "&{Type}'
+                         '&IF({Job Number}="",""," - "'
                          '&{Job Number})&IF({Client}="",""," "&{Client})'
-                         '&IF({Description}="",""," - "&{Description}))',
+                         '&IF({Description}="",""," - "&{Description})))',
     "Job in Xero?": '=IF({Job Number}="","",IF(COUNTIF(lst_Jobs,{Job Number}&"")>0,"OK","CHECK"))',
     # A15: the invoice date follows the invoice number in from Finance
     "Invoice Date": '=IF({Xero Invoice No}="","",IFERROR(INDEX(' + FIN + '[Date],'
@@ -367,7 +382,8 @@ FIN_FORMULAS["Job Expense"] = '=IF({Job Number}="","",' + _dept_pick(
 FIN_FORMULAS["Dept Notes"] = '=IF({Job Number}="","",' + _dept_pick(
     {"Onsite": "Notes", "Production": "Notes", "Consulting": "Notes"}) + ')'
 
-DV_FOR = {"Cost Centre": "lst_CostCentre", "Invoice Type": "lst_InvoiceType",
+DV_FOR = {"Revenue or Cost": "lst_RevCost", "Source": "lst_WonSource",
+          "Cost Centre": "lst_CostCentre", "Invoice Type": "lst_InvoiceType",
           "Tax Code": "lst_TaxCode", "Revenue GL": "lst_RevGL",
           "Posted to Xero": "lst_YN", "To WIP": "lst_YN", "Status": "lst_Status",
           "Ariba Status": "lst_Ariba", "Job Closed": "lst_YN",
@@ -552,7 +568,7 @@ def migrate_wip():
                     "Description": _txt(desc),
                     "Type": ("Accrual - unbilled work" if (amount or 0) >= 0
                              else "Deferral - invoiced in advance"),
-                    "Amount": amount, "GL Code": "11300", "Posted to Xero": "Y",
+                    "Amount": amount, "Revenue or Cost": "Revenue", "Posted to Xero": "Y",
                     "Notes": "Migrated from FY27 Revenue Tracker v2 - confirm type/sign"})
     return out
 
@@ -724,11 +740,53 @@ def build_wip(wb):
     ws = wb.create_sheet("WIP Movements")
     title_block(ws, "WIP Movements",
                 "Every journal that moves revenue between the P&L and GL 11300 Work in "
-                "Progress. SIGN RULE: + = revenue recognised this month (WIP balance up). "
-                "- = revenue deferred out of this month (WIP balance down).")
-    build_table(ws, WIP_COLS, WIP_FORMULAS, migrate_wip(), "tbl_WIP", spare=200)
+                "Progress. SIGN RULE: + = the P&L gives up the amount this month and "
+                "the 11300 balance goes up. - = the other way round. Set Revenue or "
+                "Cost on every row - 11300 nets both and only this column tells them "
+                "apart. Put a Defer Start and End on it and it spreads by month.")
+    nrows = build_table(ws, WIP_COLS, WIP_FORMULAS, migrate_wip(), "tbl_WIP",
+                        spare=200)[1]
     totals_strip(ws, WIP_COLS, "tbl_WIP", ["Amount"])
     ws.freeze_panes = f"D{DATA_ROW}"
+    return nrows
+
+
+# A19: what was won, from ZOHO, Current RMS and Qwilr, as a sense check against
+# what was actually invoiced. Paste the month's export in and Month-End compares
+# the two. Nothing here feeds revenue - it is a cross-check, not a source.
+WON_COLS = [
+    ("Month", 10, MON, "in"), ("Source", 15, TXT, "dv"),
+    ("Reference", 20, TXT, "in"), ("Client", 26, TXT, "in"),
+    ("Job Number", 15, TXT, "in"), ("Job in Xero?", 12, TXT, "f"),
+    ("Cost Centre", 14, TXT, "dv"), ("Description", 44, TXT, "in"),
+    ("Value Ex GST", 15, CUR, "in"), ("Status", 12, TXT, "dv"),
+    ("Date Won", 12, DATE, "in"), ("Expected Invoice Month", 20, MON, "in"),
+    ("Invoiced Ex GST", 15, CUR, "f"), ("Still to Invoice", 15, CUR, "f"),
+    ("Notes", 38, TXT, "in"),
+]
+WON_FORMULAS = {
+    "Job in Xero?": '=IF({Job Number}="","",IF(COUNTIF(lst_Jobs,{Job Number}&"")>0,'
+                    '"OK","CHECK"))',
+    # what Finance has actually raised against that job, whatever the month
+    "Invoiced Ex GST": '=IF({Job Number}="","",SUMIFS(' + FIN + '[Ex GST],'
+                       + FIN + '[Job Number],{Job Number}&""))',
+    "Still to Invoice": '=IF({Job Number}="","",IF({Status}<>"Won","",'
+                        '{Value Ex GST}-{Invoiced Ex GST}))',
+}
+
+
+def build_won(wb):
+    ws = wb.create_sheet("Work Won")
+    title_block(ws, "Work Won  -  ZOHO, Current RMS and Qwilr",
+                "Paste the month's won opportunities here, one row each, and Month-End "
+                "compares the total against what was invoiced. This is a sense check "
+                "only - nothing on this sheet feeds revenue. Put the job number on a "
+                "row and it will tell you what has been invoiced against it.")
+    build_table(ws, WON_COLS, WON_FORMULAS, [], "tbl_Won", spare=600,
+                dv_override={"Status": "lst_WonStatus"})
+    totals_strip(ws, WON_COLS, "tbl_Won", ["Value Ex GST", "Invoiced Ex GST",
+                                           "Still to Invoice"])
+    ws.freeze_panes = f"C{DATA_ROW}"
 
 
 CHECKS = [
@@ -765,7 +823,14 @@ CHECKS = [
      f'SUMPRODUCT(--({FIN}[Defer Start]<>""),--({FIN}[Xero Invoice No]<>""),'
      f'--(COUNTIF(tbl_WIP[Xero Invoice No],{FIN}[Xero Invoice No]&"")>0))'),
     ("Deferred lines missing an end date",
-     f'SUMPRODUCT(--({FIN}[Defer Start]<>""),--({FIN}[Defer End]=""))'),
+     f'SUMPRODUCT(--({FIN}[Defer Start]<>""),--({FIN}[Defer End]=""))'
+     '+SUMPRODUCT(--(tbl_WIP[Defer Start]<>""),--(tbl_WIP[Defer End]=""))'),
+    # 11300 nets revenue against cost, so an unset row lands on the wrong side
+    ("WIP rows with an amount but Revenue or Cost not set",
+     'SUMPRODUCT(--(tbl_WIP[Amount]<>""),--(tbl_WIP[Revenue or Cost]=""))'),
+    ("Deferred cost rows with no P&L Account to credit",
+     'COUNTIFS(tbl_WIP[Revenue or Cost],"Cost",tbl_WIP[P&L Account],"",'
+     'tbl_WIP[Amount],"<>")'),
     ('Still sitting at "To Invoice" for the selected month',
      f'COUNTIFS({FIN}[Month],$C$4,{FIN}[Status],"To Invoice")'),
 ]
@@ -805,10 +870,14 @@ def build_month_end(wb, dlast):
         ws.cell(r, 3).value = f'=SUMIFS({FIN}[GST],{FIN}[Month],$C$4,{FIN}[Cost Centre],$A{r})'
         ws.cell(r, 4).value = f"=B{r}+C{r}"
         # manual journals plus whatever the deferral engine releases this month
+        # Revenue only. A deferred cost sits in the same GL but it is not
+        # revenue, and a row that spreads is counted on the Deferred sheet.
         ws.cell(r, 5).value = (
             '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4,'
-            f"tbl_WIP[Cost Centre],$A{r})"
-            f'+SUMIF({defer_range("F", dlast)},$A{r},{defer_range("Q", dlast)})')
+            f"tbl_WIP[Cost Centre],$A{r},"
+            'tbl_WIP[Revenue or Cost],"<>Cost",tbl_WIP[Defer Start],"")'
+            f'+SUMIFS({defer_range("Q", dlast)},{defer_range("F", dlast)},$A{r},'
+            f'{defer_range("T", dlast)},"<>Cost")')
         ws.cell(r, 6).value = f"=B{r}+E{r}"
         ws.cell(r, 8).value = f'=IF($G{r}="","",$F{r}-$G{r})'
         ws.cell(r, 9).value = (f'=IF($G{r}="","Enter Xero figure",IF(ROUND($H{r},2)=0,'
@@ -844,15 +913,25 @@ def build_month_end(wb, dlast):
     # ---- 2. WIP
     s2 = tot + 3
     band(ws, s2, "2.  WORK IN PROGRESS  -  GL 11300")
-    col_heads(ws, s2 + 1, ["", "Amount", "", "", "", "", "", "", "Check"])
+    col_heads(ws, s2 + 1, ["", "Total", "Deferred / accrued revenue",
+                           "Deferred / accrued cost", "", "", "", "", "Check"])
     b = s2 + 2
+
+    def wip_side(when, dcol, side):
+        """One side of GL 11300 - revenue or cost - for a point in time."""
+        crit = '"Cost"' if side == "cost" else '"<>Cost"'
+        return (f'=SUMIFS(tbl_WIP[Amount],{when},'
+                f'tbl_WIP[Revenue or Cost],{crit},tbl_WIP[Defer Start],"")'
+                f'+SUMIFS({defer_range(dcol, dlast)},'
+                f'{defer_range("T", dlast)},{crit})')
+
+    OPEN_W = 'tbl_WIP[Month],"<>",tbl_WIP[Month],"<"&$C$4'
+    MOVE_W = "tbl_WIP[Month],$C$4"
     rows = [
         ("Opening WIP balance (all months before this one)",
-         '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],"<>",tbl_WIP[Month],"<"&$C$4)'
-         f'+SUM({defer_range("P", dlast)})', "calc"),
+         (wip_side(OPEN_W, "P", "rev"), wip_side(OPEN_W, "P", "cost")), "calc"),
         ("Movement this month",
-         "=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4)"
-         f'+SUM({defer_range("Q", dlast)})', "calc"),
+         (wip_side(MOVE_W, "Q", "rev"), wip_side(MOVE_W, "Q", "cost")), "calc"),
         ("Closing WIP balance per this tracker", None, "sum"),
         ("Closing balance per the WIP Schedule file", None, "input"),
         ("Variance - tracker vs WIP Schedule", None, "var1"),
@@ -865,11 +944,24 @@ def build_month_end(wb, dlast):
         vc = ws.cell(r, 2)
         vc.number_format, vc.border = CUR, BOX
         if kind == "calc":
-            vc.value, vc.fill = formula, CALC_FILL
+            # C is revenue, D is cost, B adds them back to the GL balance
+            for off, f in enumerate(formula):
+                sc = ws.cell(r, 3 + off)
+                sc.value, sc.fill = f, CALC_FILL
+                sc.number_format, sc.border = CUR, BOX
+                sc.font = Font(size=10)
+            vc.value, vc.fill = f"=C{r}+D{r}", CALC_FILL
+            vc.font = Font(bold=True, size=10)
         elif kind == "sum":
             vc.value = f"=B{b}+B{b + 1}"
             vc.fill = PatternFill("solid", fgColor=LIGHT)
             vc.font = Font(bold=True, size=10, color=NAVY)
+            for off in (0, 1):
+                sc = ws.cell(r, 3 + off)
+                sc.value = f"={gcl(3 + off)}{b}+{gcl(3 + off)}{b + 1}"
+                sc.number_format, sc.border = CUR, BOX
+                sc.fill = PatternFill("solid", fgColor=LIGHT)
+                sc.font = Font(bold=True, size=10, color=NAVY)
         elif kind == "input":
             vc.fill = INPUT_FILL
         else:
@@ -888,8 +980,9 @@ def build_month_end(wb, dlast):
             formula=[f'I{b}="{value}"'], fill=PatternFill("solid", fgColor=colour)))
     sign = b + 7
     ws.cell(sign, 1,
-            "Sign rule: + = revenue recognised this month and WIP balance goes up.  "
-            "- = revenue deferred out of this month and WIP balance goes down."
+            "GL 11300 nets deferred revenue against deferred cost, so Xero shows one "
+            "figure and cannot split it. The Revenue or Cost column on WIP Movements "
+            "splits it here. Only the Total column should be compared to Xero."
             ).font = Font(size=9, italic=True, color="808080")
 
     # ---- 3. data checks
@@ -935,8 +1028,14 @@ def build_month_end(wb, dlast):
     band(ws, sj, "4.  WIP JOURNAL FOR THE MONTH  -  post this one journal in Xero")
     col_heads(ws, sj + 1, ["Account", "Cost Centre", "Debit", "Credit"])
     jr = sj + 2
-    whole = ('(SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4)'
-             f'+SUM({defer_range("Q", dlast)}))')
+    whole = ('(SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4,'
+             'tbl_WIP[Defer Start],"",tbl_WIP[Revenue or Cost],"<>Cost")'
+             f'+SUMIFS({defer_range("Q", dlast)},'
+             f'{defer_range("T", dlast)},"<>Cost"))')
+    costmv = ('(SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4,'
+              'tbl_WIP[Defer Start],"",tbl_WIP[Revenue or Cost],"Cost")'
+              f'+SUMIFS({defer_range("Q", dlast)},'
+              f'{defer_range("T", dlast)},"Cost"))')
     lines = [("=set_WIPAsset", '"(no tracking)"', whole, True)]
     for i, cc in enumerate(COST_CENTRES):
         lines.append(("=set_WIPIncome", f'$A${r0 + i}', f"$E${r0 + i}", False))
@@ -979,28 +1078,83 @@ def build_month_end(wb, dlast):
     made = jtot + 1
     for i, (label, formula) in enumerate([
             ("Narration to use", '="WIP movement "&TEXT($C$4,"mmmm yyyy")'),
-            ("Made up of - manual rows on WIP Movements",
-             '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4)'),
-            ("Made up of - automatic deferrals",
-             f'=SUM({defer_range("Q", dlast)})'),
-            ("Total movement  -  must equal section 2", "=" + whole)]):
+            ("Made up of - manual revenue rows on WIP Movements",
+             '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4,tbl_WIP[Defer Start],"",'
+             'tbl_WIP[Revenue or Cost],"<>Cost")'),
+            ("Made up of - revenue that spreads (Deferred Revenue sheet)",
+             f'=SUMIFS({defer_range("Q", dlast)},'
+             f'{defer_range("T", dlast)},"<>Cost")'),
+            ("Total revenue movement  -  section 2, revenue column",
+             "=" + whole),
+            ("Deferred / accrued cost movement  -  post these line by line",
+             "=" + costmv)]):
         r = made + i
         ws.cell(r, 1, label).font = Font(size=9, italic=True, color="808080")
         c2 = ws.cell(r, 3)
         c2.value, c2.border, c2.fill = formula, BOX, CALC_FILL
-        c2.font = Font(size=10, bold=(i == 3))
+        c2.font = Font(size=10, bold=(i in (3, 4)))
         if i:
             c2.number_format = CUR
         else:
             ws.merge_cells(start_row=r, start_column=3, end_row=r, end_column=4)
-    ws.cell(made + 4, 1, "Nothing here posts itself. The tracker works the movement "
+    ws.cell(made + 5, 1, "Nothing here posts itself. The tracker works the movement "
                          "out; you key this journal into Xero and put the reference "
-                         "back on the WIP Movements rows.").font = \
+                         "back on the WIP Movements rows. The cost line above is not "
+                         "in this journal: every deferred cost credits the expense "
+                         "account its bill came from, so post those from WIP Movements "
+                         "with Revenue or Cost filtered to Cost.").font = \
         Font(size=9, italic=True, color="808080")
 
-    # ---- 5. sign-off
-    s4 = made + 6
-    band(ws, s4, "5.  SIGN-OFF")
+    # ---- 5. what was won against what was invoiced
+    sw = made + 7
+    band(ws, sw, "5.  WORK WON  -  ZOHO / Current RMS / Qwilr vs what was invoiced")
+    col_heads(ws, sw + 1, ["Source", "Opportunities", "Value Ex GST", "", "", "", "",
+                           "", "Check"])
+    w0 = sw + 2
+    for i, src in enumerate(["ZOHO", "Current RMS", "Qwilr", "Other"]):
+        r = w0 + i
+        ws.cell(r, 1, src).font = Font(bold=True, size=10)
+        ws.cell(r, 2).value = ('=COUNTIFS(tbl_Won[Month],$C$4,tbl_Won[Source],$A'
+                               f'{r},tbl_Won[Status],"Won")')
+        ws.cell(r, 3).value = ('=SUMIFS(tbl_Won[Value Ex GST],tbl_Won[Month],$C$4,'
+                               f'tbl_Won[Source],$A{r},tbl_Won[Status],"Won")')
+    wtot = w0 + 4
+    ws.cell(wtot, 1, "TOTAL WON THIS MONTH").font = Font(bold=True, size=10)
+    for col in (2, 3):
+        ws.cell(wtot, col).value = f"=SUM({gcl(col)}{w0}:{gcl(col)}{wtot - 1})"
+    extra = [("Invoiced this month (Finance, Ex GST)", f"=$B${tot}"),
+             ("Won less invoiced", f"=$C${wtot}-$C${wtot + 1}"),
+             ("Won this month, still not invoiced against the job",
+              '=SUMIFS(tbl_Won[Still to Invoice],tbl_Won[Month],$C$4,'
+              'tbl_Won[Status],"Won")'),
+             ("Won with a job number Xero does not have",
+              '=COUNTIFS(tbl_Won[Month],$C$4,tbl_Won[Status],"Won",'
+              'tbl_Won[Job in Xero?],"CHECK")')]
+    for i, (label, formula) in enumerate(extra):
+        r = wtot + 1 + i
+        ws.cell(r, 1, label).font = Font(size=10, bold=(i == 1))
+        vc = ws.cell(r, 3)
+        vc.value, vc.fill = formula, CALC_FILL
+        vc.number_format = "#,##0" if i == 3 else CUR
+    for r in range(w0, wtot + 5):
+        for col in range(1, 4):
+            cell = ws.cell(r, col)
+            cell.border = BOX
+            if col == 2:
+                cell.number_format = "#,##0"
+            elif col == 3:
+                cell.number_format = CUR
+            if col > 1 and not cell.fill.fgColor.rgb.endswith(INPUT_FILL.fgColor.rgb[-6:]):
+                cell.fill = CALC_FILL
+    ws.cell(wtot + 5, 1,
+            "A sense check, not a source. Revenue only ever comes off the Finance "
+            "sheet. A big gap either way is worth a look: work won and never "
+            "invoiced, or invoiced with no opportunity behind it."
+            ).font = Font(size=9, italic=True, color="808080")
+
+    # ---- 6. sign-off
+    s4 = wtot + 7
+    band(ws, s4, "6.  SIGN-OFF")
     for i, (label, who) in enumerate([("Prepared by", "Accounts Assistant"),
                                       ("Reviewed by", "Finance Operations Manager"),
                                       ("Date closed", ""),
@@ -1058,17 +1212,44 @@ DEFER_COLS = [
     # movement = what is recognised this month, less what is invoiced this month
     ("Movement", 14, CUR, '($L{r}-$M{r})-($N{r}-$O{r})'),
     ("Closing WIP", 14, CUR, '$L{r}-$N{r}'),
+    ("Source", 16, TXT, '"Finance invoice"'),
+    ("Rev/Cost", 11, TXT, '"Revenue"'),
+]
+
+# A19: the same engine, fed from a WIP Movements row instead of a Finance line,
+# so a supplier bill spread over twelve months behaves exactly like revenue
+# invoiced in advance. Only the first nine columns differ; everything from
+# Months onwards reads $B, $G, $H and $I and does not care where they came from.
+#
+# A cost deferral is the mirror image of a revenue one - money out instead of
+# money in - so the amount is fed in negative and every formula below works
+# unchanged, leaving a debit balance in 11300 the way a prepayment should.
+DEFER_WIP_COLS = [
+    ("Line", 7, INT, 'ROW()-{hdr}'),
+    ("Date", 11, DATE, 'IFERROR(INDEX(W[Month],$A{r}),"")'),
+    ("Xero Invoice No", 15, TXT, 'IFERROR(INDEX(W[Xero Invoice No],$A{r}),"")'),
+    ("Client", 22, TXT, 'IFERROR(INDEX(W[Client],$A{r}),"")'),
+    ("Job Number", 14, TXT, 'IFERROR(INDEX(W[Job Number],$A{r}),"")'),
+    ("Cost Centre", 14, TXT, 'IFERROR(INDEX(W[Cost Centre],$A{r}),"")'),
+    ("Ex GST", 14, CUR, 'IFERROR(IF(INDEX(W[Defer Start],$A{r})="","",'
+     'IF(INDEX(W[Revenue or Cost],$A{r})="Cost",-1,1)*INDEX(W[Amount],$A{r})),"")'),
+    ("Defer Start", 12, DATE, 'IFERROR(INDEX(W[Defer Start],$A{r}),"")'),
+    ("Defer End", 12, DATE, 'IFERROR(INDEX(W[Defer End],$A{r}),"")'),
 ]
 DEFER_FIRST = 6          # first data row on the Deferred Revenue sheet
+DEFER_WIP_COLS += DEFER_COLS[9:-2] + [
+    ("Source", 16, TXT, '"WIP journal"'),
+    ("Rev/Cost", 11, TXT, 'IFERROR(INDEX(W[Revenue or Cost],$A{r}),"")'),
+]
 
 
-def build_deferred(wb, nlines):
+def build_deferred(wb, nlines, wlines):
     ws = wb.create_sheet("Deferred Revenue")
-    title_block(ws, "Deferred Revenue - released automatically",
-                "Every Finance line that carries a Defer Start and a Defer End. The "
-                "revenue spreads evenly across those months and the WIP movement works "
-                "itself out. Nothing is typed on this sheet - fill the two dates on "
-                "Finance and this follows.")
+    title_block(ws, "Deferrals - revenue and cost, released automatically",
+                "Every line that carries a Defer Start and a Defer End - Finance "
+                "invoices in the top block, WIP Movements rows in the block below it. "
+                "The amount spreads evenly across those months and the WIP movement "
+                "works itself out. Nothing is typed here.")
     ws["A3"] = "Month"
     ws["A3"].font = Font(bold=True, size=11)
     c = ws["C3"]
@@ -1089,16 +1270,31 @@ def build_deferred(wb, nlines):
         ws.column_dimensions[gcl(i)].width = w
     ws.row_dimensions[hdr].height = 32
 
-    for k in range(nlines):
-        r = DEFER_FIRST + k
-        for i, (h, w, fmt, f) in enumerate(DEFER_COLS, start=1):
-            cell = ws.cell(r, i)
-            cell.value = "=" + f.replace("F[", FIN + "[").format(r=r, hdr=hdr)
-            cell.number_format, cell.border = fmt, BOX
-            cell.font = Font(size=9, color="595959")
-            cell.fill = CALC_FILL
-    last = DEFER_FIRST + nlines - 1
-    ws.auto_filter.ref = f"A{hdr}:{gcl(len(DEFER_COLS))}{last}"
+    def block(first, count, cols, off):
+        for k in range(count):
+            r = first + k
+            for i, (h, w, fmt, f) in enumerate(cols, start=1):
+                cell = ws.cell(r, i)
+                cell.value = "=" + (f.replace("F[", FIN + "[").replace("W[", "tbl_WIP[")
+                                    .format(r=r, hdr=off))
+                cell.number_format, cell.border = fmt, BOX
+                cell.font = Font(size=9, color="595959")
+                cell.fill = CALC_FILL
+        return first + count - 1
+
+    block(DEFER_FIRST, nlines, DEFER_COLS, hdr)
+
+    # Second block: the WIP Movements rows that carry a Defer Start and End.
+    # A deferred cost never touched this sheet before - it sat as one lump in
+    # the month it was billed, which is not what the ledger should show.
+    gap = DEFER_FIRST + nlines + 1
+    ws.cell(gap, 1, "WIP Movements rows that spread over months  -  deferred cost "
+                    "and manual deferred revenue").font = Font(bold=True, size=10,
+                                                               color=NAVY)
+    ws.cell(gap, 1).fill = PatternFill("solid", fgColor=LIGHT)
+    wfirst = gap + 1
+    last = block(wfirst, wlines, DEFER_WIP_COLS, gap)
+    ws.auto_filter.ref = f"A{hdr}:{gcl(len(DEFER_COLS))}{DEFER_FIRST + nlines - 1}"
     ws.freeze_panes = f"B{DEFER_FIRST}"
     return last
 
@@ -1130,9 +1326,11 @@ def build_wip_summary(wb, dlast):
     ws["D4"].font = Font(size=9, italic=True, color="808080")
 
     totals = [("Opening total",
-               '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],"<>",tbl_WIP[Month],"<"&$C$4)'
+               '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],"<>",tbl_WIP[Month],"<"&$C$4,'
+               'tbl_WIP[Defer Start],"")'
                f'+SUM({defer_range("P", dlast)})'),
-              ("Movement this month", "=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4)"
+              ("Movement this month",
+               '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4,tbl_WIP[Defer Start],"")'
                f'+SUM({defer_range("Q", dlast)})'),
               ("Closing total", "=B6+B7"),
               # A WIP row on a job number Xero does not have cannot appear in
@@ -1141,7 +1339,7 @@ def build_wip_summary(wb, dlast):
               # quietly disagrees with the closing total.
               ("Of which is on a job Xero does not have - fix these",
                '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Job in Xero?],"CHECK",'
-               'tbl_WIP[Month],"<="&$C$4)'),
+               'tbl_WIP[Month],"<="&$C$4,tbl_WIP[Defer Start],"")'),
               ("Closing listed below, job by job", "=B8-B9")]
     for i, (label, formula) in enumerate(totals):
         r = 6 + i
@@ -1165,11 +1363,11 @@ def build_wip_summary(wb, dlast):
         ws.cell(r, 1, str(j["job"])).number_format = TXT
         ws.cell(r, 2, j["name"]).number_format = TXT
         ws.cell(r, 3).value = (f'=SUMIFS(tbl_WIP[Amount],tbl_WIP[Job Number],$A{r},'
-                               f'tbl_WIP[Month],"<>",tbl_WIP[Month],"<"&$C$4)'
+                               f'tbl_WIP[Month],"<>",tbl_WIP[Month],"<"&$C$4,tbl_WIP[Defer Start],"")'
                                f'+SUMIF({defer_range("E", dlast)},$A{r},'
                                f'{defer_range("P", dlast)})')
         ws.cell(r, 4).value = (f'=SUMIFS(tbl_WIP[Amount],tbl_WIP[Job Number],$A{r},'
-                               f"tbl_WIP[Month],$C$4)"
+                               f'tbl_WIP[Month],$C$4,tbl_WIP[Defer Start],"")'
                                f'+SUMIF({defer_range("E", dlast)},$A{r},'
                                f'{defer_range("Q", dlast)})')
         ws.cell(r, 5).value = f"=C{r}+D{r}"
@@ -1186,6 +1384,13 @@ def build_wip_summary(wb, dlast):
             elif col in (3, 4, 5, 6, 8):
                 cell.fill = CALC_FILL
     last = 11 + len(joblist)
+    # The list is every Xero job in number order, so the top of it is nearly all
+    # nil. Say how many actually carry a balance, or it looks like nothing came
+    # through at all.
+    jc = ws.cell(10, 4)
+    jc.value = f'=COUNTIF($F$12:$F${last},"yes")&" jobs carry a balance  -  filter '
+    jc.value += 'column F to \'yes\' to see only those"'
+    jc.font = Font(bold=True, size=10, color=NAVY)
     ws.auto_filter.ref = f"A11:H{last}"
     ws.conditional_formatting.add(f"H12:H{last}", FormulaRule(
         formula=['AND(H12<>"",ROUND(H12,2)<>0)'],
@@ -1212,10 +1417,18 @@ def build_lists(wb):
                                "Approved", "Rejected"], "lst_Ariba"),
         ("G", "WIP Movement Type", ["Accrual - unbilled work", "Reversal of prior accrual",
                                     "Deferral - invoiced in advance", "Release of deferral",
+                                    "Deferred cost - paid in advance",
+                                    "Release of deferred cost",
+                                    "Accrued cost - incurred not billed",
                                     "Adjustment / correction", "Migrated opening balance"],
          "lst_WIPType"),
         ("H", "WIP GL Code", ACC["wip_gl"], "lst_WIPGL"),
         ("I", "Team", DEPTS + ["Other"], "lst_Team"),
+        # GL 11300 nets deferred revenue and deferred cost. Xero cannot tell them
+        # apart; this column can, so the two are reported separately.
+        ("J", "Revenue or Cost", ["Revenue", "Cost"], "lst_RevCost"),
+        ("M", "Work Won Source", ["ZOHO", "Current RMS", "Qwilr", "Other"], "lst_WonSource"),
+        ("O", "Work Won Status", ["Won", "Open", "Lost", "Cancelled"], "lst_WonStatus"),
     ]
     for col, head, vals, name in simple:
         ws[f"{col}4"] = head
@@ -1353,6 +1566,15 @@ README = [
  ("P", "The Deferred Revenue sheet shows the workings line by line, and Month-End and WIP "
        "Summary already include it. One warning: a deferred line must not ALSO have a "
        "manual row on WIP Movements or it counts twice - Month-End checks for that."),
+ ("P", "A cost can be deferred the same way, and it belongs on WIP Movements rather "
+       "than Finance because it comes off a supplier bill, not an invoice. Type the "
+       "bill amount as a positive, set Revenue or Cost to Cost, fill the two defer "
+       "dates and put the expense account in P&L Account. It then spreads by month in "
+       "the second block of the Deferred Revenue sheet exactly like revenue does."),
+ ("P", "GL 11300 nets the two against each other, so Xero shows one figure and cannot "
+       "tell you what it is made of. Month-End section 2 splits it: Total, Deferred / "
+       "accrued revenue, Deferred / accrued cost. Compare only the Total column to "
+       "Xero. Deferred cost never counts as revenue - section 1 leaves it out."),
  ("B", ""),
  ("H", "VIDEO REVENUE"),
  ("P", "There is no video split column any more, and nothing to keep honest. In Xero a "
@@ -1377,6 +1599,15 @@ README = [
        "filter buttons, sorting and PivotTables all work normally, and every formula runs "
        "in any version of Excel."),
  ("B", ""),
+ ("H", "WORK WON  -  ZOHO, CURRENT RMS AND QWILR"),
+ ("P", "Paste the month's won opportunities onto the Work Won sheet, one row each, with "
+       "the source, the value and the job number where you have it. Month-End section 5 "
+       "totals them by source and puts them next to what was actually invoiced."),
+ ("P", "It is a sense check and nothing else. No revenue ever comes off this sheet. What "
+       "it catches is work won and never invoiced, and invoicing with no opportunity "
+       "behind it. Put a job number on a row and it also tells you what has been raised "
+       "against that job so far."),
+ ("B", ""),
  ("H", "MONTH-END, IN ORDER"),
  ("P", "1.  Chase the departments until every invoice for the month is on the Finance sheet "
        "and Posted to Xero is Y."),
@@ -1391,7 +1622,8 @@ README = [
  ("P", "7.  Section 4 is the journal. It names the account to debit, the account to "
        "credit and the amount, split by cost centre. Key it into Xero as one manual "
        "journal, then put the journal reference back on the WIP Movements rows."),
- ("P", "8.  Sign off in section 5."),
+ ("P", "8.  Section 5 is the Work Won sense check against ZOHO, Current RMS and Qwilr."),
+ ("P", "9.  Sign off in section 6."),
  ("B", ""),
  ("H", "THE WIP SIGN RULE"),
  ("P", "One signed Amount column does both jobs, because GL 11300 nets accrued and deferred "
@@ -1670,19 +1902,20 @@ def main():
     nlines = build_finance(wb)
     for d in DEPTS:
         build_dept(wb, d)
-    build_wip(wb)
-    dlast = build_deferred(wb, nlines)
+    wlines = build_wip(wb)
+    dlast = build_deferred(wb, nlines, wlines)
     build_month_end(wb, dlast)
     build_wip_summary(wb, dlast)
+    build_won(wb)
     build_readme(wb, "normal")
     build_readme(wb, "easy")
 
     colours = {"Read Me": "7F7F7F", "Read Me (Easy Read)": "A6A6A6", "Finance": NAVY, "Month-End": "2E6B4F",
                "WIP Summary": "2E6B4F", "Deferred Revenue": "8B6A2B",
-               "Onsite": SLATE, "Production": SLATE,
+               "Work Won": "6B4E7A", "Onsite": SLATE, "Production": SLATE,
                "Consulting": SLATE, "WIP Movements": "8B6A2B", "Lists": "A6A6A6"}
     order = ["Read Me", "Read Me (Easy Read)", "Finance", "Month-End", "WIP Summary", "Deferred Revenue",
-             "Onsite", "Production", "Consulting", "WIP Movements", "Lists"]
+             "Onsite", "Production", "Consulting", "WIP Movements", "Work Won", "Lists"]
     for name, colour in colours.items():
         wb[name].sheet_properties.tabColor = colour
     wb._sheets = [wb[n] for n in order]
