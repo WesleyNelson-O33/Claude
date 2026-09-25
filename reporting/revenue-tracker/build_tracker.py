@@ -251,11 +251,11 @@ def dept_formulas(dept, cols):
     guard = lambda body: f'=IF({job}="","",IFERROR({body},""))'
     f = {
         "Finance Row": f'=IFERROR(MATCH({rid},tbl_Finance[Row ID],0),"")',
-        "Invoice Date": guard(f'IF({fin("Latest Invoice Date")}="","",{fin("Latest Invoice Date")})'),
-        "Invoice No": guard(f'{fin("Invoice Numbers")}&""'),
+        "Invoice Date": guard(f'IF({fin("Xero Invoice Date")}="","",{fin("Xero Invoice Date")})'),
+        "Invoice No": guard(f'{fin("Xero Invoice No")}&""'),
         "Job in Xero?": f'=IF({job}="","",IF(COUNTIF(lst_Jobs,{job}&"")>0,"OK","CHECK"))',
         "Job Name (Xero)": f'=IF({job}="","",IFERROR(INDEX(lst_JobName,MATCH({job}&"",lst_Jobs,0)),""))',
-        "Lines on Job": guard(f'N({fin("Invoice Count")})'),
+        "Lines on Job": guard(f'N({fin("Lines on Job")})'),
         "Revenue Ex GST": guard(f'N({fin("Xero Invoiced Ex GST")})'),
         "Invoiced": guard(f'{fin("Compare")}&""'),
         "To Invoice": f'=IF({job}="","",MAX(0,N({c("Expected Revenue Ex GST")}{{r}})-N({c("Revenue Ex GST")}{{r}})))',
@@ -267,7 +267,8 @@ def dept_formulas(dept, cols):
             ("Invoice Type", "Invoice Type"), ("Tax Code", "Tax Code"),
             ("Expected Revenue Ex GST", "Expected Revenue")]
     miss = "&".join(f'IF({c(h)}{{r}}="",", {lab}","")' for h, lab in need)
-    dup = f'IF(COUNTIF(tbl_Finance[Job Number],{job}&"")>1,", Job number used twice","")'
+    dup = (f'IF(COUNTIF(tbl_Finance[Job Number],{job}&"")>COUNTIFS(tbl_Finance[Job Number],{job}&"",'
+           f'tbl_Finance[Department],"{dept}"),", Job number also used by another department","")')
     f["Not Yet on Finance"] = (f'=IF({job}="","",IF(({miss}&{dup})="","Complete",'
                                f'"Fix: "&MID({miss}&{dup},3,300)))')
     if dept == "Onsite":
@@ -304,13 +305,13 @@ DEPT_SUB = {
                   "revenue across Labour / Equipment / Subscription. Invoice details come back from Finance.",
 }
 HDR_NOTES = {
-    "Invoice Date": "From Finance: the latest Xero invoice date on this job.",
-    "Invoice No": "From Finance: every Xero invoice number raised on this job.",
-    "Lines on Job": "From Finance: how many invoices have been entered against this job.",
-    "Revenue Ex GST": "From Finance: total ex GST invoiced in Xero for this job, including prior years.",
+    "Invoice Date": "From Finance: the Xero invoice date for this line.",
+    "Invoice No": "From Finance: the Xero invoice number for this line.",
+    "Lines on Job": "How many rows this job number has. A job billed in stages has one row per stage.",
+    "Revenue Ex GST": "From Finance: the Xero invoice amount ex GST for this line.",
     "Invoiced": "From Finance: Not invoiced / Dept higher - to invoice / Agrees / Xero higher - check dept.",
     "To Invoice": "Expected Revenue Ex GST less what Xero has invoiced. This is what is still to be billed.",
-    "Expected Revenue Ex GST": "YOU TYPE: what the whole job is worth ex GST. Finance compares Xero to this number.",
+    "Expected Revenue Ex GST": "YOU TYPE: what this line should be invoiced for, ex GST. Billing in stages? Add a row per stage with the same job number.",
     "Not Yet on Finance": "Checks the information Finance needs. Reads Complete, or Fix: and what is missing or wrong.",
     "Cost Centres": "Your cost centre and the revenue GL it posts to.",
     "Row ID": "Fixed link to this job's row on the Finance sheet. Never type over it, never delete the row.",
@@ -389,39 +390,36 @@ def build_dept(dept, prefix, tname):
 FIN_FIRST, FIN_HDR = 7, 6
 FIN_LAST = FIN_FIRST + 3 * N - 1
 FIN_COLS = [  # header, kind, number format, width
-    # who / what - frozen on the left
+    # the job line - from the department sheet (A-D frozen)
     ("Row ID", "calc", "@", 10), ("Department", "calc", "@", 12), ("Job Number", "calc", "@", 13),
-    ("Client", "calc", "@", 22),
-    # the check - department value vs Xero
-    ("Dept Expected Ex GST", "calc", MONEY, 14), ("Xero Invoiced Ex GST", "calc", MONEY, 14),
-    ("Variance Dept vs Xero", "calc", MONEY, 14), ("Compare", "calc", "@", 22), ("Issue", "calc", "@", 26),
-    # FINANCE TYPES HERE - straight after the check so it is on screen
-    ("Prior Years Invoice Nos", "fin", "@", 16), ("Prior Years Ex GST", "fin", MONEY, 14),
-]
-for m in MONTHS:
-    FIN_COLS += [(f"{m} Invoice No", "fin", "@", 12), (f"{m} Invoice Date", "fin", DATE, 11),
-                 (f"{m} Ex GST", "fin", MONEY, 13)]
-FIN_COLS += [("Finance Notes", "fin", "@", 30),
-             # job detail from the department sheet
-             ("Job in Xero?", "calc", "@", 9), ("Job Name (Xero)", "calc", "@", 26),
-             ("Job Description", "calc", "@", 28), ("Cost Centre", "calc", "@", 13), ("Invoice Type", "calc", "@", 13),
-             ("Tax Code", "calc", "@", 11), ("Revenue GL", "calc", "@", 10), ("PO or Quote Ref", "calc", "@", 16),
-             ("Dept Notes", "calc", "@", 26),
-             ("GST", "calc", MONEY, 12), ("Inc GST", "calc", MONEY, 13), ("Invoice Count", "calc", "0", 9),
-             ("Latest Invoice Date", "calc", DATE, 11), ("Invoice Numbers", "calc", "@", 26),
-             ("Dept Row", "calc", "0", 8)]
+    ("Client", "calc", "@", 22), ("Job Description", "calc", "@", 32), ("Dept Expected Ex GST", "calc", MONEY, 14),
+    # FINANCE TYPES THESE THREE, straight off the Xero invoice
+    ("Xero Invoice No", "fin", "@", 14), ("Xero Invoice Date", "fin", DATE, 13), ("Xero Invoiced Ex GST", "fin", MONEY, 15),
+    # the check
+    ("Variance Dept vs Xero", "calc", MONEY, 14), ("Compare", "calc", "@", 24), ("Issue", "calc", "@", 34),
+    ("Finance Notes", "fin", "@", 28),
+    # job detail from the department sheet
+    ("Job in Xero?", "calc", "@", 9), ("Job Name (Xero)", "calc", "@", 26), ("Cost Centre", "calc", "@", 13),
+    ("Invoice Type", "calc", "@", 13), ("Tax Code", "calc", "@", 11), ("Revenue GL", "calc", "@", 10),
+    ("PO or Quote Ref", "calc", "@", 16), ("Dept Notes", "calc", "@", 26),
+    ("GST", "calc", MONEY, 12), ("Inc GST", "calc", MONEY, 13), ("Invoice Month", "calc", "mmm-yy", 9),
+    ("Lines on Job", "calc", "0", 8), ("Job Total Expected", "calc", MONEY, 14), ("Job Total Invoiced", "calc", MONEY, 14),
+    ("Dept Row", "calc", "0", 8)]
 FC = {h: CL(i + 1) for i, (h, *_rest) in enumerate(FIN_COLS)}
 FIN_NOTES = {
     "Row ID": "Fixed key to the department row. Never change it.",
     "Department": "Which department sheet this row belongs to. Fixed.",
     "Job Number": "From the department sheet. Finance never types it.",
-    "Dept Expected Ex GST": "What the department says the whole job is worth (Expected Revenue Ex GST).",
-    "Xero Invoiced Ex GST": "Prior Years Ex GST plus the twelve FY27 monthly Ex GST cells Finance entered from Xero.",
-    "Prior Years Invoice Nos": "Jobs brought in from 2024 / FY25 / FY26: every invoice number raised before 1 July 2026, separated by commas.",
-    "Prior Years Ex GST": "Total ex GST invoiced on this job before 1 July 2026, per Xero. Keeps the variance right for older jobs.",
-    "Variance Dept vs Xero": "Dept Expected less Xero Invoiced. Positive = still to invoice. Negative = Xero is higher than the department expected.",
-    "Compare": "Agrees / Dept higher - to invoice / Not invoiced - to invoice / Xero higher - check dept / No dept value.",
+    "Dept Expected Ex GST": "What the department expects to invoice on this line (Expected Revenue Ex GST).",
+    "Xero Invoice No": "FINANCE TYPES: the Xero invoice number for this line. One invoice per row.",
+    "Xero Invoice Date": "FINANCE TYPES: the date on the Xero invoice.",
+    "Xero Invoiced Ex GST": "FINANCE TYPES: the invoice total excluding GST, as per Xero.",
+    "Variance Dept vs Xero": "Dept Expected less Xero. Positive = still to invoice. Negative = Xero is higher than the department expected.",
+    "Compare": "Agrees / Not invoiced - to invoice / Dept higher - to invoice / Xero higher - check dept / No dept value.",
     "Issue": "Anything wrong on this row. Filter this column to non-blanks and fix each one.",
+    "Lines on Job": "How many rows this job number has (a job billed in stages has one row per stage).",
+    "Job Total Expected": "All rows for this job number added together.",
+    "Job Total Invoiced": "All Xero invoices for this job number added together.",
     "Dept Row": "Helper: the row on the department sheet this Finance row reads from.",
     "Finance Notes": "Finance's own notes. Shown only here.",
 }
@@ -442,44 +440,30 @@ def fin_pull(field_by_dept, numeric=False):
 def build_finance():
     ws = wb.create_sheet("Finance", 1)
     title_block(ws, "Finance - Job & Invoice Register",
-                "Every job the departments set up appears here by itself. Finance types three things per invoice, "
-                "straight off Xero, in the month the invoice is dated: Invoice No, Invoice Date and Ex GST (cream). "
-                "Everything else reads itself.")
+                "Every job line the departments set up appears here by itself. Finance types three things per row, "
+                "straight off the Xero invoice: Invoice No, Invoice Date and Ex GST (the cream columns G, H, I).")
     ws["A3"] = ('="Dept Expected  "&TEXT(SUBTOTAL(109,tbl_Finance[Dept Expected Ex GST]),"$#,##0.00")'
                 '&"      Xero Invoiced  "&TEXT(SUBTOTAL(109,tbl_Finance[Xero Invoiced Ex GST]),"$#,##0.00")'
                 '&"      Variance  "&TEXT(SUBTOTAL(109,tbl_Finance[Variance Dept vs Xero]),"$#,##0.00")'
                 '&"      Rows with an issue  "&COUNTIF(tbl_Finance[Issue],"?*")')
-    ws.merge_cells("A3:R3")
+    ws.merge_cells("A3:L3")
     ws["A3"].font, ws["A3"].fill = F_TOT, FILL_TOT
-    ws["A4"] = ("TYPE INVOICES IN THE CREAM COLUMNS - they start at column J, straight after Issue. CREAM = Finance types (Invoice No, Invoice Date, Ex GST).  GREY-BLUE = pulled from the department "
-                "sheets or calculated.  Rows run Onsite, Production, Consulting in turn, so every department's jobs are at the top. Filter Job Number and untick (Blanks) to hide empty rows, or filter Department.  "
-                "Two invoices on one job in the same month: type both numbers in one cell (INV-1001, INV-1002), "
-                "the later date and the combined Ex GST.")
-    ws["A4"].font = Font(name=FONT, size=9, italic=True, color=GREY_TXT)
+    ws["A4"] = ("HOW TO USE: find the job line, then type the Xero Invoice No, Invoice Date and Ex GST in the cream "
+                "columns G, H and I. One invoice per row - a job billed in stages has one row per stage (the department "
+                "adds them). Filter Job Number and untick (Blanks) to hide empty rows.")
+    ws["A4"].font = Font(name=FONT, size=10, bold=True, color=PAL["accent"])
     for first, last_, text, fill in [
-            ("Row ID", "Client", "THE JOB", FILL_CALC_HDR),
-            ("Dept Expected Ex GST", "Issue", "THE CHECK  -  department vs Xero", FILL_CALC_HDR),
-            ("Job in Xero?", "Dept Notes", "JOB DETAIL FROM THE DEPARTMENT SHEET", FILL_CALC_HDR),
-            ("GST", "Invoice Numbers", "TOTALS", FILL_CALC_HDR)]:
-        ws.merge_cells(f"{FC[first]}5:{FC[last_]}5")
+            ("Row ID", "Dept Expected Ex GST", "THE JOB LINE  -  from the department sheet", FILL_CALC_HDR),
+            ("Xero Invoice No", "Xero Invoiced Ex GST", "FINANCE TYPES HERE  -  from Xero", FILL_FIN_HDR),
+            ("Variance Dept vs Xero", "Issue", "THE CHECK", FILL_CALC_HDR),
+            ("Finance Notes", "Finance Notes", "FINANCE", FILL_FIN_HDR),
+            ("Job in Xero?", "Dept Notes", "MORE DETAIL FROM THE DEPARTMENT SHEET", FILL_CALC_HDR),
+            ("GST", "Job Total Invoiced", "TOTALS", FILL_CALC_HDR)]:
+        if first != last_:
+            ws.merge_cells(f"{FC[first]}5:{FC[last_]}5")
         bc = ws[f"{FC[first]}5"]
         bc.value, bc.font, bc.fill, bc.alignment = text, F_HDR, fill, HDR_ALIGN
-    fn = ws[f"{FC['Finance Notes']}5"]
-    fn.value, fn.font, fn.fill, fn.alignment = "FINANCE", F_HDR, FILL_FIN_HDR, HDR_ALIGN
-    ws.merge_cells(f"{FC['Prior Years Invoice Nos']}5:{FC['Prior Years Ex GST']}5")
-    pc = ws[f"{FC['Prior Years Invoice Nos']}5"]
-    pc.value, pc.font, pc.fill, pc.alignment = "TYPE HERE  >  Before FY27", F_HDR, FILL_FIN_HDR, HDR_ALIGN
-    # month banner row 5 (merged over each 3-column block)
-    for i, m in enumerate(MONTHS):
-        a = FC[f"{m} Invoice No"]
-        c = FC[f"{m} Ex GST"]
-        ws.merge_cells(f"{a}5:{c}5")
-        cell = ws[f"{a}5"]
-        cell.value = f"=INDEX(lst_FY27Months,{i + 1})"
-        cell.number_format = "mmmm yyyy"
-        cell.font = F_HDR
-        cell.fill = FILL_FIN_HDR
-        cell.alignment = HDR_ALIGN
+    ws.row_dimensions[5].height = 22
     for i, (h, kind, fmt, w) in enumerate(FIN_COLS):
         col = i + 1
         hdr(ws.cell(FIN_HDR, col), h, kind)
@@ -488,14 +472,13 @@ def build_finance():
         ws.column_dimensions[CL(col)].width = w
     ws.row_dimensions[FIN_HDR].height = 34
 
-    inv_no = [FC[f"{m} Invoice No"] for m in MONTHS]
-    inv_dt = [FC[f"{m} Invoice Date"] for m in MONTHS]
-    inv_am = [FC[f"{m} Ex GST"] for m in MONTHS]
-    pno, pam = FC["Prior Years Invoice Nos"], FC["Prior Years Ex GST"]
-    first_in, last_in = pno, inv_am[-1]
     r_ = "{r}"
-    anyin = f"COUNTA(${first_in}{r_}:${last_in}{r_})>0"
+    G, H, X = (f'${FC[h]}{r_}' for h in ("Xero Invoice No", "Xero Invoice Date", "Xero Invoiced Ex GST"))
+    anyin = f"COUNTA({G}:{X})>0"
     job = f"${FC['Job Number']}{r_}"
+    jobs = f"${FC['Job Number']}${FIN_FIRST}:${FC['Job Number']}${FIN_LAST}"
+    depts = f"${FC['Department']}${FIN_FIRST}:${FC['Department']}${FIN_LAST}"
+    invs = f"${FC['Xero Invoice No']}${FIN_FIRST}:${FC['Xero Invoice No']}${FIN_LAST}"
     F = {
         "Dept Row": (f'=IFERROR(MATCH($A{r_},IF($B{r_}="Onsite",tbl_Onsite[Row ID],IF($B{r_}="Production",'
                      f'tbl_Production[Row ID],tbl_Consulting[Row ID])),0),"")'),
@@ -511,42 +494,35 @@ def build_finance():
         "PO or Quote Ref": fin_pull({"Onsite": "PO / Reference", "Production": "Current RMS No", "Consulting": "Qwilr Quote"}),
         "Dept Notes": fin_pull({d: "Notes" for d, *_ in DEPTS}),
         "Dept Expected Ex GST": fin_pull({d: "Expected Revenue Ex GST" for d, *_ in DEPTS}, numeric=True),
-        "Xero Invoiced Ex GST": f'=IF(AND({job}="",NOT({anyin})),"",SUM({",".join(c + r_ for c in [pam] + inv_am)}))',
     }
-    E, X, V = (f'{FC["Dept Expected Ex GST"]}{r_}', f'{FC["Xero Invoiced Ex GST"]}{r_}',
-               f'{FC["Variance Dept vs Xero"]}{r_}')
-    F["Variance Dept vs Xero"] = f'=IF({X}="","",N({E})-{X})'
-    F["Compare"] = (f'=IF({X}="","",IF({job}="","Invoice on empty job row",IF({E}="",'
-                    f'IF(ROUND({X},2)=0,"No dept value","Invoiced - no dept value"),'
-                    f'IF(ROUND({X},2)=0,"Not invoiced - to invoice",IF(ROUND({V},2)=0,"Agrees",'
+    E, V = f'${FC["Dept Expected Ex GST"]}{r_}', f'${FC["Variance Dept vs Xero"]}{r_}'
+    live = f'OR({job}<>"",{anyin})'
+    F["Variance Dept vs Xero"] = f'=IF(NOT({live}),"",N({E})-N({X}))'
+    F["Compare"] = (f'=IF(NOT({live}),"",IF({job}="","Invoice on empty job row",'
+                    f'IF({X}="",IF({E}="","No dept value","Not invoiced - to invoice"),'
+                    f'IF({E}="","Invoiced - no dept value",IF(ROUND({V},2)=0,"Agrees",'
                     f'IF({V}>0,"Dept higher - to invoice","Xero higher - check dept"))))))')
-    # Issue column: every problem on the row, joined
-    incomplete = "+".join(
-        f'IF(OR(COUNTA({a}{r_}:{c}{r_})=0,AND(COUNTA({a}{r_}:{c}{r_})=3,ISNUMBER({c}{r_}))),0,1)'
-        for a, c in zip(inv_no, inv_am)) + (f'+IF(OR(AND({pno}{r_}<>"",NOT(ISNUMBER({pam}{r_}))),'
-                                            f'AND({pno}{r_}="",{pam}{r_}<>"")),1,0)')
-    outside = "+".join(
-        f'IF({d}{r_}="",0,IFERROR(--(EOMONTH({d}{r_},0)<>{a}$5),1))' for a, d in zip(inv_no, inv_dt))
     checks = [
         (f'${FC["Dept Row"]}{r_}=""', "Row ID not found on the department sheet - a row was deleted"),
         (f'AND({job}="",{anyin})', "Invoice entered but the department row has no job number"),
         (f'{FC["Job in Xero?"]}{r_}="CHECK"', "Job number not in the Xero job list"),
-        (f'AND({job}<>"",COUNTIF(${FC["Job Number"]}${FIN_FIRST}:${FC["Job Number"]}${FIN_LAST},{job})>1)',
-         "Job number on more than one row"),
+        (f'AND({job}<>"",COUNTIF({jobs},{job})>COUNTIFS({jobs},{job},{depts},$B{r_}))',
+         "Job number also used by another department"),
         (f'AND({job}<>"",{FC["Cost Centre"]}{r_}="")', "Dept has not set a cost centre"),
         (f'AND({job}<>"",{FC["Tax Code"]}{r_}="")', "Dept has not set a tax code"),
         (f'AND({job}<>"",{E}="")', "Dept has not entered an expected value"),
-        (f'({incomplete})>0', "An invoice is incomplete (needs No, Date and a number in Ex GST)"),
-        (f'({outside})>0', "An invoice date is not in the month it is typed under"),
+        (f'AND({anyin},OR(COUNTA({G}:{X})<3,NOT(ISNUMBER({X})),NOT(ISNUMBER({H}))))',
+         "Invoice incomplete - needs Invoice No, a date and a number in Ex GST"),
+        (f'AND({G}<>"",COUNTIF({invs},{G})>1)', "Same invoice number on another row"),
     ]
     body = "&".join(f'IF({cond},"; {txt}","")' for cond, txt in checks)
-    F["Issue"] = f'=IF(AND({job}="",NOT({anyin}),${FC["Dept Row"]}{r_}<>""),"",MID({body},3,500))'
+    F["Issue"] = f'=IF(AND(NOT({live}),${FC["Dept Row"]}{r_}<>""),"",MID({body},3,500))'
     F["GST"] = f'=IF({X}="","",IF({FC["Tax Code"]}{r_}="GST 10%",ROUND({X}*set_GSTRate,2),0))'
     F["Inc GST"] = f'=IF({X}="","",{X}+{FC["GST"]}{r_})'
-    F["Invoice Count"] = (f'=IF({X}="","",' + "+".join(
-        f'IF({c}{r_}="",0,LEN({c}{r_})-LEN(SUBSTITUTE({c}{r_},",",""))+1)' for c in [pno] + inv_no) + ")")
-    F["Latest Invoice Date"] = f'=IF(COUNT({",".join(c + r_ for c in inv_dt)})=0,"",MAX({",".join(c + r_ for c in inv_dt)}))'
-    F["Invoice Numbers"] = "=MID(" + "&".join(f'IF({c}{r_}="","",", "&{c}{r_})' for c in [pno] + inv_no) + ",3,500)"
+    F["Invoice Month"] = f'=IF(ISNUMBER({H}),EOMONTH({H},0),"")'
+    F["Lines on Job"] = f'=IF({job}="","",COUNTIF({jobs},{job}))'
+    F["Job Total Expected"] = f'=IF({job}="","",SUMIF({jobs},{job},${FC["Dept Expected Ex GST"]}${FIN_FIRST}:${FC["Dept Expected Ex GST"]}${FIN_LAST}))'
+    F["Job Total Invoiced"] = f'=IF({job}="","",SUMIF({jobs},{job},${FC["Xero Invoiced Ex GST"]}${FIN_FIRST}:${FC["Xero Invoiced Ex GST"]}${FIN_LAST}))'
 
     for i in range(3 * N):
         r = FIN_FIRST + i
@@ -564,18 +540,14 @@ def build_finance():
     add_table(ws, "tbl_Finance", f"A{FIN_HDR}:{CL(len(FIN_COLS))}{FIN_LAST}")
     ws.column_dimensions[FC["Dept Row"]].hidden = True
     ws.freeze_panes = f"E{FIN_FIRST}"
-    # validation: date must sit inside its month; amount must be a number
-    for a, d, am in zip(inv_no, inv_dt, inv_am):
-        dv = DataValidation(type="date", operator="between", formula1=f"EOMONTH(${a}$5,-1)+1",
-                            formula2=f"${a}$5", allow_blank=True, showErrorMessage=True,
-                            errorTitle="Wrong month", error="This date is not in the month this column is for. "
-                                                          "Type the invoice under the month it is dated.")
-        dv.add(f"{d}{FIN_FIRST}:{d}{FIN_LAST}")
-        ws.add_data_validation(dv)
-        dv2 = DataValidation(type="decimal", operator="between", formula1="-99999999", formula2="99999999",
-                             allow_blank=True, showErrorMessage=True, error="Ex GST must be a number.")
-        dv2.add(f"{am}{FIN_FIRST}:{am}{FIN_LAST}")
-        ws.add_data_validation(dv2)
+    dv = DataValidation(type="date", operator="between", formula1="DATE(2020,1,1)", formula2="DATE(2035,12,31)",
+                        allow_blank=True, showErrorMessage=True, error="Type the invoice date, e.g. 31/08/2026.")
+    dv.add(f"{FC['Xero Invoice Date']}{FIN_FIRST}:{FC['Xero Invoice Date']}{FIN_LAST}")
+    ws.add_data_validation(dv)
+    dv2 = DataValidation(type="decimal", operator="between", formula1="-99999999", formula2="99999999",
+                         allow_blank=True, showErrorMessage=True, error="Ex GST must be a number.")
+    dv2.add(f"{FC['Xero Invoiced Ex GST']}{FIN_FIRST}:{FC['Xero Invoiced Ex GST']}{FIN_LAST}")
+    ws.add_data_validation(dv2)
     rng = lambda h: f"{FC[h]}{FIN_FIRST}:{FC[h]}{FIN_LAST}"
     cmp_ = FC["Compare"]
     red_if(ws, rng("Compare"), f'{cmp_}{FIN_FIRST}="Agrees"', fill="D4EDDA", color="155724")
@@ -619,11 +591,11 @@ def build_summary():
         r = 6 + k
         ws.cell(r, 1, f"=INDEX(lst_CostCentre,{k + 1})")
         for i, m in enumerate(MONTHS):
-            ws.cell(r, 2 + i, f'=SUMIFS(tbl_Finance[{m} Ex GST],tbl_Finance[Cost Centre],$A{r})')
+            ws.cell(r, 2 + i, f'=SUMIFS(tbl_Finance[Xero Invoiced Ex GST],tbl_Finance[Invoice Month],{CL(2 + i)}$5,tbl_Finance[Cost Centre],$A{r})')
     ws.cell(12, 1, "No cost centre set (fix on dept sheet)")
     for i, m in enumerate(MONTHS):
         L = CL(2 + i)
-        ws.cell(12, 2 + i, f"=SUM(tbl_Finance[{m} Ex GST])-SUM({L}6:{L}11)")
+        ws.cell(12, 2 + i, f"=SUMIFS(tbl_Finance[Xero Invoiced Ex GST],tbl_Finance[Invoice Month],{L}$5)-SUM({L}6:{L}11)")
     ws.cell(13, 1, "TOTAL")
     for c in range(2, 14):
         L = CL(c)
@@ -637,7 +609,7 @@ def build_summary():
         r = 17 + k
         ws.cell(r, 1, d)
         for i, m in enumerate(MONTHS):
-            ws.cell(r, 2 + i, f'=SUMIFS(tbl_Finance[{m} Ex GST],tbl_Finance[Department],$A{r})')
+            ws.cell(r, 2 + i, f'=SUMIFS(tbl_Finance[Xero Invoiced Ex GST],tbl_Finance[Invoice Month],{CL(2 + i)}$16,tbl_Finance[Department],$A{r})')
     ws.cell(20, 1, "TOTAL")
     for c in range(2, 14):
         L = CL(c)
@@ -647,8 +619,8 @@ def build_summary():
     ws.cell(21, 1, "Check - department total = cost centre total")
     ws.cell(21, 14, '=IF(ROUND(N20-N13,2)=0,"Agrees","CHECK")')
     # block 3 - jobs: expected vs Xero
-    section(23, "3.  JOBS  -  DEPARTMENT EXPECTED vs XERO INVOICED (whole of FY27)")
-    heads = ["Department", "Live jobs", "Dept Expected Ex GST", "Xero Invoiced Ex GST", "Variance Dept vs Xero",
+    section(23, "3.  JOB LINES  -  DEPARTMENT EXPECTED vs XERO INVOICED (every line, any date)")
+    heads = ["Department", "Job lines", "Dept Expected Ex GST", "Xero Invoiced Ex GST", "Variance Dept vs Xero",
              "Not invoiced (count)", "Not invoiced ($ expected)", "Part invoiced (count)",
              "Part invoiced ($ to go)", "Xero higher (count)", "Xero higher ($)", "Rows with an issue"]
     for j, h in enumerate(heads):
@@ -875,8 +847,7 @@ def build_month_end():
         if k < 6:
             ws.cell(r, 1, f"=INDEX(lst_CostCentre,{k + 1})")
             ws.cell(r, 2, f"=IFERROR(INDEX('FY Summary'!$B${6 + k}:$M${6 + k},{mi}),0)")
-            gst = "+".join(f'SUMIFS(tbl_Finance[{m} Ex GST],tbl_Finance[Cost Centre],$A{r},tbl_Finance[Tax Code],"GST 10%")*({mi}={i + 1})'
-                           for i, m in enumerate(MONTHS))
+            gst = f'SUMIFS(tbl_Finance[Xero Invoiced Ex GST],tbl_Finance[Invoice Month],$C$4,tbl_Finance[Cost Centre],$A{r},tbl_Finance[Tax Code],"GST 10%")'
             ws.cell(r, 3, f"=IFERROR(ROUND(({gst})*set_GSTRate,2),0)")
             ws.cell(r, 5, f'=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4,tbl_WIP[Cost Centre],$A{r},tbl_WIP[Revenue or Cost],"<>Cost")')
             ws.cell(r, 6, f'=SUMPRODUCT(({dtype}="Revenue")*({dcc}=$A{r})*({dgrid}=$C$4)*{dvals})')
@@ -895,7 +866,7 @@ def build_month_end():
     for c in "BCDEFGHI":
         ws[f"{c}15"] = f"=SUM({c}8:{c}14)"
     ws["J15"] = '=IF(COUNT($H8:$H14)=0,"Enter Xero figures",IF(ROUND($I15,2)=0,"Reconciled","CHECK - "&TEXT($I15,"$#,##0.00")))'
-    ws["A16"] = ("Invoiced Ex GST is the month's column on Finance. WIP Movement is WIP Movements rows. Deferral Movement is the "
+    ws["A16"] = ("Invoiced Ex GST is every Finance row whose Xero invoice date falls in this month. WIP Movement is WIP Movements rows. Deferral Movement is the "
                  "revenue deferred (-) or released (+) this month from the Deferrals sheet. Revenue Recognised = all three, and "
                  "ties to the Xero P&L once both journals are posted. GST is worked on the month total (rounding of a few cents).")
     ws["A16"].font = Font(name=FONT, size=9, italic=True, color=GREY_TXT)
@@ -930,11 +901,11 @@ def build_month_end():
     # ---- 3 missed revenue
     section(28, "3.  MISSED REVENUE CHECK  -  department expected vs Xero (whole FY to date)")
     heads(29, ["Item", "Jobs", "Ex GST", "", "", "", "", "", "Status"])
-    miss = [("Jobs set up but not invoiced at all", 'COUNTIF(tbl_Finance[Compare],"Not invoiced*")',
+    miss = [("Job lines set up but not invoiced yet", 'COUNTIF(tbl_Finance[Compare],"Not invoiced*")',
              'SUMIFS(tbl_Finance[Dept Expected Ex GST],tbl_Finance[Compare],"Not invoiced*")'),
-            ("Jobs part invoiced - department expects more", 'COUNTIF(tbl_Finance[Compare],"Dept higher*")',
+            ("Job lines where the department expected more than Xero", 'COUNTIF(tbl_Finance[Compare],"Dept higher*")',
              'SUMIFS(tbl_Finance[Variance Dept vs Xero],tbl_Finance[Compare],"Dept higher*")'),
-            ("Jobs where Xero is higher than the department expected", 'COUNTIF(tbl_Finance[Compare],"Xero higher*")',
+            ("Job lines where Xero is higher than the department expected", 'COUNTIF(tbl_Finance[Compare],"Xero higher*")',
              'SUMIFS(tbl_Finance[Variance Dept vs Xero],tbl_Finance[Compare],"Xero higher*")'),
             ("Invoiced but the department has no expected value", 'COUNTIF(tbl_Finance[Compare],"Invoiced - no dept value")',
              'SUMIFS(tbl_Finance[Xero Invoiced Ex GST],tbl_Finance[Compare],"Invoiced - no dept value")'),
@@ -959,13 +930,12 @@ def build_month_end():
     checks = [
         ("Finance rows with anything in the Issue column", 'COUNTIF(tbl_Finance[Issue],"?*")'),
         ("Job numbers not found in the Xero job list", 'COUNTIF(tbl_Finance[Job in Xero?],"CHECK")'),
-        ("Job numbers used on more than one row (any department)",
-         f"SUMPRODUCT((Finance!{fin_range}<>\"\")*(COUNTIF(Finance!{fin_range},Finance!{fin_range})>1))"),
+        ("Job numbers used by more than one department", 'COUNTIF(tbl_Finance[Issue],"*another department*")'),
         ("Department rows missing information Finance needs",
          'COUNTIF(tbl_Onsite[Not Yet on Finance],"Fix:*")+COUNTIF(tbl_Production[Not Yet on Finance],"Fix:*")'
          '+COUNTIF(tbl_Consulting[Not Yet on Finance],"Fix:*")'),
         ("Incomplete invoices (No, Date or Ex GST missing)", 'COUNTIF(tbl_Finance[Issue],"*incomplete*")'),
-        ("Invoice dates typed under the wrong month", 'COUNTIF(tbl_Finance[Issue],"*not in the month*")'),
+        ("Same Xero invoice number on two rows", 'COUNTIF(tbl_Finance[Issue],"*Same invoice number*")'),
         ("Department rows deleted (Row ID missing)", 'COUNTIF(tbl_Finance[Issue],"*Row ID not found*")'),
         ("Consulting revenue split does not equal the job value", 'COUNTIF(tbl_Consulting[Revenue Split Check],"MISMATCH")'),
         ("WIP movements with an amount but no month or no job",
@@ -1111,7 +1081,7 @@ DEF_NOTES = {
     "Defer Start": "Optional. First month the revenue/cost belongs to. Leave blank to start in the invoice month.",
     "Defer End": "The last month the revenue/cost belongs to. Type any date in that month.",
     "Job Number Override": "COST: type the job number. REVENUE: leave blank - it is found from the invoice number.",
-    "Amount Override": "COST: type the bill amount ex GST (positive). REVENUE: leave blank unless the invoice shares a cell on Finance with another invoice, or only part of it is deferred.",
+    "Amount Override": "COST: type the bill amount ex GST (positive). REVENUE: leave blank - the amount comes from Finance. Only type it if just part of the invoice is deferred.",
     "P&L GL Override": "COST: pick the expense GL. REVENUE: leave blank to use the job's revenue GL.",
     "Opening Deferred": "Amount still deferred at the start of the journal month (Deferral Journal C4).",
     "Movement This Month": "Journal month movement. Negative = deferred out of the month. Positive = released into the month.",
@@ -1158,20 +1128,13 @@ def build_deferrals():
         "Months", "Per Month"))
     X, Y = f"${DC['Opening Deferred']}{r_}", f"${DC['Movement This Month']}{r_}"
     JM = "'Deferral Journal'!$C$4"
-    inv_cols = ["Prior Years Invoice Nos"] + [f"{m} Invoice No" for m in MONTHS]
-    amt_cols = ["Prior Years Ex GST"] + [f"{m} Ex GST" for m in MONTHS]
-    key = f'SUBSTITUTE({B}," ","")'
-    found = "+".join(f'ISNUMBER(SEARCH(","&{key}&",",","&SUBSTITUTE(tbl_Finance[{c}]," ","")&","))' for c in inv_cols)
-    inv_row = f"SUMPRODUCT(MAX((({found})>0)*(ROW(tbl_Finance[Row ID])-{FIN_HDR})))"
-    exact_amt = "+".join(f'SUMPRODUCT(--(SUBSTITUTE(tbl_Finance[{n}]," ","")={key}),tbl_Finance[{a}])'
-                         for n, a in zip(inv_cols, amt_cols))
-    exact_cnt = "+".join(f'COUNTIF(tbl_Finance[{n}],{B})' for n in inv_cols)
+    inv_match = f'MATCH({B}&"",tbl_Finance[Xero Invoice No],0)'
     fpull = lambda fld: f'IF({J}="","",INDEX(tbl_Finance[{fld}],{J})&"")'
     anydata = f"COUNTA(${DC['Type']}{r_}:${DC['P&L GL Override']}{r_})>0"
     gl_name = lambda code: f'IFERROR(" "&INDEX(lst_GLName,MATCH({code},lst_RevGL,0)),"")'
     F = {
         "Finance Row": (f'=IF({Fo}<>"",IFERROR(MATCH({Fo}&"",tbl_Finance[Job Number],0),""),'
-                        f'IF(OR({A}<>"Revenue",{B}=""),"",IFERROR(1/(1/{inv_row}),"")))'),
+                        f'IF(OR({A}<>"Revenue",{B}=""),"",IFERROR({inv_match},"")))'),
         "Project Number": f'=IF({Fo}<>"",{Fo}&"",{fpull("Job Number")})',
         "Project Name": (f'=IF({K}="","",IFERROR(INDEX(lst_JobName,MATCH({K},lst_Jobs,0))&"",'
                          f'{fpull("Job Description")}))'),
@@ -1179,7 +1142,7 @@ def build_deferrals():
         "Client": "=" + fpull("Client"),
         "Cost Centre": "=" + fpull("Cost Centre"),
         "Amount Ex GST": (f'=IF({Go}<>"",{Go},IF(OR({A}<>"Revenue",{B}=""),"",'
-                          f'IF(({exact_cnt})=1,{exact_amt},"")))'),
+                          f'IFERROR(INDEX(tbl_Finance[Xero Invoiced Ex GST],{inv_match})+0,"")))'),
         "Invoice Month": f'=IF({Cc}="","",EOMONTH({Cc},0))',
         "Start Month": f'=IF({Q}="","",IF({D}="",{Q},EOMONTH({D},0)))',
         "End Month": f'=IF({E}="","",EOMONTH({E},0))',
@@ -1203,7 +1166,7 @@ def build_deferrals():
         (f'AND({R}<>"",{S}<>"",{S}<{R})', "Defer end is before the start"),
         (f'AND({A}="Revenue",{Fo}="",{J}="",{B}<>"")', "Invoice number not found on Finance - check it, or type the job number"),
         (f'AND({Fo}<>"",{J}="")', "Job number not on any department sheet"),
-        (f'AND({A}="Revenue",{B}<>"",{P}="")', "Amount not found (invoice shares a cell on Finance) - type it in Amount Override"),
+        (f'AND({A}="Revenue",{B}<>"",{P}="")', "No Ex GST on Finance for this invoice yet - check Finance or type it in Amount Override"),
         (f'AND({A}="Cost",{Fo}="")', "Cost needs a job number"),
         (f'AND({A}="Cost",{Go}="")', "Cost needs an amount"),
         (f'AND({A}="Cost",{Ho}="")', "Cost needs a P&L GL"),
@@ -1370,88 +1333,68 @@ README = [
     ("", None),
     ("THE RULE", "h"),
     ("The job number and the department are the source of truth.", None),
-    ("The department sets the job up. Finance never types a job number.", None),
-    ("Finance types three things per invoice, straight off Xero: the invoice number, the invoice date and the amount excluding GST.", None),
+    ("The department sets up every job line. Finance never types a job number.", None),
+    ("Finance types three things on each line, straight off the Xero invoice: the invoice number, the invoice date and the amount excluding GST.", None),
     ("Everything else flows by itself, both ways.", None),
     ("", None),
+    ("ONE ROW = ONE INVOICE", "h"),
+    ("Each row on a department sheet is one thing that will be invoiced once.", None),
+    ("A job invoiced once has one row. A job billed in stages has one row per stage, all with the same job number. For example a production job with a 40% deposit and a 60% balance has two rows: 26073110 Deposit $6,000 and 26073110 Balance $9,000. A monthly contract has one row per month.", None),
+    ("The Lines on Job column shows how many rows a job has. On Finance, Job Total Expected and Job Total Invoiced add every row of the job together.", None),
+    ("", None),
     ("WHO TYPES WHERE", "h"),
-    ("Department managers (Onsite, Production, Consulting): fill in every white cell on your own sheet. One row per job number. Start at the top and use the next empty row.", None),
-    ("The cells Finance needs before it can invoice are: Job Number, Client, Job Description, Cost Centre, Invoice Type, Tax Code and Expected Revenue Ex GST.", None),
-    ("The Not Yet on Finance column checks those for you. It reads Complete, or Fix: followed by what is missing or wrong.", None),
-    ("Finance: on the Finance sheet, type only in the cream cells. They start at column J, straight after the Issue column, under the gold heading TYPE HERE. Find the job, go to the month the invoice is dated (Jul, Aug, Sep ...), and type the Invoice No, Invoice Date and Ex GST. Invoices from before 1 July 2026 go in the two Before FY27 cells.", None),
+    ("Department managers (Onsite, Production, Consulting): fill in every white cell on your own sheet, one row per invoice line, starting at the top.", None),
+    ("The cells Finance needs are: Job Number, Client, Job Description, Cost Centre, Invoice Type, Tax Code and Expected Revenue Ex GST. The Not Yet on Finance column checks them. It reads Complete, or Fix: followed by what is missing.", None),
+    ("Finance: open the Finance sheet. Every department line is already there. Find the line and type three cells in the cream columns G, H and I: Xero Invoice No, Xero Invoice Date, Xero Invoiced Ex GST. That is all.", None),
     ("Grey-blue cells are formulas. They are locked so nobody can wipe them by accident.", None),
     ("", None),
     ("HOW THE INFORMATION FLOWS", "h"),
-    ("Department to Finance: every department row has a fixed Row ID (last column). The Finance sheet has a matching row for every Row ID, so as soon as a department types a job, the job number, client, description, cost centre, invoice type, tax code, revenue GL, PO or quote reference, notes and the expected value appear on Finance.", None),
-    ("Finance to department: once Finance types an invoice, the department sheet shows the Invoice Date (latest), every Invoice No, the number of invoices, Revenue Ex GST (what Xero has invoiced), Invoiced (the status) and To Invoice (what is left).", None),
-    ("So department managers can see what has been invoiced without asking Finance.", None),
+    ("Department to Finance: every department row has a fixed Row ID (last column) and a matching row on Finance. As soon as a department types a line, Finance shows the job number, client, description, expected amount, cost centre, tax code, revenue GL, PO or quote and notes.", None),
+    ("Finance to department: once Finance types the invoice, the department row shows Invoice Date, Invoice No, Revenue Ex GST (what Xero invoiced), Invoiced (the status) and To Invoice (what is left).", None),
+    ("Finance rows take turns - Onsite line 1, Production line 1, Consulting line 1, Onsite line 2 - so every department's lines sit together at the top. Filter Job Number and untick (Blanks) to hide the empty rows.", None),
     ("", None),
     ("THE VARIANCE", "h"),
-    ("On Finance, Dept Expected Ex GST sits next to Xero Invoiced Ex GST, then Variance Dept vs Xero, then Compare.", None),
-    ("Variance = Dept Expected less Xero Invoiced.", None),
-    ("Positive means the department expects more than Xero has invoiced. That is revenue still to invoice, and the row reads Dept higher - to invoice.", None),
-    ("Zero reads Agrees. Negative reads Xero higher - check dept, which means either the department value is out of date or the job was over-billed.", None),
-    ("Nothing invoiced yet reads Not invoiced - to invoice.", None),
-    ("Worked example: Production sets up job 26073110 at $12,000. In August Finance types INV-5001, 20-Aug-26, $5,000 under August. Variance is $7,000 and Compare reads Dept higher - to invoice. In September Finance types INV-5090, 15-Sep-26, $7,000 under September. Variance is nil and Compare reads Agrees. The Production sheet shows Invoice No INV-5001, INV-5090 and Invoice Date 15-Sep-26.", None),
+    ("On Finance, Variance Dept vs Xero = Dept Expected less Xero Invoiced, for that line.", None),
+    ("Compare reads: Not invoiced - to invoice (nothing in Xero yet), Agrees, Dept higher - to invoice (Xero is less than expected), or Xero higher - check dept.", None),
+    ("Worked example: Production sets up 26073110 Deposit $6,000 and 26073110 Balance $9,000. Finance types INV-10205, 05-Aug-26, $6,000 on the deposit row - it reads Agrees. The balance row reads Not invoiced - to invoice until Finance types INV-10301 on it.", None),
     ("", None),
     ("MAKING SURE NO REVENUE IS MISSED", "h"),
-    ("Month-End section 3 counts and values every job that is Not invoiced, Dept higher, or Xero higher.", None),
-    ("FY Summary section 3 shows the same thing by department, and the total still to invoice.", None),
-    ("On Finance, filter the Compare column to Not invoiced or Dept higher to get the list to chase.", None),
-    ("The Issue column on Finance lists everything wrong on a row: job not in Xero, job number used twice, department information missing, an incomplete invoice, a date typed under the wrong month, or a deleted department row.", None),
+    ("Month-End section 3 counts and values every line that is not invoiced, under-invoiced or over-invoiced. FY Summary section 3 shows the same by department.", None),
+    ("On Finance, filter Compare to Not invoiced or Dept higher to get the list to chase.", None),
+    ("The Issue column lists everything wrong on a row: job not in Xero, job number used by two departments, department information missing, an incomplete invoice, the same invoice number on two rows, or a deleted department row.", None),
     ("", None),
-    ("RULES THAT KEEP IT ACCURATE", "h"),
-    ("Never delete a job row on a department sheet. If a job is cancelled, set Expected Revenue Ex GST to 0 and say so in Notes.", None),
-    ("Never type over a Row ID.", None),
-    ("Sorting is switched off on the department sheets and Finance so rows cannot be shuffled. Filtering works as normal.", None),
-    ("If someone unprotects a sheet and sorts it anyway, nothing breaks - the Row ID travels with the row and Finance follows it. If a row is deleted, the Issue column on Finance says so.", None),
-    ("Two invoices for one job in the same month: type both numbers in the one Invoice No cell (INV-1001, INV-1002), the later date, and the combined Ex GST.", None),
-    ("A credit note: type it in the month it is dated, as a negative Ex GST. If that month already has an invoice for the job, net them in the one cell and list both numbers.", None),
-    ("A video part of a production job that Xero holds on its own V job number (for example 26073110V) goes on its own Production row with cost centre VIDEO.", None),
-    ("", None),
-    ("JOBS BROUGHT IN FROM 2024, FY25 AND FY26", "h"),
-    ("Departments set older jobs up exactly like new ones, with the whole job value in Expected Revenue Ex GST.", None),
-    ("On Finance, type everything Xero invoiced on that job before 1 July 2026 into the two Before FY27 cells: Prior Years Invoice Nos (separated by commas) and Prior Years Ex GST (the total).", None),
-    ("The variance then compares the department value with everything Xero has ever invoiced on the job, not just FY27. The monthly revenue on FY Summary and Month-End stays FY27 only.", None),
+    ("OLDER JOBS FROM 2024, FY25 AND FY26", "h"),
+    ("Enter them exactly the same way - one row per invoice, with the real Xero invoice date. FY Summary and Month-End only count invoices dated in the month you pick, so older invoices never land in FY27 revenue, but the job-level comparison still includes them.", None),
     ("", None),
     ("DEFERRALS  -  REVENUE AND COST", "h"),
     ("Use the Deferrals sheet when an invoice or a supplier bill covers more than one month.", None),
-    ("Revenue: type Revenue, the Xero invoice number, the invoice date and the Defer End month. That is all. The project number, project name, department, client, cost centre, amount and revenue GL are found on the Finance sheet from the invoice number.", None),
-    ("Cost: type Cost, the bill number, the bill date, the Defer End month, the job number, the bill amount ex GST and the expense GL. Bills are not on the Finance sheet, so these have to be typed.", None),
-    ("Defer Start is optional. Leave it blank and the deferral starts in the invoice month.", None),
-    ("The schedule to the right of each row works out every month from the start to the end. The amount is spread evenly and the last month takes the rounding. A minus figure is revenue or cost pushed out of that month. A plus figure is revenue or cost released into it.", None),
-    ("Worked example: invoice INV-8001, $12,000 ex GST, dated 15 Sep 2026, Defer End Aug 2027. Xero puts the full $12,000 into September. The schedule shows September -11,000 (keep $1,000, defer $11,000), then +1,000 every month from October 2026 to August 2027. By August 2027 nothing is left deferred.", None),
-    ("The Deferral Journal sheet: pick the month and every deferral that moves that month is listed with Project Number, Project Name, Department, Client, Cost Centre, the account to debit, the account to credit, the amount and a narration. The Xero lines on the right are the same journal as two lines per entry, ready to key in.", None),
-    ("Revenue deferred: debit the job's revenue GL, credit the deferred revenue account. Revenue released: the other way round.", None),
-    ("Cost deferred: debit the prepaid cost account, credit the expense GL. Cost released: the other way round.", None),
-    ("The two balance sheet accounts are on Lists U15 and U16. They are set to 11300 Work in Progress, the same as v3. Change them there if you use separate income-in-advance or prepayment accounts.", None),
-    ("Month-End section 1 adds the revenue deferral movement to revenue recognised, so it ties to the Xero P&L once the journal is posted. Section 2 includes the deferral balances.", None),
-    ("Do not also put a deferred invoice on WIP Movements. It would count twice, and the Issue column will say so.", None),
-    ("The schedule runs from July 2024 to June 2030.", None),
+    ("Revenue: type Revenue, the Xero invoice number, the invoice date and the Defer End month. The project number, name, department, client, cost centre, amount and revenue GL are found on Finance from the invoice number.", None),
+    ("Cost: type Cost, the bill number, the bill date, the Defer End month, the job number, the bill amount ex GST and the expense GL.", None),
+    ("The schedule to the right spreads it evenly, month by month, until it ends. Minus = pushed out of that month, plus = released into it.", None),
+    ("Worked example: INV-10088, $12,000, dated 1 Jul 2026, Defer End Jun 2027. July shows -11,000 (keep $1,000), then +1,000 every month to June 2027.", None),
+    ("The Deferral Journal sheet: pick the month and every movement is listed with Project Number, Project Name, Department, the account to debit, the account to credit and the amount, plus Xero-ready journal lines on the right.", None),
+    ("Revenue deferred: Dr the job's revenue GL, Cr the deferred revenue account. Released: the other way round. Cost deferred: Dr the prepaid account, Cr the expense GL. Released: the other way round.", None),
+    ("The two balance sheet accounts are on Lists U15 and U16 (both 11300 Work in Progress, as in v3).", None),
+    ("", None),
+    ("RULES THAT KEEP IT ACCURATE", "h"),
+    ("Never delete a row on a department sheet. If a line is cancelled, set its Expected Revenue Ex GST to 0 and say so in Notes.", None),
+    ("Never type over a Row ID.", None),
+    ("One invoice per row. Never type two invoice numbers in one cell.", None),
+    ("A credit note: ask the department to add a line for it (Expected Revenue as a negative) and type the credit note on that line with a negative Ex GST.", None),
+    ("A video part a production job holds on its own V job number (for example 26073110V) goes on its own Production row with cost centre VIDEO.", None),
     ("", None),
     ("THE SHEETS", "h"),
-    ("Finance: one row per job, all departments. The rows take turns - Onsite job 1, Production job 1, Consulting job 1, Onsite job 2 - so every department's jobs sit together at the top. Filter Job Number and untick (Blanks) to hide the empty rows. Finance types the cream invoice cells only.", None),
-    ("Deferrals: the deferral register and the month-by-month schedule. Deferral Journal: the journal for any month.", None),
-    ("Month-End: pick the month. Revenue by cost centre against the Xero P&L, WIP, the missed revenue check, data checks, the WIP journal, work won and sign-off.", None),
+    ("Finance: one row per invoice line, all departments. Finance types the three cream cells.", None),
+    ("Month-End: revenue by cost centre against the Xero P&L, WIP and deferrals, the missed revenue check, data checks, the WIP journal, work won and sign-off.", None),
+    ("Deferrals and Deferral Journal: the deferral register, schedule and monthly journal.", None),
     ("FY Summary: invoiced revenue by month, by cost centre and by department, and expected vs invoiced by department.", None),
     ("Onsite, Production, Consulting: the department sheets. Headings are unchanged from v3.", None),
-    ("WIP Movements: manual journals between the P&L and GL 11300.", None),
-    ("WIP Summary: WIP balance job by job, to tie back to the WIP Schedule file.", None),
-    ("Work Won: the month's won opportunities, compared against what was invoiced.", None),
-    ("Lists: every dropdown, the Xero job list, GST rate, WIP accounts and the first month of the financial year.", None),
+    ("WIP Movements and WIP Summary: manual WIP journals and WIP by job. Work Won: won opportunities vs invoiced. Lists: every dropdown and setting.", None),
     ("", None),
-    ("LOCKS, SIZE AND NEXT YEAR", "h"),
-    ("Every sheet is protected with the password CTS1234, the same as v3. The workbook structure is protected with the same password.", None),
-    ("Each department sheet has 1,500 job rows, and the Finance sheet has a matching row for every one (4,500). The Deferrals sheet has 500 rows. The file is built by build_tracker.py, so if you ever need more rows it is rebuilt bigger rather than extended by hand.", None),
-    ("To roll to FY28: save a copy, clear the white and cream cells, and change Lists cell U12 to 31-Jul-27. Every month heading follows.", None),
-    ("", None),
-    ("WHAT CHANGED FROM v3", "h"),
-    ("Finance used to type the job number and cost centre on every invoice line. Now the job and cost centre come from the department, and Finance types only Invoice No, Invoice Date and Ex GST.", None),
-    ("The Finance sheet is now one row per job with twelve monthly invoice slots, instead of one row per invoice line.", None),
-    ("Department headings are unchanged. A Row ID column was added at the end of each department sheet to link the row to Finance.", None),
-    ("On the department sheets: Invoiced now shows the status text from Finance. To Invoice is Expected Revenue less Revenue Ex GST. Not Yet on Finance is now the completeness check. Cost Centres shows your cost centre and its revenue GL.", None),
-    ("Deferrals now have their own register (Deferrals) and their own journal (Deferral Journal), for revenue and cost, with the project number, project name and department on every journal line.", None),
-    ("Finance has two Before FY27 cells per job for invoicing done before 1 July 2026.", None),
+    ("LOCKS AND SIZE", "h"),
+    ("Every sheet is protected with the password CTS1234, as in v3.", None),
+    ("Each department sheet has 1,500 rows and Finance has a matching 4,500. The Deferrals sheet has 500 rows. The file is built by build_tracker.py, so it is rebuilt bigger if ever needed.", None),
+    ("To roll to FY28: save a copy, clear the white and cream cells, and change Lists cell U12 to 31-Jul-27.", None),
 ]
 
 
