@@ -142,6 +142,20 @@ FIN_COLS = [
 ]
 
 
+def jmatch(table, key="{Job Number}"):
+    """MATCH on a job number that may be held as text on one side and as a
+    number on the other.
+
+    A19: pasting a job number into Excel brings the source formatting with it,
+    so "25021901" lands as the number 25021901 however the column is formatted.
+    Every lookup here was MATCH(job&"", ...) - text - and text never matches a
+    number, so the join failed silently and the job block came back empty.
+    Try it as text, then as a number.
+    """
+    return (f'IFERROR(MATCH({key}&"",{table}[Job Number],0),'
+            f'MATCH(IFERROR({key}+0,{key}),{table}[Job Number],0))')
+
+
 def _dept_pick(col_by_team, default='""'):
     """Read a job-level column from whichever department sheet holds the job.
 
@@ -158,12 +172,10 @@ def _dept_pick(col_by_team, default='""'):
         if isinstance(col, tuple):
             # Try the first column, fall back to the second when it is blank.
             first, second = (
-                f'INDEX(tbl_{team}[{c}],MATCH({{Job Number}}&"",'
-                f'tbl_{team}[Job Number],0))' for c in col)
+                f'INDEX(tbl_{team}[{c}],{jmatch("tbl_" + team)})' for c in col)
             pick = f'IF({first}="",{second},{first})'
         else:
-            pick = (f'INDEX(tbl_{team}[{col}],'
-                    f'MATCH({{Job Number}}&"",tbl_{team}[Job Number],0))')
+            pick = f'INDEX(tbl_{team}[{col}],{jmatch("tbl_" + team)})' 
         # A job found on a sheet with that cell empty reads back as 0, not
         # blank. Fine for a number, wrong for a quote reference or a note.
         if default == '""':
@@ -218,21 +230,26 @@ JOB_CORE = [
     ("Job Name (Xero)", 38, TXT, "f"), ("Client", 24, TXT, "f"),
     ("Lines on Job", 11, INT, "f"), ("Revenue Ex GST", 16, CUR, "f"),
     ("Invoiced", 14, CUR, "f"), ("To Invoice", 14, CUR, "f"),
+    # A19: what the job is worth in total, typed by the department. Until
+    # Finance raises an invoice the job has no Finance line at all, so without
+    # this there is nowhere to record work done and still sitting in WIP.
+    ("Expected Revenue Ex GST", 21, CUR, "in"),
+    ("Not Yet on Finance", 17, CUR, "f"),
     ("Cost Centres", 16, TXT, "f"),
 ]
 JOB_CORE_FORMULAS = {
-    "Invoice Date": '=IF({Job Number}="","",IFERROR(IF(SUMPRODUCT(MAX((tbl_Finance[Job Number]={Job Number}&"")*(tbl_Finance[Xero Invoice No]<>"")*tbl_Finance[Date]))=0,"",'
-                    'SUMPRODUCT(MAX((tbl_Finance[Job Number]={Job Number}&"")*(tbl_Finance[Xero Invoice No]<>"")*tbl_Finance[Date]))),""))',
+    "Invoice Date": '=IF({Job Number}="","",IFERROR(IF(SUMPRODUCT(MAX((tbl_Finance[Job Number]&""={Job Number}&"")*(tbl_Finance[Xero Invoice No]<>"")*tbl_Finance[Date]))=0,"",'
+                    'SUMPRODUCT(MAX((tbl_Finance[Job Number]&""={Job Number}&"")*(tbl_Finance[Xero Invoice No]<>"")*tbl_Finance[Date]))),""))',
     # The most recent invoice number on the job. If the job carries more than
     # one, say so rather than quietly showing just the last.
     "Invoice No": '=IF({Job Number}="","",IF(COUNTIFS(tbl_Finance[Job Number],{Job Number}&"",tbl_Finance[Xero Invoice No],"<>")=0,"",'
-                  'IFERROR(IF(COUNTIFS(tbl_Finance[Job Number],{Job Number}&"",tbl_Finance[Xero Invoice No],LOOKUP(2,1/((tbl_Finance[Job Number]={Job Number}&"")*(tbl_Finance[Xero Invoice No]<>"")),tbl_Finance[Xero Invoice No]))=COUNTIFS(tbl_Finance[Job Number],{Job Number}&"",tbl_Finance[Xero Invoice No],"<>"),LOOKUP(2,1/((tbl_Finance[Job Number]={Job Number}&"")*(tbl_Finance[Xero Invoice No]<>"")),tbl_Finance[Xero Invoice No]),'
-                  'LOOKUP(2,1/((tbl_Finance[Job Number]={Job Number}&"")*(tbl_Finance[Xero Invoice No]<>"")),tbl_Finance[Xero Invoice No])&" +more"),"")))',
+                  'IFERROR(IF(COUNTIFS(tbl_Finance[Job Number],{Job Number}&"",tbl_Finance[Xero Invoice No],LOOKUP(2,1/((tbl_Finance[Job Number]&""={Job Number}&"")*(tbl_Finance[Xero Invoice No]<>"")),tbl_Finance[Xero Invoice No]))=COUNTIFS(tbl_Finance[Job Number],{Job Number}&"",tbl_Finance[Xero Invoice No],"<>"),LOOKUP(2,1/((tbl_Finance[Job Number]&""={Job Number}&"")*(tbl_Finance[Xero Invoice No]<>"")),tbl_Finance[Xero Invoice No]),'
+                  'LOOKUP(2,1/((tbl_Finance[Job Number]&""={Job Number}&"")*(tbl_Finance[Xero Invoice No]<>"")),tbl_Finance[Xero Invoice No])&" +more"),"")))',
     "Job in Xero?": '=IF({Job Number}="","",IF(COUNTIF(lst_Jobs,{Job Number}&"")>0,"OK","CHECK"))',
     "Job Name (Xero)": '=IF({Job Number}="","",IFERROR(INDEX(lst_JobName,'
                        'MATCH({Job Number}&"",lst_Jobs,0)),""))',
     "Client": '=IF({Job Number}="","",IFERROR(INDEX(' + FIN + '[Client],'
-              'MATCH({Job Number}&"",' + FIN + '[Job Number],0)),""))',
+              + jmatch(FIN) + '),""))',
     "Lines on Job": '=IF({Job Number}="","",COUNTIFS(' + FIN + '[Job Number],'
                     '{Job Number}&"",' + FIN + '[Ex GST],"<>"))',
     # A job's revenue is not all invoiced yet, so say which part is which
@@ -240,6 +257,9 @@ JOB_CORE_FORMULAS = {
                 + FIN + '[Job Number],{Job Number}&"",'
                 + FIN + '[Xero Invoice No],"<>"))',
     "To Invoice": '=IF({Job Number}="","",{Revenue Ex GST}-{Invoiced})',
+    # the part of the job Finance has not captured on any line yet
+    "Not Yet on Finance": '=IF({Job Number}="","",IF({Expected Revenue Ex GST}="",0,'
+                          'MAX(0,{Expected Revenue Ex GST}-{Revenue Ex GST})))',
     "Revenue Ex GST": '=IF({Job Number}="","",SUMIFS(' + FIN + '[Ex GST],'
                       + FIN + '[Job Number],{Job Number}&""))',
     # A job can be invoiced across several cost centres - list every one
@@ -318,8 +338,9 @@ DEPT_EXTRA_FORMULAS = {
         # The crew's own name for the event, as Finance typed it on the invoice.
         "Event Name": '=IF({Job Number}="","",IFERROR(INDEX(' + FIN + '[Description],'
                       'MATCH({Job Number}&"",' + FIN + '[Job Number],0)),""))',
-        "Margin": '=IF({Job Number}="","",{Revenue Ex GST}-{Total Expense})',
-        "Margin %": '=IFERROR({Margin}/{Revenue Ex GST},"")',
+        "Margin": '=IF({Job Number}="","",{Revenue Ex GST}+{Not Yet on Finance}'
+                  '-{Total Expense})',
+        "Margin %": '=IFERROR({Margin}/({Revenue Ex GST}+{Not Yet on Finance}),"")',
     },
     "Consulting": {
         "Open Qwilr": QWILR,
@@ -327,12 +348,15 @@ DEPT_EXTRA_FORMULAS = {
             '=IF({Job Number}="","",IF(N({Labour Revenue})+N({Equipment Revenue})'
             '+N({Subscription Revenue})=0,"Not split",'
             'IF(ROUND(N({Labour Revenue})+N({Equipment Revenue})'
-            '+N({Subscription Revenue}),2)=ROUND({Revenue Ex GST},2),"OK","MISMATCH")))',
+            '+N({Subscription Revenue}),2)=ROUND({Revenue Ex GST}'
+            '+{Not Yet on Finance},2),"OK",'
+            'IF({Lines on Job}=0,"Not invoiced yet","MISMATCH"))))',
         "Total Expense": '=IF({Job Number}="","",N({Labour Expense (External)})'
                          '+N({Equipment Expense (Internal)})'
                          '+N({Subscription & Licences Expense}))',
-        "Margin": '=IF({Job Number}="","",{Revenue Ex GST}-{Total Expense})',
-        "Margin %": '=IFERROR({Margin}/{Revenue Ex GST},"")',
+        "Margin": '=IF({Job Number}="","",{Revenue Ex GST}+{Not Yet on Finance}'
+                  '-{Total Expense})',
+        "Margin %": '=IFERROR({Margin}/({Revenue Ex GST}+{Not Yet on Finance}),"")',
     },
 }
 
@@ -1212,6 +1236,27 @@ def build_month_end(wb, dlast):
             cell.font = Font(size=10, bold=(r == ftot))
             if col > 1:
                 cell.number_format = CUR
+    # The department sheets hold work nobody has invoiced yet, and a job with
+    # no invoice has no Finance line at all, so it cannot appear above.
+    dr0 = ftot + 1
+    ws.cell(dr0, 1, "Department sheets  -  expected revenue not yet on Finance"
+            ).font = Font(bold=True, size=10, color=NAVY)
+    for i, d in enumerate(DEPTS):
+        r = dr0 + 1 + i
+        ws.cell(r, 1, "   " + d).font = Font(size=10)
+        vc = ws.cell(r, 4)
+        vc.value = f'=SUM({DEPT_TABLE[d]}[Not Yet on Finance])'
+        vc.number_format, vc.fill, vc.border = CUR, CALC_FILL, BOX
+    grand = dr0 + 1 + len(DEPTS)
+    ws.cell(grand, 1, "TOTAL FORECAST  -  everything with no invoice against it"
+            ).font = Font(bold=True, size=11, color=NAVY)
+    gc = ws.cell(grand, 4)
+    gc.value = f"=$D${ftot}+SUM($D${dr0 + 1}:$D${grand - 1})"
+    gc.number_format, gc.border = CUR, BOX
+    gc.fill = PatternFill("solid", fgColor=LIGHT)
+    gc.font = Font(bold=True, size=11, color=NAVY)
+    ftot = grand
+
     memo = [("Not in the forecast above  -  open opportunities, not yet won",
              '=SUMIFS(tbl_Won[Value Ex GST],tbl_Won[Status],"Open")'),
             ("Not in the forecast above  -  deferred revenue still to release "
@@ -1231,7 +1276,9 @@ def build_month_end(wb, dlast):
             "Nothing here is revenue yet. Finance: to invoice is a line already on the "
             "Finance sheet with no invoice number on it. Won, not invoiced is the value "
             "won less everything Finance already holds against that job, so the two "
-            "columns add up without counting the same work twice."
+            "columns add up without counting the same work twice. The department "
+            "lines are Expected Revenue Ex GST less whatever Finance already holds "
+            "for that job, which is where a job still sitting in WIP shows up."
             ).font = Font(size=9, italic=True, color="808080")
 
     # ---- 7. sign-off
@@ -1611,6 +1658,9 @@ README = [
  ("P", "Each department types on its own sheet. Nowhere else. One row per job number."),
  ("P", "The two meet on Job Number, which is a real Xero tracking category and is checked "
        "against the live job list as you type. Nothing has to be kept lined up by hand."),
+ ("P", "Type job numbers however you like - as text or as a number, typed or pasted. "
+       "Every lookup tries both, so a job number that arrives as a number from another "
+       "system still finds its match."),
  ("P", "Job Number is the only thing that joins them. The invoice date and invoice "
        "number travel from Finance out to the department sheet that holds that job, "
        "and the department's own figures - quote, costs, margin, notes - travel back "
@@ -1627,7 +1677,10 @@ README = [
        "everything that needs fixing."),
  ("R", "Onsite / Production / Consulting",
        "One row per job. Client, invoice count and revenue come from Finance automatically; "
-       "the department fills in its own costs, hours and references."),
+       "the department fills in its own costs, hours and references. Expected Revenue Ex "
+       "GST is what the job is worth in total - fill it in and Not Yet on Finance shows "
+       "the part nobody has invoiced, which is what a job still sitting in WIP looks "
+       "like. Month-End section 6 adds those up."),
  ("R", "WIP Movements",
        "Manual journals between the P&L and GL 11300 Work in Progress. Anything with a "
        "defer start and end on Finance does not belong here - it is handled automatically."),
