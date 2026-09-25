@@ -33,7 +33,7 @@ and OneDrive carries the result to everyone.
 | Finance | P&L, P&L by Department, P&L Spread, Overhead Allocation, P&L Control |
 | Budget | Budget vs Actual, Actions, Forecast |
 | Cash | Cash Flow |
-| Revenue | Revenue Summary, Revenue Schedule, Top Clients, Clients by Department |
+| Revenue | Revenue Summary, Revenue Schedule, Revenue Forecast, Pipeline, Top Clients, Clients by Department |
 | Utilisation | Utilisation, Profitability per FTE |
 | Ledger | Detail Records, Charts |
 | Admin | Setup, Data Loaders, Config & Variables, About |
