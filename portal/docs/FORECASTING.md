@@ -10,7 +10,7 @@ its own. Step 1 is built; the rest is the plan.
 | Step | State |
 |---|---|
 | 1. P&L forecast on run rate and seasonality, with overrides | Built. Forecast page, forecast column across the portal, 09 Forecast template, full year outlook in the tier one email |
-| 2. Twelve month cash, indirect | Designed, needs 10 Cash and Commitments |
+| 2. Twelve month cash, indirect | Built. Cash Flow page, 10 Cash and Commitments template with bank balances, credit cards, commitments and settings; cash tile on the Dashboard and a cash line in the tier one email |
 | 3. Pipeline driven revenue | Designed, needs the three system exports |
 | 4. Thirteen week cash, direct | Designed. The 11 and 12 aged report templates exist, in the layout confirmed against the live Xero organisation |
 | 5. Forecast accuracy | Designed, needs three months of archive |
@@ -132,7 +132,7 @@ what to run, a data tab that is a straight paste.
 | Template | Run in | Feeds |
 |---|---|---|
 | 09 Forecast | Typed, standing, revised when an assumption moves | Method per line, growth by department, run rate window, typed overrides. Built |
-| 10 Cash and Commitments | Typed, standing | Bank balances at month end, the commitments list, the tax calendar, the invoicing pattern per department, any facility |
+| 10 Cash and Commitments | Typed, standing, balances added monthly | Bank balances and credit card balances at month end, the commitments list, days to pay, BAS and super timing, the PAYG instalment, any facility. Built |
 | 11 Xero Aged Receivables | Xero, Aged Receivables Detail, as at month end | Debtor receipts, days to pay. Template built on the confirmed layout |
 | 12 Xero Aged Payables | Xero, Aged Payables Detail, as at month end | Creditor payments. Template built on the confirmed layout |
 
@@ -194,9 +194,15 @@ Each step stands on its own and needs only what is listed.
    the departments, and the method behind every line. The months after the
    reporting month are forecast everywhere the portal used to fill them with
    budget, and budget stays as the comparison.
-2. **Twelve month cash on the indirect method.** Needs the 10 Cash and
-   Commitments template, the opening bank balances and the commitments list.
-   Gives the Cash Flow page's monthly view and the cash tile.
+2. **Twelve month cash on the indirect method.** Built. The walk starts from
+   the bank balances typed for the reporting month and moves on the P&L
+   forecast: revenue comes in on days to pay, costs go out on days to pay,
+   wages in the month, GST on the BAS, super with each pay or quarterly,
+   commitments on their dates, loan principal and capital and tax off in
+   full, and the credit card balances cleared in the first month. A typed
+   receivables or payables balance from Xero measures the days to pay
+   rather than assuming them. The bridge from profit to cash on the page
+   closes exactly, and says so.
 3. **Pipeline driven revenue.** Needs the three real exports from Zoho, OnRent
    and Qwilr matched to their templates, which is already the next input on
    the list. Gives the Revenue Forecast page and replaces the baseline in the
@@ -215,9 +221,13 @@ These are the defaults the build will start from unless told otherwise.
 
 - The forecast horizon is rolling twelve months from the reporting month,
   and the full year figure is the current financial year.
-- Payroll is fortnightly, super is paid quarterly by the 28th, BAS is
-  quarterly on the standard dates, and there is no PAYG instalment. All four
-  are settings on the cash template.
+- BAS is quarterly on the standard dates, super is paid with each pay run
+  under Payday Super from 1 July 2026, and there is no PAYG instalment. All
+  three are settings on the cash template. Payroll frequency only matters
+  for the weekly view in step 4.
+- Credit cards are paid in full each month, so the balance at the reporting
+  month clears in the first forecast month and spend after that is paid
+  within the month. A setting on the cash template turns that off.
 - Invoicing patterns: onsite and production invoice on completion of the
   event, integration takes a deposit on acceptance and the balance on
   handover, video and consulting invoice monthly. Terms are thirty days.

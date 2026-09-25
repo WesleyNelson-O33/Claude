@@ -157,6 +157,7 @@
     E.loadStaff(window.CTS_STAFF);
     E.loadPipeline(window.CTS_PIPELINE);
     E.loadForecast(window.CTS_FORECAST);
+    E.loadCash(window.CTS_CASH);
     E.loadUsers(window.CTS_USERS);
     E.clients = window.CTS_CLIENTS || { clients: [], schedule: [] };
     E.clientMeta = {};
@@ -569,7 +570,7 @@
   E.reportingMonth = function () {
     return store.get("reportingMonth", E.cfg.ORG.reportingMonth);
   };
-  E.setReportingMonth = function (k) { store.set("reportingMonth", k); E._fc = null; };
+  E.setReportingMonth = function (k) { store.set("reportingMonth", k); E._fc = null; E._cash = null; };
   E.currentFY = function () {
     var m = E.monthIdx[E.reportingMonth()];
     return m ? m.fy : E.cfg.ORG.currentFY;
@@ -1347,6 +1348,202 @@
 })();
 
 /* ===================================================================== *
+ * Engine part 4: cash. Twelve months on the indirect method, off the P&L
+ * forecast: profit, less what is not cash, less the working capital the
+ * revenue ties up, less the tax, the commitments that are not in the P&L
+ * and the credit card balances. Opening cash, the commitments and the
+ * cards come from 10 Cash and Commitments.xlsx.
+ * ===================================================================== */
+(function () {
+  "use strict";
+  var CTS = window.CTS, E = CTS.engine;
+
+  var LABOUR = /salar|wage|superann|workers|payroll tax|fringe/i;
+  var SUPER = /superann/i;
+  var NONCASH = /deprec|amortis|write off|leave expense|unrealised|revaluation|disposal|provision for tax|income tax expense|gain on lease/i;
+  var GSTFREE = /salar|wage|superann|workers|payroll tax|fringe|bank charges|interest|stamp duty|filing fee|donation|currency|bad debts|dividend|deprec|amortis/i;
+  var GST = 0.1;
+
+  E.loadCash = function (data) { E.cashData = data || null; E._cash = null; };
+  E.cashEnabled = function () { return !!E.cashData; };
+
+  function settings() {
+    var s = (E.cashData && E.cashData.settings) || {};
+    return {
+      debtorDays: +s.debtorDays > 0 ? +s.debtorDays : 45,
+      creditorDays: +s.creditorDays > 0 ? +s.creditorDays : 30,
+      basFrequency: /month/i.test(s.basFrequency || "") ? "monthly" : "quarterly",
+      superTiming: /quarter/i.test(s.superTiming || "") ? "quarterly" : "payday",
+      paygInstalment: Math.round((+s.paygInstalment || 0) * 100),
+      facility: Math.round((+s.facility || 0) * 100),
+      openingAR: s.openingAR != null && s.openingAR !== "" ? Math.round(+s.openingAR * 100) : null,
+      openingAP: s.openingAP != null && s.openingAP !== "" ? Math.round(+s.openingAP * 100) : null,
+      cardsPaidInFull: !/^n/i.test(String(s.cardsPaidInFull == null ? "yes" : s.cardsPaidInFull)),
+    };
+  }
+  E.cashSettings = settings;
+
+  /** Balances and cards at the latest month on or before the reporting month. */
+  function latest(list, rm) {
+    var months = {}; (list || []).forEach(function (r) { if (r.month && r.month <= rm) months[r.month] = 1; });
+    var keys = Object.keys(months).sort(); var at = keys[keys.length - 1] || null;
+    return { month: at, rows: at ? list.filter(function (r) { return r.month === at; }) : [] };
+  }
+  E.cashBalances = function () { return latest((E.cashData || {}).balances, E.reportingMonth()); };
+  E.cashCards = function () { return latest((E.cashData || {}).cards, E.reportingMonth()); };
+
+  function addMonths(iso, n) {
+    var y = +iso.slice(0, 4), m = +iso.slice(5, 7) - 1 + n, d = +iso.slice(8, 10) || 1;
+    var dt = new Date(Date.UTC(y + Math.floor(m / 12), ((m % 12) + 12) % 12, 1));
+    var last = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth() + 1, 0)).getUTCDate();
+    dt.setUTCDate(Math.min(d, last));
+    return dt.toISOString().slice(0, 10);
+  }
+  var FREQ = { weekly: 7, fortnightly: 14, monthly: 1, quarterly: 3, annual: 12, yearly: 12, once: 0 };
+  function freqOf(s) { s = String(s || "monthly").toLowerCase(); return Object.keys(FREQ).filter(function (k) { return s.indexOf(k.slice(0, 4)) === 0; })[0] || "monthly"; }
+
+  /** The dates one commitment falls due inside [from, to], and its P&L accrual a month. */
+  function occurrences(c, from, to) {
+    var f = freqOf(c.frequency), out = [], d = c.next || from;
+    if (!d) return { dates: out, perMonth: 0 };
+    var end = c.end && c.end < to ? c.end : to, guard = 0;
+    if (f === "once") { if (d >= from && d <= end) out.push(d); }
+    else if (FREQ[f] === 7 || FREQ[f] === 14) {
+      while (d <= end && guard++ < 400) { if (d >= from) out.push(d); var t = new Date(d + "T00:00:00Z"); t.setUTCDate(t.getUTCDate() + FREQ[f]); d = t.toISOString().slice(0, 10); }
+    } else {
+      while (d <= end && guard++ < 400) { if (d >= from) out.push(d); d = addMonths(d, FREQ[f]); }
+    }
+    var perMonth = f === "once" ? 0 : f === "weekly" ? 52 / 12 : f === "fortnightly" ? 26 / 12 : 1 / FREQ[f];
+    return { dates: out, perMonth: perMonth };
+  }
+
+  E.cashflow = function () {
+    var rm = E.reportingMonth();
+    if (E._cash && E._cash.rm === rm) return E._cash;
+    if (!E.cashEnabled() || !E.forecastEnabled()) return null;
+    var S = settings(), months = E.forecastMonths().slice(0, 12);
+    if (!months.length) return null;
+    var lastKey = months[months.length - 1];
+    var from = months[0] + "-01", to = lastKey + "-" + new Date(+lastKey.slice(0, 4), +lastKey.slice(5, 7), 0).getDate();
+
+    // account classes
+    function cls(name) {
+      var a = E.acct[name] || {}, key = (a.sub || "") + " " + name;
+      return { cat: a.cat, labour: LABOUR.test(key), sup: SUPER.test(key), noncash: NONCASH.test(key), gstFree: GSTFREE.test(key) };
+    }
+    // a month's P&L, actual or forecast, grouped the way cash needs it
+    function pl(m) {
+      var actual = E.hasActual(m);
+      var r = { income: 0, otherIncome: 0, otherIncomeGst: 0, costs: 0, costsGst: 0, labour: 0, sup: 0, noncash: 0, otherExpenses: 0, netProfit: 0 };
+      E.accounts.forEach(function (a) {
+        var v = actual ? ((E.finActual[a.name] || {})[m] || 0) : E.acctForecast(a.name, m);
+        if (!v) return;
+        var c = cls(a.name);
+        r.netProfit += v;
+        if (c.cat === "income") r.income += v;
+        else if (c.cat === "other_income") { r.otherIncome += v; if (!c.gstFree) r.otherIncomeGst += v; }
+        else if (c.noncash) r.noncash += v;
+        else if (c.labour) { r.labour += v; if (c.sup) r.sup += v; }
+        else { r.costs += v; if (!c.gstFree) r.costsGst += v; }
+      });
+      return r;
+    }
+    var plOf = {};
+    function P(m) { return plOf[m] || (plOf[m] = pl(m)); }
+
+    // receivables and payables balances a month end carries, on days to pay
+    function priorMonths(m, n) { var out = [], i = E.monthIdx[m] ? E.monthIdx[m].i : -1; for (var k = 0; k < n; k++) if (i - k >= 0) out.push(E.months[i - k].key); return out; }
+    function balance(m, days, pick) {
+      var k = days / 30, keys = priorMonths(m, Math.ceil(k) + 1), t = 0;
+      keys.forEach(function (key, i) { var w = Math.max(0, Math.min(1, k - i)); if (w) t += pick(P(key)) * w; });
+      return Math.round(t);
+    }
+    var arPick = function (p) { return p.income * (1 + GST) + p.otherIncome + p.otherIncomeGst * GST; };
+    var apPick = function (p) { return -(p.costs + p.costsGst * GST); };
+
+    // commitments
+    var commitments = (E.cashData.commitments || []).map(function (c) {
+      var occ = occurrences(c, from, to), amt = Math.round((+c.amount || 0) * 100), gst = /^y/i.test(String(c.gst || ""));
+      var inPnl = !/^n/i.test(String(c.inPnl == null ? "yes" : c.inPnl));
+      var byMonth = {}; occ.dates.forEach(function (d) { byMonth[d.slice(0, 7)] = (byMonth[d.slice(0, 7)] || 0) + amt; });
+      // the accrual for timing is GST inclusive, like the payment: the P&L
+      // carries it ex GST and the payments line already adds the GST back
+      var accrual = Math.round(amt * occ.perMonth);
+      return Object.assign({}, c, { cents: amt, gstFlag: gst, inPnl: inPnl, byMonth: byMonth, accrual: accrual, dates: occ.dates, freq: freqOf(c.frequency) });
+    });
+
+    var opening = E.cashBalances(), cards = E.cashCards();
+    var openCash = opening.rows.reduce(function (a, r) { return a + Math.round((+r.balance || 0) * 100); }, 0);
+    var cardOwing = cards.rows.reduce(function (a, r) { return a + Math.round((+r.balance || 0) * 100); }, 0);
+    var cardLimit = cards.rows.reduce(function (a, r) { return a + Math.round((+r.limit || 0) * 100); }, 0);
+
+    // A typed receivables or payables balance is better than an assumed
+    // number of days: measure the days from it, so the walk starts from the
+    // real balance and moves at the pace that balance implies.
+    function solveDays(target, pick) {
+      var lo = 0, hi = 180;
+      for (var i = 0; i < 40; i++) { var mid = (lo + hi) / 2; if (balance(rm, mid, pick) < target) lo = mid; else hi = mid; }
+      return Math.round((lo + hi) / 2);
+    }
+    S = Object.assign({}, S, { debtorSource: "typed days", creditorSource: "typed days" });
+    if (S.openingAR != null && S.openingAR > 0) { S.debtorDays = Math.max(1, solveDays(S.openingAR, arPick)); S.debtorSource = "measured from the receivables balance"; }
+    if (S.openingAP != null && S.openingAP > 0) { S.creditorDays = Math.max(1, solveDays(S.openingAP, apPick)); S.creditorSource = "measured from the payables balance"; }
+    var arPrev = S.openingAR != null ? S.openingAR : balance(rm, S.debtorDays, arPick);
+    var apPrev = S.openingAP != null ? S.openingAP : balance(rm, S.creditorDays, apPick);
+    var arModel0 = balance(rm, S.debtorDays, arPick), apModel0 = balance(rm, S.creditorDays, apPick);
+
+    // GST and super owed at the start: what the current quarter has built up
+    var q = E.monthIdx[rm] ? E.monthIdx[rm].quarter : 1;
+    var gstOwed = 0, superOwed = 0;
+    E.monthsOfFY(E.currentFY()).filter(function (k) { return k <= rm && E.monthIdx[k].quarter === q; }).forEach(function (k) {
+      var p = P(k); gstOwed += Math.round((p.income + p.otherIncomeGst + p.costsGst) * GST); superOwed += -p.sup;
+    });
+    if (S.basFrequency === "monthly") { gstOwed = Math.round((P(rm).income + P(rm).otherIncomeGst + P(rm).costsGst) * GST); }
+
+    var gstOpen = gstOwed, superOpen = superOwed;
+    var rows = [], cash = openCash, low = null;
+    months.forEach(function (m, i) {
+      var p = P(m), mo = E.monthIdx[m].m;
+      var ar = balance(m, S.debtorDays, arPick), ap = balance(m, S.creditorDays, apPick);
+      var receipts = Math.round(arPick(p)) + arPrev - ar;
+      var payments = Math.round(apPick(p)) + apPrev - ap;
+      var wages = -(p.labour - (S.superTiming === "quarterly" ? p.sup : 0));
+      var gstMonth = Math.round((p.income + p.otherIncomeGst + p.costsGst) * GST);
+      var basMonth = S.basFrequency === "monthly" || [10, 1, 4, 7].indexOf(mo) >= 0;
+      var gstPaid = 0, superPaid = 0, payg = 0;
+      if (basMonth) { gstPaid = gstOwed; gstOwed = 0; payg = S.basFrequency === "monthly" ? Math.round(S.paygInstalment / 3) : S.paygInstalment;
+                      if (S.superTiming === "quarterly") { superPaid = superOwed; superOwed = 0; } }
+      gstOwed += gstMonth;
+      if (S.superTiming === "quarterly") superOwed += -p.sup;
+      var timing = 0, outside = 0, outsideItems = [];
+      commitments.forEach(function (c) {
+        var paid = c.byMonth[m] || 0;
+        if (c.inPnl) timing += c.accrual - paid;
+        else if (paid) { outside += paid; outsideItems.push(c.name + " " + F_money(paid)); }
+      });
+      var cardPay = i === 0 && S.cardsPaidInFull ? cardOwing : 0;
+      var other = p.otherExpenses;
+      var net = receipts - payments - wages - gstPaid - superPaid - payg + timing - outside - cardPay + other;
+      var closing = cash + net;
+      rows.push({ month: m, label: E.monthIdx[m].label, opening: cash, income: p.income, netProfit: p.netProfit, noncash: -p.noncash,
+                  receipts: receipts, payments: -payments, wages: -wages, gst: -gstPaid, sup: -superPaid, payg: -payg,
+                  timing: timing, outside: -outside, outsideItems: outsideItems, cards: -cardPay, net: net, closing: closing,
+                  ar: ar, ap: ap, gstOwed: gstOwed, superOwed: superOwed, headroom: closing + S.facility, bas: basMonth });
+      if (low == null || closing < rows[low].closing) low = rows.length - 1;
+      cash = closing; arPrev = ar; apPrev = ap;
+    });
+    function F_money(c) { return CTS.fmt.money(c); }
+    return (E._cash = {
+      rm: rm, months: months, rows: rows, opening: openCash, openingMonth: opening.month, balances: opening.rows,
+      cards: cards.rows, cardsMonth: cards.month, cardOwing: cardOwing, cardLimit: cardLimit,
+      closing: rows[rows.length - 1].closing, low: rows[low], settings: S, commitments: commitments,
+      openingAR: S.openingAR != null ? S.openingAR : arModel0, openingAP: S.openingAP != null ? S.openingAP : apModel0,
+      arModelled: S.openingAR == null, apModelled: S.openingAP == null, gstOpening: gstOpen, superOpening: superOpen,
+    });
+  };
+})();
+
+/* ===================================================================== *
  * UI primitives and charts.
  *
  * Charts are hand written SVG, no library, so the portal has no runtime
@@ -1849,7 +2046,11 @@
         U.tile({ label: "Utilisation", value: F.pct(util.total.util),
                  sub: util.total.fte ? util.total.fte.toFixed(1) + " full time equivalents" : null,
                  note: "Chargeable over worked hours, leave excluded" }),
-      ].concat(E.forecastEnabled() ? [(function () {
+      ].concat(E.cashEnabled() && E.forecastEnabled() && E.can("cash") ? [(function () {
+        var c = E.cashflow(); if (!c) return null;
+        return U.tile({ label: "Cash low point", value: F.dollars(c.low.closing), tone: c.low.closing < 0 ? "critical" : "good",
+                        sub: c.low.label + ", from " + F.dollars(c.opening) + " now", note: "Twelve months ahead, indirect method" });
+      })()] : []).concat(E.forecastEnabled() ? [(function () {
         var fyK = E.monthsOfFY(p.fy), land = E.pnlBlend(fyK).totals, fb = E.pnlBudget(fyK).totals;
         return U.tile({ label: "FY" + p.fy + " forecast", value: F.dollars(land.netProfit),
                         tone: land.netProfit >= fb.netProfit ? "good" : "critical",
@@ -2700,6 +2901,136 @@
           "Seasonal is the same month last year grown by the assumption. Run rate is the average of recent months. % of revenue follows the department's forecast revenue at the measured or typed rate. Fixed is typed. Change a method on the Methods tab of 09 Forecast.xlsx and rebuild."),
         U.section("Typed overrides", [unapplied, overrideTable],
           "An override replaces the method's figure for that account and month. Typed as the P&L shows it: income positive, a cost positive. A blank department applies to the company and is spread on the method's own split."),
+      ];
+    },
+  };
+
+  /* ========================================================== cash ===== */
+  P.cash = {
+    section: "Cash", title: "Cash Flow",
+    sub: "Twelve months ahead, off the forecast.",
+    render: function () {
+      var p = CTS.period();
+      if (!E.cashEnabled()) {
+        return [seedBanner(), CTS.periodBar(), U.h1("Cash Flow", "Twelve months ahead"),
+          h("div.banner.banner-warn", [h("strong", "No cash file is loaded. "),
+            "Fill 10 Cash and Commitments.xlsx, at least the Bank balances tab for the reporting month, and run Build."])];
+      }
+      if (!E.forecastEnabled()) {
+        return [seedBanner(), CTS.periodBar(), U.h1("Cash Flow", "Twelve months ahead"),
+          h("div.banner.banner-warn", [h("strong", "The cash flow needs the forecast. "), "Turn the forecast on in 09 Forecast.xlsx and rebuild."])];
+      }
+      var c = E.cashflow();
+      if (!c) return [seedBanner(), CTS.periodBar(), U.h1("Cash Flow", "Twelve months ahead"), U.note("No forecast months after the reporting month.")];
+      var S = c.settings, rmLabel = (E.monthIdx[p.rm] || {}).label || p.rm;
+      var noOpening = !c.balances.length;
+
+      var tiles = h("div.tiles", [
+        U.tile({ label: "Cash at " + rmLabel, value: F.dollars(c.opening), tone: noOpening ? "critical" : null,
+                 sub: noOpening ? "no bank balance typed for this month" : c.balances.length + " account" + (c.balances.length > 1 ? "s" : "") + " at " + ((E.monthIdx[c.openingMonth] || {}).label || c.openingMonth),
+                 note: "Bank balances tab of 10 Cash and Commitments" }),
+        U.tile({ label: "Low point", value: F.dollars(c.low.closing), tone: c.low.closing < 0 ? "critical" : c.low.closing < c.opening * 0.5 ? "warning" : "good",
+                 sub: c.low.label, note: S.facility ? "Headroom " + F.dollars(c.low.headroom) + " with the facility" : "No facility set" }),
+        U.tile({ label: "Cash in twelve months", value: F.dollars(c.closing), tone: c.closing >= c.opening ? "good" : "warning",
+                 sub: (c.closing - c.opening >= 0 ? "+" : "−") + F.money(Math.abs(c.closing - c.opening)) + " over the year",
+                 note: E.monthIdx[c.months[c.months.length - 1]].label }),
+        U.tile({ label: "Credit cards owing", value: F.dollars(c.cardOwing),
+                 sub: c.cards.length ? c.cards.length + " card" + (c.cards.length > 1 ? "s" : "") + ", limit " + F.dollars(c.cardLimit) : "no cards typed",
+                 note: c.cardsMonth ? "At " + ((E.monthIdx[c.cardsMonth] || {}).label || c.cardsMonth) + (S.cardsPaidInFull ? ", cleared next month" : "") : "Credit cards tab" }),
+      ]);
+
+      var labels = c.rows.map(function (r) { return r.label; });
+      var chart = U.lines({
+        labels: labels, width: 760, height: 260,
+        series: [{ label: "Closing cash", colour: "var(--measure-1)", values: c.rows.map(function (r) { return r.closing; }) }]
+          .concat(S.facility ? [{ label: "Facility limit", colour: "var(--measure-3)", values: c.rows.map(function () { return -S.facility; }) }] : []),
+      });
+
+      var LINES = [
+        ["Opening cash", "opening", true], ["Receipts from customers", "receipts"], ["Payments to suppliers", "payments"],
+        ["Wages and super", "wages"], ["GST to the ATO", "gst"], ["Super paid quarterly", "sup"], ["PAYG instalment", "payg"],
+        ["Commitment timing", "timing"], ["Loans, capital, tax and distributions", "outside"], ["Credit cards cleared", "cards"],
+        ["Net movement", "net", true], ["Closing cash", "closing", true],
+      ].filter(function (l) { return l[2] || c.rows.some(function (r) { return r[l[1]]; }); });
+      var cols = [{ key: "l", label: "", align: "left" }].concat(c.rows.map(function (r) {
+        return { key: r.month, label: r.label + (r.bas ? " BAS" : ""), fmt: F.k, cell: U.moneyCell };
+      }));
+      var flow = U.table(cols, LINES.map(function (l) {
+        var row = { l: l[0], _cls: l[2] ? "totalrow" : "" };
+        c.rows.forEach(function (r) { row[r.month] = r[l[1]]; });
+        return row;
+      }), { dense: true });
+
+      var last = c.rows[c.rows.length - 1];
+      function tot(k) { return c.rows.reduce(function (a, r) { return a + r[k]; }, 0); }
+      var bridgeRows = [
+        { l: "Net profit, forecast", v: tot("netProfit") },
+        { l: "Add back what is not cash: depreciation, provisions, write offs", v: tot("noncash") },
+        { l: "Receivables: " + (last.ar > c.openingAR ? "more" : "less") + " tied up at " + S.debtorDays + " days to pay", v: c.openingAR - last.ar },
+        { l: "Payables: " + (last.ap > c.openingAP ? "more" : "less") + " owed at " + S.creditorDays + " days", v: last.ap - c.openingAP },
+        { l: "GST collected less GST paid to the ATO", v: last.gstOwed - c.gstOpening },
+        { l: "Super accrued less super paid", v: last.superOwed - c.superOpening },
+        { l: "PAYG instalments", v: tot("payg") },
+        { l: "Commitment timing", v: tot("timing") },
+        { l: "Loans, capital, tax and distributions", v: tot("outside") },
+        { l: "Credit cards cleared", v: tot("cards") },
+      ].filter(function (r) { return r.v !== 0 || /profit|Receivables|Payables|GST/.test(r.l); });
+      var bridgeSum = bridgeRows.reduce(function (a, r) { return a + r.v; }, 0);
+
+      var balTable = U.table([
+        { key: "account", label: "Account", align: "left" }, { key: "balance", label: "Balance", fmt: function (v) { return F.money(Math.round(v * 100)); } },
+        { key: "note", label: "Note", align: "left" },
+      ], c.balances, { dense: true });
+      var cardTable = c.cards.length ? U.table([
+        { key: "card", label: "Card", align: "left" }, { key: "holder", label: "Holder", align: "left" },
+        { key: "balance", label: "Owing", fmt: function (v) { return F.money(Math.round(v * 100)); } },
+        { key: "limit", label: "Limit", fmt: function (v) { return F.money(Math.round(v * 100)); } },
+        { key: "room", label: "Headroom", value: function (r) { return F.money(Math.round(((+r.limit || 0) - (+r.balance || 0)) * 100)); } },
+        { key: "paymentDay", label: "Paid on", align: "left", value: function (r) { return r.paymentDay ? "day " + r.paymentDay : ""; } },
+        { key: "note", label: "Note", align: "left" },
+      ], c.cards, { dense: true }) : U.note("No credit cards typed. Add each card on the Credit cards tab with its month end balance; Xero does not carry them.", "muted");
+
+      var comTable = c.commitments.length ? U.table([
+        { key: "name", label: "Commitment", align: "left" }, { key: "category", label: "Kind", align: "left" },
+        { key: "cents", label: "Amount", fmt: F.money }, { key: "freq", label: "How often", align: "left" },
+        { key: "next", label: "Next due", align: "left", fmt: function (v) { return v ? F.date(v) : ""; } },
+        { key: "inPnl", label: "In the P&L", align: "left", value: function (r) { return r.inPnl ? h("span.chip.chip-muted", "yes, timing only") : h("span.chip.chip-warning", "no, whole payment"); } },
+        { key: "dates", label: "Falls in the year", value: function (r) { return String(r.dates.length); } },
+        { key: "note", label: "Note", align: "left" },
+      ], c.commitments, { dense: true }) : U.note("No commitments typed. Rent, loans, leases, insurance and subscriptions go on the Commitments tab.", "muted");
+
+      var history = (E.cashData.balances || []).reduce(function (m, r) { if (r.month) m[r.month] = (m[r.month] || 0) + Math.round((+r.balance || 0) * 100); return m; }, {});
+      var histKeys = Object.keys(history).sort();
+      var histTable = histKeys.length > 1 ? U.table([
+        { key: "m", label: "Month end", align: "left" }, { key: "v", label: "Bank balances", fmt: F.money },
+        { key: "d", label: "Movement", fmt: F.money, cell: U.moneyCell },
+      ], histKeys.map(function (k, i) { return { m: (E.monthIdx[k] || {}).label || k, v: history[k], d: i ? history[k] - history[histKeys[i - 1]] : null }; }), { dense: true }) : null;
+
+      return [
+        seedBanner(), CTS.periodBar(), U.h1("Cash Flow", "From " + rmLabel + ", twelve months, indirect method"),
+        noOpening ? h("div.banner.banner-warn", [h("strong", "Opening cash is zero because no bank balance is typed for " + rmLabel + ". "), "Type the month end balances on the Bank balances tab and rebuild; every closing figure below moves by the same amount."]) : null,
+        U.note("Starts from the bank balances at " + rmLabel + " and walks forward on the P&L forecast: revenue comes in at " + S.debtorDays + " days (" + S.debtorSource + "), costs go out at " + S.creditorDays + " days (" + S.creditorSource + "), wages in the month, GST " + (S.basFrequency === "monthly" ? "monthly" : "on the quarterly BAS") + ", super " + (S.superTiming === "quarterly" ? "quarterly" : "with each pay") + ". Commitments already in the P&L only move timing; loans, capital, tax and distributions come off in full. Settings are on 10 Cash and Commitments."),
+        tiles,
+        U.section("Closing cash by month", U.figure("Cash at each month end, " + E.monthIdx[c.months[0]].label + " to " + E.monthIdx[c.months[c.months.length - 1]].label, chart, flow,
+          "BAS marks a month the quarterly statement is paid in. Receipts and payments include GST; the GST line is the net handed to the ATO.")),
+        U.section("From profit to cash", U.table([
+          { key: "l", label: "", align: "left" }, { key: "v", label: "Twelve months", fmt: F.money, cell: U.moneyCell },
+        ], bridgeRows.concat([{ l: "Net cash movement", v: c.closing - c.opening, _cls: "totalrow" }])),
+          "The indirect method. Profit is the forecast; everything under it is why cash is not profit. The lines add to the movement" + (Math.abs(bridgeSum - (c.closing - c.opening)) > 100 ? ", except that here they do not, by " + F.money(bridgeSum - (c.closing - c.opening)) + ", which is a bug to report" : " exactly") + "."),
+        U.section("Bank balances at " + ((E.monthIdx[c.openingMonth] || {}).label || rmLabel), [balTable, histTable],
+          "Typed at each month end on the Bank balances tab. The history builds a record of actual cash to check the forecast against."),
+        U.section("Credit cards", cardTable,
+          "Xero does not carry the cards, so their balances live here. " + (S.cardsPaidInFull ? "The balance at the reporting month is cleared in the first forecast month; spend after that is assumed paid within the month." : "Balances are carried, not cleared; set Credit cards paid in full to Yes on the Settings tab to clear them.")),
+        U.section("Commitments", comTable,
+          "Rent, loans, leases, insurance, subscriptions. Whether a commitment is already in the P&L decides how it is treated: yes means only the difference between the monthly accrual and the payment dates moves cash; no means the whole payment comes off."),
+        U.section("Opening balances the walk starts from", U.table([
+          { key: "l", label: "", align: "left" }, { key: "v", label: "", fmt: F.money }, { key: "s", label: "Source", align: "left" },
+        ], [
+          { l: "Receivables owed to CTS", v: c.openingAR, s: c.arModelled ? "modelled from revenue at " + S.debtorDays + " days; type the Xero figure on Settings" : "typed on Settings, which puts days to pay at " + S.debtorDays },
+          { l: "Payables CTS owes", v: c.openingAP, s: c.apModelled ? "modelled from costs at " + S.creditorDays + " days; type the Xero figure on Settings" : "typed on Settings, which puts days to pay at " + S.creditorDays },
+          { l: "GST built up this quarter", v: c.gstOpening, s: "from the P&L months of the current quarter" },
+          { l: "Facility limit", v: S.facility, s: S.facility ? "typed on Settings" : "none" },
+        ], { dense: true })),
       ];
     },
   };
@@ -4985,7 +5316,7 @@
   "use strict";
   var CTS = window.CTS, h = CTS.h, E = CTS.engine, U = CTS.ui;
 
-  var SECTIONS = ["Dashboard", "Finance", "Budget", "Revenue", "Utilisation", "Ledger", "Admin"];
+  var SECTIONS = ["Dashboard", "Finance", "Budget", "Cash", "Revenue", "Utilisation", "Ledger", "Admin"];
 
   var router = (CTS.router = {
     current: null,

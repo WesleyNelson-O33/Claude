@@ -19,6 +19,7 @@ a straight paste; the Read me tab in each file says exactly what to run.
 | 07 Budget | Once a year and when the forecast moves | Same layout as the P&L |
 | 08 Config | Change the reporting month on the Reporting tab | The one setting that moves every month |
 | 09 Forecast | Usually nothing | A growth rate, a method, or a typed override when you know something the history does not |
+| 10 Cash and Commitments | Bank and card statements at month end | One row per bank account and per credit card with the month end balance; keep every month. Commitments only when one changes |
 | 11 Xero Aged Receivables | Xero, Aged Receivables Detail as at month end | One row per unpaid invoice. Read by the cash flow build; safe to fill now |
 | 12 Xero Aged Payables | Xero, Aged Payables Detail as at month end | One row per unpaid bill. Same |
 

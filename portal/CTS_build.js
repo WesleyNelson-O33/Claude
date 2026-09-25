@@ -27,6 +27,7 @@
     { key: "budget",   file: "07 Budget.xlsx",                    sheet: "Budget",   out: "CTS_fin_data.js",      need: true },
     { key: "config",   file: "08 Config.xlsx",                    sheet: null,       out: "CTS_config_data.js",   need: true },
     { key: "forecast", file: "09 Forecast.xlsx",                  sheet: "Methods",  out: "CTS_forecast_data.js", need: false },
+    { key: "cash",     file: "10 Cash and Commitments.xlsx",      sheet: "Bank balances", out: "CTS_cash_data.js", need: false },
   ];
   B.TEMPLATES = TEMPLATES;
 
@@ -550,6 +551,55 @@
              badMethod: badMethod, badOverride: badOverride };
   };
 
+
+  /** Cash and commitments: Settings, Bank balances, Credit cards and
+   *  Commitments tabs. Balances and cards keep every month typed, so the
+   *  history of actual cash builds up beside the forecast. */
+  C.cash = function (wb) {
+    var p = P();
+    function tab(name) { var t = B.table(wb, name); return t ? t.rows : []; }
+    function monthOf(v) { return B.monthOfLabel(v) || (p.isoDate(v) || "").slice(0, 7) || null; }
+    var settings = {};
+    tab("Settings").forEach(function (r) {
+      var k = String(r[0] || "").toLowerCase().trim(), v = r[1];
+      if (!k) return;
+      if (/^debtor/.test(k)) settings.debtorDays = p.num(v);
+      else if (/^creditor/.test(k)) settings.creditorDays = p.num(v);
+      else if (/^bas/.test(k)) settings.basFrequency = String(v || "");
+      else if (/^super/.test(k)) settings.superTiming = String(v || "");
+      else if (/^payg/.test(k)) settings.paygInstalment = p.num(v);
+      else if (/^facility|^overdraft/.test(k)) settings.facility = p.num(v);
+      else if (/^receivable|^opening receivable|^debtors owed/.test(k)) settings.openingAR = v === "" || v == null ? null : p.num(v);
+      else if (/^payable|^opening payable|^creditors owed/.test(k)) settings.openingAP = v === "" || v == null ? null : p.num(v);
+      else if (/^credit cards? paid/.test(k)) settings.cardsPaidInFull = String(v || "Yes");
+    });
+    var balances = [], badBal = 0;
+    tab("Bank balances").forEach(function (r) {
+      if (!r[0] && !r[1]) return;
+      var mk = monthOf(r[0]); if (!mk) { badBal++; return; }
+      balances.push({ month: mk, account: String(r[1] || "").trim(), balance: p.num(r[2]), note: String(r[3] || "").trim() });
+    });
+    var cards = [], badCard = 0;
+    tab("Credit cards").forEach(function (r) {
+      if (!r[0] && !r[1]) return;
+      var mk = monthOf(r[0]); if (!mk) { badCard++; return; }
+      cards.push({ month: mk, card: String(r[1] || "").trim(), holder: String(r[2] || "").trim(), limit: p.num(r[3]),
+                   balance: p.num(r[4]), paymentDay: p.num(r[5]) || null, note: String(r[6] || "").trim() });
+    });
+    var commitments = [], badCom = [];
+    tab("Commitments").forEach(function (r) {
+      var name = String(r[0] || "").trim(); if (!name) return;
+      var next = p.isoDate(r[5]);
+      if (!next) { badCom.push(name); return; }
+      commitments.push({ name: name, category: String(r[1] || "").trim(), amount: p.num(r[2]), gst: String(r[3] || ""),
+                         frequency: String(r[4] || "Monthly"), next: next, end: p.isoDate(r[6]) || null,
+                         inPnl: String(r[7] == null || r[7] === "" ? "Yes" : r[7]), note: String(r[8] || "").trim() });
+    });
+    return { data: { meta: { built: today(), source: "10 Cash and Commitments.xlsx", version: 1 }, settings: settings,
+                     balances: balances, cards: cards, commitments: commitments },
+             badBal: badBal, badCard: badCard, badCom: badCom };
+  };
+
   /* ================================================ folder and building */
   function today() { return new Date().toISOString().slice(0, 10); }
   B.today = today;
@@ -759,6 +809,25 @@
         if (unknownAcct.length) check("warn", "Forecast", "Override accounts not in the chart: " + unknownAcct.slice(0, 4).join("; ") + ". Spell them as Xero does.");
       } catch (e) { check("fail", "Forecast", e.message); }
     } else check("info", "Forecast", "09 Forecast.xlsx not found; keeping the current forecast settings.");
+
+    // Cash and commitments
+    var cashWb = wbOf("cash");
+    if (cashWb) {
+      try {
+        var cr = C.cash(cashWb);
+        outputs["CTS_cash_data.js"] = "window.CTS_CASH = " + JSON.stringify(cr.data) + ";\n";
+        results.cash = cr.data;
+        var atRm = cr.data.balances.filter(function (b) { return b.month === reportingMonth; });
+        var opening = atRm.reduce(function (a, b) { return a + (b.balance || 0); }, 0);
+        check(atRm.length ? "ok" : "warn", "Cash", atRm.length
+          ? atRm.length + " bank balance" + (atRm.length > 1 ? "s" : "") + " at " + reportingMonth + " totalling " + opening.toFixed(2) + "."
+          : "No bank balance typed for " + reportingMonth + " on the Bank balances tab; the cash flow will start from zero.");
+        var cardsRm = cr.data.cards.filter(function (b) { return b.month === reportingMonth; });
+        check("ok", "Cash", cardsRm.length + " credit card" + (cardsRm.length === 1 ? "" : "s") + " at " + reportingMonth + ", " + cr.data.commitments.length + " commitments, debtor days " + (cr.data.settings.debtorDays || 45) + ", creditor days " + (cr.data.settings.creditorDays || 30) + ".");
+        if (cr.badBal || cr.badCard) check("warn", "Cash", (cr.badBal + cr.badCard) + " balance rows without a readable month were skipped.");
+        if (cr.badCom.length) check("warn", "Cash", "Commitments without a next due date were skipped: " + cr.badCom.slice(0, 4).join("; ") + ".");
+      } catch (e) { check("fail", "Cash", e.message); }
+    } else check("info", "Cash", "10 Cash and Commitments.xlsx not found; keeping the current cash settings.");
 
     var log = { built: new Date().toISOString(), reportingMonth: reportingMonth, checks: checks,
                 files: Object.keys(outputs), version: (cfgOut && cfgOut.config.VERSION) || (E().cfg && E().cfg.VERSION) };

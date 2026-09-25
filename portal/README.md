@@ -32,6 +32,7 @@ and OneDrive carries the result to everyone.
 | Dashboard | Dashboard, Business Context |
 | Finance | P&L, P&L by Department, P&L Spread, Overhead Allocation, P&L Control |
 | Budget | Budget vs Actual, Actions, Forecast |
+| Cash | Cash Flow |
 | Revenue | Revenue Summary, Revenue Schedule, Top Clients, Clients by Department |
 | Utilisation | Utilisation, Profitability per FTE |
 | Ledger | Detail Records, Charts |

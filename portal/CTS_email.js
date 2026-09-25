@@ -85,6 +85,11 @@
       outlook = p("<b>Full year FY" + e.currentFY() + " outlook:</b> revenue " + money(land.income) + " against budget " + money(fb.income) +
                   ", net profit " + money(land.netProfit) + " against budget " + money(fb.netProfit) +
                   ". Actual to date then forecast, line by line on the methods set for the month.");
+      if (e.cashEnabled && e.cashEnabled()) {
+        var c = e.cashflow();
+        if (c) outlook += p("<b>Cash:</b> " + money(c.opening) + " at month end, low point " + money(c.low.closing) + " in " + esc(c.low.label) +
+                            ", " + money(c.closing) + " in twelve months. Credit cards owing " + money(c.cardOwing) + ".");
+      }
     }
     return h2("Company result, " + label) +
       table([{ key: "l", label: "", align: "left" }, { key: "a", label: "Actual", fmt: money },

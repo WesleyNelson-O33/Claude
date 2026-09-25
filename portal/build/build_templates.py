@@ -583,7 +583,7 @@ for r in range(7, 202):
 PAGES = [("home", "Dashboard"), ("context", "Business Context"), ("pnl", "P&L"),
          ("pnl-dept", "P&L by Department"), ("pnl-spread", "P&L Spread"),
          ("allocation", "Overhead Allocation"), ("control", "P&L Control"),
-         ("bva", "Budget vs Actual"), ("actions", "Actions"), ("forecast", "Forecast"), ("rev-summary", "Revenue Summary"),
+         ("bva", "Budget vs Actual"), ("actions", "Actions"), ("forecast", "Forecast"), ("cash", "Cash Flow"), ("rev-summary", "Revenue Summary"),
          ("rev-schedule", "Revenue Schedule"), ("pipeline", "Pipeline"), ("clients", "Top Clients"),
          ("client-dept", "Clients by Department"), ("util", "Utilisation"),
          ("profit-fte", "Profitability per FTE"), ("staff-profit", "Profitability by Employee"),
@@ -592,7 +592,7 @@ PAGES = [("home", "Dashboard"), ("context", "Business Context"), ("pnl", "P&L"),
          ("config", "Config & Variables"), ("access", "Access Control"), ("about", "About")]
 ROLE_PAGES = {
     "Finance": {p for p, _ in PAGES} - {"access"},
-    "Executive": {"home", "context", "pnl", "pnl-dept", "pnl-spread", "bva", "actions", "forecast", "rev-summary",
+    "Executive": {"home", "context", "pnl", "pnl-dept", "pnl-spread", "bva", "actions", "forecast", "cash", "rev-summary",
                   "rev-schedule", "pipeline", "clients", "client-dept", "util", "profit-fte",
                   "staff-profit", "charts", "about"},
     "Department head": {"home", "context", "pnl-dept", "forecast", "rev-schedule", "pipeline", "clients", "util",
@@ -703,6 +703,102 @@ for r in range(3, 502):
         if c == 4:
             wb["Overrides"].cell(row=r, column=c).number_format = MONEY
 save(wb, "09 Forecast.xlsx")
+
+# ------------------------------------------------ 10 Cash and Commitments
+wb = Workbook()
+readme(wb, "10 Cash and Commitments", [
+    ("h", "What this is"),
+    ("p", "What the cash flow forecast starts from and what it knows that the P&L does not: the bank "
+          "balances at month end, the credit card balances (Xero does not carry them), the standing "
+          "commitments with their dates, and the settings for days to pay, BAS and super."),
+    ("h", "Each month"),
+    ("p", "1. Bank balances tab: add a row per bank account with its balance at the last day of the "
+          "reporting month. Keep the earlier months; they are the record of actual cash."),
+    ("p", "2. Credit cards tab: add a row per card with what was owing at month end, the limit and the "
+          "day of the month it is paid. Keep the earlier months here too."),
+    ("p", "3. Settings tab: type Receivables and Payables from Xero at month end if you want the walk "
+          "to start from the real figures rather than modelled ones."),
+    ("h", "Commitments"),
+    ("p", "One row per standing payment: rent, loans, leases, insurance, subscriptions, the income tax "
+          "instalment, a dividend. Amount is what leaves the bank each time, GST included where it "
+          "applies. Frequency: Weekly, Fortnightly, Monthly, Quarterly, Annual or Once. Next due is the "
+          "next date it falls; End is optional."),
+    ("p", "In the P&L decides how it is treated. Yes (rent, insurance, subscriptions, interest): the "
+          "P&L forecast already carries the cost, so only the difference between the monthly accrual and "
+          "the actual payment dates moves cash, which is what makes an annual insurance premium show as "
+          "one outflow in March. No (loan principal, capital purchases, income tax, dividends): the whole "
+          "payment comes off cash, because nothing in the P&L carries it."),
+    ("h", "Settings"),
+    ("p", "Debtor days and creditor days shape how fast revenue turns into receipts and costs into "
+          "payments; start from the defaults and correct them once the aged reports have measured the "
+          "real figures. BAS is quarterly unless you lodge monthly. Super is paid with each pay run under "
+          "Payday Super from 1 July 2026; set Quarterly if CTS still pays on the old cycle. Facility is an "
+          "overdraft or line of credit limit, and shows as headroom on the Cash Flow page."),
+])
+list_tab(wb, "Settings",
+         ["Setting", "Value", "Note"],
+         [["Debtor days", 45, "Average days from invoice to receipt. Start here; the aged reports refine it"],
+          ["Creditor days", 30, "Average days from bill to payment"],
+          ["BAS frequency", "Quarterly", "Quarterly or Monthly"],
+          ["Super paid", "With each pay", "With each pay (Payday Super) or Quarterly"],
+          ["PAYG income tax instalment per quarter", 0, "Dollars; 0 if none"],
+          ["Facility or overdraft limit", 0, "Dollars; 0 if none"],
+          ["Receivables owed to CTS at month end", None, "Optional. Total from Xero Aged Receivables; blank means modelled from revenue"],
+          ["Payables CTS owes at month end", None, "Optional. Total from Xero Aged Payables; blank means modelled from costs"],
+          ["Credit cards paid in full each month", "Yes", "Yes clears the month end balance in the next month"]],
+         [40, 16, 70], editable_cols=[2])
+dv10 = DataValidation(type="list", formula1='"Quarterly,Monthly"', allow_blank=True)
+wb["Settings"].add_data_validation(dv10); dv10.add("B4")
+dv11 = DataValidation(type="list", formula1='"With each pay,Quarterly"', allow_blank=True)
+wb["Settings"].add_data_validation(dv11); dv11.add("B5")
+list_tab(wb, "Bank balances",
+         ["Month end", "Account", "Balance", "Note"],
+         [[date(2026, 8, 31), "Operating account", 0.0, "Example: one row per account per month end. Keep every month."]],
+         [12, 30, 16, 50],
+         note="Month end as a date. Balance as the bank shows it at the last day of the month.")
+for r in range(3, 402):
+    for c in range(1, 5):
+        wb["Bank balances"].cell(row=r, column=c).fill = PASTE
+        wb["Bank balances"].cell(row=r, column=c).font = INPUT_FONT
+    wb["Bank balances"].cell(row=r, column=1).number_format = "dd/mm/yyyy"
+    wb["Bank balances"].cell(row=r, column=3).number_format = MONEY
+wb["Bank balances"].cell(row=2, column=1).number_format = "dd/mm/yyyy"
+list_tab(wb, "Credit cards",
+         ["Month end", "Card", "Holder", "Limit", "Balance owing", "Payment day", "Note"],
+         [[date(2026, 8, 31), "Company card", "Director", 30000.0, 0.0, 15, "Example: one row per card per month end. Xero does not carry these."]],
+         [12, 24, 18, 12, 14, 12, 50],
+         note="Balance owing at the statement or month end. Payment day is the day of the month it is paid.")
+for r in range(3, 402):
+    for c in range(1, 8):
+        wb["Credit cards"].cell(row=r, column=c).fill = PASTE
+        wb["Credit cards"].cell(row=r, column=c).font = INPUT_FONT
+    wb["Credit cards"].cell(row=r, column=1).number_format = "dd/mm/yyyy"
+    for c in (4, 5):
+        wb["Credit cards"].cell(row=r, column=c).number_format = MONEY
+list_tab(wb, "Commitments",
+         ["Commitment", "Kind", "Amount", "GST", "Frequency", "Next due", "End", "In the P&L", "Note"],
+         [["Office rent", "Rent", 0.0, "Yes", "Monthly", date(2026, 10, 1), None, "Yes", "Example. Amount as paid, GST included"],
+          ["Equipment loan", "Loan", 0.0, "No", "Monthly", date(2026, 10, 28), date(2028, 6, 28), "No", "Example. Principal only; interest is in the P&L"],
+          ["Business insurance", "Insurance", 0.0, "Yes", "Annual", date(2027, 3, 1), None, "Yes", "Example. One payment a year against a monthly accrual"],
+          ["Income tax", "Tax", 0.0, "No", "Once", date(2027, 5, 15), None, "No", "Example. The balance due with the return"]],
+         [30, 14, 14, 6, 12, 12, 12, 12, 50],
+         note="Kind: Rent, Loan, Lease, Insurance, Subscription, Tax, Capital, Distribution, Other. In the P&L: Yes moves timing only, No takes the whole payment.")
+dv12 = DataValidation(type="list", formula1='"Weekly,Fortnightly,Monthly,Quarterly,Annual,Once"', allow_blank=True)
+wb["Commitments"].add_data_validation(dv12); dv12.add("E2:E300")
+dv13 = DataValidation(type="list", formula1='"Yes,No"', allow_blank=True)
+wb["Commitments"].add_data_validation(dv13); dv13.add("D2:D300"); 
+dv14 = DataValidation(type="list", formula1='"Yes,No"', allow_blank=True)
+wb["Commitments"].add_data_validation(dv14); dv14.add("H2:H300")
+dv15 = DataValidation(type="list", formula1='"Rent,Loan,Lease,Insurance,Subscription,Tax,Capital,Distribution,Other"', allow_blank=True)
+wb["Commitments"].add_data_validation(dv15); dv15.add("B2:B300")
+for r in range(6, 302):
+    for c in range(1, 10):
+        wb["Commitments"].cell(row=r, column=c).fill = PASTE
+        wb["Commitments"].cell(row=r, column=c).font = INPUT_FONT
+    wb["Commitments"].cell(row=r, column=3).number_format = MONEY
+    for c in (6, 7):
+        wb["Commitments"].cell(row=r, column=c).number_format = "dd/mm/yyyy"
+save(wb, "10 Cash and Commitments.xlsx")
 
 # ------------------------------------------- 11 and 12 Xero aged reports
 # Column shapes confirmed against the live Xero organisation on 25 Sep 2026:
