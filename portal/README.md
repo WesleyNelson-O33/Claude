@@ -29,7 +29,7 @@ and OneDrive carries the result to everyone.
 
 | Section | Pages |
 |---|---|
-| Dashboard | Dashboard, Business Context |
+| Dashboard | Dashboard, Business Context, Commentary |
 | Finance | P&L, P&L by Department, P&L Spread, Overhead Allocation, P&L Control |
 | Budget | Budget vs Actual, Actions, Forecast |
 | Cash | Cash Flow |
@@ -130,3 +130,22 @@ Six departments, six categorical slots in fixed order, never cycled. The palette
 is validated in both light and dark mode: all checks pass, with three light-mode
 slots below 3:1 contrast, which is why every chart ships with its data table
 beside it rather than on its own.
+
+## Look and feel
+
+The palette is the official CTS Seamless AV one (cts_pantonevalues.pdf): black
+#121820, mint #3FD0C9 for Production, lavender #6D71FF for Consulting, rose
+#F33844 for Support, with dark teal, navy and burgundy as the text-safe
+variants. The sidebar is the brand black with the white lock-up in both
+themes; the main column has a light and a dark theme. Chart series are the
+brand hues snapped into the lightness band the colour vision checks need and
+validated as a set in both modes, so departments stay apart for every reader.
+Sora carries headings and Figtree the text, the nearest faces to Tomato
+Grotesk that a browser can fetch; Segoe UI and Calibri stand behind them.
+
+Every section is a card that collapses and remembers its state; the sidebar
+groups do the same. Each page has Read aloud (the browser's own speech, an
+Australian English voice where one is installed) and Collapse all; the
+sidebar has text size and high contrast. The commentary block under each
+heading is where the month gets explained.
+

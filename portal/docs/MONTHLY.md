@@ -48,9 +48,22 @@ showed and exactly what was pasted to get there, so a question in March about
 an August number is answered from `archive/2026-08`, not from memory. Nothing
 in it is read by the portal and nothing in it needs tidying.
 
-## 3. Email
+## 3. Commentary
 
-Still on Build, **Write this month's emails** puts one message per recipient
+Every page has a commentary block under its heading. Anyone who is signed in
+with a role above Viewer can add a note for the reporting month; a department
+head's note carries their department. A note is a draft in that browser until
+finance opens **Commentary** and clicks Publish, which writes
+`data/CTS_commentary_data.js` into the folder the same way Build writes the
+rest. OneDrive carries it to everyone, and the monthly emails carry the
+published notes for the pages each tier reads.
+
+Write the way the manual asks: explain the variance rather than restate it,
+dollars against dollars, and say whether a miss was lost or moved.
+
+## 4. Email
+
+Publish the commentary first, then on Distribution **Write this month's emails** puts one message per recipient
 into `outbox/YYYY-MM` as JSON and HTML. From there:
 
 - **Now:** open the HTML beside it and copy it into Outlook, or click Open in

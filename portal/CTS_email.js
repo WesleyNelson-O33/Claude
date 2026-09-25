@@ -197,6 +197,26 @@
   }
 
   /* ---- one message per recipient ------------------------------------------ */
+  /** Published commentary for the month, for the pages a tier reads. */
+  function commentaryBlock(pages, dept) {
+    var e = E(), rm = e.reportingMonth();
+    if (!e.commentaryFor) return "";
+    var items = [];
+    pages.forEach(function (pg) {
+      e.commentaryFor(pg, rm, { all: true }).forEach(function (c) {
+        if (c.draft) return;
+        if (dept && c.dept && c.dept !== dept) return;
+        items.push(Object.assign({ pageTitle: (window.CTS.pages && window.CTS.pages[pg] ? window.CTS.pages[pg].title : pg) }, c));
+      });
+    });
+    if (!items.length) return "";
+    return h2("Commentary") + items.map(function (c) {
+      return p("<b>" + esc(c.pageTitle) + (c.dept ? ", " + esc((e.deptOf[c.dept] || {}).short || c.dept) : "") + "</b> " +
+               esc(c.text).replace(/\n/g, "<br>") + ' <span style="color:#595959">' + esc(c.author) + "</span>");
+    }).join("");
+  }
+  M.commentaryBlock = commentaryBlock;
+
   M.render = function (recipient, opts) {
     opts = opts || {};
     var e = E(), keys = opts.keys || e.ytd(), rm = e.reportingMonth();
@@ -205,15 +225,15 @@
     var tier = +recipient.tier || 3, body = "", subject;
     if (tier === 1) {
       subject = "CTS monthly result, " + monthLong;
-      body = companyBlock(keys, label) + deptBlock(keys, label) + clientsBlock(keys) + utilBlock(keys) + actionsBlock(keys);
+      body = companyBlock(keys, label) + commentaryBlock(["home", "pnl", "forecast", "cash", "rev-summary", "rev-forecast", "bva"]) + deptBlock(keys, label) + clientsBlock(keys) + utilBlock(keys) + actionsBlock(keys);
     } else if (tier === 2) {
       var d = recipient.dept || null;
       var dn = d && e.deptOf[d] ? e.deptOf[d].short : "your department";
       subject = "CTS " + dn + " result, " + monthLong;
-      body = deptBlock(keys, label, d) + utilBlock(keys, d) + oneLiners(keys, d);
+      body = deptBlock(keys, label, d) + commentaryBlock(["pnl-dept", "rev-schedule", "rev-forecast", "util", "pipeline"], d) + utilBlock(keys, d) + oneLiners(keys, d);
     } else {
       subject = "CTS month end controls, " + monthLong;
-      body = controlsBlock(keys, opts.log) + companyBlock(keys, label);
+      body = controlsBlock(keys, opts.log) + companyBlock(keys, label) + commentaryBlock(Object.keys(window.CTS.pages || {}));
     }
     var html = shell(subject, "For " + recipient.name + " (" + M.TIERS[tier] + "). Built " + new Date().toISOString().slice(0, 10) + ".", body);
     var text = html.replace(/<style[\s\S]*?<\/style>/g, "").replace(/<\/(p|tr|h1|h2|div)>/g, "\n").replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/\n{3,}/g, "\n\n").trim();

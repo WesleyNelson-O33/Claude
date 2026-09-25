@@ -158,6 +158,7 @@
     E.loadPipeline(window.CTS_PIPELINE);
     E.loadForecast(window.CTS_FORECAST);
     E.loadCash(window.CTS_CASH);
+    E.loadCommentary(window.CTS_COMMENTARY);
     E.loadUsers(window.CTS_USERS);
     E.clients = window.CTS_CLIENTS || { clients: [], schedule: [] };
     E.clientMeta = {};
@@ -1660,6 +1661,70 @@
 })();
 
 /* ===================================================================== *
+ * Engine part 5: commentary. What people say about the numbers, kept
+ * beside them. Published commentary travels in data/CTS_commentary_data.js
+ * like every other data file; a comment typed in the portal is a draft in
+ * this browser until finance publishes it to the folder.
+ * ===================================================================== */
+(function () {
+  "use strict";
+  var CTS = window.CTS, E = CTS.engine, store = CTS.store;
+
+  E.loadCommentary = function (data) {
+    E.commentaryData = data && Array.isArray(data.items) ? data : { meta: {}, items: [] };
+  };
+  function drafts() { return store.get("commentary.drafts", []) || []; }
+  function removed() { return store.get("commentary.removed", []) || []; }
+  E.canComment = function () {
+    var r = E.currentRole();
+    return !!E.identity() && !!r && r.id !== "viewer";
+  };
+  E.canPublishCommentary = function () { var r = E.currentRole(); return !!r && (r.admin || r.id === "finance"); };
+
+  /** Items for a page and month, published then drafts, scoped to the
+   *  person's department where they only see their own. */
+  E.commentaryFor = function (page, month, opts) {
+    opts = opts || {};
+    var scope = opts.all ? null : E.deptScope();
+    var gone = {}; removed().forEach(function (id) { gone[id] = 1; });
+    var pub = (E.commentaryData.items || []).filter(function (c) { return !gone[c.id] && (!page || c.page === page) && (!month || c.month === month); })
+      .map(function (c) { return Object.assign({}, c, { draft: false }); });
+    var dr = drafts().filter(function (c) { return (!page || c.page === page) && (!month || c.month === month); })
+      .map(function (c) { return Object.assign({}, c, { draft: true }); });
+    return pub.concat(dr).filter(function (c) { return !scope || !c.dept || c.dept === scope; })
+      .sort(function (a, b) { return String(a.at).localeCompare(String(b.at)); });
+  };
+  E.addCommentary = function (item) {
+    var list = drafts();
+    var it = { id: "c" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6), month: item.month || E.reportingMonth(),
+               page: item.page, dept: item.dept || E.deptScope() || "", text: String(item.text || "").trim(),
+               author: E.identity() || "Unknown", at: new Date().toISOString() };
+    if (!it.text) return null;
+    list.push(it); store.set("commentary.drafts", list); return it;
+  };
+  E.updateCommentary = function (id, text) {
+    var list = drafts(), hit = false;
+    list.forEach(function (c) { if (c.id === id) { c.text = String(text || "").trim(); c.at = new Date().toISOString(); hit = true; } });
+    if (hit) store.set("commentary.drafts", list.filter(function (c) { return c.text; }));
+    return hit;
+  };
+  E.removeCommentary = function (id) {
+    var list = drafts();
+    if (list.some(function (c) { return c.id === id; })) { store.set("commentary.drafts", list.filter(function (c) { return c.id !== id; })); return; }
+    var r = removed(); if (r.indexOf(id) < 0) { r.push(id); store.set("commentary.removed", r); }
+  };
+  E.commentaryDraftCount = function () { return drafts().length + removed().length; };
+  /** Everything that would be in the file if it were published now. */
+  E.commentaryExport = function () {
+    var gone = {}; removed().forEach(function (id) { gone[id] = 1; });
+    var items = (E.commentaryData.items || []).filter(function (c) { return !gone[c.id]; }).concat(drafts());
+    return { meta: { published: new Date().toISOString(), by: E.identity() || "", count: items.length,
+                     note: "Commentary typed in the portal and published to the folder. One item per page per month per author." }, items: items };
+  };
+  E.clearCommentaryDrafts = function () { store.set("commentary.drafts", []); store.set("commentary.removed", []); };
+})();
+
+/* ===================================================================== *
  * UI primitives and charts.
  *
  * Charts are hand written SVG, no library, so the portal has no runtime
@@ -1707,18 +1772,59 @@
     return h("p.source", [h("span.source-tag", "Source"), " " + text]);
   };
 
+  U.slug = function (s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60); };
+  U.chev = function (cls) {
+    return svg("svg", { class: cls || "chev", viewBox: "0 0 16 16", "aria-hidden": "true", focusable: "false" },
+      [svg("path", { d: "M3 6l5 5 5-5", fill: "none", stroke: "currentColor", "stroke-width": "1.8", "stroke-linecap": "round", "stroke-linejoin": "round" })]);
+  };
+  U.icon = function (name) {
+    var P = { speaker: "M3 6h3l4-3v10l-4-3H3z M12 5.5a3.5 3.5 0 0 1 0 5 M14 3.5a6 6 0 0 1 0 9",
+              stop: "M4 4h8v8H4z", collapse: "M3 5h10M3 8h10M3 11h10", expand: "M8 2v12M2 8h12" };
+    return svg("svg", { viewBox: "0 0 16 16", "aria-hidden": "true", focusable: "false" },
+      [svg("path", { d: P[name] || "", fill: name === "stop" ? "currentColor" : "none", stroke: "currentColor", "stroke-width": "1.6", "stroke-linecap": "round", "stroke-linejoin": "round" })]);
+  };
+
   U.h1 = function (title, sub) {
     return h("header.page-head", [
-      h("h1", title),
-      sub ? h("p.page-sub", sub) : null,
+      h("div.titles", [
+        CTS.router && CTS.router.current && CTS.pages[CTS.router.current] ? h("div.eyebrow", CTS.pages[CTS.router.current].section) : null,
+        h("h1", title),
+        sub ? h("p.page-sub", sub) : null,
+      ]),
+      h("div.page-tools", { "data-tools": "1" }),
     ]);
   };
 
-  U.section = function (title, kids, note) {
-    return h("section.block", [
-      h("h2", title),
-      note ? U.note(note) : null,
-    ].concat(Array.isArray(kids) ? kids : [kids]));
+  /** A collapsible card. The open or closed state is remembered per page
+   *  and section in this browser, so a person who closes the workings keeps
+   *  them closed next month. */
+  U.section = function (title, kids, note, opts) {
+    opts = opts || {};
+    var page = (CTS.router && CTS.router.current) || "";
+    var key = "sec." + page + "." + U.slug(title);
+    var collapsed = !!CTS.store.get(key, !!opts.collapsed);
+    var id = "sec-" + page + "-" + U.slug(title);
+    var sec = h("section.block", { "data-collapsed": collapsed ? "1" : "0", "aria-labelledby": id + "-h" });
+    var body = h("div.block-body", { id: id }, [note ? U.note(note) : null].concat(Array.isArray(kids) ? kids : [kids]));
+    var head = h("button.block-head", {
+      type: "button", "aria-expanded": collapsed ? "false" : "true", "aria-controls": id,
+      onclick: function () {
+        var now = sec.getAttribute("data-collapsed") !== "1";
+        sec.setAttribute("data-collapsed", now ? "1" : "0");
+        head.setAttribute("aria-expanded", now ? "false" : "true");
+        CTS.store.set(key, now);
+      },
+    }, [h("h2", { id: id + "-h" }, title), U.chev("chev")]);
+    sec.appendChild(head); sec.appendChild(body);
+    return sec;
+  };
+  U.setAllSections = function (collapsed) {
+    Array.prototype.forEach.call(document.querySelectorAll("#main section.block"), function (sec) {
+      sec.setAttribute("data-collapsed", collapsed ? "1" : "0");
+      var head = sec.querySelector(".block-head"); if (head) head.setAttribute("aria-expanded", collapsed ? "false" : "true");
+      var page = (CTS.router && CTS.router.current) || "", title = head && head.querySelector("h2") ? head.querySelector("h2").textContent : "";
+      CTS.store.set("sec." + page + "." + U.slug(title), collapsed);
+    });
   };
 
   /** Table builder. cols: [{key,label,align,fmt,cls,width}] */
@@ -1824,6 +1930,8 @@
     }));
   };
 
+  /** A chart with its table underneath, never beside it: a chart squeezed
+   *  into half the width squashes its labels and the note beside it. */
   U.figure = function (title, chart, table, note) {
     return h("figure.fig", [
       h("figcaption", title),
@@ -1833,6 +1941,59 @@
       ]),
       note ? U.note(note) : null,
     ]);
+  };
+
+  /** The commentary block under a page's heading: what has been said about
+   *  this page for the reporting month, and a place to say more. */
+  U.commentary = function (pageId) {
+    var month = E.reportingMonth(), items = E.commentaryFor(pageId, month);
+    var can = E.canComment();
+    var label = (E.monthIdx[month] || {}).long || month;
+    var body = h("div.commentary-body");
+    function item(c) {
+      var view = h("div.commentary-text-view", c.text);
+      var meta = h("div.commentary-meta", [
+        h("strong", c.author), h("span", F.date(String(c.at).slice(0, 10))),
+        c.dept ? h("span.chip.chip-muted", (E.deptOf[c.dept] || {}).short || c.dept) : null,
+        c.draft ? h("span.chip.chip-warning", "draft, this browser only") : h("span.chip.chip-good", "published"),
+      ]);
+      var row = h("div.commentary-item", [meta, view]);
+      if (can && (c.draft || E.canPublishCommentary())) {
+        var tools = h("div.row", [
+          c.draft ? h("button.btn.btn-quiet.small", { type: "button", onclick: function () {
+            var ta = h("textarea.commentary-text", c.text);
+            var form = h("div.commentary-form", [ta, h("div.row", [
+              h("button.btn.small", { type: "button", onclick: function () { E.updateCommentary(c.id, ta.value); CTS.router.reload(); } }, "Save"),
+              h("button.btn.btn-quiet.small", { type: "button", onclick: function () { CTS.router.reload(); } }, "Cancel"),
+            ])]);
+            row.replaceChild(form, view); tools.remove();
+          } }, "Edit") : null,
+          h("button.btn.btn-quiet.small", { type: "button", onclick: function () { E.removeCommentary(c.id); CTS.router.reload(); } }, c.draft ? "Delete draft" : "Remove"),
+        ]);
+        row.appendChild(tools);
+      }
+      return row;
+    }
+    if (items.length) items.forEach(function (c) { body.appendChild(item(c)); });
+    else body.appendChild(h("div.commentary-empty", can ? "Nothing written about this page for " + label + " yet. Explain the variance rather than restate it; management prefer dollars against dollars." : "Nothing written about this page for " + label + "."));
+    if (can) {
+      var ta = h("textarea.commentary-text", { placeholder: "Add commentary for " + label + "…", "aria-label": "Commentary for " + label });
+      var form = h("div.commentary-form", { hidden: true }, [ta, h("div.row", [
+        h("button.btn.small", { type: "button", onclick: function () { if (E.addCommentary({ page: pageId, month: month, text: ta.value })) CTS.router.reload(); } }, "Save draft"),
+        h("button.btn.btn-quiet.small", { type: "button", onclick: function () { form.hidden = true; addBtn.hidden = false; } }, "Cancel"),
+        h("span.muted", "Saved in this browser. Finance publishes drafts to the folder from the Commentary page."),
+      ])]);
+      var addBtn = h("button.btn.btn-quiet.small", { type: "button", onclick: function () { form.hidden = false; addBtn.hidden = true; ta.focus(); } }, "Add commentary");
+      body.appendChild(addBtn); body.appendChild(form);
+    }
+    var key = "sec." + pageId + ".commentary", collapsed = !!CTS.store.get(key, false);
+    var wrap = h("section.commentary", { "data-collapsed": collapsed ? "1" : "0", "aria-label": "Commentary" });
+    var head = h("div.commentary-head", [
+      h("h2", "Commentary, " + label + (items.length ? " (" + items.length + ")" : "")),
+      E.commentaryDraftCount() && E.canPublishCommentary() ? h("a.chip.chip-warning", { href: "#/commentary" }, E.commentaryDraftCount() + " to publish") : null,
+    ]);
+    wrap.appendChild(head); wrap.appendChild(body);
+    return wrap;
   };
 
   /* ---- grouped / stacked columns -------------------------------------- */
@@ -3148,6 +3309,55 @@
           { l: "Facility limit", v: S.facility, s: S.facility ? "typed on Settings" : "none" },
         ], { dense: true })),
       ];
+    },
+  };
+
+  /* ==================================================== commentary ===== */
+  P.commentary = {
+    section: "Dashboard", title: "Commentary",
+    sub: "What was said about the month, and publishing it.",
+    render: function () {
+      var month = E.reportingMonth(), label = (E.monthIdx[month] || {}).long || month;
+      var items = E.commentaryFor(null, month);
+      var byPage = {};
+      items.forEach(function (c) { (byPage[c.page] = byPage[c.page] || []).push(c); });
+      var pages = Object.keys(byPage).sort(function (a, b) { return Object.keys(CTS.pages).indexOf(a) - Object.keys(CTS.pages).indexOf(b); });
+      var pending = E.commentaryDraftCount();
+      var status = h("div");
+      async function publish() {
+        status.innerHTML = "";
+        var B = CTS.build;
+        if (!B || !window.showDirectoryPicker) { status.appendChild(h("div.banner.banner-warn", "Publishing writes into the portal folder, which needs Edge or Chrome on the synced folder.")); return; }
+        try {
+          var dir = await CTS.reuseDir();
+          if (!dir) { var pk = await B.pickFolder(); if (!pk.ok) throw new Error("that is not the portal folder"); dir = pk.handle; await CTS.saveDir(dir); }
+          var data = E.commentaryExport();
+          await B.writeCommentary(dir, data);
+          E.clearCommentaryDrafts();
+          status.appendChild(h("div.banner.banner-good", [h("strong", data.items.length + " comments published. "), "OneDrive carries the file to everyone; reloading…"]));
+          setTimeout(function () { location.reload(); }, 1200);
+        } catch (e) { status.appendChild(h("div.banner.banner-warn", "Could not publish: " + (e && e.message || e))); }
+      }
+      var list = pages.length ? pages.map(function (pg) {
+        return U.section((CTS.pages[pg] || {}).title || pg, byPage[pg].map(function (c) {
+          return h("div.commentary-item", [
+            h("div.commentary-meta", [h("strong", c.author), h("span", F.date(String(c.at).slice(0, 10))),
+              c.dept ? h("span.chip.chip-muted", (E.deptOf[c.dept] || {}).short || c.dept) : null,
+              c.draft ? h("span.chip.chip-warning", "draft") : h("span.chip.chip-good", "published"),
+              h("a.small", { href: "#/" + pg }, "open the page")]),
+            h("div.commentary-text-view", c.text),
+          ]);
+        }));
+      }) : [U.note("No commentary for " + label + " yet. Every page has an Add commentary box under its heading.")];
+      return [
+        seedBanner(), CTS.periodBar(), U.h1("Commentary", label),
+        U.note("Commentary lives beside the numbers it explains: each page has its own block under the heading. What is typed there is a draft in that browser until finance publishes it, which writes one data file into the portal folder that OneDrive carries to everyone. Published commentary also goes into the monthly emails."),
+        E.canPublishCommentary() ? h("div.toolbar", [
+          h("button.btn", { type: "button", onclick: publish, disabled: !pending }, pending ? "Publish " + pending + " change" + (pending > 1 ? "s" : "") + " to the portal folder" : "Nothing to publish"),
+          h("span.muted", "Edge or Chrome, on the synced folder. Same folder prompt as Build."),
+        ]) : (E.canComment() ? U.note("Your drafts are listed here. Finance publishes them.", "muted") : null),
+        status,
+      ].concat(list);
     },
   };
 
@@ -5533,12 +5743,69 @@
   var CTS = window.CTS, h = CTS.h, E = CTS.engine, U = CTS.ui;
 
   var SECTIONS = ["Dashboard", "Finance", "Budget", "Cash", "Revenue", "Utilisation", "Ledger", "Admin"];
+  // one colour per group: brand hues on the dark sidebar, the validated
+  // chart steps in the main column where they sit on white
+  var NAV_COLOUR = { Dashboard: "#FFFFFF", Finance: "#6D71FF", Budget: "#E0A526", Cash: "#3FD0C9", Revenue: "#F33844", Utilisation: "#9DD6FF", Ledger: "#C9CED6", Admin: "#98A1AD" };
+  var SEC_COLOUR = { Dashboard: "var(--accent)", Finance: "var(--series-4)", Budget: "var(--series-3)", Cash: "var(--series-2)", Revenue: "var(--series-1)", Utilisation: "var(--series-5)", Ledger: "var(--series-7)", Admin: "var(--ink-muted)" };
+  var NO_COMMENTARY = { commentary: 1, setup: 1, loaders: 1, build: 1, distribution: 1, config: 1, access: 1, about: 1, context: 1 };
+
+  /* ---- read aloud ----------------------------------------------------- */
+  var reader = { on: false, btn: null };
+  function pageNarrative() {
+    var main = document.getElementById("main"), out = [];
+    var sel = ".page-head h1, .page-head .page-sub, .banner, .commentary-text-view, .tile, section.block > .block-head h2, section.block .note, .commentary-empty";
+    Array.prototype.forEach.call(main.querySelectorAll(sel), function (el) {
+      if (el.closest && el.closest('[data-collapsed="1"] .block-body')) return;
+      var t;
+      if (el.classList.contains("tile")) {
+        var l = el.querySelector(".tile-label"), v = el.querySelector(".tile-value"), s = el.querySelector(".tile-sub");
+        t = [l && l.textContent, v && v.textContent, s && s.textContent].filter(Boolean).join(", ");
+      } else t = el.textContent;
+      t = String(t || "").replace(/\s+/g, " ").trim();
+      if (t) out.push(t);
+    });
+    return out;
+  }
+  function stopReading() {
+    reader.on = false;
+    try { window.speechSynthesis && window.speechSynthesis.cancel(); } catch (e) {}
+    if (reader.btn) { reader.btn.classList.remove("on"); reader.btn.setAttribute("aria-pressed", "false"); reader.btn.replaceChildren(U.icon("speaker"), "Read aloud"); }
+  }
+  function startReading(btn) {
+    if (!window.speechSynthesis) { btn.replaceChildren("No speech in this browser"); return; }
+    stopReading();
+    reader.on = true; reader.btn = btn;
+    btn.classList.add("on"); btn.setAttribute("aria-pressed", "true"); btn.replaceChildren(U.icon("stop"), "Stop reading");
+    var parts = pageNarrative();
+    var voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+    var voice = voices.filter(function (v) { return /en[-_]AU/i.test(v.lang); })[0] || voices.filter(function (v) { return /^en/i.test(v.lang); })[0] || null;
+    parts.forEach(function (t, i) {
+      var u = new SpeechSynthesisUtterance(t);
+      if (voice) u.voice = voice;
+      u.lang = (voice && voice.lang) || "en-AU"; u.rate = 1;
+      if (i === parts.length - 1) u.onend = stopReading;
+      window.speechSynthesis.speak(u);
+    });
+  }
+
+  function pageTools(id) {
+    var page = CTS.pages[id] || {};
+    var readBtn = h("button.tool", { type: "button", "aria-pressed": "false", title: "Read this page aloud" }, [U.icon("speaker"), "Read aloud"]);
+    readBtn.addEventListener("click", function () { reader.on ? stopReading() : startReading(readBtn); });
+    var anyOpen = function () { return Array.prototype.some.call(document.querySelectorAll("#main section.block"), function (s) { return s.getAttribute("data-collapsed") !== "1"; }); };
+    var colBtn = h("button.tool", { type: "button", title: "Collapse or expand every section on this page" }, [U.icon("collapse"), "Collapse all"]);
+    function paintCol() { var open = anyOpen(); colBtn.replaceChildren(U.icon(open ? "collapse" : "expand"), open ? "Collapse all" : "Expand all"); }
+    colBtn.addEventListener("click", function () { U.setAllSections(anyOpen()); paintCol(); });
+    setTimeout(paintCol, 0);
+    return [readBtn, colBtn];
+  }
 
   var router = (CTS.router = {
     current: null,
     go: function (id) { location.hash = "#/" + id; },
     reload: function () { router.render(router.current || "home"); },
     render: function (id) {
+      stopReading();
       var page = CTS.pages[id];
       if (!page) { id = "home"; page = CTS.pages.home; }
       if (!E.can(id)) {
@@ -5559,6 +5826,7 @@
       router.current = id;
       var main = document.getElementById("main");
       main.innerHTML = "";
+      main.style.setProperty("--sec", SEC_COLOUR[page.section] || "var(--accent)");
       var frag = document.createDocumentFragment();
       var nodes;
       try {
@@ -5572,10 +5840,19 @@
         if (n) frag.appendChild(n);
       });
       main.appendChild(frag);
+      var head = main.querySelector(".page-head");
+      if (head) {
+        var slot = head.querySelector("[data-tools]");
+        if (slot) pageTools(id).forEach(function (b) { slot.appendChild(b); });
+        if (!NO_COMMENTARY[id] && E.commentaryData) {
+          try { head.parentNode.insertBefore(U.commentary(id), head.nextSibling); } catch (e) { console.warn("commentary", e); }
+        }
+      }
       main.scrollTop = 0;
       window.scrollTo(0, 0);
       Array.prototype.forEach.call(document.querySelectorAll(".nav-link"), function (a) {
         a.classList.toggle("on", a.getAttribute("data-page") === id);
+        if (a.getAttribute("data-page") === id) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
       });
       document.title = page.title + " · CTS Business Intelligence";
     },
@@ -5584,19 +5861,35 @@
   function buildNav() {
     var nav = document.getElementById("nav");
     nav.innerHTML = "";
+    var groups = [];
+    function setAll(collapsed) {
+      groups.forEach(function (g) { g.set(collapsed); });
+    }
+    nav.appendChild(h("div.nav-tools", [
+      h("button", { type: "button", onclick: function () { setAll(true); } }, "Close groups"),
+      h("button", { type: "button", onclick: function () { setAll(false); } }, "Open all"),
+    ]));
     SECTIONS.forEach(function (sec) {
       var ids = Object.keys(CTS.pages).filter(function (id) {
         return CTS.pages[id].section === sec && E.can(id);
       });
       if (!ids.length) return;
-      nav.appendChild(h("div.nav-group", [
-        h("div.nav-head", sec),
-        h("ul.nav-list", ids.map(function (id) {
-          return h("li", h("a.nav-link", {
-            href: "#/" + id, "data-page": id, title: CTS.pages[id].sub || "",
-          }, CTS.pages[id].title));
-        })),
-      ]));
+      var key = "nav." + U.slug(sec), collapsed = !!CTS.store.get(key, false);
+      var listId = "navlist-" + U.slug(sec);
+      var group = h("div.nav-group", { "data-collapsed": collapsed ? "1" : "0", style: { "--sec": NAV_COLOUR[sec] || "#FFFFFF" } });
+      var head = h("button.nav-head", { type: "button", "aria-expanded": collapsed ? "false" : "true", "aria-controls": listId }, [
+        h("span.sec-dot", { "aria-hidden": "true" }), h("span", sec), U.chev("chev"),
+      ]);
+      function set(c) { group.setAttribute("data-collapsed", c ? "1" : "0"); head.setAttribute("aria-expanded", c ? "false" : "true"); CTS.store.set(key, c); }
+      head.addEventListener("click", function () { set(group.getAttribute("data-collapsed") !== "1"); });
+      groups.push({ set: set });
+      group.appendChild(head);
+      group.appendChild(h("ul.nav-list", { id: listId }, ids.map(function (id) {
+        return h("li", h("a.nav-link", {
+          href: "#/" + id, "data-page": id, title: CTS.pages[id].sub || "",
+        }, CTS.pages[id].title));
+      })));
+      nav.appendChild(group);
     });
   }
 
@@ -5612,7 +5905,7 @@
       var stamp = document.documentElement.getAttribute("data-theme");
       var dark = stamp === "dark" || (!stamp && window.matchMedia &&
                  window.matchMedia("(prefers-color-scheme: dark)").matches);
-      img.src = dark ? b.logo.dark : b.logo.light;
+      img.src = b.logo.dark;   // the sidebar is the brand black in both themes
       img.alt = b.logo.alt || "CTS";
       img.hidden = false;
     }
@@ -5651,6 +5944,18 @@
     }
   }
 
+  function accessibilityToggles() {
+    var ts = document.getElementById("textsize"), ct = document.getElementById("contrast");
+    var sizes = ["normal", "large", "larger"], cur = CTS.store.get("textsize", "normal");
+    function applySize(v) { if (v === "normal") document.documentElement.removeAttribute("data-textsize"); else document.documentElement.setAttribute("data-textsize", v); if (ts) ts.textContent = "Text size: " + v; }
+    applySize(cur);
+    if (ts) ts.addEventListener("click", function () { cur = sizes[(sizes.indexOf(cur) + 1) % sizes.length]; CTS.store.set("textsize", cur); applySize(cur); });
+    var hc = !!CTS.store.get("contrast", false);
+    function applyC() { if (hc) document.documentElement.setAttribute("data-contrast", "high"); else document.documentElement.removeAttribute("data-contrast"); if (ct) { ct.textContent = hc ? "Contrast: high" : "Contrast"; ct.setAttribute("aria-pressed", hc ? "true" : "false"); } }
+    applyC();
+    if (ct) ct.addEventListener("click", function () { hc = !hc; CTS.store.set("contrast", hc); applyC(); });
+  }
+
   function themeToggle() {
     var btn = document.getElementById("theme");
     if (!btn) return;
@@ -5679,6 +5984,7 @@
     }
     buildNav();
     themeToggle();
+    accessibilityToggles();
     var badge = document.getElementById("databadge");
     if (badge) {
       badge.textContent = E.seed ? "seed data" : "loaded data";
@@ -5695,7 +6001,10 @@
     router.render((location.hash || "#/home").replace(/^#\/?/, "") || "home");
 
     var splash = document.getElementById("splash");
-    if (splash) splash.remove();
+    if (splash) {
+      splash.style.transition = "opacity .35s"; splash.style.opacity = "0";
+      setTimeout(function () { splash.remove(); }, 380);
+    }
     document.body.classList.add("ready");
   };
 })();

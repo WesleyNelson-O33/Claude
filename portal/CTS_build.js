@@ -914,6 +914,23 @@
     return done;
   };
 
+  /** Publish the commentary: one data file, like the rest, so OneDrive
+   *  carries it to everyone. The previous file goes to data/_previous. */
+  B.writeCommentary = async function (dir, data) {
+    var dataDir = await dir.getDirectoryHandle("data", { create: true });
+    var prev = await dataDir.getDirectoryHandle("_previous", { create: true });
+    var name = "CTS_commentary_data.js";
+    try {
+      var old = await dataDir.getFileHandle(name); var of = await old.getFile();
+      var ph = await prev.getFileHandle(name, { create: true }); var pw = await ph.createWritable();
+      await pw.write(await of.text()); await pw.close();
+    } catch (e) { /* first publish */ }
+    var fh = await dataDir.getFileHandle(name, { create: true });
+    var w = await fh.createWritable();
+    await w.write("window.CTS_COMMENTARY = " + JSON.stringify(data, null, 1) + ";\n"); await w.close();
+    return name;
+  };
+
   /** Write the month's emails into outbox/YYYY-MM, one JSON and one HTML per
    *  recipient, which is what the Power Automate flow reads. */
   B.writeOutbox = async function (dir, month, messages) {

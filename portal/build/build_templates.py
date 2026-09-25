@@ -580,7 +580,7 @@ for r in range(7, 202):
     for c in range(1, 6):
         wb["Users"].cell(row=r, column=c).fill = PASTE
         wb["Users"].cell(row=r, column=c).font = INPUT_FONT
-PAGES = [("home", "Dashboard"), ("context", "Business Context"), ("pnl", "P&L"),
+PAGES = [("home", "Dashboard"), ("context", "Business Context"), ("commentary", "Commentary"), ("pnl", "P&L"),
          ("pnl-dept", "P&L by Department"), ("pnl-spread", "P&L Spread"),
          ("allocation", "Overhead Allocation"), ("control", "P&L Control"),
          ("bva", "Budget vs Actual"), ("actions", "Actions"), ("forecast", "Forecast"), ("cash", "Cash Flow"), ("rev-summary", "Revenue Summary"),
@@ -592,10 +592,10 @@ PAGES = [("home", "Dashboard"), ("context", "Business Context"), ("pnl", "P&L"),
          ("config", "Config & Variables"), ("access", "Access Control"), ("about", "About")]
 ROLE_PAGES = {
     "Finance": {p for p, _ in PAGES} - {"access"},
-    "Executive": {"home", "context", "pnl", "pnl-dept", "pnl-spread", "bva", "actions", "forecast", "cash", "rev-summary",
+    "Executive": {"home", "context", "commentary", "pnl", "pnl-dept", "pnl-spread", "bva", "actions", "forecast", "cash", "rev-summary",
                   "rev-schedule", "rev-forecast", "pipeline", "clients", "client-dept", "util", "profit-fte",
                   "staff-profit", "charts", "about"},
-    "Department head": {"home", "context", "pnl-dept", "forecast", "rev-schedule", "rev-forecast", "pipeline", "clients", "util",
+    "Department head": {"home", "context", "commentary", "pnl-dept", "forecast", "rev-schedule", "rev-forecast", "pipeline", "clients", "util",
                         "charts", "about"},
     "Viewer": {"home", "context", "about"},
 }

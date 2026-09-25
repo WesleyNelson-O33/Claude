@@ -28,6 +28,7 @@ window.CTS_USERS = {
   PAGES: [
     { id: "home",         section: "Dashboard",   title: "Dashboard" },
     { id: "context",      section: "Dashboard",   title: "Business Context" },
+    { id: "commentary",   section: "Dashboard",   title: "Commentary" },
     { id: "pnl",          section: "Finance",     title: "P&L", sensitive: true },
     { id: "pnl-dept",     section: "Finance",     title: "P&L by Department", sensitive: true },
     { id: "pnl-spread",   section: "Finance",     title: "P&L Spread", sensitive: true },
@@ -64,7 +65,7 @@ window.CTS_USERS = {
     {
       id: "admin", label: "Finance head", admin: true, ownDeptOnly: false,
       note: "Everything, including who sees what. Intended for one person.",
-      pages: ["home","context","pnl","pnl-dept","pnl-spread","allocation","control",
+      pages: ["home","context","commentary","pnl","pnl-dept","pnl-spread","allocation","control",
               "bva","actions","forecast","cash","rev-summary","rev-schedule","rev-forecast","pipeline","clients","client-dept",
               "util","profit-fte","staff-profit","ledger","charts","setup","loaders","build",
               "distribution","config","access","about"],
@@ -72,7 +73,7 @@ window.CTS_USERS = {
     {
       id: "finance", label: "Finance", admin: false, ownDeptOnly: false,
       note: "Everything except changing who sees what. The person who runs the month.",
-      pages: ["home","context","pnl","pnl-dept","pnl-spread","allocation","control",
+      pages: ["home","context","commentary","pnl","pnl-dept","pnl-spread","allocation","control",
               "bva","actions","forecast","cash","rev-summary","rev-schedule","rev-forecast","pipeline","clients","client-dept",
               "util","profit-fte","staff-profit","ledger","charts","setup","loaders","build",
               "distribution","config","about"],
@@ -80,14 +81,14 @@ window.CTS_USERS = {
     {
       id: "exec", label: "Executive", admin: false, ownDeptOnly: false,
       note: "The whole company result, but not the ledger, the loaders or the workings.",
-      pages: ["home","context","pnl","pnl-dept","pnl-spread","bva","actions","forecast","cash",
+      pages: ["home","context","commentary","pnl","pnl-dept","pnl-spread","bva","actions","forecast","cash",
               "rev-summary","rev-schedule","rev-forecast","pipeline","clients","client-dept","util",
               "profit-fte","staff-profit","charts","about"],
     },
     {
       id: "deptHead", label: "Department head", admin: false, ownDeptOnly: true,
       note: "Their own department in detail. No company P&L, no other department's numbers.",
-      pages: ["home","context","pnl-dept","forecast","rev-schedule","rev-forecast","pipeline","clients","util","charts","about"],
+      pages: ["home","context","commentary","pnl-dept","forecast","rev-schedule","rev-forecast","pipeline","clients","util","charts","about"],
     },
     {
       id: "viewer", label: "Viewer", admin: false, ownDeptOnly: false,
