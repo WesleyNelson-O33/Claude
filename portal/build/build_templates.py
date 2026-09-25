@@ -583,7 +583,7 @@ for r in range(7, 202):
 PAGES = [("home", "Dashboard"), ("context", "Business Context"), ("pnl", "P&L"),
          ("pnl-dept", "P&L by Department"), ("pnl-spread", "P&L Spread"),
          ("allocation", "Overhead Allocation"), ("control", "P&L Control"),
-         ("bva", "Budget vs Actual"), ("actions", "Actions"), ("rev-summary", "Revenue Summary"),
+         ("bva", "Budget vs Actual"), ("actions", "Actions"), ("forecast", "Forecast"), ("rev-summary", "Revenue Summary"),
          ("rev-schedule", "Revenue Schedule"), ("pipeline", "Pipeline"), ("clients", "Top Clients"),
          ("client-dept", "Clients by Department"), ("util", "Utilisation"),
          ("profit-fte", "Profitability per FTE"), ("staff-profit", "Profitability by Employee"),
@@ -592,10 +592,10 @@ PAGES = [("home", "Dashboard"), ("context", "Business Context"), ("pnl", "P&L"),
          ("config", "Config & Variables"), ("access", "Access Control"), ("about", "About")]
 ROLE_PAGES = {
     "Finance": {p for p, _ in PAGES} - {"access"},
-    "Executive": {"home", "context", "pnl", "pnl-dept", "pnl-spread", "bva", "actions", "rev-summary",
+    "Executive": {"home", "context", "pnl", "pnl-dept", "pnl-spread", "bva", "actions", "forecast", "rev-summary",
                   "rev-schedule", "pipeline", "clients", "client-dept", "util", "profit-fte",
                   "staff-profit", "charts", "about"},
-    "Department head": {"home", "context", "pnl-dept", "rev-schedule", "pipeline", "clients", "util",
+    "Department head": {"home", "context", "pnl-dept", "forecast", "rev-schedule", "pipeline", "clients", "util",
                         "charts", "about"},
     "Viewer": {"home", "context", "about"},
 }
@@ -624,4 +624,127 @@ for r in range(7, 202):
         wb["Distribution"].cell(row=r, column=c).fill = PASTE
         wb["Distribution"].cell(row=r, column=c).font = INPUT_FONT
 save(wb, "08 Config.xlsx")
+
+# -------------------------------------------------------------- 09 Forecast
+wb = Workbook()
+readme(wb, "09 Forecast", [
+    ("h", "What this is"),
+    ("p", "How the portal forecasts the months after the reporting month. It holds no numbers of "
+          "its own: it says which method makes each line, the assumptions those methods use, and "
+          "any figure you want typed over the top. The portal makes the forecast from the ledger "
+          "history at Build, line by line, and the Forecast page shows which method made what."),
+    ("h", "Each month"),
+    ("p", "Usually nothing. Revise a growth assumption or add an override when you know something "
+          "the history does not: a client lost, a new contract, a pay rise, a one-off cost."),
+    ("h", "The Methods tab"),
+    ("p", "One row per line you want to control. Line is an account name exactly as Xero spells it, "
+          "or Subcategory: name, or Category: name. The most specific row wins, so a category row "
+          "sets the rule for everything in it and a single account row overrides it."),
+    ("p", "Methods: Seasonal (the same month last year, grown by the growth assumption, or by the "
+          "Parameter if one is typed); Run rate (the average of the last N months, N from the "
+          "Parameter or the Assumptions tab); % of revenue (the line follows the department's "
+          "forecast revenue at the Parameter rate, or at the rate measured over the last twelve "
+          "months when the Parameter is blank); Fixed (the Parameter, in dollars, every month); "
+          "Budget (the budget figure); Zero."),
+    ("h", "The Overrides tab"),
+    ("p", "One row per figure you want typed. Department blank means the company. Amount as the "
+          "P&L shows it: income positive, a cost positive. The override replaces the method's "
+          "figure for that account and month and is flagged as typed on the Forecast page."),
+    ("h", "Fractions, not percentages"),
+    ("p", "Growth and revenue rates are typed as fractions, the same as the Config template: 0.03 "
+          "is three per cent, 0.35 is thirty five per cent."),
+])
+list_tab(wb, "Assumptions",
+         ["Setting", "Value", "Note"],
+         [["Forecast on", "Yes", "No fills the months after the reporting month with budget instead"],
+          ["Horizon months", 12, "How far past the reporting month to forecast; never short of the financial year end"],
+          ["Run rate months", 3, "Months averaged by the Run rate method when a line has no Parameter"],
+          ["Growth on last year: default", 0.0, "Applied by the Seasonal method where a department has no rate below"],
+          ["Growth on last year: ONSITE", 0.0, "Fraction: 0.03 is three per cent"],
+          ["Growth on last year: PRODUCTION", 0.0, ""],
+          ["Growth on last year: VIDEO", 0.0, ""],
+          ["Growth on last year: INTEGRATION", 0.0, ""],
+          ["Growth on last year: CONSULTING", 0.0, ""],
+          ["Growth on last year: ADMIN", 0.0, ""]],
+         [34, 12, 70], editable_cols=[2])
+list_tab(wb, "Methods",
+         ["Line", "Method", "Parameter", "Note"],
+         [["Category: Income", "Seasonal", None, "Same month last year, grown by the department's growth assumption"],
+          ["Category: Cost of Sales", "% of revenue", None, "Measured share of department revenue over the last twelve months"],
+          ["Subcategory: Direct Salaries", "Run rate", None, "Permanent labour follows time, not revenue"],
+          ["Subcategory: Direct Wages", "Run rate", None, ""],
+          ["Subcategory: Direct Superannuation", "Run rate", None, ""],
+          ["Subcategory: Direct Workers Comp", "Run rate", None, ""],
+          ["Category: Expenses", "Run rate", None, "Average of the last three months"],
+          ["Category: Other Income", "Run rate", 12, "Average of the last twelve months"],
+          ["Category: Other Expenses", "Run rate", 12, ""],
+          ["Rent", "Fixed", None, "Example of an account row: type the monthly rent in Parameter and it overrides the category rule"]],
+         [40, 16, 12, 70],
+         note="Line: an account name as Xero spells it, Subcategory: name, or Category: name. The most specific row wins.")
+dv8 = DataValidation(type="list", formula1='"Seasonal,Run rate,% of revenue,Fixed,Budget,Zero"', allow_blank=True)
+wb["Methods"].add_data_validation(dv8); dv8.add("B2:B300")
+for r in range(12, 302):
+    for c in range(1, 5):
+        wb["Methods"].cell(row=r, column=c).fill = PASTE
+        wb["Methods"].cell(row=r, column=c).font = INPUT_FONT
+list_tab(wb, "Overrides",
+         ["Department", "Account", "Month", "Amount", "Note"],
+         [["PRODUCTION", "Production Labour", date(2026, 11, 1), 0.0, "Example: blank the amount or delete the row. Department blank means the company."]],
+         [16, 40, 12, 14, 60],
+         note="Amount as the P&L shows it: income positive, a cost positive. Month as a date or Nov-26.")
+dv9 = DataValidation(type="list", formula1='"ONSITE,PRODUCTION,VIDEO,INTEGRATION,CONSULTING,ADMIN"', allow_blank=True)
+wb["Overrides"].add_data_validation(dv9); dv9.add("A2:A500")
+for r in range(3, 502):
+    for c in range(1, 6):
+        wb["Overrides"].cell(row=r, column=c).fill = PASTE
+        wb["Overrides"].cell(row=r, column=c).font = INPUT_FONT
+        if c == 3:
+            wb["Overrides"].cell(row=r, column=c).number_format = "dd/mm/yyyy"
+        if c == 4:
+            wb["Overrides"].cell(row=r, column=c).number_format = MONEY
+save(wb, "09 Forecast.xlsx")
+
+# ------------------------------------------- 11 and 12 Xero aged reports
+# Column shapes confirmed against the live Xero organisation on 25 Sep 2026:
+# the Aged Receivables Detail and Aged Payables Detail reports, ageing by
+# due date, one row per invoice or bill, the five ageing buckets and a total.
+AGED_COLS = ["Contact", "Date", "Due Date", "Number", "Reference", "Current", "< 1 Month",
+             "1 Month", "2 Months", "3 Months", "Older", "Total"]
+AGED_W = [34, 12, 12, 14, 44, 13, 13, 12, 12, 12, 12, 14]
+for fname, title, what, sysrun, example in (
+    ("11 Xero Aged Receivables.xlsx", "11 Xero Aged Receivables", "receivables",
+     "Xero, Reports, Aged Receivables Detail, as at the last day of the reporting month, ageing by due date, "
+     "one row per invoice. Export to Excel.",
+     ["Example Client Pty Ltd", date(2026, 8, 31), date(2026, 9, 30), "INV-10583", "PO 12345 - August event",
+      12100.0, 0.0, 0.0, 0.0, 0.0, 0.0, 12100.0]),
+    ("12 Xero Aged Payables.xlsx", "12 Xero Aged Payables", "payables",
+     "Xero, Reports, Aged Payables Detail, as at the last day of the reporting month, ageing by due date, "
+     "one row per bill. Export to Excel.",
+     ["Example Supplier Pty Ltd", date(2026, 9, 1), date(2026, 9, 26), "INV41565", "Equipment for 2604704 [PO-00016902]",
+      178119.25, 0.0, 0.0, 0.0, 0.0, 0.0, 178119.25])):
+    wb = Workbook()
+    readme(wb, title, [
+        ("h", "What this is"),
+        ("p", "Every unpaid %s as at month end, with its due date and how overdue it is. This feeds the "
+              "cash flow forecast: each open item is a receipt or payment in the week it is expected to "
+              "settle, and the ageing history is how the portal measures each client's days to pay." % ("invoice" if what == "receivables" else "bill")),
+        ("h", "Each month"),
+        ("p", "1. " + sysrun),
+        ("p", "2. Paste the rows into the %s tab from cell A2. The contact grouping rows and the totals "
+              "that Xero puts between contacts can come with the paste; rows without a date and a total are skipped." % what.capitalize()),
+        ("h", "Where the layout comes from"),
+        ("p", "The columns are the report's own, confirmed against the live Xero organisation. The cash "
+              "flow build (step 4 of the forecasting plan) reads this file; until then it is safe to "
+              "fill and ignore."),
+    ])
+    ws = data_tab(wb, what.capitalize(), AGED_COLS, AGED_W, example,
+                  "Ageing by due date, as Xero's report shows it. Amounts positive; a credit note shows negative.",
+                  paste_rows=3000)
+    for r in range(2, 3003):
+        for c in range(6, 13):
+            ws.cell(row=r, column=c).number_format = MONEY
+        for c in (2, 3):
+            ws.cell(row=r, column=c).number_format = "dd/mm/yyyy"
+    save(wb, fname)
+
 print("done")

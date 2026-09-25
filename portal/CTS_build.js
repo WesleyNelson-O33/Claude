@@ -26,6 +26,7 @@
     { key: "quotes",   file: "06 Qwilr Quotes.xlsx",              sheet: "Quotes",   out: "CTS_pipeline_data.js", need: false, placeholder: true },
     { key: "budget",   file: "07 Budget.xlsx",                    sheet: "Budget",   out: "CTS_fin_data.js",      need: true },
     { key: "config",   file: "08 Config.xlsx",                    sheet: null,       out: "CTS_config_data.js",   need: true },
+    { key: "forecast", file: "09 Forecast.xlsx",                  sheet: "Methods",  out: "CTS_forecast_data.js", need: false },
   ];
   B.TEMPLATES = TEMPLATES;
 
@@ -509,6 +510,46 @@
     return { config: cfg, users: usersOut, holidays: holidays };
   };
 
+
+  /** The forecast settings: Assumptions, Methods and Overrides tabs. Nothing
+   *  is calculated here; the portal makes the forecast from these at run
+   *  time, so the archive of a month is enough to remake its forecast. */
+  C.forecast = function (wb) {
+    var p = P(), e = E();
+    function tab(name) { var t = B.table(wb, name); return t ? t.rows : []; }
+    var ass = { horizonMonths: 12, runRateMonths: 3, enabled: true, growth: {} };
+    var deptCodes = (e.depts || []).map(function (d) { return d.code; });
+    tab("Assumptions").forEach(function (r) {
+      var k = String(r[0] || "").toLowerCase().trim(), v = r[1];
+      if (!k) return;
+      if (/^horizon/.test(k)) ass.horizonMonths = +p.num(v) || 12;
+      else if (/^run ?rate/.test(k)) ass.runRateMonths = +p.num(v) || 3;
+      else if (/^forecast (is )?on|^enabled|^use the forecast/.test(k)) ass.enabled = !/^n|^off|^false|^0/.test(String(v || "").toLowerCase());
+      else if (/^growth/.test(k)) {
+        var code = deptCodes.filter(function (c) { return k.indexOf(c.toLowerCase()) >= 0; })[0] || "default";
+        ass.growth[code] = +p.num(v) || 0;
+      }
+    });
+    var methods = [], badMethod = [];
+    tab("Methods").forEach(function (r) {
+      var match = String(r[0] || "").trim(); if (!match) return;
+      var method = e.methodKey ? e.methodKey(r[1]) : null;
+      if (!method) { badMethod.push(match + " (" + String(r[1] || "blank") + ")"); return; }
+      var pv = r[2] === "" || r[2] == null ? null : p.num(r[2]);
+      methods.push({ match: match, method: method, param: pv, note: String(r[3] || "").trim() });
+    });
+    var overrides = [], badOverride = [];
+    tab("Overrides").forEach(function (r) {
+      var acct = String(r[1] || "").trim(); if (!acct && !r[3]) return;
+      var mk = B.monthOfLabel(r[2]) || (p.isoDate(r[2]) || "").slice(0, 7) || null;
+      if (!acct || !mk) { badOverride.push((acct || "(no account)") + " " + String(r[2] || "(no month)")); return; }
+      overrides.push({ dept: String(r[0] || "").trim().toUpperCase(), account: acct, month: mk,
+                       amount: p.num(r[3]), note: String(r[4] || "").trim() });
+    });
+    return { data: { meta: { built: today(), source: "09 Forecast.xlsx", version: 1 }, assumptions: ass, methods: methods, overrides: overrides },
+             badMethod: badMethod, badOverride: badOverride };
+  };
+
   /* ================================================ folder and building */
   function today() { return new Date().toISOString().slice(0, 10); }
   B.today = today;
@@ -703,6 +744,21 @@
       } catch (e) { check("warn", "Pipeline", x[1] + ": " + e.message); }
     });
     if (any) { outputs["CTS_pipeline_data.js"] = "window.CTS_PIPELINE = " + JSON.stringify(pipe) + ";\n"; results.pipeline = pipe; }
+
+    // Forecast settings
+    var fcWb = wbOf("forecast");
+    if (fcWb) {
+      try {
+        var fcr = C.forecast(fcWb);
+        outputs["CTS_forecast_data.js"] = "window.CTS_FORECAST = " + JSON.stringify(fcr.data) + ";\n";
+        results.forecast = fcr.data;
+        var unknownAcct = fcr.data.overrides.filter(function (o) { return !E().acct[o.account]; }).map(function (o) { return o.account; });
+        check("ok", "Forecast", (fcr.data.assumptions.enabled ? "On. " : "Off. ") + fcr.data.methods.length + " method lines, " + fcr.data.overrides.length + " typed overrides, horizon " + fcr.data.assumptions.horizonMonths + " months, run rate " + fcr.data.assumptions.runRateMonths + " months.");
+        if (fcr.badMethod.length) check("warn", "Forecast", fcr.badMethod.length + " method lines not understood and skipped: " + fcr.badMethod.slice(0, 4).join("; ") + ". Use Seasonal, Run rate, % of revenue, Fixed, Budget or Zero.");
+        if (fcr.badOverride.length) check("warn", "Forecast", fcr.badOverride.length + " overrides without an account or a month, skipped: " + fcr.badOverride.slice(0, 4).join("; ") + ".");
+        if (unknownAcct.length) check("warn", "Forecast", "Override accounts not in the chart: " + unknownAcct.slice(0, 4).join("; ") + ". Spell them as Xero does.");
+      } catch (e) { check("fail", "Forecast", e.message); }
+    } else check("info", "Forecast", "09 Forecast.xlsx not found; keeping the current forecast settings.");
 
     var log = { built: new Date().toISOString(), reportingMonth: reportingMonth, checks: checks,
                 files: Object.keys(outputs), version: (cfgOut && cfgOut.config.VERSION) || (E().cfg && E().cfg.VERSION) };

@@ -156,6 +156,7 @@
     E.loadUtil(window.CTS_UTIL);
     E.loadStaff(window.CTS_STAFF);
     E.loadPipeline(window.CTS_PIPELINE);
+    E.loadForecast(window.CTS_FORECAST);
     E.loadUsers(window.CTS_USERS);
     E.clients = window.CTS_CLIENTS || { clients: [], schedule: [] };
     E.clientMeta = {};
@@ -568,7 +569,7 @@
   E.reportingMonth = function () {
     return store.get("reportingMonth", E.cfg.ORG.reportingMonth);
   };
-  E.setReportingMonth = function (k) { store.set("reportingMonth", k); };
+  E.setReportingMonth = function (k) { store.set("reportingMonth", k); E._fc = null; };
   E.currentFY = function () {
     var m = E.monthIdx[E.reportingMonth()];
     return m ? m.fy : E.cfg.ORG.currentFY;
@@ -610,11 +611,18 @@
    *  This is the Controller Pack's rule, so the twelve months always read as a
    *  full year with the shortfall ahead visible. */
   E.acctBlend = function (name, monthKey) {
-    return E.hasActual(monthKey)
-      ? (E.finActual[name] || {})[monthKey] || 0
-      : (E.finBudget[name] || {})[monthKey] || 0;
+    if (E.hasActual(monthKey)) return (E.finActual[name] || {})[monthKey] || 0;
+    if (E.hasForecast && E.hasForecast(monthKey)) return E.acctForecast(name, monthKey);
+    return (E.finBudget[name] || {})[monthKey] || 0;
   };
-  E.blendSource = function (monthKey) { return E.hasActual(monthKey) ? "actual" : "budget"; };
+  /** Where a blended month comes from: actual to the reporting month, then
+   *  the forecast where there is one, then budget. */
+  E.blendSource = function (monthKey) {
+    if (E.hasActual(monthKey)) return "actual";
+    if (E.hasForecast && E.hasForecast(monthKey)) return "forecast";
+    return "budget";
+  };
+  E.blendLabel = function () { return E.forecastEnabled && E.forecastEnabled() ? "actual then forecast" : "actual then budget"; };
 
   /* ---- the P&L ------------------------------------------------------- */
   var CAT_KEYS = ["income", "cos", "expenses", "other_income", "other_expenses"];
@@ -1081,6 +1089,264 @@
 })();
 
 /* ===================================================================== *
+ * Engine part 3: the forecast. A third series beside actual and budget.
+ *
+ * Every forecast cell is made by one method, chosen per account on the
+ * 09 Forecast template (account, then subcategory, then category, then a
+ * default by category), and every cell knows which method made it. Typed
+ * overrides always win and are flagged as typed. The history a method
+ * reads is the ledger by department, so the departmental forecasts add up
+ * to the company one the same way the actuals do.
+ * ===================================================================== */
+(function () {
+  "use strict";
+  var CTS = window.CTS, E = CTS.engine;
+
+  var METHODS = {
+    seasonal:    { label: "Same month last year, grown",      short: "seasonal",     param: "growth, as a fraction (0.03 is 3%)" },
+    runrate:     { label: "Run rate of recent months",        short: "run rate",     param: "months to average" },
+    revenue_pct: { label: "Percentage of department revenue", short: "% of revenue", param: "fraction of revenue (0.35 is 35%); blank measures it from the last twelve months" },
+    fixed:       { label: "Fixed amount each month",          short: "fixed",        param: "dollars per month, positive as the P&L shows it" },
+    budget:      { label: "Budget as the forecast",           short: "budget",       param: "none" },
+    zero:        { label: "Nothing expected",                 short: "zero",         param: "none" },
+  };
+  E.FC_METHODS = METHODS;
+  var DEFAULTS = { income: "seasonal", cos: "revenue_pct", expenses: "runrate", other_income: "runrate", other_expenses: "runrate" };
+  // cost of sales lines that follow time, not revenue: permanent labour
+  var LABOUR = /salar|wage|superann|workers/i;
+
+  E.loadForecast = function (data) { E.fcData = data || null; E._fc = null; };
+
+  function assumptions() {
+    var a = (E.fcData && E.fcData.assumptions) || {};
+    return { horizon: Math.max(1, +a.horizonMonths || 12), runRate: Math.max(1, +a.runRateMonths || 3),
+             growth: a.growth || {}, enabled: !!E.fcData && a.enabled !== false };
+  }
+  E.forecastAssumptions = assumptions;
+  E.forecastEnabled = function () { return assumptions().enabled; };
+
+  function catOf(label) {
+    var l = String(label).toLowerCase().replace(/[^a-z]/g, "");
+    return { income: "income", revenue: "income", costofsales: "cos", cos: "cos", directcosts: "cos",
+             expenses: "expenses", overheads: "expenses", otherincome: "other_income",
+             otherexpenses: "other_expenses" }[l] || l;
+  }
+  E.methodKey = function (label) {
+    var l = String(label || "").toLowerCase();
+    if (!l) return null;
+    if (METHODS[l]) return l;
+    if (/season|same month|last year/.test(l)) return "seasonal";
+    if (/run ?rate|average|trailing/.test(l)) return "runrate";
+    if (/revenue|% ?of|percent/.test(l)) return "revenue_pct";
+    if (/fixed|contract|flat/.test(l)) return "fixed";
+    if (/budget/.test(l)) return "budget";
+    if (/zero|none|nothing/.test(l)) return "zero";
+    return null;
+  };
+
+  /** The rule for one account: the most specific line on the template wins. */
+  E.forecastRule = function (name) {
+    var a = E.acct[name] || {}, rules = (E.fcData && E.fcData.methods) || [];
+    var hit = null, rank = 0;
+    rules.forEach(function (r) {
+      var m = String(r.match || "").trim(), method = E.methodKey(r.method);
+      if (!m || !method) return;
+      var score = 0;
+      if (m.toLowerCase() === String(name).toLowerCase()) score = 3;
+      else if (/^sub(category)?\s*:/i.test(m) && m.replace(/^sub(category)?\s*:\s*/i, "").toLowerCase() === String(a.sub || "").toLowerCase()) score = 2;
+      else if (/^cat(egory)?\s*:/i.test(m) && catOf(m.replace(/^cat(egory)?\s*:\s*/i, "")) === a.cat) score = 1;
+      if (score > rank) { rank = score; hit = Object.assign({}, r, { method: method }); }
+    });
+    if (hit) {
+      var pv = hit.param === "" || hit.param == null || isNaN(+hit.param) ? null : +hit.param;
+      return { method: hit.method, param: pv, source: rank === 3 ? "account" : rank === 2 ? "subcategory" : "category", note: hit.note || "" };
+    }
+    var def = DEFAULTS[a.cat] || "runrate";
+    if (a.cat === "cos" && LABOUR.test(a.sub || "")) def = "runrate";
+    return { method: def, param: null, source: "default", note: "" };
+  };
+
+  /** Months the forecast covers: after the reporting month, for the horizon,
+   *  and never short of the end of the current financial year. */
+  E.forecastMonths = function () {
+    var rm = E.reportingMonth(), a = assumptions();
+    var start = E.monthIdx[rm] ? E.monthIdx[rm].i : -1;
+    var fy = E.monthsOfFY(E.currentFY()), fyLast = fy[fy.length - 1] || rm;
+    var out = [];
+    for (var k = start + 1; k < E.months.length; k++) {
+      var key = E.months[k].key;
+      if (out.length >= a.horizon && key > fyLast) break;
+      out.push(key);
+    }
+    return out;
+  };
+  E.hasForecast = function (monthKey) {
+    if (!E.forecastEnabled()) return false;
+    return build().monthSet[monthKey] === 1;
+  };
+
+  function priorKey(m) { return (+m.slice(0, 4) - 1) + m.slice(4); }
+  function signOf(name) {
+    var c = (E.acct[name] || {}).cat;
+    return (c === "cos" || c === "expenses" || c === "other_expenses") ? -1 : 1;
+  }
+
+  function build() {
+    var rm = E.reportingMonth();
+    if (E._fc && E._fc.rm === rm) return E._fc;
+    var a = assumptions();
+    var months = E.forecastMonths();
+    var fc = { rm: rm, months: months, monthSet: {}, byDeptAcct: {}, byAcct: {}, rules: {},
+               deptIncome: {}, overrides: [], unapplied: [], history: {} };
+    months.forEach(function (m) { fc.monthSet[m] = 1; });
+    var glHist = (E.glMonths || []).filter(function (m) { return m <= rm; });
+    var last12 = glHist.slice(-12), lastN = glHist.slice(-a.runRate);
+    fc.history = { months: glHist.length, last12: last12, runRate: lastN };
+    var depts = E.depts.map(function (d) { return d.code; });
+
+    function val(dept, name, m) { return (((E.idx.deptAcctMonth[dept] || {})[name] || {})[m]) || 0; }
+    function sum(dept, name, keys) { var t = 0; keys.forEach(function (k) { t += val(dept, name, k); }); return t; }
+    function growthFor(dept, rule) {
+      if (rule.param != null) return rule.param;
+      var g = a.growth; var v = g[dept] != null ? g[dept] : g["default"];
+      return +v || 0;
+    }
+    function cell(name, dept, m, rule) {
+      switch (rule.method) {
+        case "zero": return 0;
+        case "budget": {
+          var b = (E.finBudget[name] || {})[m] || 0, sh = E.deptShareOfAccount(name);
+          return Math.round(b * (sh[dept] || 0));
+        }
+        case "fixed": {
+          // a Fixed line with no amount typed is a run rate, not a zero
+          if (rule.param == null) return lastN.length ? Math.round(sum(dept, name, lastN) / lastN.length) : 0;
+          var s2 = E.deptShareOfAccount(name);
+          return Math.round(rule.param * 100 * signOf(name) * (s2[dept] || 0));
+        }
+        case "runrate": {
+          var keys = rule.param != null && rule.param >= 1 ? glHist.slice(-Math.round(rule.param)) : lastN;
+          return keys.length ? Math.round(sum(dept, name, keys) / keys.length) : 0;
+        }
+        case "seasonal": {
+          var pk = priorKey(m);
+          if (glHist.indexOf(pk) >= 0) return Math.round(val(dept, name, pk) * (1 + growthFor(dept, rule)));
+          return lastN.length ? Math.round(sum(dept, name, lastN) / lastN.length) : 0;
+        }
+        case "revenue_pct": {
+          var inc = (fc.deptIncome[dept] || {})[m] || 0;
+          if (!inc) return 0;
+          var pct = rule.param;
+          if (pct == null) {
+            var hi = 0; last12.forEach(function (k) { hi += (((E.idx.deptCatMonth[dept] || {}).income || {})[k]) || 0; });
+            pct = hi ? sum(dept, name, last12) / hi : 0;       // carries the cost's own sign
+          } else pct = -Math.abs(pct) * (signOf(name) === -1 ? 1 : -1);
+          return Math.round(inc * pct);
+        }
+      }
+      return 0;
+    }
+
+    // pass 1: income, which the revenue percentage methods need
+    var incomeAccts = E.accounts.filter(function (x) { return x.cat === "income"; }).map(function (x) { return x.name; });
+    var otherAccts = E.accounts.filter(function (x) { return x.cat !== "income"; }).map(function (x) { return x.name; });
+    function run(names) {
+      names.forEach(function (name) {
+        var rule = E.forecastRule(name);
+        if (rule.method === "revenue_pct" && (E.acct[name] || {}).cat === "income") rule = { method: "runrate", param: null, source: "default", note: "" };
+        fc.rules[name] = rule;
+        depts.forEach(function (dept) {
+          months.forEach(function (m) {
+            var v = cell(name, dept, m, rule);
+            if (!v) return;
+            ((fc.byDeptAcct[dept] = fc.byDeptAcct[dept] || {})[name] = fc.byDeptAcct[dept][name] || {})[m] = v;
+            if ((E.acct[name] || {}).cat === "income") (fc.deptIncome[dept] = fc.deptIncome[dept] || {})[m] = (fc.deptIncome[dept][m] || 0) + v;
+          });
+        });
+      });
+    }
+    run(incomeAccts);
+    run(otherAccts);
+
+    // typed overrides: department level replaces the cell; company level is
+    // spread on the method's own split, or lands on the account's home
+    // department when the method gave nothing
+    ((E.fcData && E.fcData.overrides) || []).forEach(function (o) {
+      var name = o.account, m = o.month, why = null;
+      if (!E.acct[name]) why = "account not in the chart";
+      else if (!fc.monthSet[m]) why = "month outside the forecast";
+      else if (o.dept && depts.indexOf(o.dept) < 0) why = "unknown department";
+      if (why) { fc.unapplied.push(Object.assign({ why: why }, o)); return; }
+      var cents = Math.round((+o.amount || 0) * 100) * signOf(name);
+      var targets = o.dept ? [o.dept] : depts;
+      var cur = 0; targets.forEach(function (d) { cur += ((fc.byDeptAcct[d] || {})[name] || {})[m] || 0; });
+      var parts = {};
+      if (o.dept) parts[o.dept] = cents;
+      else if (cur) targets.forEach(function (d) { parts[d] = Math.round(cents * ((((fc.byDeptAcct[d] || {})[name] || {})[m]) || 0) / cur); });
+      else parts[(E.acct[name].dept) || "ADMIN"] = cents;
+      Object.keys(parts).forEach(function (d) {
+        ((fc.byDeptAcct[d] = fc.byDeptAcct[d] || {})[name] = fc.byDeptAcct[d][name] || {})[m] = parts[d];
+      });
+      fc.overrides.push(Object.assign({ cents: cents, was: cur }, o));
+    });
+
+    depts.forEach(function (d) {
+      Object.keys(fc.byDeptAcct[d] || {}).forEach(function (name) {
+        Object.keys(fc.byDeptAcct[d][name]).forEach(function (m) {
+          (fc.byAcct[name] = fc.byAcct[name] || {})[m] = (fc.byAcct[name][m] || 0) + fc.byDeptAcct[d][name][m];
+        });
+      });
+    });
+    return (E._fc = fc);
+  }
+  E.forecast = function () { return E.forecastEnabled() ? build() : null; };
+
+  E.acctForecast = function (name, m) {
+    if (!E.forecastEnabled()) return 0;
+    return ((build().byAcct[name] || {})[m]) || 0;
+  };
+  E.pnlForecast = function (keys) {
+    return E.buildPnl(keys, function (n, m) { return E.hasForecast(m) ? E.acctForecast(n, m) : 0; });
+  };
+  /** Forecast by department for a category over months, the shape budgetByDept has. */
+  E.forecastByDept = function (monthKeys, cat) {
+    var out = {}; E.depts.forEach(function (d) { out[d.code] = 0; });
+    if (!E.forecastEnabled()) return out;
+    var fc = build();
+    Object.keys(fc.byDeptAcct).forEach(function (d) {
+      Object.keys(fc.byDeptAcct[d]).forEach(function (name) {
+        var a = E.acct[name]; if (!a || (cat && a.cat !== cat)) return;
+        out[d] = (out[d] || 0) + E.sumMonths(fc.byDeptAcct[d][name], monthKeys);
+      });
+    });
+    return out;
+  };
+  /** One row per subcategory saying how its accounts are forecast. */
+  E.forecastLines = function (monthKeys) {
+    if (!E.forecastEnabled()) return [];
+    var fc = build(), rows = [];
+    E.CAT_KEYS.forEach(function (cat) {
+      var subs = E.subsOf[cat] || {};
+      Object.keys(subs).sort().forEach(function (sub) {
+        var names = subs[sub], methods = {}, sources = {}, total = 0, params = {};
+        names.forEach(function (n) {
+          var r = fc.rules[n]; if (!r) return;
+          methods[r.method] = 1; sources[r.source] = 1;
+          if (r.param != null) params[r.param] = 1;
+          total += E.sumMonths(fc.byAcct[n], monthKeys);
+        });
+        var mk = Object.keys(methods), sk = Object.keys(sources), pk = Object.keys(params);
+        rows.push({ cat: E.CAT_LABEL[cat], catKey: cat, sub: sub, accounts: names.length,
+                    method: mk.length === 1 ? mk[0] : mk.length ? "mixed" : "none",
+                    methodLabel: mk.length === 1 ? METHODS[mk[0]].short : mk.length ? "mixed" : "",
+                    source: sk.length === 1 ? sk[0] : "mixed", param: pk.length === 1 ? +pk[0] : null, total: total });
+      });
+    });
+    return rows;
+  };
+})();
+
+/* ===================================================================== *
  * UI primitives and charts.
  *
  * Charts are hand written SVG, no library, so the portal has no runtime
@@ -1494,7 +1760,7 @@
     var keys, label;
     if (id === "month") { keys = [rm]; label = (E.monthIdx[rm] || {}).long || rm; }
     else if (id === "qtr") { keys = E.quarterMonths(); label = "Quarter to " + ((E.monthIdx[rm] || {}).label || rm); }
-    else if (id === "fy") { keys = E.monthsOfFY(fy); label = "FY" + fy + " full year, actual then budget"; }
+    else if (id === "fy") { keys = E.monthsOfFY(fy); label = "FY" + fy + " full year, " + E.blendLabel(); }
     else { keys = E.ytd(fy); label = "FY" + fy + " to " + ((E.monthIdx[rm] || {}).label || rm); }
     return { id: id, keys: keys, label: label, fy: fy, rm: rm };
   };
@@ -1583,7 +1849,13 @@
         U.tile({ label: "Utilisation", value: F.pct(util.total.util),
                  sub: util.total.fte ? util.total.fte.toFixed(1) + " full time equivalents" : null,
                  note: "Chargeable over worked hours, leave excluded" }),
-      ]);
+      ].concat(E.forecastEnabled() ? [(function () {
+        var fyK = E.monthsOfFY(p.fy), land = E.pnlBlend(fyK).totals, fb = E.pnlBudget(fyK).totals;
+        return U.tile({ label: "FY" + p.fy + " forecast", value: F.dollars(land.netProfit),
+                        tone: land.netProfit >= fb.netProfit ? "good" : "critical",
+                        sub: (land.netProfit - fb.netProfit >= 0 ? "+" : "\u2212") + F.money(Math.abs(land.netProfit - fb.netProfit)) + " vs budget",
+                        note: "Net profit, actual then forecast. Revenue " + F.dollars(land.income) });
+      })()] : []));
 
       // Revenue, gross profit and net profit by month across the year
       var fyKeys = E.monthsOfFY(p.fy);
@@ -1605,7 +1877,7 @@
         { key: "np", label: "Net profit", fmt: F.money },
       ], fyKeys.map(function (k, i) {
         return { m: E.monthIdx[k].label,
-                 src: E.blendSource(k) === "actual" ? "" : "budget",
+                 src: E.blendSource(k) === "actual" ? "" : E.blendSource(k),
                  rev: full.income[i], gp: full.grossProfit[i], np: full.netProfit[i],
                  _cls: E.blendSource(k) === "actual" ? "" : "forecast" };
       }), { dense: true });
@@ -1640,9 +1912,11 @@
       return [
         seedBanner(), CTS.periodBar(), U.h1("Dashboard", p.label), tiles,
         U.section("Revenue, gross profit and net profit by month",
-          U.figure("FY" + p.fy + ", actual to " + (E.monthIdx[p.rm] || {}).label + " then budget",
+          U.figure("FY" + p.fy + ", actual to " + (E.monthIdx[p.rm] || {}).label + " then " + (E.forecastEnabled() ? "forecast" : "budget"),
                    trend, trendTable,
-                   "Months up to the reporting month come off the ledger. Months after it come from budget, so the year always reads as twelve and the shortfall ahead is visible. That is the Controller Pack's rule.")),
+                   E.forecastEnabled()
+                     ? "Months up to the reporting month come off the ledger. Months after it come from the forecast, method by method as set on the Forecast page, so the year always reads as twelve and the landing is visible. Budget is the comparison, not the fill."
+                     : "Months up to the reporting month come off the ledger. Months after it come from budget, so the year always reads as twelve and the shortfall ahead is visible. That is the Controller Pack's rule.")),
         allocBanner(),
         U.section("Departments, after the overhead split",
           U.figure("Result by department, " + p.label, deptChart, deptTable,
@@ -1815,7 +2089,7 @@
 
       return [
         seedBanner(), CTS.periodBar(), U.h1("Profit & Loss", "FY" + p.fy + ", month by month"),
-        U.note("Costs are shown the way the ledger holds them: credit less debit, so a cost is negative and gross profit is income plus cost of sales. Columns after " + (E.monthIdx[p.rm] || {}).label + " are budget, not actual, and are shaded."),
+        U.note("Costs are shown the way the ledger holds them: credit less debit, so a cost is negative and gross profit is income plus cost of sales. Columns after " + (E.monthIdx[p.rm] || {}).label + " are " + (E.forecastEnabled() ? "forecast" : "budget") + ", not actual, and are shaded."),
         U.section("The year at a glance", summary),
         U.section("Full profit and loss", pnlTable(pnl),
           "Click the plus beside any line to open it. Category opens to subcategory, subcategory opens to the individual Xero accounts."),
@@ -1933,7 +2207,7 @@
         { key: "np", label: "Net profit", fmt: F.money, cell: U.moneyCell },
       ], keys.map(function (k, i) {
         return { m: E.monthIdx[k].label, fy: "FY" + E.monthIdx[k].fy,
-                 src: E.blendSource(k) === "actual" ? "actual" : "budget",
+                 src: E.blendSource(k),
                  rev: pnl.income[i], cos: pnl.cos[i], gp: pnl.grossProfit[i],
                  gm: pnl.gmPct[i], exp: pnl.expenses[i], np: pnl.netProfit[i],
                  _cls: E.blendSource(k) === "actual" ? "" : "forecast" };
@@ -2274,6 +2548,162 @@
     },
   };
 
+  /* ====================================================== forecast ===== */
+  P.forecast = {
+    section: "Budget", title: "Forecast",
+    sub: "Actual to date, forecast to year end, budget beside it.",
+    render: function () {
+      var p = CTS.period();
+      var fyKeys = E.monthsOfFY(p.fy);
+      if (!E.forecastEnabled()) {
+        return [
+          seedBanner(), CTS.periodBar(), U.h1("Forecast", "FY" + p.fy),
+          h("div.banner.banner-warn", [h("strong", "No forecast is loaded. "),
+            "Put 09 Forecast.xlsx in the templates folder and run Build. Until then the months after the reporting month are filled with budget, which is how the portal worked before the forecast existed."]),
+        ];
+      }
+      var fc = E.forecast();
+      var fcKeys = fyKeys.filter(function (k) { return E.blendSource(k) === "forecast"; });
+      var actKeys = fyKeys.filter(function (k) { return E.blendSource(k) === "actual"; });
+      var budKeys = fyKeys.filter(function (k) { return E.blendSource(k) === "budget"; });
+      var land = E.pnlBlend(fyKeys), act = E.pnlActual(actKeys), fcast = E.pnlForecast(fcKeys), bud = E.pnlBudget(fyKeys);
+      var lt = land.totals, at = act.totals, ft = fcast.totals, bt = bud.totals;
+      var firstFc = fcKeys.length ? E.monthIdx[fcKeys[0]].label : null, lastFc = fcKeys.length ? E.monthIdx[fcKeys[fcKeys.length - 1]].label : null;
+      var a = E.forecastAssumptions();
+
+      var tiles = h("div.tiles", [
+        U.tile({ label: "FY" + p.fy + " revenue", value: F.dollars(lt.income),
+                 sub: (lt.income - bt.income >= 0 ? "+" : "−") + F.money(Math.abs(lt.income - bt.income)) + " vs budget",
+                 note: "Actual " + F.dollars(at.income) + ", forecast " + F.dollars(ft.income) }),
+        U.tile({ label: "FY" + p.fy + " gross profit", value: F.dollars(lt.grossProfit),
+                 sub: F.pct(lt.income ? lt.grossProfit / lt.income : null) + " margin",
+                 note: "Budget " + F.pct(bt.income ? bt.grossProfit / bt.income : null) }),
+        U.tile({ label: "FY" + p.fy + " net profit", value: F.dollars(lt.netProfit),
+                 tone: lt.netProfit >= bt.netProfit ? "good" : "critical",
+                 sub: (lt.netProfit - bt.netProfit >= 0 ? "+" : "−") + F.money(Math.abs(lt.netProfit - bt.netProfit)) + " vs budget",
+                 note: "Budget " + F.dollars(bt.netProfit) }),
+        U.tile({ label: "Forecast months", value: String(fcKeys.length),
+                 sub: firstFc ? firstFc + " to " + lastFc : "none in this year",
+                 note: fc.overrides.length + " typed override" + (fc.overrides.length === 1 ? "" : "s") + ", " + fc.history.months + " months of history" }),
+      ]);
+
+      var landing = U.table([
+        { key: "l", label: "", align: "left" },
+        { key: "a", label: "Actual to " + ((E.monthIdx[p.rm] || {}).label || p.rm), fmt: F.money, cell: U.moneyCell },
+        { key: "f", label: "Forecast to year end", fmt: F.money, cell: U.moneyCell },
+        { key: "t", label: "Full year", fmt: F.money, cell: U.moneyCell },
+        { key: "b", label: "Budget", fmt: F.money, cell: U.moneyCell },
+        { key: "d", label: "Variance", fmt: F.money, cell: U.moneyCell },
+        { key: "p", label: "%", fmt: function (v) { return F.pct(v); } },
+        { key: "r", label: "Risk", align: "left", value: function (r) { return h("span.risk.risk-" + U.RISK_CLASS[r.rk], r.rk); } },
+      ], [
+        ["Income", "income"], ["Cost of Sales", "cos"], ["Gross Profit", "grossProfit"],
+        ["Expenses", "expenses"], ["Other Income", "otherIncome"], ["Other Expenses", "otherExpenses"], ["Net Profit", "netProfit"],
+      ].map(function (r) {
+        var k = r[1];
+        return { l: r[0], a: at[k], f: ft[k], t: lt[k], b: bt[k], d: lt[k] - bt[k],
+                 p: bt[k] ? (lt[k] - bt[k]) / Math.abs(bt[k]) : null, rk: E.risk(lt[k], bt[k]),
+                 _cls: /Profit/.test(r[0]) ? "totalrow" : "" };
+      }));
+
+      var labels = fyKeys.map(function (k) { return E.monthIdx[k].label; });
+      var trend = U.columns({
+        labels: labels, width: 760, height: 250,
+        series: [
+          { label: "Revenue", colour: "var(--measure-1)", values: land.income },
+          { label: "Gross profit", colour: "var(--measure-2)", values: land.grossProfit },
+          { label: "Net profit", colour: "var(--measure-3)", values: land.netProfit },
+        ],
+      });
+      var monthTable = U.table([
+        { key: "m", label: "Month", align: "left" },
+        { key: "src", label: "", align: "left" },
+        { key: "rev", label: "Revenue", fmt: F.money },
+        { key: "brev", label: "Budget revenue", fmt: F.money },
+        { key: "gp", label: "Gross profit", fmt: F.money },
+        { key: "np", label: "Net profit", fmt: F.money, cell: U.moneyCell },
+        { key: "bnp", label: "Budget net profit", fmt: F.money, cell: U.moneyCell },
+      ], fyKeys.map(function (k, i) {
+        var src = E.blendSource(k);
+        return { m: E.monthIdx[k].label, src: src === "actual" ? "" : src,
+                 rev: land.income[i], brev: bud.income[i], gp: land.grossProfit[i], np: land.netProfit[i], bnp: bud.netProfit[i],
+                 _cls: src === "actual" ? "" : "forecast" };
+      }), { dense: true });
+
+      // departments: actual to date, forecast to year end, budget
+      var depts = E.visibleDepts().filter(function (d) { return d.isRevenue; });
+      var fInc = E.forecastByDept(fcKeys, "income"), fCos = E.forecastByDept(fcKeys, "cos");
+      var bInc = E.budgetByDept(fyKeys, "income"), bCos = E.budgetByDept(fyKeys, "cos");
+      var bbInc = E.budgetByDept(budKeys, "income"), bbCos = E.budgetByDept(budKeys, "cos");
+      var deptRows = depts.map(function (d) {
+        var ai = E.sumMonths((E.idx.deptCatMonth[d.code] || {}).income, actKeys);
+        var ac = E.sumMonths((E.idx.deptCatMonth[d.code] || {}).cos, actKeys);
+        var ti = ai + (fInc[d.code] || 0) + (bbInc[d.code] || 0), tc = ac + (fCos[d.code] || 0) + (bbCos[d.code] || 0);
+        var bi = bInc[d.code] || 0, bc = bCos[d.code] || 0;
+        return { d: d.short, code: d.code, ai: ai, fi: fInc[d.code] || 0, ti: ti, bi: bi, vi: ti - bi,
+                 gm: ti ? (ti + tc) / ti : null, bgm: bi ? (bi + bc) / bi : null, risk: E.risk(ti, bi) };
+      });
+      var deptTable = U.table([
+        { key: "d", label: "Department", align: "left",
+          value: function (r) { return h("span", [h("span.dot", { style: { background: U.colourOf(r.code) } }), r.d]); } },
+        { key: "ai", label: "Revenue to date", fmt: F.money },
+        { key: "fi", label: "Forecast to year end", fmt: F.money },
+        { key: "ti", label: "Full year", fmt: F.money },
+        { key: "bi", label: "Budget", fmt: F.money },
+        { key: "vi", label: "Variance", fmt: F.money, cell: U.moneyCell },
+        { key: "gm", label: "GM % full year", fmt: function (v) { return F.pct(v); } },
+        { key: "bgm", label: "GM % budget", fmt: function (v) { return F.pct(v); } },
+        { key: "risk", label: "Risk", align: "left", value: function (r) { return h("span.risk.risk-" + U.RISK_CLASS[r.risk], r.risk); } },
+      ], deptRows);
+
+      // how each line is made
+      var SRC = { account: "account line", subcategory: "subcategory line", category: "category line", "default": "default", mixed: "mixed" };
+      var lines = E.forecastLines(fcKeys).filter(function (r) { return r.total || r.source !== "default"; });
+      var methodTable = U.table([
+        { key: "cat", label: "Category", align: "left" },
+        { key: "sub", label: "Line", align: "left" },
+        { key: "methodLabel", label: "Method", align: "left",
+          value: function (r) { return h("span.chip.chip-" + (r.method === "fixed" ? "warning" : r.method === "mixed" ? "muted" : "good"), r.methodLabel || r.method); } },
+        { key: "param", label: "Parameter", align: "left",
+          value: function (r) { return r.param == null ? h("span.muted", r.method === "revenue_pct" ? "measured" : r.method === "runrate" ? a.runRate + " months" : r.method === "seasonal" ? "growth from Assumptions" : r.method === "fixed" ? "no amount typed, so run rate" : "") : String(r.param); } },
+        { key: "source", label: "Set by", align: "left", value: function (r) { return SRC[r.source] || r.source; } },
+        { key: "accounts", label: "Accounts" },
+        { key: "total", label: "Forecast to year end", fmt: F.money, cell: U.moneyCell },
+      ], lines, { dense: true });
+
+      var overrideTable = fc.overrides.length ? U.table([
+        { key: "month", label: "Month", align: "left", value: function (r) { return (E.monthIdx[r.month] || {}).label || r.month; } },
+        { key: "dept", label: "Department", align: "left", value: function (r) { return r.dept || "Company"; } },
+        { key: "account", label: "Account", align: "left" },
+        { key: "cents", label: "Typed", fmt: F.money, cell: U.moneyCell },
+        { key: "was", label: "Method gave", fmt: F.money, cell: U.moneyCell },
+        { key: "note", label: "Why", align: "left" },
+      ], fc.overrides, { dense: true }) : U.note("No typed overrides. Every forecast cell is the method's own figure.", "muted");
+      var unapplied = fc.unapplied.length ? h("div.banner.banner-warn", [
+        h("strong", fc.unapplied.length + " override" + (fc.unapplied.length > 1 ? "s" : "") + " not applied. "),
+        fc.unapplied.map(function (u) { return (u.account || "?") + " " + (u.month || "") + ": " + u.why; }).join("; ") + ".",
+      ]) : null;
+
+      var growth = Object.keys(a.growth).map(function (k) { return k + " " + F.pct(+a.growth[k], 1); }).join(", ");
+      return [
+        seedBanner(), CTS.periodBar(), U.h1("Forecast", "FY" + p.fy + ", " + E.blendLabel()),
+        U.note("The months after " + ((E.monthIdx[p.rm] || {}).label || p.rm) + " are forecast, line by line, on the method set for each line in 09 Forecast.xlsx. Budget stays as the comparison. History is the ledger by department, so the departmental forecasts add up to the company one. Horizon " + a.horizon + " months, run rate over " + a.runRate + (growth ? ", growth on last year: " + growth : "") + "."),
+        tiles,
+        U.section("Full year landing", landing,
+          "Actual to the reporting month plus forecast to year end. The risk flag is the Controller Pack's rule applied to the full year against budget."),
+        U.section("Month by month",
+          U.figure("FY" + p.fy + " revenue, gross profit and net profit, " + E.blendLabel(), trend, monthTable,
+                   "Forecast months are shaded in the table. Budget revenue and budget net profit sit beside each month for the comparison.")),
+        U.section("By department", deptTable,
+          "Revenue to date is the ledger. Forecast to year end is the department's own history through the method. Budget by department is derived the way it is everywhere else in the portal, on each account's prior year split."),
+        U.section("How each line is forecast", methodTable,
+          "Seasonal is the same month last year grown by the assumption. Run rate is the average of recent months. % of revenue follows the department's forecast revenue at the measured or typed rate. Fixed is typed. Change a method on the Methods tab of 09 Forecast.xlsx and rebuild."),
+        U.section("Typed overrides", [unapplied, overrideTable],
+          "An override replaces the method's figure for that account and month. Typed as the P&L shows it: income positive, a cost positive. A blank department applies to the company and is spread on the method's own split."),
+      ];
+    },
+  };
+
   /* ==================================================== revenue ======== */
   P["rev-summary"] = {
     section: "Revenue", title: "Revenue Summary",
@@ -2286,7 +2716,10 @@
       var series = depts.map(function (d) {
         return { label: d.short, colour: U.colourOf(d.code), key: d.code,
                  values: fyKeys.map(function (k) {
-                   return E.sumMonths((E.idx.deptCatMonth[d.code] || {}).income, [k]);
+                   var src = E.blendSource(k);
+                   if (src === "actual") return E.sumMonths((E.idx.deptCatMonth[d.code] || {}).income, [k]);
+                   if (src === "forecast") return E.forecastByDept([k], "income")[d.code] || 0;
+                   return E.budgetByDept([k], "income")[d.code] || 0;
                  }) };
       });
       var stacked = U.columns({ labels: labels, series: series, stacked: true,
@@ -2304,7 +2737,7 @@
       return [
         seedBanner(), CTS.periodBar(), U.h1("Revenue Summary", p.label),
         U.section("Revenue by department across FY" + p.fy,
-          U.figure("Stacked by department, actual then budget", stacked,
+          U.figure("Stacked by department, " + E.blendLabel(), stacked,
             U.table([{ key: "m", label: "Month", align: "left" }].concat(
               depts.map(function (d) { return { key: d.code, label: d.short, fmt: F.k }; })),
               fyKeys.map(function (k, i) {

@@ -1,9 +1,19 @@
 # Forecasting: the design
 
-CTS does not forecast today. This is the plan for building it into the portal
+CTS did not forecast before the portal. This is the plan for building it in
 so that every page that shows a budget also shows a forecast, and cash is
-forecast off the same numbers. It is a design to agree, not a build that has
-happened. The parts are ordered so each one is useful on its own.
+forecast off the same numbers. The parts are ordered so each one is useful on
+its own. Step 1 is built; the rest is the plan.
+
+## Where it is up to
+
+| Step | State |
+|---|---|
+| 1. P&L forecast on run rate and seasonality, with overrides | Built. Forecast page, forecast column across the portal, 09 Forecast template, full year outlook in the tier one email |
+| 2. Twelve month cash, indirect | Designed, needs 10 Cash and Commitments |
+| 3. Pipeline driven revenue | Designed, needs the three system exports |
+| 4. Thirteen week cash, direct | Designed. The 11 and 12 aged report templates exist, in the layout confirmed against the live Xero organisation |
+| 5. Forecast accuracy | Designed, needs three months of archive |
 
 ## The one idea
 
@@ -121,10 +131,18 @@ what to run, a data tab that is a straight paste.
 
 | Template | Run in | Feeds |
 |---|---|---|
-| 09 Xero Aged Receivables | Xero, Aged Receivables Detail, as at month end | Debtor receipts, days to pay |
-| 10 Xero Aged Payables | Xero, Aged Payables Detail, as at month end | Creditor payments |
-| 11 Cash and Commitments | Typed, standing | Bank balances at month end, the commitments list, the tax calendar, the invoicing pattern per department, any facility |
-| 12 Forecast | Typed, standing, revised monthly | Method per account, the baseline growth and never in pipeline percentages, headcount changes, overrides |
+| 09 Forecast | Typed, standing, revised when an assumption moves | Method per line, growth by department, run rate window, typed overrides. Built |
+| 10 Cash and Commitments | Typed, standing | Bank balances at month end, the commitments list, the tax calendar, the invoicing pattern per department, any facility |
+| 11 Xero Aged Receivables | Xero, Aged Receivables Detail, as at month end | Debtor receipts, days to pay. Template built on the confirmed layout |
+| 12 Xero Aged Payables | Xero, Aged Payables Detail, as at month end | Creditor payments. Template built on the confirmed layout |
+
+The aged report layouts were confirmed against the live Xero organisation on
+25 September 2026: one row per invoice or bill with contact, date, due date,
+number, reference, the five ageing buckets (current, under one month, one,
+two and three months, older) and a total, ageing by due date. Xero's Cost
+Centres tracking category carries exactly the six department codes the portal
+resolves on, and Job Numbers carry the bracket tags, which confirms the
+department resolution rule.
 
 The three pipeline exports already in the plan (Zoho, OnRent, Qwilr) carry
 the revenue side. Days to pay by client needs one more Xero run, Receivable
@@ -168,12 +186,15 @@ forecast to this month's is the first thing the Forecast page shows.
 
 Each step stands on its own and needs only what is listed.
 
-1. **P&L forecast on run rate and seasonality, with overrides.** Needs the
-   12 Forecast template, which starts with sensible defaults typed in. No new
-   system exports. Gives the Forecast page, the forecast column everywhere,
-   and the full year landing. This is the step that changes how the monthly
-   report reads, and it is two to three days of build.
-2. **Twelve month cash on the indirect method.** Needs the 11 Cash and
+1. **P&L forecast on run rate and seasonality, with overrides.** Built. The
+   09 Forecast template starts with the defaults typed in: income on the same
+   month last year, cost of sales as a measured share of department revenue
+   with permanent labour on run rate, overheads on a three month run rate.
+   The Forecast page shows the full year landing, the month by month view,
+   the departments, and the method behind every line. The months after the
+   reporting month are forecast everywhere the portal used to fill them with
+   budget, and budget stays as the comparison.
+2. **Twelve month cash on the indirect method.** Needs the 10 Cash and
    Commitments template, the opening bank balances and the commitments list.
    Gives the Cash Flow page's monthly view and the cash tile.
 3. **Pipeline driven revenue.** Needs the three real exports from Zoho, OnRent

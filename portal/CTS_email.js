@@ -79,11 +79,18 @@
       ["Net profit", pnl.totals.netProfit, bud.totals.netProfit, prior.totals.netProfit, true],
     ].map(function (r) { return { l: r[0], a: r[1], b: r[2], py: r[3], v: r[1] - r[2], _bold: !!r[4] }; });
     var gm = pnl.totals.income ? pnl.totals.grossProfit / pnl.totals.income : null;
+    var outlook = "";
+    if (e.forecastEnabled && e.forecastEnabled()) {
+      var fyK = e.monthsOfFY(e.currentFY()), land = e.pnlBlend(fyK).totals, fb = e.pnlBudget(fyK).totals;
+      outlook = p("<b>Full year FY" + e.currentFY() + " outlook:</b> revenue " + money(land.income) + " against budget " + money(fb.income) +
+                  ", net profit " + money(land.netProfit) + " against budget " + money(fb.netProfit) +
+                  ". Actual to date then forecast, line by line on the methods set for the month.");
+    }
     return h2("Company result, " + label) +
       table([{ key: "l", label: "", align: "left" }, { key: "a", label: "Actual", fmt: money },
              { key: "b", label: "Budget", fmt: money }, { key: "v", label: "Variance", fmt: money },
              { key: "py", label: "Last year", fmt: money }], rows) +
-      p("Gross margin " + pct(gm) + ". Compared in dollars rather than percentages, as management prefer.", true);
+      p("Gross margin " + pct(gm) + ". Compared in dollars rather than percentages, as management prefer.", true) + outlook;
   }
 
   function deptBlock(keys, label, only) {

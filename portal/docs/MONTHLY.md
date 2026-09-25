@@ -1,6 +1,7 @@
 # The monthly routine
 
-Around twenty minutes once the exports are run.
+Around twenty minutes once the exports are run. Eight templates carry the
+month; the ninth, Forecast, only changes when an assumption does.
 
 ## 1. Update the templates
 
@@ -17,6 +18,9 @@ a straight paste; the Read me tab in each file says exactly what to run.
 | 06 Qwilr Quotes | Qwilr, quotes list | Placeholder shape until a real export is matched |
 | 07 Budget | Once a year and when the forecast moves | Same layout as the P&L |
 | 08 Config | Change the reporting month on the Reporting tab | The one setting that moves every month |
+| 09 Forecast | Usually nothing | A growth rate, a method, or a typed override when you know something the history does not |
+| 11 Xero Aged Receivables | Xero, Aged Receivables Detail as at month end | One row per unpaid invoice. Read by the cash flow build; safe to fill now |
+| 12 Xero Aged Payables | Xero, Aged Payables Detail as at month end | One row per unpaid bill. Same |
 
 Before you paste the ledger: set Stripe fee rows to `9000 - OFFICE / ADMIN [CTS]`
 and fill in the contact on revenue rows from manual journals, one spelling per
