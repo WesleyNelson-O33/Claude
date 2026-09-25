@@ -26,7 +26,7 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 
 SRC, OUT = sys.argv[1], sys.argv[2]
 PASSWORD = "CTS1234"          # same password as v3
-N = 500                       # job rows per department
+N = int(sys.argv[3]) if len(sys.argv) > 3 else 500   # job rows per department
 DEPTS = [("Onsite", "ONS", "tbl_Onsite"),
          ("Production", "PRD", "tbl_Production"),
          ("Consulting", "CON", "tbl_Consulting")]
@@ -215,7 +215,7 @@ def dept_formulas(dept, cols):
     miss = "&".join(f'IF({c(h)}{{r}}="",", {lab}","")' for h, lab in need)
     dup = f'IF(COUNTIF(tbl_Finance[Job Number],{job}&"")>1,", Job number used twice","")'
     f["Not Yet on Finance"] = (f'=IF({job}="","",IF(({miss}&{dup})="","Complete",'
-                               f'"Missing: "&MID({miss}&{dup},3,300)))')
+                               f'"Fix: "&MID({miss}&{dup},3,300)))')
     if dept == "Onsite":
         f["Open Qwilr"] = '=IF(S{r}="","",HYPERLINK(IF(LEFT(S{r},4)="http",S{r},set_QwilrBase&S{r}),"Open quote"))'
     if dept == "Production":
@@ -257,7 +257,7 @@ HDR_NOTES = {
     "Invoiced": "From Finance: Not invoiced / Dept higher - to invoice / Agrees / Xero higher - check dept.",
     "To Invoice": "Expected Revenue Ex GST less what Xero has invoiced. This is what is still to be billed.",
     "Expected Revenue Ex GST": "YOU TYPE: what the whole job is worth ex GST. Finance compares Xero to this number.",
-    "Not Yet on Finance": "Checks the information Finance needs. Reads Complete, or lists what is missing.",
+    "Not Yet on Finance": "Checks the information Finance needs. Reads Complete, or Fix: and what is missing or wrong.",
     "Cost Centres": "Your cost centre and the revenue GL it posts to.",
     "Row ID": "Fixed link to this job's row on the Finance sheet. Never type over it, never delete the row.",
 }
@@ -319,7 +319,7 @@ def build_dept(dept, prefix, tname):
     ws.add_data_validation(dv)
     rng = lambda h: f"{cols[h]}5:{cols[h]}{4 + N}"
     red_if(ws, rng("Job in Xero?"), f'{cols["Job in Xero?"]}5="CHECK"')
-    red_if(ws, rng("Not Yet on Finance"), f'LEFT({cols["Not Yet on Finance"]}5,7)="Missing"')
+    red_if(ws, rng("Not Yet on Finance"), f'LEFT({cols["Not Yet on Finance"]}5,4)="Fix:"')
     inv = cols["Invoiced"]
     red_if(ws, rng("Invoiced"), f'{inv}5="Agrees"', fill="D4EDDA", color="155724")
     red_if(ws, rng("Invoiced"), f'LEFT({inv}5,4)="Xero"')
@@ -869,8 +869,8 @@ def build_month_end():
         ("Job numbers used on more than one row (any department)",
          f"SUMPRODUCT((Finance!{fin_range}<>\"\")*(COUNTIF(Finance!{fin_range},Finance!{fin_range})>1))"),
         ("Department rows missing information Finance needs",
-         'COUNTIF(tbl_Onsite[Not Yet on Finance],"Missing*")+COUNTIF(tbl_Production[Not Yet on Finance],"Missing*")'
-         '+COUNTIF(tbl_Consulting[Not Yet on Finance],"Missing*")'),
+         'COUNTIF(tbl_Onsite[Not Yet on Finance],"Fix:*")+COUNTIF(tbl_Production[Not Yet on Finance],"Fix:*")'
+         '+COUNTIF(tbl_Consulting[Not Yet on Finance],"Fix:*")'),
         ("Incomplete invoices (No, Date or Ex GST missing)", 'COUNTIF(tbl_Finance[Issue],"*incomplete*")'),
         ("Invoice dates typed under the wrong month", 'COUNTIF(tbl_Finance[Issue],"*not in the month*")'),
         ("Department rows deleted (Row ID missing)", 'COUNTIF(tbl_Finance[Issue],"*Row ID not found*")'),
@@ -989,7 +989,7 @@ README = [
     ("WHO TYPES WHERE", "h"),
     ("Department managers (Onsite, Production, Consulting): fill in every white cell on your own sheet. One row per job number. Start at the top and use the next empty row.", None),
     ("The cells Finance needs before it can invoice are: Job Number, Client, Job Description, Cost Centre, Invoice Type, Tax Code and Expected Revenue Ex GST.", None),
-    ("The Not Yet on Finance column checks those for you. It reads Complete, or it lists what is missing.", None),
+    ("The Not Yet on Finance column checks those for you. It reads Complete, or Fix: followed by what is missing or wrong.", None),
     ("Finance: on the Finance sheet, type only in the yellow cells. Find the job, go to the month the invoice is dated, and type the Invoice No, Invoice Date and Ex GST.", None),
     ("Grey cells are formulas. They are locked so nobody can wipe them by accident.", None),
     ("", None),
