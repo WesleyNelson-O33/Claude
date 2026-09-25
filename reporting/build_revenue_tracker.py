@@ -59,6 +59,10 @@ INPUT_FILL = PatternFill("solid", fgColor="FFF9E6")
 CALC_FILL = PatternFill("solid", fgColor=CALC_BG)
 
 COST_CENTRES = ACC["cost_centres"]
+# The revenue account each cost centre posts to. Change it here and every
+# Finance line follows, because nothing types a GL code any more.
+CC_TO_GL = {"ONSITE": "41100", "PRODUCTION": "42100", "VIDEO": "42150",
+            "INTEGRATION": "42300", "CONSULTING": "42800", "CTS": "42200"}
 HDR_ROW, DATA_ROW, DV_LAST, CF_LAST = 4, 5, 20000, 5000
 SPARE = 400                      # blank rows kept ready on each entry table
 SHEET_PASSWORD = "CTS1234"       # Review, Unprotect Sheet - then edit anything
@@ -115,15 +119,25 @@ def render(template, headers, row):
 
 # ---------------------------------------------------------------- Finance
 FIN_COLS = [
-    ("Date", 11, DATE, "in"), ("Month", 10, MON, "f"),
-    ("Xero Invoice No", 16, TXT, "in"), ("Client", 26, TXT, "in"),
-    ("Job Number", 15, TXT, "in"), ("Job in Xero?", 12, TXT, "f"),
-    ("Description", 44, TXT, "in"), ("Team", 13, TXT, "dv"),
-    ("Cost Centre", 14, TXT, "dv"), ("Invoice Type", 15, TXT, "dv"),
-    ("Tax Code", 12, TXT, "dv"), ("Ex GST", 14, CUR, "in"),
-    ("GST", 12, CUR, "f"), ("Inc GST", 14, CUR, "f"),
-    ("Revenue GL", 13, TXT, "dv"), ("Posted to Xero", 14, TXT, "dv"),
-    ("To WIP", 9, TXT, "dv"),
+    # A21: Finance types the five things that are on the Xero invoice line and
+    # nothing else. Everything below them is the job, and the job belongs to
+    # the department sheet - it is read from there on the project number.
+    ("Job Number", 15, TXT, "in"), ("Xero Invoice No", 16, TXT, "in"),
+    ("Date", 11, DATE, "in"), ("Cost Centre", 14, TXT, "dv"),
+    ("Ex GST", 14, CUR, "in"),
+    # ---- from here down nothing is typed on this sheet ----
+    ("Month", 10, MON, "f"), ("Department", 13, TXT, "f"),
+    ("Job in Xero?", 12, TXT, "f"), ("Job Name (Xero)", 34, TXT, "f"),
+    ("Client", 26, TXT, "f"), ("Description", 44, TXT, "f"),
+    ("Invoice Type", 15, TXT, "f"), ("Tax Code", 12, TXT, "f"),
+    ("Revenue GL", 13, TXT, "f"), ("GST", 12, CUR, "f"),
+    ("Inc GST", 14, CUR, "f"),
+    # A21: the department says what the job is worth, Xero says what was
+    # actually raised against it. These four put the two side by side.
+    ("Job Value per Dept", 18, CUR, "f"), ("Invoiced per Xero", 17, CUR, "f"),
+    ("Dept vs Xero", 14, CUR, "f"), ("Compare", 22, TXT, "f"),
+    # Finance's own month-end handling of the line
+    ("Posted to Xero", 14, TXT, "dv"), ("To WIP", 9, TXT, "dv"),
     # A16: fill both and the deferral releases itself every month - see the
     # Deferred Revenue sheet. Leave both blank for a normal one-off invoice.
     ("Defer Start", 12, DATE, "in"), ("Defer End", 12, DATE, "in"),
@@ -132,8 +146,7 @@ FIN_COLS = [
     # cost centres reconcile on. Columns below are the whole JOB that line
     # belongs to, so a job split over several lines reads as one job. They
     # repeat on each of its lines - never add them up.
-    ("On Dept Sheet", 15, TXT, "f"),
- ("Job Name (Xero)", 34, TXT, "f"), ("Lines on this Job", 12, INT, "f"),
+    ("Lines on this Job", 12, INT, "f"),
     ("Job Total Ex GST", 15, CUR, "f"), ("Job Invoiced", 14, CUR, "f"),
     ("Job To Invoice", 14, CUR, "f"), ("Job Quote / Ref", 34, TXT, "f"),
     ("Open Quote", 13, TXT, "f"), ("Job Expense", 14, CUR, "f"),
@@ -207,15 +220,18 @@ FIN_FORMULAS = {
     "Job Margin %": '=IFERROR({Job Margin}/{Job Total Ex GST},"")',
     "Dept Notes": None,
     "Issue":
-        '=IF(COUNTA({Date},{Client},{Xero Invoice No},{Ex GST})=0,"",'
+        '=IF(COUNTA({Date},{Job Number},{Xero Invoice No},{Ex GST})=0,"",'
         'IF({Date}="","No date - sits outside every month",'
         'IF({Job Number}="","No job number",'
         'IF({Job in Xero?}="CHECK","Job number is not in the Xero job list",'
+        'IF({Department}="not set up yet",'
+        '"No department has set this job up - nothing can pull through",'
         'IF({Cost Centre}="","No cost centre",'
         'IF(AND({Posted to Xero}="Y",{Xero Invoice No}=""),'
         '"Marked posted to Xero but has no invoice number",'
-        'IF(AND({Ex GST}<>"",{Tax Code}=""),"No tax code",'
-        'IF(AND({Ex GST}<>"",{Revenue GL}=""),"No revenue GL code",""))))))))',
+        'IF({Revenue GL}="","Cost centre has no revenue GL on the Lists sheet",'
+        'IF({Compare}="Xero higher - check dept",'
+        '"Invoiced more than the department says the job is worth","")))))))))',
 }
 
 # ---------------------------------------------------------------- departments
@@ -227,7 +243,12 @@ FIN_FORMULAS = {
 JOB_CORE = [
     ("Invoice Date", 12, DATE, "f"), ("Invoice No", 16, TXT, "f"),
     ("Job Number", 15, TXT, "in"), ("Job in Xero?", 12, TXT, "f"),
-    ("Job Name (Xero)", 38, TXT, "f"), ("Client", 24, TXT, "f"),
+    ("Job Name (Xero)", 38, TXT, "f"),
+    # A21: the department is the source of truth for the job, so these are
+    # typed here and read by Finance - they are not invoice details.
+    ("Client", 26, TXT, "in"), ("Job Description", 44, TXT, "in"),
+    ("Cost Centre", 14, TXT, "dv"), ("Invoice Type", 15, TXT, "dv"),
+    ("Tax Code", 12, TXT, "dv"),
     ("Lines on Job", 11, INT, "f"), ("Revenue Ex GST", 16, CUR, "f"),
     ("Invoiced", 14, CUR, "f"), ("To Invoice", 14, CUR, "f"),
     # A19: what the job is worth in total, typed by the department. Until
@@ -248,8 +269,6 @@ JOB_CORE_FORMULAS = {
     "Job in Xero?": '=IF({Job Number}="","",IF(COUNTIF(lst_Jobs,{Job Number}&"")>0,"OK","CHECK"))',
     "Job Name (Xero)": '=IF({Job Number}="","",IFERROR(INDEX(lst_JobName,'
                        'MATCH({Job Number}&"",lst_Jobs,0)),""))',
-    "Client": '=IF({Job Number}="","",IFERROR(INDEX(' + FIN + '[Client],'
-              + jmatch(FIN) + '),""))',
     "Lines on Job": '=IF({Job Number}="","",COUNTIFS(' + FIN + '[Job Number],'
                     '{Job Number}&"",' + FIN + '[Ex GST],"<>"))',
     # A job's revenue is not all invoiced yet, so say which part is which
@@ -278,7 +297,7 @@ DEPT_EXTRA = {
     # quote as well, linked exactly the way Consulting's is.
     "Production": [
         ("Total Inc GST", 14, CUR, "f"),
-        ("Company", 18, TXT, "in"), ("Event Name", 34, TXT, "f"),
+        ("Company", 18, TXT, "in"),
         ("Client Email", 30, TXT, "in"), ("Event Grouping", 20, TXT, "in"),
         ("Event Date", 12, DATE, "in"), ("Current RMS No", 14, TXT, "in"),
         ("Open in Current RMS", 18, TXT, "f"),
@@ -335,12 +354,6 @@ DEPT_EXTRA_FORMULAS = {
         "Video % of Revenue": '=IFERROR({Video Revenue}/{Revenue Ex GST},"")',
         "Total Inc GST": '=IF({Job Number}="","",SUMIFS(' + FIN + '[Inc GST],'
                          + FIN + '[Job Number],{Job Number}&""))',
-        # The crew's own name for the event, as Finance typed it on the invoice.
-        "Event Name": '=IF({Job Number}="","",IFERROR(INDEX(' + FIN + '[Description],'
-                      'MATCH({Job Number}&"",' + FIN + '[Job Number],0)),""))',
-        "Margin": '=IF({Job Number}="","",{Revenue Ex GST}+{Not Yet on Finance}'
-                  '-{Total Expense})',
-        "Margin %": '=IFERROR({Margin}/({Revenue Ex GST}+{Not Yet on Finance}),"")',
     },
     "Consulting": {
         "Open Qwilr": QWILR,
@@ -405,20 +418,53 @@ WIP_FORMULAS = {
                     'MATCH({Xero Invoice No}&"",' + FIN + '[Xero Invoice No],0)),""))',
 }
 
-FIN_FORMULAS["On Dept Sheet"] = (
+# A21: which sheet owns this job. Everything else keys off it.
+FIN_FORMULAS["Department"] = (
     '=IF({Job Number}="","",'
     + "".join(f'IF(COUNTIF(tbl_{d}[Job Number],{{Job Number}}&"")>0,"{d}",'
               for d in DEPTS)
     + '"not set up yet"' + ")" * len(DEPTS) + ')')
+
+# The job's own details, read from whichever department sheet holds it.
+for _name, _col in (("Client", "Client"), ("Description", "Job Description"),
+                    ("Invoice Type", "Invoice Type")):
+    FIN_FORMULAS[_name] = ('=IF({Job Number}="","",'
+                           + _dept_pick({d: _col for d in DEPTS}) + ')')
+
+# Blank on the department sheet means the ordinary case, not an empty cell.
+FIN_FORMULAS["Tax Code"] = (
+    '=IF({Job Number}="","",IF('
+    + _dept_pick({d: "Tax Code" for d in DEPTS}) + '="","GST 10%",'
+    + _dept_pick({d: "Tax Code" for d in DEPTS}) + '))')
+
+# The revenue account follows the cost centre on the line, from the Lists sheet.
+FIN_FORMULAS["Revenue GL"] = (
+    '=IF({Cost Centre}="","",IFERROR(INDEX(lst_CCtoGL,'
+    'MATCH({Cost Centre},lst_CCforGL,0)),""))')
+
+# What the department says the job is worth, against what Xero has raised.
+FIN_FORMULAS["Job Value per Dept"] = ('=IF({Job Number}="","",'
+                                      + _dept_pick({d: "Expected Revenue Ex GST"
+                                                    for d in DEPTS},
+                                                   default="0") + ')')
+FIN_FORMULAS["Invoiced per Xero"] = ('=IF({Job Number}="","",SUMIFS(' + FIN
+                                     + '[Ex GST],' + FIN + '[Job Number],'
+                                     '{Job Number}&""))')
+FIN_FORMULAS["Dept vs Xero"] = ('=IF({Job Number}="","",'
+                                '{Job Value per Dept}-{Invoiced per Xero})')
+FIN_FORMULAS["Compare"] = (
+    '=IF({Job Number}="","",IF({Job Value per Dept}=0,"No dept value",'
+    'IF(ROUND({Dept vs Xero},2)=0,"Agrees",'
+    'IF({Dept vs Xero}>0,"Dept higher - to invoice","Xero higher - check dept"))))')
 
 FIN_FORMULAS["Job Quote / Ref"] = '=IF({Job Number}="","",' + _dept_pick(
     {"Onsite": "Qwilr Quote", "Consulting": "Qwilr Quote",
      "Production": ("Current RMS No", "Qwilr Quote")}) + ')'
 FIN_FORMULAS["Open Quote"] = (
     '=IF({Job Quote / Ref}="","",IF(AND(LEFT({Job Quote / Ref},4)<>"http",'
-    'IF({Team}="Production",set_RMSBase,set_QwilrBase)=""),"",'
+    'IF({Department}="Production",set_RMSBase,set_QwilrBase)=""),"",'
     'HYPERLINK(IF(LEFT({Job Quote / Ref},4)="http",'
-    '{Job Quote / Ref},IF({Team}="Production",set_RMSBase,set_QwilrBase)'
+    '{Job Quote / Ref},IF({Department}="Production",set_RMSBase,set_QwilrBase)'
     '&{Job Quote / Ref}),"Open")))')
 FIN_FORMULAS["Job Expense"] = '=IF({Job Number}="","",' + _dept_pick(
     {"Production": "Total Expense", "Consulting": "Total Expense"}, default="0") + ')'
@@ -848,6 +894,11 @@ CHECKS = [
      f'COUNTIFS({FIN}[Ex GST],"<>",{FIN}[Cost Centre],"")'),
     ("Invoice lines with an amount but no tax code",
      f'COUNTIFS({FIN}[Ex GST],"<>",{FIN}[Tax Code],"")'),
+    ("Invoiced more than the department says the job is worth",
+     f'COUNTIF({FIN}[Compare],"Xero higher - check dept")'),
+    ("Jobs where the department value and Xero do not agree",
+     f'SUMPRODUCT(--({FIN}[Job Number]<>""),--({FIN}[Compare]<>"Agrees"),'
+     f'--({FIN}[Compare]<>"No dept value"))'),
     ("Invoice lines with an amount but no revenue GL code",
      f'COUNTIFS({FIN}[Ex GST],"<>",{FIN}[Revenue GL],"")'),
     ("Anything flagged in the Issue column",
@@ -863,7 +914,7 @@ CHECKS = [
     ("Consulting revenue split does not equal the job revenue",
      'COUNTIF(tbl_Consulting[Revenue Split Check],"MISMATCH")'),
     ("Invoiced jobs not set up on any department sheet",
-     f'COUNTIF({FIN}[On Dept Sheet],"not set up yet")'),
+     f'COUNTIF({FIN}[Department],"not set up yet")'),
     ("Job numbers sitting on more than one department sheet",
      "+".join(
          f'SUMPRODUCT(--(tbl_{a}[Job Number]<>""),'
@@ -1556,6 +1607,11 @@ def build_lists(wb):
         # GL 11300 nets deferred revenue and deferred cost. Xero cannot tell them
         # apart; this column can, so the two are reported separately.
         ("J", "Revenue or Cost", ["Revenue", "Cost"], "lst_RevCost"),
+        # A21: Finance no longer types a revenue GL - the cost centre on the
+        # Xero line decides it, through this pair.
+        ("V", "Cost Centre (GL map)", COST_CENTRES, "lst_CCforGL"),
+        ("W", "Revenue GL for it",
+         [CC_TO_GL.get(cc, "") for cc in COST_CENTRES], "lst_CCtoGL"),
         ("M", "Work Won Source", ["ZOHO", "Current RMS", "Qwilr", "Other"], "lst_WonSource"),
         ("O", "Work Won Status", ["Won", "Open", "Lost", "Cancelled"], "lst_WonStatus"),
     ]
@@ -1654,21 +1710,27 @@ README = [
  ("S", "Corporate Technology Services Pty Ltd  -  replaces FY27_Revenue_Tracker_v2.xlsm"),
  ("B", ""),
  ("H", "WHO TYPES WHERE"),
- ("P", "Finance types on the Finance sheet. Nowhere else. Every invoice line, every month."),
- ("P", "Each department types on its own sheet. Nowhere else. One row per job number."),
- ("P", "The two meet on Job Number, which is a real Xero tracking category and is checked "
-       "against the live job list as you type. Nothing has to be kept lined up by hand."),
- ("P", "Type job numbers however you like - as text or as a number, typed or pasted. "
-       "Every lookup tries both, so a job number that arrives as a number from another "
-       "system still finds its match."),
- ("P", "Job Number is the only thing that joins them. The invoice date and invoice "
-       "number travel from Finance out to the department sheet that holds that job, "
-       "and the department's own figures - quote, costs, margin, notes - travel back "
-       "into the job block on Finance. The Team column plays no part in it, so a line "
-       "with Team blank or set to the wrong department still finds its job."),
- ("P", "On Dept Sheet on the Finance sheet names which department sheet the job sits "
-       "on, or says not set up yet when no department has entered it. Month-End counts "
-       "those, and counts any job set up on two sheets at once."),
+ ("P", "The department owns the job. Onsite, Production and Consulting each set their "
+       "own jobs up on their own sheet - the client, what the job is, the cost centre, "
+       "what it is worth, the quote, the costs. One row per job number, and nowhere "
+       "else."),
+ ("P", "Finance owns the invoice. On the Finance sheet Finance types five things and "
+       "five things only, all of them straight off the Xero invoice line: the job "
+       "number, the Xero invoice number, the date, the cost centre and the amount ex "
+       "GST. Everything else on that sheet reads itself."),
+ ("P", "So the client, the description, the invoice type, the tax code, the revenue GL, "
+       "the quote, the costs, the margin and the department's notes all arrive on the "
+       "Finance sheet by themselves, read from the department sheet that holds that job "
+       "number. Finance never retypes any of it and the two can never disagree."),
+ ("P", "The project number and the department are the source of truth. Job Number is the "
+       "only thing joining the two sides, and the Department column on Finance says "
+       "which sheet the job came from, or not set up yet when no department has entered "
+       "it - which is also flagged in the Issue column and counted at month-end."),
+ ("P", "Job Value per Dept, Invoiced per Xero, Dept vs Xero and Compare sit side by side "
+       "on the Finance sheet. The department says what the job is worth, Xero says what "
+       "was actually raised, and Compare reads Agrees, Dept higher - to invoice, or Xero "
+       "higher - check dept. A job invoiced in stages agrees once the last stage is "
+       "raised."),
  ("B", ""),
  ("H", "HOW IT FITS TOGETHER"),
  ("R", "Finance",
