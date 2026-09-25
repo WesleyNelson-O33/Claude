@@ -166,25 +166,33 @@ if XERO:
     me["B106"] = "Example - Accounts Assistant"
 
 # ------------------------------------------------------------ Example Guide
+from openpyxl.styles import Border, Side
+PRIMARY, ACCENT, TINT, LINE = "1F3864", "BF8F00", "D9E2F3", "C9D3E3"
 g = wb.create_sheet("Example Guide", 0)
-NAVY = "3E5066"
-g.column_dimensions["A"].width = 5
-g.column_dimensions["B"].width = 26
-g.column_dimensions["C"].width = 60
-g.column_dimensions["D"].width = 70
-g["B2"] = "WORKED EXAMPLE - for review only, not live data"
-g["B2"].font = Font(name="Arial", size=16, bold=True, color=NAVY)
-g["B3"] = ("Job numbers, job names, cost centres and GL codes are real (your Xero job list). Clients are read off the "
-           "job names. EVERY amount, invoice number, bill number and date is made up. Month-End and the Deferral "
-           "Journal are set to August 2026.")
-g["B3"].alignment = Alignment(wrap_text=True, vertical="top")
-g.merge_cells("B3:D3")
-g.row_dimensions[3].height = 45
+for col, w in zip("ABCDE", (5, 30, 58, 72, 2)):
+    g.column_dimensions[col].width = w
+for c in range(1, 6):
+    for r in (1, 2, 3):
+        g.cell(r, c).fill = PatternFill("solid", fgColor=PRIMARY)
+g["B2"] = "WORKED EXAMPLE  -  for review only, not live data"
+g["B2"].font = Font(name="Arial", size=20, bold=True, color="FFFFFF")
+g.row_dimensions[2].height = 34
+g["B3"] = "Real job numbers from your Xero job list. Every amount, invoice number, bill number and date is made up."
+g["B3"].font = Font(name="Arial", size=11, italic=True, color=TINT)
+g.row_dimensions[3].height = 22
+g["B5"] = ("Month-End and the Deferral Journal are set to August 2026. Work down the list: open the sheet named in "
+           "column B, find the job, and check it shows what column D says.")
+g["B5"].font = Font(name="Arial", size=11, color="262626")
+g["B5"].alignment = Alignment(wrap_text=True, vertical="center")
+g.merge_cells("B5:D5")
+g.row_dimensions[5].height = 32
 heads = ["#", "Job / where to look", "What was entered", "What you should see"]
 for j, h in enumerate(heads):
-    c = g.cell(5, 1 + j, h)
-    c.font = Font(name="Arial", size=10, bold=True, color="FFFFFF")
-    c.fill = PatternFill("solid", fgColor=NAVY)
+    c = g.cell(7, 1 + j, h)
+    c.font = Font(name="Arial", size=11, bold=True, color="FFFFFF")
+    c.fill = PatternFill("solid", fgColor=ACCENT if j == 3 else PRIMARY)
+    c.alignment = Alignment(vertical="center", horizontal="center" if j == 0 else None, indent=0 if j == 0 else 1)
+g.row_dimensions[7].height = 26
 SCEN = [
     ("1144 Bankwest - Onsite + Finance",
      "Dept: expected $24,000 (Jul-Dec contract). Finance: $4,000 in Jul, Aug and Sep.",
@@ -234,13 +242,19 @@ SCEN = [
      "Four journal lines (two revenue deferred, one revenue released, one cost deferred), each with project number, name, department, debit account, credit account. Xero lines on the right balance."),
 ]
 for k, (a, b, c) in enumerate(SCEN):
-    r = 6 + k
-    vals = [k + 1, a, b, c]
-    for j, v in enumerate(vals):
+    r = 8 + k
+    mistake = "MISTAKE" in a
+    band = PatternFill("solid", fgColor="FCE4D6" if mistake else ("F4F7FB" if k % 2 else "FFFFFF"))
+    for j, v in enumerate([k + 1, a, b, c]):
         cell = g.cell(r, 1 + j, v)
-        cell.font = Font(name="Arial", size=10, bold=(j == 1))
-        cell.alignment = Alignment(wrap_text=True, vertical="top")
-g.freeze_panes = "A6"
+        cell.font = Font(name="Arial", size=10, bold=(j in (0, 1)), color=PRIMARY if j in (0, 1) else "262626")
+        cell.alignment = Alignment(wrap_text=True, vertical="top", horizontal="center" if j == 0 else None,
+                                   indent=0 if j == 0 else 1)
+        cell.fill = band
+        cell.border = Border(bottom=Side(style="thin", color=LINE))
+g.freeze_panes = "A8"
+g.sheet_view.showGridLines = False
+g.sheet_properties.tabColor = ACCENT
 wb.active = 0
 wb.save(OUT)
 print("saved", OUT)

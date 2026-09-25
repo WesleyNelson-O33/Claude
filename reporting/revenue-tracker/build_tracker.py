@@ -34,29 +34,55 @@ DEPTS = [("Onsite", "ONS", "tbl_Onsite"),
 MONTHS = ["Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "Jan", "Feb", "Mar", "Apr", "May", "Jun"]
 
 # ---------------------------------------------------------------- styles
+# Every colour lives here. Swap these for the CTS brand palette and rebuild.
+# Current values: the house colours already used in CTS Financial Controller Pack,
+# CTS P&L Reporting and the Payroll checklist (navy 1F3864 / 1F4E79, light blue
+# D9E2F3, cream FFF2CC input cells, Arial).
+PAL = {
+    "primary": "1F3864",     # title bands, section bars, typed-column headers
+    "secondary": "1F4E79",   # formula-column headers
+    "accent": "BF8F00",      # Finance / Xero typed-column headers
+    "tint": "D9E2F3",        # KPI band, totals rows
+    "calc": "F4F7FB",        # formula cells
+    "fin": "FFF2CC",         # Finance / Xero typing cells
+    "input": "FFFFFF",       # department typing cells
+    "text": "262626",
+    "muted": "595959",
+    "line": "C9D3E3",
+    "tab_dept": "2E75B6",
+    "tab_ref": "A6A6A6",
+}
 FONT = "Arial"
-NAVY, SLATE, GREY_TXT = "3E5066", "5B708A", "595959"
-F_TITLE = Font(name=FONT, size=16, bold=True, color=NAVY)
-F_SUB = Font(name=FONT, size=10, color=GREY_TXT)
+NAVY, SLATE, GREY_TXT = PAL["primary"], PAL["secondary"], PAL["muted"]
+F_TITLE = Font(name=FONT, size=18, bold=True, color="FFFFFF")
+F_SUB = Font(name=FONT, size=10, italic=True, color=GREY_TXT)
 F_TOT = Font(name=FONT, size=11, bold=True, color=NAVY)
 F_HDR = Font(name=FONT, size=10, bold=True, color="FFFFFF")
 F_IN = Font(name=FONT, size=10, color="000000")
-F_CALC = Font(name=FONT, size=10, color=GREY_TXT)
-F_BOLD = Font(name=FONT, size=10, bold=True)
+F_CALC = Font(name=FONT, size=10, color=PAL["text"])
+F_BOLD = Font(name=FONT, size=10, bold=True, color=PAL["text"])
 F_SEC = Font(name=FONT, size=11, bold=True, color="FFFFFF")
-FILL_IN_HDR = PatternFill("solid", fgColor=NAVY)      # header over a typed column
-FILL_CALC_HDR = PatternFill("solid", fgColor=SLATE)   # header over a formula column
-FILL_FIN_HDR = PatternFill("solid", fgColor="B7791F")  # header over a Finance-typed column
-FILL_CALC = PatternFill("solid", fgColor="F2F2F2")
-FILL_TOT = PatternFill("solid", fgColor="EDF1F6")
-FILL_FIN = PatternFill("solid", fgColor="FFF9E6")     # Finance / Xero typing cells
-FILL_WHITE = PatternFill("solid", fgColor="FFFFFF")
-THIN = Side(style="thin", color="D9D9D9")
+FILL_TITLE = PatternFill("solid", fgColor=PAL["primary"])
+FILL_IN_HDR = PatternFill("solid", fgColor=PAL["primary"])     # header over a typed column
+FILL_CALC_HDR = PatternFill("solid", fgColor=PAL["secondary"])  # header over a formula column
+FILL_FIN_HDR = PatternFill("solid", fgColor=PAL["accent"])      # header over a Finance-typed column
+FILL_CALC = PatternFill("solid", fgColor=PAL["calc"])
+FILL_TOT = PatternFill("solid", fgColor=PAL["tint"])
+FILL_FIN = PatternFill("solid", fgColor=PAL["fin"])
+FILL_WHITE = PatternFill("solid", fgColor=PAL["input"])
+THIN = Side(style="thin", color=PAL["line"])
+HAIR = Side(style="hair", color=PAL["line"])
 BORDER = Border(left=THIN, right=THIN, top=THIN, bottom=THIN)
-MONEY = '$#,##0.00;[Red]-$#,##0.00'
+ROW_LINE = Border(bottom=HAIR)
+MONEY = '$#,##0.00;[Red]-$#,##0.00;"-"'
 DATE = "dd-mmm-yy"
 WRAP = Alignment(wrap_text=True, vertical="top")
 HDR_ALIGN = Alignment(wrap_text=True, vertical="center", horizontal="center")
+TABS = {"Example Guide": PAL["accent"], "Read Me": PAL["primary"], "Finance": PAL["accent"],
+        "Month-End": PAL["primary"], "Deferrals": PAL["accent"], "Deferral Journal": PAL["accent"],
+        "FY Summary": PAL["primary"], "Onsite": PAL["tab_dept"], "Production": PAL["tab_dept"],
+        "Consulting": PAL["tab_dept"], "WIP Movements": PAL["secondary"], "WIP Summary": PAL["secondary"],
+        "Work Won": PAL["secondary"], "Lists": PAL["tab_ref"]}
 
 src = openpyxl.load_workbook(SRC)        # read only - never saved
 wb = openpyxl.Workbook()
@@ -66,10 +92,27 @@ wb.remove(wb.active)
 def title_block(ws, title, sub):
     ws["A1"] = title
     ws["A1"].font = F_TITLE
+    ws["A1"].alignment = Alignment(vertical="center", indent=1)
+    ws.row_dimensions[1].height = 36
     ws["A2"] = sub
     ws["A2"].font = F_SUB
-    ws.row_dimensions[2].height = 30
-    ws["A2"].alignment = Alignment(wrap_text=False, vertical="top")
+    ws.row_dimensions[2].height = 24
+    ws["A2"].alignment = Alignment(wrap_text=False, vertical="center", indent=1)
+
+
+def finish(ws):
+    """Final look for every sheet: title band, no gridlines, tab colour, zoom."""
+    width = min(max(ws.max_column, 12), 70)
+    for c in range(1, width + 1):
+        cell = ws.cell(1, c)
+        if not isinstance(cell, openpyxl.cell.cell.MergedCell):
+            cell.fill = FILL_TITLE
+    ws.sheet_view.showGridLines = False
+    ws.sheet_view.zoomScale = 90
+    ws.sheet_properties.tabColor = TABS.get(ws.title, PAL["secondary"])
+    if ws["A3"].fill is not None and ws["A3"].fill.fgColor.rgb in ("00" + PAL["tint"], "FF" + PAL["tint"]):
+        ws.row_dimensions[3].height = 24
+        ws["A3"].alignment = Alignment(vertical="center", indent=1)
 
 
 def hdr(cell, text, kind="calc"):
@@ -77,12 +120,13 @@ def hdr(cell, text, kind="calc"):
     cell.font = F_HDR
     cell.fill = {"in": FILL_IN_HDR, "calc": FILL_CALC_HDR, "fin": FILL_FIN_HDR}[kind]
     cell.alignment = HDR_ALIGN
-    cell.border = BORDER
+    cell.border = Border(left=Side(style="thin", color="FFFFFF"), right=Side(style="thin", color="FFFFFF"))
 
 
 def style_body(cell, kind, fmt="General"):
-    cell.border = BORDER
+    cell.border = BORDER if kind in ("in", "fin") else ROW_LINE
     cell.number_format = fmt
+    cell.alignment = Alignment(vertical="center")
     if kind == "in":
         cell.font, cell.fill = F_IN, FILL_WHITE
         cell.protection = Protection(locked=False)
@@ -393,7 +437,7 @@ def build_finance():
     ws = wb.create_sheet("Finance", 1)
     title_block(ws, "Finance - Job & Invoice Register",
                 "Every job the departments set up appears here by itself. Finance types three things per invoice, "
-                "straight off Xero, in the month the invoice is dated: Invoice No, Invoice Date and Ex GST (yellow). "
+                "straight off Xero, in the month the invoice is dated: Invoice No, Invoice Date and Ex GST (cream). "
                 "Everything else reads itself.")
     ws["A3"] = ('="Dept Expected  "&TEXT(SUBTOTAL(109,tbl_Finance[Dept Expected Ex GST]),"$#,##0.00")'
                 '&"      Xero Invoiced  "&TEXT(SUBTOTAL(109,tbl_Finance[Xero Invoiced Ex GST]),"$#,##0.00")'
@@ -401,7 +445,7 @@ def build_finance():
                 '&"      Rows with an issue  "&COUNTIF(tbl_Finance[Issue],"?*")')
     ws.merge_cells("A3:R3")
     ws["A3"].font, ws["A3"].fill = F_TOT, FILL_TOT
-    ws["A4"] = ("YELLOW = Finance types (Invoice No, Invoice Date, Ex GST).  GREY = pulled from the department "
+    ws["A4"] = ("CREAM = Finance types (Invoice No, Invoice Date, Ex GST).  GREY-BLUE = pulled from the department "
                 "sheets or calculated.  Rows run Onsite, Production, Consulting in turn, so every department's jobs are at the top. Filter Job Number and untick (Blanks) to hide empty rows, or filter Department.  "
                 "Two invoices on one job in the same month: type both numbers in one cell (INV-1001, INV-1002), "
                 "the later date and the combined Ex GST.")
@@ -773,11 +817,11 @@ def build_won():
 def build_month_end():
     ws = wb.create_sheet("Month-End", 1)
     title_block(ws, "Month-End Revenue Close",
-                "Pick the month, type the Xero figures into the yellow cells, and work down. Everything else calculates.")
+                "Pick the month, type the Xero figures into the cream cells, and work down. Everything else calculates.")
     widths = [44, 16, 14, 15, 16, 16, 18, 18, 15, 22]
     for i, w in enumerate(widths):
         ws.column_dimensions[CL(i + 1)].width = w
-    ws["A4"], ws["D4"] = "Month being closed", "<- pick a FY27 month end"
+    ws["A4"], ws["D4"] = "Month being closed", "<- pick"
     ws["C4"] = dt.datetime(2026, 8, 31)
     ws["C4"].number_format = "mmm-yy"
     ws["C4"].font = Font(name=FONT, size=12, bold=True, color=NAVY)
@@ -995,6 +1039,20 @@ def build_month_end():
         ws[a].fill = FILL_FIN
         ws[a].protection = Protection(locked=False)
         ws[a].border = BORDER
+    for r in range(8, s0 + 5):
+        a = ws.cell(r, 1)
+        if a.value is None or a.font.i or (a.fill is not None and a.fill.fgColor.rgb in ("00" + PAL["primary"], "00" + PAL["secondary"])):
+            continue
+        is_tot = isinstance(a.value, str) and a.value.startswith("TOTAL")
+        for col in range(1, 11):
+            c = ws.cell(r, col)
+            if isinstance(c, openpyxl.cell.cell.MergedCell) or c.fill.fgColor.rgb == "00" + PAL["fin"]:
+                continue
+            c.border = Border(top=THIN, bottom=THIN) if is_tot else ROW_LINE
+            if is_tot:
+                c.fill = FILL_TOT
+                c.font = Font(name=FONT, size=10, bold=True, color=PAL["primary"])
+        ws.row_dimensions[r].height = 18
     ws["B25"].number_format = ws["B23"].number_format = MONEY
     for r in range(8, 15):
         ws[f"H{r}"].number_format = MONEY
@@ -1049,7 +1107,7 @@ DEF_NOTES = {
 def build_deferrals():
     ws = wb.create_sheet("Deferrals")
     title_block(ws, "Deferrals - revenue and cost spread by month",
-                "Finance types the yellow cells: Revenue or Cost, the Xero invoice or bill number, its date, and the month "
+                "Finance types the cream cells: Revenue or Cost, the Xero invoice or bill number, its date, and the month "
                 "the deferral ends. The schedule on the right spreads it evenly, month by month, until it ends.")
     ws["A3"] = ('="Journal month  "&TEXT(\'Deferral Journal\'!$C$4,"mmm-yy")&"      Revenue deferred at month end  "'
                 f'&TEXT(SUMIFS(tbl_Def[Closing Deferred],tbl_Def[Type],"Revenue"),"$#,##0.00")&"      Cost deferred at month end  "'
@@ -1200,9 +1258,15 @@ def build_def_journal():
             ("Net effect on revenue this month (+ up / - down)", f'SUMIFS({mv},tbl_Def[Type],"Revenue")'),
             ("Net effect on cost this month (+ up / - down)", f'SUMIFS({mv},tbl_Def[Type],"Cost")')]
     for k, (lab, fm) in enumerate(summ):
-        ws.cell(5 + k, 1, lab).font = Font(name=FONT, size=10)
-        c = ws.cell(5 + k, 4, "=" + fm)
-        c.number_format, c.font = MONEY, Font(name=FONT, size=10, bold=True)
+        r = 5 + k
+        ws.merge_cells(f"A{r}:E{r}")
+        lc = ws.cell(r, 1, lab)
+        lc.font, lc.alignment = Font(name=FONT, size=10, color=PAL["text"]), Alignment(vertical="center", indent=1)
+        c = ws.cell(r, 6, "=" + fm)
+        c.number_format, c.font = MONEY, Font(name=FONT, size=10, bold=True, color=PAL["primary"])
+        for col in range(1, 7):
+            ws.cell(r, col).fill = FILL_TOT if k >= 4 else FILL_CALC
+            ws.cell(r, col).border = ROW_LINE
     top = 12
     ws.cell(top, 1, "JOURNAL LINES").font = F_SEC
     for c in range(1, 16):
@@ -1298,8 +1362,8 @@ README = [
     ("Department managers (Onsite, Production, Consulting): fill in every white cell on your own sheet. One row per job number. Start at the top and use the next empty row.", None),
     ("The cells Finance needs before it can invoice are: Job Number, Client, Job Description, Cost Centre, Invoice Type, Tax Code and Expected Revenue Ex GST.", None),
     ("The Not Yet on Finance column checks those for you. It reads Complete, or Fix: followed by what is missing or wrong.", None),
-    ("Finance: on the Finance sheet, type only in the yellow cells. Find the job, go to the month the invoice is dated, and type the Invoice No, Invoice Date and Ex GST.", None),
-    ("Grey cells are formulas. They are locked so nobody can wipe them by accident.", None),
+    ("Finance: on the Finance sheet, type only in the cream cells. Find the job, go to the month the invoice is dated, and type the Invoice No, Invoice Date and Ex GST.", None),
+    ("Grey-blue cells are formulas. They are locked so nobody can wipe them by accident.", None),
     ("", None),
     ("HOW THE INFORMATION FLOWS", "h"),
     ("Department to Finance: every department row has a fixed Row ID (last column). The Finance sheet has a matching row for every Row ID, so as soon as a department types a job, the job number, client, description, cost centre, invoice type, tax code, revenue GL, PO or quote reference, notes and the expected value appear on Finance.", None),
@@ -1350,7 +1414,7 @@ README = [
     ("The schedule runs from July 2024 to June 2030.", None),
     ("", None),
     ("THE SHEETS", "h"),
-    ("Finance: one row per job, all departments. The rows take turns - Onsite job 1, Production job 1, Consulting job 1, Onsite job 2 - so every department's jobs sit together at the top. Filter Job Number and untick (Blanks) to hide the empty rows. Finance types the yellow invoice cells only.", None),
+    ("Finance: one row per job, all departments. The rows take turns - Onsite job 1, Production job 1, Consulting job 1, Onsite job 2 - so every department's jobs sit together at the top. Filter Job Number and untick (Blanks) to hide the empty rows. Finance types the cream invoice cells only.", None),
     ("Deferrals: the deferral register and the month-by-month schedule. Deferral Journal: the journal for any month.", None),
     ("Month-End: pick the month. Revenue by cost centre against the Xero P&L, WIP, the missed revenue check, data checks, the WIP journal, work won and sign-off.", None),
     ("FY Summary: invoiced revenue by month, by cost centre and by department, and expected vs invoiced by department.", None),
@@ -1363,7 +1427,7 @@ README = [
     ("LOCKS, SIZE AND NEXT YEAR", "h"),
     ("Every sheet is protected with the password CTS1234, the same as v3. The workbook structure is protected with the same password.", None),
     ("Each department sheet has 1,500 job rows, and the Finance sheet has a matching row for every one (4,500). The Deferrals sheet has 500 rows. The file is built by build_tracker.py, so if you ever need more rows it is rebuilt bigger rather than extended by hand.", None),
-    ("To roll to FY28: save a copy, clear the white and yellow cells, and change Lists cell U12 to 31-Jul-27. Every month heading follows.", None),
+    ("To roll to FY28: save a copy, clear the white and cream cells, and change Lists cell U12 to 31-Jul-27. Every month heading follows.", None),
     ("", None),
     ("WHAT CHANGED FROM v3", "h"),
     ("Finance used to type the job number and cost centre on every invoice line. Now the job and cost centre come from the department, and Finance types only Invoice No, Invoice Date and Ex GST.", None),
@@ -1378,19 +1442,43 @@ README = [
 def build_readme():
     ws = wb.create_sheet("Read Me", 0)
     ws.column_dimensions["A"].width = 3
-    ws.column_dimensions["B"].width = 120
-    r = 2
-    for text, kind in README:
+    ws.column_dimensions["B"].width = 118
+    ws.column_dimensions["C"].width = 3
+    for c in range(1, 4):
+        for r in (1, 2, 3):
+            ws.cell(r, c).fill = FILL_TITLE
+    ws["B2"] = README[0][0]
+    ws["B2"].font = Font(name=FONT, size=22, bold=True, color="FFFFFF")
+    ws["B3"] = README[1][0]
+    ws["B3"].font = Font(name=FONT, size=11, italic=True, color=PAL["tint"])
+    ws.row_dimensions[2].height = 38
+    ws.row_dimensions[3].height = 22
+    # colour key
+    key = [(FILL_WHITE, BORDER, "White box  =  the department types here"),
+           (FILL_FIN, BORDER, "Cream  =  Finance types here (straight off Xero)"),
+           (FILL_CALC, ROW_LINE, "Light grey-blue  =  calculates by itself - locked")]
+    ws["B5"] = "COLOUR KEY"
+    ws["B5"].font = Font(name=FONT, size=10, bold=True, color=PAL["primary"])
+    for k, (fill, border, text) in enumerate(key):
+        c = ws.cell(6 + k, 2, text)
+        c.fill, c.border = fill, border
+        c.font = Font(name=FONT, size=11, color=PAL["text"])
+        c.alignment = Alignment(vertical="center", indent=1)
+        ws.row_dimensions[6 + k].height = 22
+    r = 10
+    for text, kind in README[3:]:
         c = ws.cell(r, 2, text)
-        if r == 2:
-            c.font = F_TITLE
-        elif kind == "h":
+        if kind == "h":
             c.font = F_SEC
             c.fill = FILL_IN_HDR
-        else:
-            c.font = Font(name=FONT, size=11)
-            c.alignment = Alignment(wrap_text=True, vertical="top")
+            c.alignment = Alignment(vertical="center", indent=1)
+            ws.row_dimensions[r].height = 24
+        elif text:
+            c.font = Font(name=FONT, size=11, color=PAL["text"])
+            c.alignment = Alignment(wrap_text=True, vertical="top", indent=1)
         r += 1
+    ws.sheet_view.showGridLines = False
+    ws.sheet_properties.tabColor = TABS["Read Me"]
     protect(ws)
 
 
@@ -1411,6 +1499,9 @@ build_readme()
 order = ["Read Me", "Finance", "Month-End", "Deferrals", "Deferral Journal", "FY Summary", "Onsite", "Production", "Consulting",
          "WIP Movements", "WIP Summary", "Work Won", "Lists"]
 wb._sheets = [wb[n] for n in order]
+for _ws in wb.worksheets:
+    if _ws.title != "Read Me":
+        finish(_ws)
 wb.active = 0
 wb.security = WorkbookProtection(workbookPassword=PASSWORD, lockStructure=True)
 wb.calculation.fullCalcOnLoad = True
