@@ -37,6 +37,36 @@ const LINE = 'E3E6EA';     // chart gridlines
 
 const FONT = 'Calibri'; // Brand font is Tomato Grotesk; Calibri is the safe fallback that ships with Office.
 
+// Real logo files, when present, replace the placeholder mark on every layout.
+//   presentation/assets/cts-logo.png       for white backgrounds
+//   presentation/assets/cts-logo-dark.png  for black or navy backgrounds (falls back to cts-logo.png)
+// Any PNG or JPG works; the file is scaled to the logo height, so supply the
+// highest resolution you have. Aspect ratio is read from the file.
+const ASSETS = path.join(__dirname, 'assets');
+function findLogo(onDark) {
+  const names = onDark ? ['cts-logo-dark.png', 'cts-logo-dark.jpg', 'cts-logo.png', 'cts-logo.jpg'] : ['cts-logo.png', 'cts-logo.jpg'];
+  for (const n of names) {
+    const f = path.join(ASSETS, n);
+    if (fs.existsSync(f)) return f;
+  }
+  return null;
+}
+function pngSize(file) {
+  const b = fs.readFileSync(file);
+  if (b.slice(1, 4).toString() === 'PNG') return { w: b.readUInt32BE(16), h: b.readUInt32BE(20) };
+  // JPEG: walk the markers to the first SOF
+  let i = 2;
+  while (i < b.length) {
+    if (b[i] !== 0xff) { i++; continue; }
+    const marker = b[i + 1];
+    if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
+      return { h: b.readUInt16BE(i + 5), w: b.readUInt16BE(i + 7) };
+    }
+    i += 2 + b.readUInt16BE(i + 2);
+  }
+  return { w: 1, h: 1 };
+}
+
 const pres = new pptxgen();
 pres.layout = 'LAYOUT_16x9'; // 10in x 5.625in
 pres.author = 'Corporate Technology Services';
@@ -54,6 +84,14 @@ const M = 0.55; // side margin
 // Placeholder logo mark: square with "CTS" plus the brand lock-up.
 // Swap these for the real logo image on the Slide Master once you have the file.
 function logo(objects, { x, y, size, onDark, withName }) {
+  const file = findLogo(onDark);
+  if (file) {
+    const px = pngSize(file);
+    const h = withName ? size : size;
+    const w = h * (px.w / px.h);
+    objects.push({ image: { path: file, x, y, w, h } });
+    return;
+  }
   const box = onDark ? WHITE : BLACK;
   const ink = onDark ? BLACK : WHITE;
   objects.push({ rect: { x, y, w: size, h: size, fill: { color: box }, line: { color: box, width: 0 } } });
@@ -189,7 +227,9 @@ function contentHeader(objects) {
 // ---------------------------------------------------------------------------
 // Example slides, one or two per layout
 // ---------------------------------------------------------------------------
-const LOGO_NOTE = 'The CTS mark on this layout is a placeholder. Replace it with the real logo file on the Slide Master (View > Slide Master). The brand guidelines say the logo is always locked up with the promise "Seamless AV".';
+const LOGO_NOTE = findLogo(false)
+  ? 'Logo from presentation/assets. The brand guidelines say the logo is always locked up with the promise "Seamless AV".'
+  : 'The CTS mark on this layout is a placeholder. Drop the real logo into presentation/assets/cts-logo.png (and cts-logo-dark.png for dark slides) and rebuild, or replace it on the Slide Master (View > Slide Master).';
 
 {
   const s = pres.addSlide({ masterName: 'CTS Cover (dark)' });
