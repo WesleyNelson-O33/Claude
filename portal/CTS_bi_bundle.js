@@ -155,6 +155,7 @@
     E.loadFin(window.CTS_FIN);
     E.loadUtil(window.CTS_UTIL);
     E.loadStaff(window.CTS_STAFF);
+    E.loadPipeline(window.CTS_PIPELINE);
     E.loadUsers(window.CTS_USERS);
     E.clients = window.CTS_CLIENTS || { clients: [], schedule: [] };
     E.clientMeta = {};
@@ -433,6 +434,56 @@
     E.restored = restored;
     E.restoredAt = (snaps.util || snaps.gl || snaps.fin || snaps.staff || {}).saved || null;
     return restored;
+  };
+
+  /* ---- pipeline: deals, orders, quotes ---------------------------------- */
+  E.loadPipeline = function (data) {
+    E.pipeline = data || { meta: {}, deals: [], orders: [], quotes: [] };
+    E.pipeline.deals = E.pipeline.deals || []; E.pipeline.orders = E.pipeline.orders || [];
+    E.pipeline.quotes = E.pipeline.quotes || [];
+    E.hasPipeline = !!(E.pipeline.deals.length || E.pipeline.orders.length || E.pipeline.quotes.length);
+    return E;
+  };
+  function inKeys(iso, keys) { return !!iso && keys.indexOf(String(iso).slice(0, 7)) >= 0; }
+  E.pipelineFor = function (fyKeys, periodKeys) {
+    var pl = E.pipeline || { deals: [], orders: [], quotes: [] };
+    var won = /closed won|won/i, lost = /closed lost|lost/i;
+    var open = pl.deals.filter(function (d) { return !won.test(d.stage) && !lost.test(d.stage); });
+    var wonD = pl.deals.filter(function (d) { return won.test(d.stage) && inKeys(d.close, fyKeys); });
+    var lostD = pl.deals.filter(function (d) { return lost.test(d.stage) && inKeys(d.close, fyKeys); });
+    var byStage = {};
+    open.forEach(function (d) {
+      var b = byStage[d.stage] || (byStage[d.stage] = { stage: d.stage, n: 0, amount: 0, expected: 0 });
+      b.n++; b.amount += d.amount || 0; b.expected += d.expected || 0;
+    });
+    var expectedByMonth = {}, wonByMonth = {};
+    fyKeys.forEach(function (k) { expectedByMonth[k] = 0; wonByMonth[k] = 0; });
+    open.forEach(function (d) { if (inKeys(d.close, fyKeys)) expectedByMonth[d.close.slice(0, 7)] += d.expected || 0; });
+    wonD.forEach(function (d) { wonByMonth[d.close.slice(0, 7)] += d.amount || 0; });
+    var orders = pl.orders.filter(function (o) { return inKeys(o.start, fyKeys); });
+    var bookByMonthDept = {};
+    orders.forEach(function (o) {
+      if (!/confirm|complete/i.test(o.status)) return;
+      var mk = o.start.slice(0, 7);
+      (bookByMonthDept[mk] = bookByMonthDept[mk] || {})[o.dept] = (bookByMonthDept[mk][o.dept] || 0) + (o.value || 0);
+    });
+    var quotes = pl.quotes.filter(function (q) { return inKeys(q.sent, periodKeys || fyKeys); });
+    var qByDept = {};
+    quotes.forEach(function (q) {
+      var b = qByDept[q.dept] || (qByDept[q.dept] = { dept: q.dept, sent: 0, sentValue: 0, accepted: 0, acceptedValue: 0 });
+      b.sent++; b.sentValue += q.value || 0;
+      if (/accept/i.test(q.status)) { b.accepted++; b.acceptedValue += q.value || 0; }
+    });
+    return {
+      open: open, won: wonD, lost: lostD, byStage: Object.keys(byStage).map(function (k) { return byStage[k]; }),
+      openAmount: open.reduce(function (a, d) { return a + (d.amount || 0); }, 0),
+      openExpected: open.reduce(function (a, d) { return a + (d.expected || 0); }, 0),
+      wonAmount: wonD.reduce(function (a, d) { return a + (d.amount || 0); }, 0),
+      winRate: (wonD.length + lostD.length) ? wonD.length / (wonD.length + lostD.length) : null,
+      expectedByMonth: expectedByMonth, wonByMonth: wonByMonth,
+      orders: orders, bookByMonthDept: bookByMonthDept,
+      quotes: quotes, quotesByDept: Object.keys(qByDept).map(function (k) { return qByDept[k]; }),
+    };
   };
 
   /* ---- people ---------------------------------------------------------- */
@@ -3385,6 +3436,11 @@
     ]);
   }
 
+  /* The Build module and the paste loaders share one set of parsing rules. */
+  CTS.parse = { isoDate: isoDate, num: num, money: money, noteDate: noteDate,
+                guessCategory: guessCategory, guessEmployment: guessEmployment,
+                parseTable: parseTable, download: download };
+
   /* ========================================================== Setup ==== */
   P.setup = {
     section: "Admin", title: "Setup",
@@ -3823,6 +3879,371 @@
             revenue: tot.rev, cost: tot.cost, margin: tot.margin,
             recovery: tot.cost ? tot.rev / tot.cost : null, _cls: "totalrow" }]), { dense: true }),
           "Cost is gross earnings plus superannuation, straight off the pay run. Leave and public holidays are in the cost but not in the hours worked, which is why somebody on leave shows a higher cost per hour."),
+      ];
+    },
+  };
+
+  /* ============================================================ Build == */
+  /* The folder handle is kept in IndexedDB so the Build and Distribution
+   * pages can reuse it after a reload with one permission prompt, rather
+   * than a fresh picker every time. */
+  var DIRDB = { name: "cts.bi", store: "handles", key: "portalDir" };
+  function dirDb() {
+    return new Promise(function (res, rej) {
+      try {
+        var r = indexedDB.open(DIRDB.name, 1);
+        r.onupgradeneeded = function () { r.result.createObjectStore(DIRDB.store); };
+        r.onsuccess = function () { res(r.result); };
+        r.onerror = function () { rej(r.error); };
+      } catch (e) { rej(e); }
+    });
+  }
+  CTS.saveDir = function (handle) {
+    return dirDb().then(function (db) {
+      return new Promise(function (res) {
+        var tx = db.transaction(DIRDB.store, "readwrite");
+        tx.objectStore(DIRDB.store).put(handle, DIRDB.key);
+        tx.oncomplete = function () { res(true); };
+        tx.onerror = function () { res(false); };
+      });
+    }).catch(function () { return false; });
+  };
+  CTS.loadDir = function () {
+    return dirDb().then(function (db) {
+      return new Promise(function (res) {
+        var tx = db.transaction(DIRDB.store, "readonly");
+        var g = tx.objectStore(DIRDB.store).get(DIRDB.key);
+        g.onsuccess = function () { res(g.result || null); };
+        g.onerror = function () { res(null); };
+      });
+    }).catch(function () { return null; });
+  };
+  /** Reuse a saved handle if the browser still lets us write to it. */
+  CTS.reuseDir = async function () {
+    var h = await CTS.loadDir();
+    if (!h) return null;
+    try {
+      var q = await h.queryPermission({ mode: "readwrite" });
+      if (q === "granted") return h;
+      var r = await h.requestPermission({ mode: "readwrite" });
+      return r === "granted" ? h : null;
+    } catch (e) { return null; }
+  };
+
+  function checksTable(checks) {
+    var rank = { fail: 0, warn: 1, info: 2, ok: 3 };
+    var rows = checks.slice().sort(function (a, b) { return rank[a.level] - rank[b.level]; });
+    return U.table([
+      { key: "level", label: "", align: "left",
+        value: function (r) {
+          var cls = { ok: "good", warn: "warning", fail: "critical", info: "muted" }[r.level];
+          return h("span.chip.chip-" + cls, r.level === "ok" ? "OK" : r.level === "fail" ? "FAIL" : r.level === "warn" ? "CHECK" : "NOTE");
+        } },
+      { key: "area", label: "Area", align: "left" },
+      { key: "text", label: "", align: "left" },
+    ], rows, { dense: true });
+  }
+
+  P.build = {
+    section: "Admin", title: "Build",
+    sub: "Templates in, data files out.",
+    render: function () {
+      var B = CTS.build;
+      var state = P.build._state || (P.build._state = { dir: null, result: null });
+      var out = h("div");
+
+      if (!B) {
+        return [U.h1("Build", "The build module did not load"),
+                U.note("CTS_build.js or vendor/xlsx.full.min.js is missing from the portal folder.", "warn")];
+      }
+      if (!B.supported()) {
+        return [U.h1("Build", "Needs Edge or Chrome"),
+          h("div.banner.banner-warn", [h("strong", "This browser cannot write to the folder. "),
+            "The Build page reads the templates and writes the data files with the File System Access API, which Edge and Chrome have and Firefox and Safari do not. Open the portal in Edge to build; anyone only viewing it can use any browser."]),
+          U.note("If the portal is open from a link rather than the synced folder, there is no folder to write to either. Build from the synced copy.")];
+      }
+
+      function stepEl(n, title, kids) {
+        return h("div.step", [h("div.step-n", String(n)), h("div", [h("h3", title)].concat(kids))]);
+      }
+      var folderStatus = h("div");
+      var readStatus = h("div");
+      var writeStatus = h("div");
+
+      async function chooseFolder(reuse) {
+        folderStatus.innerHTML = "";
+        try {
+          var handle = reuse ? await CTS.reuseDir() : null;
+          var ok = !!handle;
+          if (!handle) { var picked = await B.pickFolder(); handle = picked.handle; ok = picked.ok; }
+          else { try { await handle.getFileHandle("CTS_bi_bundle.js"); await handle.getDirectoryHandle("templates"); ok = true; } catch (e) { ok = false; } }
+          if (!ok) {
+            folderStatus.appendChild(h("div.banner.banner-warn", "That folder does not look like the portal: it needs CTS_bi_bundle.js and a templates folder in it. Pick the synced CTS Business Portal folder."));
+            return;
+          }
+          state.dir = handle;
+          await CTS.saveDir(handle);
+          folderStatus.appendChild(h("div.banner.banner-good", "Folder chosen: " + (handle.name || "portal") + ". The templates and data folders are there."));
+        } catch (e) {
+          if (e && e.name === "AbortError") return;
+          folderStatus.appendChild(h("div.banner.banner-warn", "Could not open the folder: " + (e && e.message || e)));
+        }
+      }
+
+      async function readTemplates() {
+        readStatus.innerHTML = "";
+        if (!state.dir) { readStatus.appendChild(h("div.banner.banner-warn", "Choose the portal folder first.")); return; }
+        readStatus.appendChild(U.note("Reading the templates…"));
+        try {
+          var r = await B.run(state.dir);
+          state.result = r;
+          readStatus.innerHTML = "";
+          var fails = r.checks.filter(function (c) { return c.level === "fail"; }).length;
+          var warns = r.checks.filter(function (c) { return c.level === "warn"; }).length;
+          readStatus.appendChild(h("div.banner.banner-" + (fails ? "warn" : "good"), [
+            h("strong", fails ? fails + " check" + (fails > 1 ? "s" : "") + " failed. " : "Templates read. "),
+            fails ? "Fix the red rows in the template and read again; nothing has been written."
+                  : (warns ? warns + " thing" + (warns > 1 ? "s" : "") + " to look at below, none of them stop a write." : "Nothing to look at.")]));
+          readStatus.appendChild(checksTable(r.checks));
+          if (r.missing && r.missing.length) readStatus.appendChild(U.note("Not found in templates: " + r.missing.join(", ") + ".", "muted"));
+          readStatus.appendChild(U.table([
+            { key: "f", label: "Data file to write", align: "left" },
+            { key: "s", label: "Size", fmt: function (v) { return (v / 1024).toFixed(0) + " KB"; } },
+          ], Object.keys(r.outputs).map(function (f) { return { f: f, s: r.outputs[f].length }; }), { dense: true }));
+        } catch (e) {
+          readStatus.innerHTML = "";
+          readStatus.appendChild(h("div.banner.banner-warn", "Could not read the templates: " + (e && e.message || e)));
+        }
+      }
+
+      async function writeFiles() {
+        writeStatus.innerHTML = "";
+        if (!state.result) { writeStatus.appendChild(h("div.banner.banner-warn", "Read the templates first.")); return; }
+        if (state.result.checks.some(function (c) { return c.level === "fail"; })) {
+          writeStatus.appendChild(h("div.banner.banner-warn", "A check failed. Fix it and read again before writing."));
+          return;
+        }
+        var prog = h("p.note", "Writing…");
+        writeStatus.appendChild(prog);
+        try {
+          var done = await B.write(state.dir, state.result.outputs, function (name, i, n) {
+            prog.textContent = "Writing " + name + " (" + i + " of " + n + ")";
+          });
+          writeStatus.innerHTML = "";
+          writeStatus.appendChild(h("div.banner.banner-good", [
+            h("strong", done.length + " data files written. "),
+            "The previous set is in data/_previous. Reloading the portal on the new data…"]));
+          setTimeout(function () { location.reload(); }, 1500);
+        } catch (e) {
+          writeStatus.innerHTML = "";
+          writeStatus.appendChild(h("div.banner.banner-warn", "Writing failed: " + (e && e.message || e) + ". Nothing may have been written, or some files may have: check data/_previous."));
+        }
+      }
+
+      var log = window.CTS_BUILD_LOG || null;
+      return [
+        U.h1("Build", "Templates in, data files out."),
+        U.note("Reads the eight Excel templates from the templates folder, checks them, and writes the data files the portal runs on. Last month's files go to data/_previous first, which is the rollback. Everyone else's portal picks the new files up on their next open, once OneDrive has synced."),
+        h("div.steps", [
+          stepEl(1, "Choose the portal folder", [
+            U.note("The synced CTS Business Portal folder, the one this page was opened from. Edge asks you to confirm it; that is the one prompt."),
+            h("div.row", [
+              h("button.btn", { onclick: function () { chooseFolder(true); } }, "Choose portal folder"),
+              h("span.muted", "Remembered after the first time; you will only be asked to allow it."),
+            ]),
+            folderStatus,
+          ]),
+          stepEl(2, "Read the templates", [
+            U.note("Nothing is written at this step. The checks are what you would do by hand: does the ledger tie to the P&L, what is not in the chart, which locations have no department, what rests on a placeholder."),
+            h("div.row", [h("button.btn", { onclick: readTemplates }, "Read templates")]),
+            readStatus,
+          ]),
+          stepEl(3, "Write the data files", [
+            U.note("Only after every check is green or amber. A red check blocks the write."),
+            h("div.row", [h("button.btn", { onclick: writeFiles }, "Write data files")]),
+            writeStatus,
+          ]),
+          stepEl(4, "Then the emails", [
+            U.note("Once the portal has reloaded on the new month, go to Distribution to write this month's emails into the outbox. They are rendered from the data that is loaded, so this comes after the write, not before."),
+            h("div.row", [h("a.btn.btn-quiet", { href: "#/distribution" }, "Go to Distribution")]),
+          ]),
+        ]),
+        U.section("What the templates are", U.table([
+          { key: "file", label: "Template", align: "left" },
+          { key: "out", label: "Writes", align: "left" },
+          { key: "need", label: "", align: "left",
+            value: function (r) { return r.placeholder ? U.flag("warn", "placeholder shape") : r.need ? U.flag("good", "required") : h("span.muted", "optional"); } },
+        ], B.TEMPLATES, { dense: true }),
+          "Placeholder shape means the columns are what the portal needs until a real export from that system is matched; the paste may need reshaping until then."),
+      ];
+    },
+  };
+
+  /* ===================================================== Distribution == */
+  P.distribution = {
+    section: "Admin", title: "Distribution",
+    sub: "Who gets the month, and how it goes out.",
+    render: function () {
+      var M = CTS.email, B = CTS.build;
+      if (!M) return [U.h1("Distribution", "The email module did not load"),
+                      U.note("CTS_email.js is missing from the portal folder.", "warn")];
+      var p = CTS.period();
+      var recipients = (E.cfg.DISTRIBUTION || []);
+      var month = E.reportingMonth();
+      var state = P.distribution._state || (P.distribution._state = { preview: null });
+      var previewBox = h("div");
+      var outboxStatus = h("div");
+
+      function showPreview(r) {
+        var msg = M.render(r, { keys: p.keys, log: window.CTS_BUILD_LOG || null });
+        previewBox.innerHTML = "";
+        previewBox.appendChild(h("div.toolbar", [
+          h("strong", msg.subject), h("span.chip.chip-muted", M.TIERS[msg.tier]),
+          h("div.toolbar-right", [
+            h("a.btn.btn-quiet", { href: M.mailto(msg), target: "_blank" }, "Open in Outlook (text)"),
+            h("button.btn.btn-quiet", { onclick: function () {
+              try { navigator.clipboard.writeText(msg.html); alert("HTML copied. Paste into a new Outlook message."); }
+              catch (e) { alert("Copy failed in this browser. Use the outbox file instead."); }
+            } }, "Copy HTML"),
+          ]),
+        ]));
+        var frame = h("iframe.preview", { sandbox: "", title: "Email preview" });
+        previewBox.appendChild(frame);
+        frame.srcdoc = msg.html;
+      }
+
+      async function writeOutbox() {
+        outboxStatus.innerHTML = "";
+        if (!B || !B.supported()) { outboxStatus.appendChild(h("div.banner.banner-warn", "Writing the outbox needs Edge or Chrome, from the synced folder.")); return; }
+        var dir = await CTS.reuseDir();
+        if (!dir) {
+          try { var pk = await B.pickFolder(); if (!pk.ok) throw new Error("not the portal folder"); dir = pk.handle; await CTS.saveDir(dir); }
+          catch (e) { if (e && e.name !== "AbortError") outboxStatus.appendChild(h("div.banner.banner-warn", "Could not open the folder: " + (e.message || e))); return; }
+        }
+        var msgs = M.renderAll({ keys: p.keys, log: window.CTS_BUILD_LOG || null });
+        var noAddr = msgs.filter(function (m) { return !m.to; });
+        try {
+          var written = await B.writeOutbox(dir, month, msgs);
+          outboxStatus.appendChild(h("div.banner.banner-good", [
+            h("strong", written.length + " messages written to outbox/" + month + ". "),
+            "Each is a JSON for the flow and an HTML you can open and copy into Outlook now." +
+            (noAddr.length ? " " + noAddr.length + " of them have no address on the Distribution tab and will be skipped by the flow." : "")]));
+        } catch (e) {
+          outboxStatus.appendChild(h("div.banner.banner-warn", "Could not write the outbox: " + (e.message || e)));
+        }
+      }
+
+      return [
+        CTS.seedBanner(), CTS.periodBar(),
+        U.h1("Distribution", "The monthly email, " + p.label),
+        U.note("Three tiers, decided per person on the Distribution tab of 08 Config.xlsx. The portal renders the messages and writes them to the outbox folder; whatever sends them reads that folder. Nothing goes out until Build has been run and read, which is deliberate."),
+        U.section("Recipients", U.table([
+          { key: "name", label: "Name", align: "left" },
+          { key: "email", label: "Email", align: "left", value: function (r) { return r.email || h("span.muted", "no address"); } },
+          { key: "tier", label: "Tier", align: "left", value: function (r) { return h("span.chip.chip-muted", r.tier + " " + M.TIERS[r.tier]); } },
+          { key: "dept", label: "Department", align: "left", value: function (r) { return r.dept ? (E.deptOf[r.dept] || {}).short || r.dept : "all"; } },
+          { key: "send", label: "Send", align: "left", value: function (r) { return r.send === false ? U.flag("warn", "no") : U.flag("good", "yes"); } },
+          { key: "pv", label: "", align: "left", value: function (r) { return h("button.btn.btn-quiet.small", { onclick: function () { showPreview(r); } }, "Preview"); } },
+        ], recipients),
+          "Edit the list on the Config template and rebuild; it is not edited here so there is one place it lives."),
+        U.section("Preview", [previewBox]),
+        U.section("Write this month's emails", [
+          U.note("Writes one JSON and one HTML per recipient into outbox/" + month + " in the portal folder. The JSON is what a Power Automate flow sends; the HTML is what you copy into Outlook until the flow is on. See docs/AUTOMATION.md for the ten minute flow."),
+          h("div.row", [h("button.btn", { onclick: writeOutbox }, "Write outbox for " + ((E.monthIdx[month] || {}).long || month))]),
+          outboxStatus,
+        ]),
+        U.section("The three tiers", U.table([
+          { key: "t", label: "Tier", align: "left" }, { key: "who", label: "Who", align: "left" }, { key: "gets", label: "Gets", align: "left" },
+        ], [
+          { t: "1", who: "Executive", gets: "Company result, departments after the split, top clients under the four headings, utilisation, what is worth a comment" },
+          { t: "2", who: "Department head", gets: "Their own department in depth, one line on the rest" },
+          { t: "3", who: "Finance", gets: "The controls: does the ledger tie, what is uncoded, what rests on a placeholder, what the build did" },
+        ], { dense: true })),
+      ];
+    },
+  };
+
+  /* ========================================================= Pipeline == */
+  P.pipeline = {
+    section: "Revenue", title: "Pipeline",
+    sub: "Deals, quotes and the order book.",
+    render: function () {
+      var p = CTS.period();
+      if (!E.hasPipeline) {
+        return [CTS.seedBanner(), CTS.periodBar(), U.h1("Pipeline", p.label),
+          h("div.banner.banner-warn", [h("strong", "No pipeline loaded. "),
+            "This page reads the Zoho Deals, OnRent Orders and Qwilr Quotes templates. Fill them and run Build."])];
+      }
+      var fyKeys = E.monthsOfFY(p.fy);
+      var pl = E.pipelineFor(fyKeys, p.keys);
+      var meta = (E.pipeline && E.pipeline.meta) || {};
+      var scope = E.deptScope();
+      var labels = fyKeys.map(function (k) { return E.monthIdx[k].label; });
+      var bud = E.pnlBudget(fyKeys);
+
+      var expected = fyKeys.map(function (k) { return pl.expectedByMonth[k] || 0; });
+      var wonSeries = fyKeys.map(function (k) { return pl.wonByMonth[k] || 0; });
+      var chart = U.columns({
+        labels: labels, width: 780, height: 260,
+        series: [
+          { label: "Budget revenue", colour: "var(--measure-3)", values: bud.income },
+          { label: "Won, by close month", colour: "var(--measure-2)", values: wonSeries },
+          { label: "Open, weighted by probability", colour: "var(--measure-1)", values: expected },
+        ],
+      });
+
+      var depts = E.visibleDepts().filter(function (d) { return d.isRevenue; });
+      var bookSeries = depts.map(function (d) {
+        return { label: d.short, colour: U.colourOf(d.code),
+                 values: fyKeys.map(function (k) { return (pl.bookByMonthDept[k] || {})[d.code] || 0; }) };
+      });
+      var book = U.columns({ labels: labels, series: bookSeries, stacked: true, width: 780, height: 240 });
+
+      var stageRows = pl.byStage.slice().sort(function (a, b) { return b.amount - a.amount; });
+      var openRows = pl.open.filter(function (d) { return !scope || d.dept === scope; })
+        .sort(function (a, b) { return (b.expected || 0) - (a.expected || 0); }).slice(0, 25);
+
+      return [
+        CTS.seedBanner(), CTS.periodBar(),
+        U.h1("Pipeline", "FY" + p.fy),
+        meta.placeholder ? h("div.banner.banner-warn", [h("strong", "Placeholder shapes. "),
+          "Deals follow Zoho's standard export; orders and quotes follow the fields the portal needs. Send one real export from each system and the templates will be matched to them exactly."]) : null,
+        h("div.tiles", [
+          U.tile({ label: "Open pipeline", value: F.dollars(pl.openAmount), sub: pl.open.length + " deals" }),
+          U.tile({ label: "Weighted", value: F.dollars(pl.openExpected), sub: "amount times probability" }),
+          U.tile({ label: "Won this year", value: F.dollars(pl.wonAmount), sub: pl.won.length + " deals closed won" }),
+          U.tile({ label: "Win rate", value: F.pct(pl.winRate, 0), sub: pl.won.length + " won, " + pl.lost.length + " lost",
+                   tone: pl.winRate != null && pl.winRate < 0.3 ? "critical" : null }),
+        ]),
+        U.section("Expected revenue by close month against budget",
+          U.figure("Won plus weighted open, by the month the deal closes", chart,
+            U.table([{ key: "m", label: "Month", align: "left" }, { key: "b", label: "Budget", fmt: F.money },
+                     { key: "w", label: "Won", fmt: F.money }, { key: "e", label: "Weighted open", fmt: F.money },
+                     { key: "gap", label: "Gap", fmt: F.money, cell: U.moneyCell }],
+              fyKeys.map(function (k, i) { return { m: labels[i], b: bud.income[i], w: wonSeries[i], e: expected[i], gap: wonSeries[i] + expected[i] - bud.income[i] }; }), { dense: true }),
+            "The gap is what the pipeline does not yet cover. A department beating budget because its pipeline was understated shows up here as the pipeline being wrong, which is the thing the manual says to raise.")),
+        U.section("Open deals by stage", U.table([
+          { key: "stage", label: "Stage", align: "left" }, { key: "n", label: "Deals" },
+          { key: "amount", label: "Amount", fmt: F.money }, { key: "expected", label: "Weighted", fmt: F.money },
+        ], stageRows, { dense: true })),
+        U.section("Order book, confirmed and completed by event month",
+          U.figure("OnRent orders by department", book, null,
+            "Production's forward view. This is the seasonality the monthly report reads, seen ahead rather than behind.")),
+        U.section("Quote conversion, " + p.label, U.table([
+          { key: "dept", label: "Department", align: "left", value: function (r) { return (E.deptOf[r.dept] || {}).short || r.dept; } },
+          { key: "sent", label: "Quotes sent" }, { key: "sentValue", label: "Value sent", fmt: F.money },
+          { key: "accepted", label: "Accepted" }, { key: "acceptedValue", label: "Value accepted", fmt: F.money },
+          { key: "rate", label: "Conversion", fmt: function (v) { return F.pct(v, 0); },
+            value: function (r) { return r.sent ? r.accepted / r.sent : null; } },
+        ], pl.quotesByDept.filter(function (r) { return !scope || r.dept === scope; }), { dense: true })),
+        U.section("Largest open deals", U.table([
+          { key: "name", label: "Deal", align: "left" }, { key: "account", label: "Client", align: "left" },
+          { key: "dept", label: "Dept", align: "left", value: function (r) { return (E.deptOf[r.dept] || {}).short || r.dept; } },
+          { key: "stage", label: "Stage", align: "left" }, { key: "close", label: "Closes", align: "left", fmt: F.date },
+          { key: "amount", label: "Amount", fmt: F.money },
+          { key: "prob", label: "Prob", fmt: function (v) { return v == null ? "-" : F.pct(v, 0); } },
+          { key: "expected", label: "Weighted", fmt: F.money }, { key: "owner", label: "Owner", align: "left" },
+        ], openRows, { dense: true })),
       ];
     },
   };

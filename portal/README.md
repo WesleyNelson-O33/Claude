@@ -7,23 +7,20 @@ Controller Pack re-aggregates a GL paste.
 
 ## Running it
 
-Double-click `CTS Business Intelligence Portal.html`. That is the whole
-procedure. Tested from a plain `file://` path in Chromium: the data files load
-and every page renders. Nothing needs installing and nothing needs a server.
+Double-click `CTS Business Intelligence Portal.html`. Nothing needs installing
+and nothing needs a server. Keep the folder together: the HTML needs
+`CTS_bi_bundle.js`, `CTS_build.js`, `CTS_email.js`, `vendor` and `data` beside it.
 
-Keep the folder together. The HTML file needs `CTS_bi_bundle.js` and the `data`
-folder sitting beside it, so move or copy the whole `portal` folder, never the
-HTML on its own.
+For the team, host the folder in a SharePoint library that everyone syncs and
+opens from the synced copy. `docs/HOSTING.md` has the setup; `docs/MONTHLY.md`
+the routine; `docs/AUTOMATION.md` the email flow.
 
-If a locked-down browser ever refuses to load the data files from `file://`,
-serve the folder instead:
+## The monthly cycle in one line
 
-```
-cd portal
-python3 -m http.server 3000
-```
-
-then open <http://localhost:3000/CTS%20Business%20Intelligence%20Portal.html>.
+Paste each export into its template in `templates`, open the portal, Admin,
+Build, and click through Choose folder, Read templates, Write data files. The
+portal rewrites its own data files from the templates, keeps last month's in
+`data/_previous`, and OneDrive carries the result to everyone.
 
 ## What is in it
 
@@ -62,14 +59,32 @@ Reporting manual rather than invented:
   every logged hour against a plain weekday year, which is why that denominator
   lands on 2,080 or 2,088.
 
-## Loading real data
+## The templates
 
-Data Loaders takes a paste, not a file. Copy a range in Excel and paste it in:
-the clipboard carries it tab separated, which is what the boxes read. Three
-loaders: the Xero account transactions report, the Xero P&L, and utilisation
-hours. Everything is parsed in the browser and nothing is uploaded. A load lives
-in that browser tab only; the save button writes a replacement data file you can
-drop into `portal/data`.
+Eight workbooks in `templates`, each shaped to the export it receives so the
+paste is header for header. Built by `portal/build/build_templates.py`.
+
+| Template | From | Status |
+|---|---|---|
+| 01 Xero P&L | Xero, Profit and Loss | Matched |
+| 02 Xero GL Transactions | Xero, Account transactions for P&L analysis | Matched, the thirteen columns from the Controller Pack |
+| 03 Employment Hero Earnings | Employment Hero, Earnings Details | Matched, the seventeen columns, plus Locations, Pay categories and Adjustments tabs |
+| 04 Zoho Deals | Zoho CRM, Deals | Placeholder on Zoho's standard export until a real one is matched |
+| 05 OnRent Orders | OnRent Events | Placeholder until a real export is matched |
+| 06 Qwilr Quotes | Qwilr | Placeholder until a real export is matched |
+| 07 Budget | Once a year | Same layout as the P&L |
+| 08 Config | Monthly reporting month; otherwise rarely | Departments, split bases, holidays, who sees what, who gets the email |
+
+The Build page (`CTS_build.js`, SheetJS vendored in `vendor`) reads them with
+the File System Access API, which Edge and Chrome have, checks them, and writes
+`data`. Data Loaders keeps the paste boxes as the ad hoc path.
+
+## The monthly email
+
+`CTS_email.js` renders three tiers, executive, department head and finance, and
+the Distribution page writes them into `outbox/YYYY-MM` as JSON and HTML. The
+portal never sends: a Power Automate flow watches that folder, or you copy the
+HTML into Outlook until it does. `docs/AUTOMATION.md` has the flow.
 
 ## Rebuilding the data files
 

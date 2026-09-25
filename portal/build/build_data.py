@@ -603,8 +603,13 @@ def emit(month, dept, cat, acc, amount_c, nlines):
         # spread across the month, weekdays only
         day = 1 + int(R.next() * (CAL_INDEX[month]["days"] - 1))
         d = date(y, m, day)
+        # A weekend date moves to a weekday inside the same month. Moving it
+        # back from the 1st or 2nd crossed into the previous month, which put
+        # the ledger line and the P&L figure in different months; the Build
+        # page's per month control caught it.
+        forward = d.day <= 2
         while d.weekday() > 4:
-            d -= timedelta(days=1)
+            d = d + timedelta(days=1) if forward else d - timedelta(days=1)
         if cat in ("income", "other_income"):
             contact = pick_client(pool) if cat == "income" else ""
             credit, debit = p / 100.0, 0.0
@@ -935,3 +940,53 @@ for month in ALL_MONTHS:
     "rows": staff_rows,
 }, "CTS people, hours and pay by month"))
 print("staff rows:", len(staff_rows), "people:", sum(len(v) for v in STAFF.values()))
+
+
+# ------------------------------------------------------------------ pipeline
+# Deals, orders and quotes, in the placeholder template shapes, so the
+# Pipeline page works before a real export from Zoho, OnRent or Qwilr is
+# matched. Sized to the same client list and seasonality as the ledger.
+STAGES = [("Qualification", 0.10), ("Needs Analysis", 0.25), ("Proposal/Price Quote", 0.50),
+          ("Negotiation/Review", 0.75), ("Closed Won", 1.0), ("Closed Lost", 0.0)]
+deals, orders, quotes = [], [], []
+dn = 1000
+for name, depts, size in CLIENTS:
+    for k in range(1 + int(size / 5)):
+        dept = R.pick(depts)
+        stage, prob = R.pick(STAGES)
+        mi = int(R.next() * 12)
+        y, m = fy_months(2027)[mi]
+        close = date(y, m, min(28, 1 + int(R.next() * 27)))
+        amt = int(round(2000 + R.next() * 60000 * (SHAPE[dept][mi] * 12) * size / 8, -2))
+        created = close - timedelta(days=30 + int(R.next() * 90))
+        dn += 1
+        deals.append({"name": "%s, %s" % (name.split()[0], R.pick(["boardroom refresh", "AGM production",
+                        "support renewal", "site integration", "video series", "advisory"])),
+                      "account": name, "stage": stage, "amount": amt * 100, "close": close.isoformat(),
+                      "owner": R.pick(["Jordan", "M Held", "W Corrigan", "T Moreau"]), "prob": prob,
+                      "expected": int(amt * prob) * 100, "type": "New Business" if R.next() > 0.5 else "Existing Business",
+                      "source": R.pick(["Referral", "Existing client", "Web", "Event"]),
+                      "created": created.isoformat(), "dept": dept})
+        if dept in ("PRODUCTION", "VIDEO") and R.next() > 0.3:
+            st = R.pick(["Confirmed", "Confirmed", "Quote", "Completed", "Cancelled"])
+            orders.append({"no": "ORD-%d" % (2300 + len(orders)), "client": name,
+                           "title": "%s event" % name.split()[0], "start": close.isoformat(),
+                           "end": (close + timedelta(days=int(R.next() * 2))).isoformat(),
+                           "dept": dept, "status": st, "value": amt * 100,
+                           "owner": "M Held", "created": created.isoformat()})
+        if R.next() > 0.4:
+            qs = R.pick(["Sent", "Viewed", "Accepted", "Accepted", "Declined", "Expired"])
+            sent = created + timedelta(days=int(R.next() * 20))
+            quotes.append({"ref": "Q-%d" % (1000 + len(quotes)), "client": name,
+                           "title": deals[-1]["name"], "sent": sent.isoformat(), "status": qs,
+                           "accepted": (sent + timedelta(days=5 + int(R.next() * 20))).isoformat() if qs == "Accepted" else None,
+                           "value": amt * 100, "owner": deals[-1]["owner"], "dept": dept})
+
+(OUT / "CTS_pipeline_data.js").write_text(js("CTS_PIPELINE", {
+    "meta": {"seed": True, "placeholder": True, "built": BUILT,
+             "note": "Seed pipeline in the placeholder template shapes. Deals follow Zoho's "
+                     "standard export; orders and quotes follow the fields the portal needs "
+                     "until a real OnRent and Qwilr export is matched."},
+    "deals": deals, "orders": orders, "quotes": quotes,
+}, "CTS pipeline: deals, orders and quotes"))
+print("pipeline: %d deals, %d orders, %d quotes" % (len(deals), len(orders), len(quotes)))

@@ -179,5 +179,17 @@ window.CTS_CONFIG = {
 
   CATEGORY_ORDER: ["Income", "Cost of Sales", "Expenses", "Other Income", "Other Expenses"],
 
+  // ------------------------------------------------------- the monthly email
+  // Who gets which tier. Rebuilt from the Distribution tab of 08 Config.xlsx;
+  // addresses here are placeholders. Tier 1 executive, 2 department head,
+  // 3 finance. Nothing is sent by the portal itself: see docs/AUTOMATION.md.
+  DISTRIBUTION: [
+    { name: "Duncan", email: "", tier: 1, dept: null, send: true, note: "Full result, cost and margin, commentary" },
+    { name: "Graham", email: "", tier: 1, dept: null, send: true, note: "" },
+    { name: "Jordan", email: "", tier: 2, dept: "CONSULTING", send: true, note: "Own department in depth, one line on the rest" },
+    { name: "Production manager", email: "", tier: 2, dept: "PRODUCTION", send: false, note: "No address yet" },
+    { name: "Danica Nelson", email: "", tier: 3, dept: null, send: true, note: "Finance: the controls and data quality" },
+  ],
+
   VERSION: "1.0.0",
 };
