@@ -81,7 +81,8 @@
   function moneyCell(c, bold) { return cell(money(c), { color: c < 0 ? C.bad : C.ink, bold: !!bold }); }
 
   /* ---- the deck ----------------------------------------------------------- */
-  D.build = function () {
+  D.build = function () { return E().withoutView ? E().withoutView(buildInner) : buildInner(); };
+  function buildInner() {
     if (!D.supported()) throw new Error("PptxGenJS did not load (vendor/pptxgen.bundle.js).");
     var e = E(), p = CTS.period(), rm = e.reportingMonth(), mLabel = (e.monthIdx[rm] || {}).long || rm;
     var fy = e.currentFY(), fyKeys = e.monthsOfFY(fy), ytd = e.ytd();
@@ -257,7 +258,7 @@
               { x: 0.75, y: 4.0, w: 8.5, h: 1.2, fontFace: FONT, fontSize: 16, color: C.greyLight, valign: "top" });
     s.addText("Corporate Technology Services  |  Seamless AV  |  Confidential", { x: 0.75, y: H - 0.7, w: 8, h: 0.4, fontFace: FONT, fontSize: 10, color: C.greyLight });
     return P;
-  };
+  }
 
   D.bytes = function () { return D.build().write({ outputType: "arraybuffer" }); };
   D.download = function () { return D.build().writeFile({ fileName: D.fileName() }); };

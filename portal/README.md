@@ -143,6 +143,12 @@ validated as a set in both modes, so departments stay apart for every reader.
 Sora carries headings and Figtree the text, the nearest faces to Tomato
 Grotesk that a browser can fetch; Segoe UI and Calibri stand behind them.
 
+A department picker sits in the period bar on every page. Pick one and the
+whole portal becomes that department: the P&L off the ledger by cost centre,
+the budget on each account's department split, the forecast by department,
+utilisation, revenue, the story. Cash stays company wide and says so. The
+emails and the deck ignore the picker; a department head's role fixes it.
+
 Every section is a card that collapses and remembers its state; the sidebar
 groups do the same. Each page has Read aloud (the browser's own speech, an
 Australian English voice where one is installed) and Collapse all; the

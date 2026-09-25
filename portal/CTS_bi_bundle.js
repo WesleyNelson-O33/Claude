@@ -691,13 +691,35 @@
     };
   };
 
+  /** The department in view: a department head's own, else the one picked
+   *  at the top of the page, else none (the company). When one is in view
+   *  the P&L functions read the ledger by department instead of the company
+   *  P&L paste, the budget on each account's department split, and the
+   *  forecast by department, so every page becomes that department's. */
+  E.viewDept = function () {
+    var scope = E.deptScope(); if (scope) return scope;
+    if (E._noView) return null;
+    var f = store.get("focusDept", null);
+    return f && E.deptOf[f] ? f : null;
+  };
+  E.withoutView = function (fn) { var was = E._noView; E._noView = true; try { return fn(); } finally { E._noView = was; } };
+  function deptActual(d) { return function (n, m) { return (((E.idx.deptAcctMonth[d] || {})[n] || {})[m]) || 0; }; }
+  function deptBudget(d) { return function (n, m) { var b = (E.finBudget[n] || {})[m] || 0; return b ? Math.round(b * (E.deptShareOfAccount(n)[d] || 0)) : 0; }; }
+  function deptForecast(d) { return function (n, m) { var f = E.forecast ? E.forecast() : null; return f ? ((((f.byDeptAcct[d] || {})[n] || {})[m]) || 0) : 0; }; }
   E.pnlActual = function (keys) {
-    return E.buildPnl(keys, function (n, m) { return (E.finActual[n] || {})[m] || 0; });
+    var d = E.viewDept();
+    return E.buildPnl(keys, d ? deptActual(d) : function (n, m) { return (E.finActual[n] || {})[m] || 0; });
   };
   E.pnlBudget = function (keys) {
-    return E.buildPnl(keys, function (n, m) { return (E.finBudget[n] || {})[m] || 0; });
+    var d = E.viewDept();
+    return E.buildPnl(keys, d ? deptBudget(d) : function (n, m) { return (E.finBudget[n] || {})[m] || 0; });
   };
-  E.pnlBlend = function (keys) { return E.buildPnl(keys, E.acctBlend); };
+  E.pnlBlend = function (keys) {
+    var d = E.viewDept();
+    if (!d) return E.buildPnl(keys, E.acctBlend);
+    var a = deptActual(d), b = deptBudget(d), f = deptForecast(d);
+    return E.buildPnl(keys, function (n, m) { var src = E.blendSource(m); return src === "actual" ? a(n, m) : src === "forecast" ? f(n, m) : b(n, m); });
+  };
 })();
 
 /* ===================================================================== *
@@ -947,6 +969,8 @@
         gap: worked && d.utilTarget != null ? chg / worked - d.utilTarget : null,
       };
     });
+    var view = E.viewDept();
+    if (view) rows = rows.filter(function (r) { return r.code === view; });
     var tc = rows.reduce(function (a, r) { return a + r.chargeable; }, 0);
     var tn = rows.reduce(function (a, r) { return a + r.nonChargeable; }, 0);
     var tw = rows.reduce(function (a, r) { return a + r.worked; }, 0);
@@ -1269,6 +1293,7 @@
   function build() {
     var rm = E.reportingMonth();
     if (E._fc && E._fc.rm === rm) return E._fc;
+    if (E.viewDept() && !E._noView) return E.withoutView(build);
     var a = assumptions();
     var months = E.forecastMonths();
     var fc = { rm: rm, months: months, monthSet: {}, byDeptAcct: {}, byAcct: {}, rules: {},
@@ -1425,7 +1450,12 @@
     return ((build().byAcct[name] || {})[m]) || 0;
   };
   E.pnlForecast = function (keys) {
-    return E.buildPnl(keys, function (n, m) { return E.hasForecast(m) ? E.acctForecast(n, m) : 0; });
+    var d = E.viewDept();
+    return E.buildPnl(keys, function (n, m) {
+      if (!E.hasForecast(m)) return 0;
+      if (!d) return E.acctForecast(n, m);
+      var f = build(); return (((f.byDeptAcct[d] || {})[n] || {})[m]) || 0;
+    });
   };
   /** Forecast by department for a category over months, the shape budgetByDept has. */
   E.forecastByDept = function (monthKeys, cat) {
@@ -1536,6 +1566,7 @@
   }
 
   E.cashflow = function () {
+    if (E.viewDept() && !E._noView) return E.withoutView(function () { return E.cashflow(); });
     var rm = E.reportingMonth();
     if (E._cash && E._cash.rm === rm) return E._cash;
     if (!E.cashEnabled() || !E.forecastEnabled()) return null;
@@ -2010,7 +2041,7 @@
       h("div.titles", [
         CTS.router && CTS.router.current && CTS.pages[CTS.router.current] ? h("div.eyebrow", CTS.pages[CTS.router.current].section) : null,
         h("h1", title),
-        sub ? h("p.page-sub", sub) : null,
+        sub || E.viewDept() ? h("p.page-sub", (sub || "") + (E.viewDept() ? (sub ? " \u00b7 " : "") + ((E.deptOf[E.viewDept()] || {}).short || E.viewDept()) + " only" : "")) : null,
       ]),
       h("div.page-tools", { "data-tools": "1" }),
     ]);
@@ -2474,12 +2505,25 @@
           onclick: function () { CTS.store.set("period", p.id); CTS.router.reload(); },
         }, p.label);
       })),
+      deptPicker(),
       h("div.toolbar-right", [
         h("label.inline", "Reporting month"),
         monthSelect(),
       ].concat(extra || [])),
     ]);
   };
+  /** The department picker: every page that has a department view follows it. */
+  function deptPicker() {
+    var scope = E.deptScope();
+    if (scope) return h("span.filterchip", { title: "Your role sees this department only" }, [h("span.dot", { style: { background: CTS.ui.colourOf(scope) } }), (E.deptOf[scope] || {}).short || scope]);
+    var cur = E.focusDept() || "";
+    var opts = [{ code: "", short: "Whole company" }].concat(E.depts.filter(function (d) { return d.isRevenue; }));
+    return h("span.row", { style: { marginTop: 0 } }, [
+      h("label.inline", "Department"),
+      h("select.control", { "aria-label": "Department in view", onchange: function (e) { E.setFocusDept(e.target.value || null); CTS.router.reload(); } },
+        opts.map(function (d) { return h("option", { value: d.code, selected: d.code === cur }, d.short); })),
+    ]);
+  }
   function monthSelect() {
     var sel = h("select.control", {
       onchange: function (e) { E.setReportingMonth(e.target.value); CTS.router.reload(); },
@@ -2548,14 +2592,18 @@
         U.tile({ label: "Gross profit", value: F.dollars(t.grossProfit),
                  sub: F.pct(t.income ? t.grossProfit / t.income : null) + " margin",
                  note: "Budget " + F.pct(bt.income ? bt.grossProfit / bt.income : null), href: "#/pnl", spark: hist.grossProfit, sparkColour: "var(--measure-2)" }),
-        U.tile({ label: "Net profit", value: F.dollars(t.netProfit),
-                 tone: t.netProfit >= 0 ? "good" : "critical",
-                 sub: F.pct(t.income ? t.netProfit / t.income : null) + " of revenue",
-                 note: "Budget " + F.dollars(bt.netProfit), href: "#/bva", spark: hist.netProfit, sparkColour: "var(--measure-3)" }),
+        (function () {
+          var v = E.viewDept(), np = t.netProfit, noteTxt = "Budget " + F.dollars(bt.netProfit);
+          if (v) { var ar = E.allocate(p.keys).byCode[v]; if (ar) { np = ar.netProfit; noteTxt = "After the overhead split. Own overhead " + F.money(ar.ownExpenses) + ", share of Admin " + F.money(ar.allocated); } }
+          return U.tile({ label: v ? "Net profit after split" : "Net profit", value: F.dollars(np),
+                 tone: np >= 0 ? "good" : "critical",
+                 sub: F.pct(t.income ? np / t.income : null) + " of revenue",
+                 note: noteTxt, href: v ? "#/pnl-dept" : "#/bva", spark: v ? null : hist.netProfit, sparkColour: "var(--measure-3)" });
+        })(),
         U.tile({ label: "Utilisation", value: F.pct(util.total.util),
                  sub: util.total.fte ? util.total.fte.toFixed(1) + " full time equivalents" : null,
                  note: "Chargeable over worked hours, leave excluded", href: "#/util", spark: utilHist, sparkColour: "var(--series-5)" }),
-      ].concat(E.cashEnabled() && E.forecastEnabled() && E.can("cash") ? [(function () {
+      ].concat(E.cashEnabled() && E.forecastEnabled() && E.can("cash") && !E.viewDept() ? [(function () {
         var c = E.cashflow(); if (!c) return null;
         return U.tile({ label: "Cash low point", value: F.dollars(c.low.closing), tone: c.low.closing < 0 ? "critical" : "good",
                         sub: c.low.label + ", from " + F.dollars(c.opening) + " now", note: "Twelve months ahead, indirect method", href: "#/cash",
@@ -2802,7 +2850,7 @@
 
       return [
         seedBanner(), CTS.periodBar(), U.h1("Profit & Loss", "FY" + p.fy + ", month by month"),
-        U.note("Costs are shown the way the ledger holds them: credit less debit, so a cost is negative and gross profit is income plus cost of sales. Columns after " + (E.monthIdx[p.rm] || {}).label + " are " + (E.forecastEnabled() ? "forecast" : "budget") + ", not actual, and are shaded."),
+        U.note("Costs are shown the way the ledger holds them: credit less debit, so a cost is negative and gross profit is income plus cost of sales. Columns after " + (E.monthIdx[p.rm] || {}).label + " are " + (E.forecastEnabled() ? "forecast" : "budget") + ", not actual, and are shaded." + (E.viewDept() ? " This is " + ((E.deptOf[E.viewDept()] || {}).short || E.viewDept()) + " off the ledger by cost centre: overheads are the department's own, and its share of the Admin pool is on P&L by Department." : "")),
         U.section("The year at a glance", summary),
         U.section("Full profit and loss", pnlTable(pnl),
           "Click the plus beside any line to open it. Category opens to subcategory, subcategory opens to the individual Xero accounts."),
@@ -3434,8 +3482,9 @@
         return [seedBanner(), CTS.periodBar(), U.h1("Cash Flow", "Twelve months ahead"),
           h("div.banner.banner-warn", [h("strong", "The cash flow needs the forecast. "), "Turn the forecast on in 09 Forecast.xlsx and rebuild."])];
       }
-      var c = E.cashflow();
+      var c = E.withoutView(function () { return E.cashflow(); });
       if (!c) return [seedBanner(), CTS.periodBar(), U.h1("Cash Flow", "Twelve months ahead"), U.note("No forecast months after the reporting month.")];
+      var viewNote = E.viewDept() ? h("div.banner.banner-warn", [h("strong", "Cash is company wide. "), "Bank accounts, tax and commitments belong to CTS, not a department, so this page shows the company even with " + ((E.deptOf[E.viewDept()] || {}).short || E.viewDept()) + " picked."]) : null;
       var S = c.settings, rmLabel = (E.monthIdx[p.rm] || {}).label || p.rm;
       var noOpening = !c.balances.length;
 
@@ -3521,7 +3570,7 @@
       ], histKeys.map(function (k, i) { return { m: (E.monthIdx[k] || {}).label || k, v: history[k], d: i ? history[k] - history[histKeys[i - 1]] : null }; }), { dense: true }) : null;
 
       return [
-        seedBanner(), CTS.periodBar(), U.h1("Cash Flow", "From " + rmLabel + ", twelve months, indirect method"),
+        seedBanner(), CTS.periodBar(), U.h1("Cash Flow", "From " + rmLabel + ", twelve months, indirect method"), viewNote,
         noOpening ? h("div.banner.banner-warn", [h("strong", "Opening cash is zero because no bank balance is typed for " + rmLabel + ". "), "Type the month end balances on the Bank balances tab and rebuild; every closing figure below moves by the same amount."]) : null,
         U.note("Starts from the bank balances at " + rmLabel + " and walks forward on the P&L forecast: revenue comes in at " + S.debtorDays + " days (" + S.debtorSource + "), costs go out at " + S.creditorDays + " days (" + S.creditorSource + "), wages in the month, GST " + (S.basFrequency === "monthly" ? "monthly" : "on the quarterly BAS") + ", super " + (S.superTiming === "quarterly" ? "quarterly" : "with each pay") + ". Commitments already in the P&L only move timing; loans, capital, tax and distributions come off in full. Settings are on 10 Cash and Commitments."),
         tiles,

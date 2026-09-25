@@ -255,7 +255,8 @@
   }
   M.commentaryBlock = commentaryBlock;
 
-  M.render = function (recipient, opts) {
+  M.render = function (recipient, opts) { return E().withoutView ? E().withoutView(function () { return renderInner(recipient, opts); }) : renderInner(recipient, opts); };
+  function renderInner(recipient, opts) {
     opts = opts || {};
     var e = E(), keys = opts.keys || e.ytd(), rm = e.reportingMonth();
     var label = "FY" + e.currentFY() + " to " + ((e.monthIdx[rm] || {}).label || rm);
@@ -363,7 +364,8 @@
     ], x.landing.slice(0, 8));
   }
 
-  M.renderFortnightly = function (recipient, opts) {
+  M.renderFortnightly = function (recipient, opts) { return E().withoutView ? E().withoutView(function () { return fortnightlyInner(recipient, opts); }) : fortnightlyInner(recipient, opts); };
+  function fortnightlyInner(recipient, opts) {
     opts = opts || {};
     var e = E(), tier = +recipient.tier || 3, dept = tier === 2 ? (recipient.dept || null) : null;
     var x = e.fortnightFor(dept, opts.month, opts.fortnight);
