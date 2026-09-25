@@ -132,7 +132,8 @@ FIN_COLS = [
     # cost centres reconcile on. Columns below are the whole JOB that line
     # belongs to, so a job split over several lines reads as one job. They
     # repeat on each of its lines - never add them up.
-    ("Job Name (Xero)", 34, TXT, "f"), ("Lines on this Job", 12, INT, "f"),
+    ("On Dept Sheet", 15, TXT, "f"),
+ ("Job Name (Xero)", 34, TXT, "f"), ("Lines on this Job", 12, INT, "f"),
     ("Job Total Ex GST", 15, CUR, "f"), ("Job Invoiced", 14, CUR, "f"),
     ("Job To Invoice", 14, CUR, "f"), ("Job Quote / Ref", 34, TXT, "f"),
     ("Open Quote", 13, TXT, "f"), ("Job Expense", 14, CUR, "f"),
@@ -142,7 +143,13 @@ FIN_COLS = [
 
 
 def _dept_pick(col_by_team, default='""'):
-    """Read a job-level column from whichever department sheet owns the job."""
+    """Read a job-level column from whichever department sheet holds the job.
+
+    A19: the job number is the key, not the Team column. This used to switch on
+    Team, so a Consulting line with Team blank - or set to anything else - found
+    nothing at all and the whole job block came back empty. Now each department
+    sheet is tried in turn until the job number matches, and Team is irrelevant.
+    """
     out = default
     for team in reversed(DEPTS):
         col = col_by_team.get(team)
@@ -157,7 +164,11 @@ def _dept_pick(col_by_team, default='""'):
         else:
             pick = (f'INDEX(tbl_{team}[{col}],'
                     f'MATCH({{Job Number}}&"",tbl_{team}[Job Number],0))')
-        out = (f'IF({{Team}}="{team}",IFERROR({pick},{default}),{out})')
+        # A job found on a sheet with that cell empty reads back as 0, not
+        # blank. Fine for a number, wrong for a quote reference or a note.
+        if default == '""':
+            pick = f'IF({pick}="","",{pick})'
+        out = f'IFERROR({pick},{out})'
     return out
 FIN_FORMULAS = {
     "Month": '=IF({Date}="","",EOMONTH({Date},0))',
@@ -369,6 +380,12 @@ WIP_FORMULAS = {
     "Invoice Date": '=IF({Xero Invoice No}="","",IFERROR(INDEX(' + FIN + '[Date],'
                     'MATCH({Xero Invoice No}&"",' + FIN + '[Xero Invoice No],0)),""))',
 }
+
+FIN_FORMULAS["On Dept Sheet"] = (
+    '=IF({Job Number}="","",'
+    + "".join(f'IF(COUNTIF(tbl_{d}[Job Number],{{Job Number}}&"")>0,"{d}",'
+              for d in DEPTS)
+    + '"not set up yet"' + ")" * len(DEPTS) + ')')
 
 FIN_FORMULAS["Job Quote / Ref"] = '=IF({Job Number}="","",' + _dept_pick(
     {"Onsite": "Qwilr Quote", "Consulting": "Qwilr Quote",
@@ -821,6 +838,13 @@ CHECKS = [
      'COUNTIF(tbl_WIP[Job in Xero?],"CHECK")'),
     ("Consulting revenue split does not equal the job revenue",
      'COUNTIF(tbl_Consulting[Revenue Split Check],"MISMATCH")'),
+    ("Invoiced jobs not set up on any department sheet",
+     f'COUNTIF({FIN}[On Dept Sheet],"not set up yet")'),
+    ("Job numbers sitting on more than one department sheet",
+     "+".join(
+         f'SUMPRODUCT(--(tbl_{a}[Job Number]<>""),'
+         f'--(COUNTIF(tbl_{b}[Job Number],tbl_{a}[Job Number]&"")>0))'
+         for i, a in enumerate(DEPTS) for b in DEPTS[i + 1:])),
     ("Jobs on a department sheet with no invoice yet",
      "+".join(f'COUNTIFS({DEPT_TABLE[d]}[Job Number],"<>",{DEPT_TABLE[d]}[Lines on Job],0)'
               for d in DEPTS)),
