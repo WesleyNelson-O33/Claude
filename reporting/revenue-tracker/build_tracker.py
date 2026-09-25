@@ -26,7 +26,8 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 
 SRC, OUT = sys.argv[1], sys.argv[2]
 PASSWORD = "CTS1234"          # same password as v3
-N = int(sys.argv[3]) if len(sys.argv) > 3 else 500   # job rows per department
+N = int(sys.argv[3]) if len(sys.argv) > 3 else 1500  # job rows per department
+DEF_N = int(sys.argv[4]) if len(sys.argv) > 4 else 500  # deferral rows
 DEPTS = [("Onsite", "ONS", "tbl_Onsite"),
          ("Production", "PRD", "tbl_Production"),
          ("Consulting", "CON", "tbl_Consulting")]
@@ -156,7 +157,14 @@ def build_lists():
     ws["U12"].protection = Protection(locked=False)
     ws["T13"] = ("Change U12 to 31-Jul of a new year to roll the whole tracker to the next financial "
                  "year. Every month heading on Finance, FY Summary and Month-End follows.")
-    for c in ("T12", "T13"):
+    ws["T15"], ws["U15"] = "Deferred revenue account (balance sheet)", "11300 Work in Progress"
+    ws["T16"], ws["U16"] = "Deferred / prepaid cost account (balance sheet)", "11300 Work in Progress"
+    ws["T17"] = ("The balance sheet accounts the Deferral Journal uses. v3 used 11300 for both. If you hold income in "
+                 "advance or prepayments in their own accounts, type those accounts here and every journal line follows.")
+    for c in ("U15", "U16"):
+        ws[c].fill = FILL_FIN
+        ws[c].protection = Protection(locked=False)
+    for c in ("T12", "T13", "T15", "T16", "T17", "U15", "U16"):
         ws[c].font = Font(name=FONT, size=10)
     for i in range(12):
         c = ws.cell(5 + i, 25, f"=EOMONTH($U$12,{i})")
@@ -178,7 +186,8 @@ def build_lists():
         "set_QwilrBase": "$U$5", "set_RMSBase": "$U$6", "set_WIPAsset": "$U$9", "set_WIPIncome": "$U$10",
         "lst_RevGL": "$K$5:$K$39", "lst_Months": "$N$5:$N$100", "lst_Jobs": "$P$5:$P$1500",
         "lst_JobName": "$Q$5:$Q$1500", "lst_JobCC": "$R$5:$R$1500",
-        "lst_FY27Months": "$Y$5:$Y$16", "set_FYFirstMonth": "$U$12",
+        "lst_FY27Months": "$Y$5:$Y$16", "set_FYFirstMonth": "$U$12", "lst_GLName": "$L$5:$L$39",
+        "set_DefRevAcct": "$U$15", "set_DefCostAcct": "$U$16",
     }
     for n, ref in names.items():
         add_name(n, f"Lists!{ref}")
@@ -193,10 +202,11 @@ def dept_formulas(dept, cols):
     """Return {header: formula_template} with {r} as row number."""
     c = lambda h: cols[h]              # column letter for a header
     rid = f"${c('Row ID')}{{r}}"
-    fin = lambda fld: f"INDEX(tbl_Finance[{fld}],MATCH({rid},tbl_Finance[Row ID],0))"
+    fin = lambda fld: f"INDEX(tbl_Finance[{fld}],${c('Finance Row')}{{r}})"
     job = f"${c('Job Number')}{{r}}"
     guard = lambda body: f'=IF({job}="","",IFERROR({body},""))'
     f = {
+        "Finance Row": f'=IFERROR(MATCH({rid},tbl_Finance[Row ID],0),"")',
         "Invoice Date": guard(f'IF({fin("Latest Invoice Date")}="","",{fin("Latest Invoice Date")})'),
         "Invoice No": guard(f'{fin("Invoice Numbers")}&""'),
         "Job in Xero?": f'=IF({job}="","",IF(COUNTIF(lst_Jobs,{job}&"")>0,"OK","CHECK"))',
@@ -253,7 +263,7 @@ HDR_NOTES = {
     "Invoice Date": "From Finance: the latest Xero invoice date on this job.",
     "Invoice No": "From Finance: every Xero invoice number raised on this job.",
     "Lines on Job": "From Finance: how many invoices have been entered against this job.",
-    "Revenue Ex GST": "From Finance: total ex GST invoiced in Xero for this job (FY27).",
+    "Revenue Ex GST": "From Finance: total ex GST invoiced in Xero for this job, including prior years.",
     "Invoiced": "From Finance: Not invoiced / Dept higher - to invoice / Agrees / Xero higher - check dept.",
     "To Invoice": "Expected Revenue Ex GST less what Xero has invoiced. This is what is still to be billed.",
     "Expected Revenue Ex GST": "YOU TYPE: what the whole job is worth ex GST. Finance compares Xero to this number.",
@@ -267,7 +277,7 @@ def build_dept(dept, prefix, tname):
     old = src[dept]
     ws = wb.create_sheet(dept)
     headers = [c.value for c in old[4] if c.value is not None]
-    headers.append("Row ID")
+    headers += ["Row ID", "Finance Row"]
     cols = {h: CL(i + 1) for i, h in enumerate(headers)}
     last = CL(len(headers))
     title_block(ws, old["A1"].value, DEPT_SUB[dept])
@@ -278,13 +288,13 @@ def build_dept(dept, prefix, tname):
     for i, h in enumerate(headers):
         col = i + 1
         L = CL(col)
-        oldc = old.cell(5, col) if h != "Row ID" else None
+        oldc = old.cell(5, col) if h not in ("Row ID", "Finance Row") else None
         typed = h not in forms and h != "Row ID" and (oldc is not None and not oldc.protection.locked)
         kind = "in" if typed else "calc"
         hdr(ws.cell(4, col), h, kind)
         if h in HDR_NOTES:
             ws.cell(4, col).comment = Comment(HDR_NOTES[h], "Tracker")
-        fmt = oldc.number_format if oldc is not None else "@"
+        fmt = oldc.number_format if oldc is not None else ("0" if h == "Finance Row" else "@")
         if h in ("Invoiced", "Not Yet on Finance", "Cost Centres", "Invoice No"):
             fmt = "@" if h != "Not Yet on Finance" else "General"
         if h == "Invoice Date":
@@ -302,6 +312,7 @@ def build_dept(dept, prefix, tname):
     ws.column_dimensions["P"].width = 30
     ws.column_dimensions["Q"].width = 20
     ws.column_dimensions[cols["Row ID"]].width = 10
+    ws.column_dimensions[cols["Finance Row"]].hidden = True
     ws.row_dimensions[4].height = 34
     add_table(ws, tname, f"A4:{last}{4 + N}")
     ws.freeze_panes = "D5"
@@ -341,6 +352,7 @@ FIN_COLS = [  # header, kind, number format, width
     ("Dept Notes", "calc", "@", 26), ("Dept Expected Ex GST", "calc", MONEY, 15),
     ("Xero Invoiced Ex GST", "calc", MONEY, 15), ("Variance Dept vs Xero", "calc", MONEY, 15),
     ("Compare", "calc", "@", 22), ("Issue", "calc", "@", 34),
+    ("Prior Years Invoice Nos", "fin", "@", 16), ("Prior Years Ex GST", "fin", MONEY, 14),
 ]
 for m in MONTHS:
     FIN_COLS += [(f"{m} Invoice No", "fin", "@", 12), (f"{m} Invoice Date", "fin", DATE, 11),
@@ -354,7 +366,9 @@ FIN_NOTES = {
     "Department": "Which department sheet this row belongs to. Fixed.",
     "Job Number": "From the department sheet. Finance never types it.",
     "Dept Expected Ex GST": "What the department says the whole job is worth (Expected Revenue Ex GST).",
-    "Xero Invoiced Ex GST": "Sum of the twelve monthly Ex GST cells Finance entered from Xero.",
+    "Xero Invoiced Ex GST": "Prior Years Ex GST plus the twelve FY27 monthly Ex GST cells Finance entered from Xero.",
+    "Prior Years Invoice Nos": "Jobs brought in from 2024 / FY25 / FY26: every invoice number raised before 1 July 2026, separated by commas.",
+    "Prior Years Ex GST": "Total ex GST invoiced on this job before 1 July 2026, per Xero. Keeps the variance right for older jobs.",
     "Variance Dept vs Xero": "Dept Expected less Xero Invoiced. Positive = still to invoice. Negative = Xero is higher than the department expected.",
     "Compare": "Agrees / Dept higher - to invoice / Not invoiced - to invoice / Xero higher - check dept / No dept value.",
     "Issue": "Anything wrong on this row. Filter this column to non-blanks and fix each one.",
@@ -392,6 +406,9 @@ def build_finance():
                 "Two invoices on one job in the same month: type both numbers in one cell (INV-1001, INV-1002), "
                 "the later date and the combined Ex GST.")
     ws["A4"].font = Font(name=FONT, size=9, italic=True, color=GREY_TXT)
+    ws.merge_cells(f"{FC['Prior Years Invoice Nos']}5:{FC['Prior Years Ex GST']}5")
+    pc = ws[f"{FC['Prior Years Invoice Nos']}5"]
+    pc.value, pc.font, pc.fill, pc.alignment = "Before FY27", F_HDR, FILL_FIN_HDR, HDR_ALIGN
     # month banner row 5 (merged over each 3-column block)
     for i, m in enumerate(MONTHS):
         a = FC[f"{m} Invoice No"]
@@ -414,7 +431,8 @@ def build_finance():
     inv_no = [FC[f"{m} Invoice No"] for m in MONTHS]
     inv_dt = [FC[f"{m} Invoice Date"] for m in MONTHS]
     inv_am = [FC[f"{m} Ex GST"] for m in MONTHS]
-    first_in, last_in = inv_no[0], inv_am[-1]
+    pno, pam = FC["Prior Years Invoice Nos"], FC["Prior Years Ex GST"]
+    first_in, last_in = pno, inv_am[-1]
     r_ = "{r}"
     anyin = f"COUNTA(${first_in}{r_}:${last_in}{r_})>0"
     job = f"${FC['Job Number']}{r_}"
@@ -433,7 +451,7 @@ def build_finance():
         "PO or Quote Ref": fin_pull({"Onsite": "PO / Reference", "Production": "Current RMS No", "Consulting": "Qwilr Quote"}),
         "Dept Notes": fin_pull({d: "Notes" for d, *_ in DEPTS}),
         "Dept Expected Ex GST": fin_pull({d: "Expected Revenue Ex GST" for d, *_ in DEPTS}, numeric=True),
-        "Xero Invoiced Ex GST": f'=IF(AND({job}="",NOT({anyin})),"",SUM({",".join(c + r_ for c in inv_am)}))',
+        "Xero Invoiced Ex GST": f'=IF(AND({job}="",NOT({anyin})),"",SUM({",".join(c + r_ for c in [pam] + inv_am)}))',
     }
     E, X, V = (f'{FC["Dept Expected Ex GST"]}{r_}', f'{FC["Xero Invoiced Ex GST"]}{r_}',
                f'{FC["Variance Dept vs Xero"]}{r_}')
@@ -445,7 +463,8 @@ def build_finance():
     # Issue column: every problem on the row, joined
     incomplete = "+".join(
         f'IF(OR(COUNTA({a}{r_}:{c}{r_})=0,AND(COUNTA({a}{r_}:{c}{r_})=3,ISNUMBER({c}{r_}))),0,1)'
-        for a, c in zip(inv_no, inv_am))
+        for a, c in zip(inv_no, inv_am)) + (f'+IF(OR(AND({pno}{r_}<>"",NOT(ISNUMBER({pam}{r_}))),'
+                                            f'AND({pno}{r_}="",{pam}{r_}<>"")),1,0)')
     outside = "+".join(
         f'IF({d}{r_}="",0,IFERROR(--(EOMONTH({d}{r_},0)<>{a}$5),1))' for a, d in zip(inv_no, inv_dt))
     checks = [
@@ -464,9 +483,10 @@ def build_finance():
     F["Issue"] = f'=IF(AND({job}="",NOT({anyin}),${FC["Dept Row"]}{r_}<>""),"",MID({body},3,500))'
     F["GST"] = f'=IF({X}="","",IF({FC["Tax Code"]}{r_}="GST 10%",ROUND({X}*set_GSTRate,2),0))'
     F["Inc GST"] = f'=IF({X}="","",{X}+{FC["GST"]}{r_})'
-    F["Invoice Count"] = f'=IF({X}="","",COUNTA({",".join(c + r_ for c in inv_no)}))'
+    F["Invoice Count"] = (f'=IF({X}="","",' + "+".join(
+        f'IF({c}{r_}="",0,LEN({c}{r_})-LEN(SUBSTITUTE({c}{r_},",",""))+1)' for c in [pno] + inv_no) + ")")
     F["Latest Invoice Date"] = f'=IF(COUNT({",".join(c + r_ for c in inv_dt)})=0,"",MAX({",".join(c + r_ for c in inv_dt)}))'
-    F["Invoice Numbers"] = "=MID(" + "&".join(f'IF({c}{r_}="","",", "&{c}{r_})' for c in inv_no) + ",3,500)"
+    F["Invoice Numbers"] = "=MID(" + "&".join(f'IF({c}{r_}="","",", "&{c}{r_})' for c in [pno] + inv_no) + ",3,500)"
 
     for i in range(3 * N):
         r = FIN_FIRST + i
@@ -753,7 +773,7 @@ def build_month_end():
     ws = wb.create_sheet("Month-End", 1)
     title_block(ws, "Month-End Revenue Close",
                 "Pick the month, type the Xero figures into the yellow cells, and work down. Everything else calculates.")
-    widths = [44, 16, 14, 15, 16, 18, 18, 15, 22]
+    widths = [44, 16, 14, 15, 16, 16, 18, 18, 15, 22]
     for i, w in enumerate(widths):
         ws.column_dimensions[CL(i + 1)].width = w
     ws["A4"], ws["D4"] = "Month being closed", "<- pick a FY27 month end"
@@ -772,7 +792,7 @@ def build_month_end():
     inputs = []
 
     def section(row, text):
-        ws.merge_cells(f"A{row}:I{row}")
+        ws.merge_cells(f"A{row}:J{row}")
         ws.cell(row, 1, text).font = F_SEC
         ws.cell(row, 1).fill = FILL_IN_HDR
 
@@ -783,8 +803,12 @@ def build_month_end():
 
     # ---- 1 revenue by cost centre
     section(6, "1.  REVENUE BY COST CENTRE  -  tracker vs Xero P&L")
-    heads(7, ["Cost Centre", "Invoiced Ex GST", "GST", "Inc GST", "WIP Movement", "Revenue Recognised",
-              "Xero Revenue (type in)", "Variance", "Check"])
+    heads(7, ["Cost Centre", "Invoiced Ex GST", "GST", "Inc GST", "WIP Movement", "Deferral Movement",
+              "Revenue Recognised", "Xero Revenue (type in)", "Variance", "Check"])
+    dgrid = f"Deferrals!${DEF_G0}${DEF_HDR - 1}:${DEF_G1}${DEF_HDR - 1}"
+    dvals = f"Deferrals!${DEF_G0}${DEF_FIRST}:${DEF_G1}${DEF_LAST}"
+    dtype = f"Deferrals!$A${DEF_FIRST}:$A${DEF_LAST}"
+    dcc = f"Deferrals!${DC['Cost Centre']}${DEF_FIRST}:${DC['Cost Centre']}${DEF_LAST}"
     for k in range(7):
         r = 8 + k
         if k < 6:
@@ -794,36 +818,44 @@ def build_month_end():
                            for i, m in enumerate(MONTHS))
             ws.cell(r, 3, f"=IFERROR(ROUND(({gst})*set_GSTRate,2),0)")
             ws.cell(r, 5, f'=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4,tbl_WIP[Cost Centre],$A{r},tbl_WIP[Revenue or Cost],"<>Cost")')
+            ws.cell(r, 6, f'=SUMPRODUCT(({dtype}="Revenue")*({dcc}=$A{r})*({dgrid}=$C$4)*{dvals})')
         else:
             ws.cell(r, 1, "No cost centre set")
             ws.cell(r, 2, f"=IFERROR(INDEX('FY Summary'!$B$12:$M$12,{mi}),0)")
             ws.cell(r, 3, 0)
             ws.cell(r, 5, f'=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4,tbl_WIP[Revenue or Cost],"<>Cost")-SUM(E8:E13)')
+            ws.cell(r, 6, f'=SUMPRODUCT(({dtype}="Revenue")*({dgrid}=$C$4)*{dvals})-SUM(F8:F13)')
         ws.cell(r, 4, f"=B{r}+C{r}")
-        ws.cell(r, 6, f"=B{r}+E{r}")
-        ws.cell(r, 8, f'=IF($G{r}="","",$F{r}-$G{r})')
-        ws.cell(r, 9, f'=IF($G{r}="",IF(ROUND(F{r},2)=0,"","Enter Xero figure"),IF(ROUND($H{r},2)=0,"Reconciled","CHECK - "&TEXT($H{r},"$#,##0.00")))')
-        inputs.append(f"G{r}")
+        ws.cell(r, 7, f"=B{r}+E{r}+F{r}")
+        ws.cell(r, 9, f'=IF($H{r}="","",$G{r}-$H{r})')
+        ws.cell(r, 10, f'=IF($H{r}="",IF(ROUND(G{r},2)=0,"","Enter Xero figure"),IF(ROUND($I{r},2)=0,"Reconciled","CHECK - "&TEXT($I{r},"$#,##0.00")))')
+        inputs.append(f"H{r}")
     ws["A15"] = "TOTAL"
-    for c in "BCDEFGH":
+    for c in "BCDEFGHI":
         ws[f"{c}15"] = f"=SUM({c}8:{c}14)"
-    ws["I15"] = '=IF(COUNT($G8:$G14)=0,"Enter Xero figures",IF(ROUND($H15,2)=0,"Reconciled","CHECK - "&TEXT($H15,"$#,##0.00")))'
-    ws["A16"] = ("Invoiced Ex GST reads the month's column on the Finance sheet (via FY Summary). GST is worked on the "
-                 "month total, so it can differ from Xero by a few cents of rounding.")
+    ws["J15"] = '=IF(COUNT($H8:$H14)=0,"Enter Xero figures",IF(ROUND($I15,2)=0,"Reconciled","CHECK - "&TEXT($I15,"$#,##0.00")))'
+    ws["A16"] = ("Invoiced Ex GST is the month's column on Finance. WIP Movement is WIP Movements rows. Deferral Movement is the "
+                 "revenue deferred (-) or released (+) this month from the Deferrals sheet. Revenue Recognised = all three, and "
+                 "ties to the Xero P&L once both journals are posted. GST is worked on the month total (rounding of a few cents).")
     ws["A16"].font = Font(name=FONT, size=9, italic=True, color=GREY_TXT)
 
     # ---- 2 WIP
-    section(18, "2.  WORK IN PROGRESS  -  GL 11300")
-    heads(19, ["", "Total", "Revenue", "Cost", "", "", "", "", "Check"])
-    wip = lambda crit: [f"=C{{r}}+D{{r}}",
-                        f'=SUMIFS(tbl_WIP[Amount],{crit},tbl_WIP[Revenue or Cost],"<>Cost")',
-                        f'=SUMIFS(tbl_WIP[Amount],{crit},tbl_WIP[Revenue or Cost],"Cost")']
-    for r, lab, crit in [(20, "Opening WIP balance (all months before this one)", 'tbl_WIP[Month],"<"&$C$4'),
-                         (21, "Movement this month", "tbl_WIP[Month],$C$4")]:
+    section(18, "2.  WORK IN PROGRESS AND DEFERRALS  -  GL 11300 (debit balance)")
+    heads(19, ["", "Total", "Revenue (WIP + deferrals)", "Cost (WIP + deferrals)", "", "", "", "", "Check"])
+    wip = lambda crit, op: [f"=C{{r}}+D{{r}}",
+                            f'=SUMIFS(tbl_WIP[Amount],{crit},tbl_WIP[Revenue or Cost],"<>Cost")'
+                            f'+SUMPRODUCT(({dtype}="Revenue")*({dgrid}{op}$C$4)*{dvals})',
+                            f'=SUMIFS(tbl_WIP[Amount],{crit},tbl_WIP[Revenue or Cost],"Cost")'
+                            f'-SUMPRODUCT(({dtype}="Cost")*({dgrid}{op}$C$4)*{dvals})']
+    for r, lab, crit, op in [(20, "Opening balance (all months before this one)", 'tbl_WIP[Month],"<"&$C$4', "<"),
+                             (21, "Movement this month", "tbl_WIP[Month],$C$4", "=")]:
         ws.cell(r, 1, lab)
-        for j, fm in enumerate(wip(crit)):
+        for j, fm in enumerate(wip(crit, op)):
             ws.cell(r, 2 + j, fm.format(r=r))
-    ws["A22"] = "Closing WIP balance per this tracker"
+    ws["A22"] = "Closing balance per this tracker"
+    ws["A27"] = ("Only compare this to 11300 if the deferral accounts on Lists (U15, U16) are also 11300. "
+                 "Negative = credit balance (revenue deferred). Positive = debit (accrued revenue or prepaid cost).")
+    ws["A27"].font = Font(name=FONT, size=9, italic=True, color=GREY_TXT)
     for c in "BCD":
         ws[f"{c}22"] = f"={c}20+{c}21"
     ws["A23"], ws["A24"] = "Closing balance per the WIP Schedule file (type in)", "Variance - tracker vs WIP Schedule"
@@ -880,6 +912,7 @@ def build_month_end():
         ("WIP job numbers not found in the Xero job list", 'COUNTIF(tbl_WIP[Job in Xero?],"CHECK")'),
         ("WIP rows with an amount but Revenue or Cost not set", 'COUNTIFS(tbl_WIP[Amount],"<>",tbl_WIP[Revenue or Cost],"")'),
         ("WIP cost rows with no P&L Account", 'COUNTIFS(tbl_WIP[Revenue or Cost],"Cost",tbl_WIP[P&L Account],"",tbl_WIP[Amount],"<>")'),
+        ("Deferral rows with anything in the Issue column", 'COUNTIF(tbl_Def[Issue],"?*")'),
         ("WIP rows this month not posted to Xero", 'COUNTIFS(tbl_WIP[Month],$C$4,tbl_WIP[Amount],"<>",tbl_WIP[Posted to Xero],"<>Y")'),
     ]
     for k, (lab, fm) in enumerate(checks):
@@ -896,8 +929,8 @@ def build_month_end():
     r = j0 + 2
     ws.cell(r, 1, "=set_WIPAsset")
     ws.cell(r, 2, '="(no tracking)"')
-    ws.cell(r, 3, f"=IF(ROUND(C21,2)>0,C21,\"\")")
-    ws.cell(r, 4, f"=IF(ROUND(C21,2)<0,-C21,\"\")")
+    ws.cell(r, 3, '=IF(ROUND(SUM(E8:E14),2)>0,SUM(E8:E14),"")')
+    ws.cell(r, 4, '=IF(ROUND(SUM(E8:E14),2)<0,-SUM(E8:E14),"")')
     for k in range(7):
         rr = r + 1 + k
         ws.cell(rr, 1, "=set_WIPIncome")
@@ -911,7 +944,7 @@ def build_month_end():
     ws.cell(tot, 5, f'=IF(ROUND(C{tot},2)=ROUND(D{tot},2),"Balanced","CHECK - does not balance")')
     ws.cell(tot + 1, 1, "Narration to use")
     ws.cell(tot + 1, 3, '="WIP movement "&TEXT($C$4,"mmmm yyyy")')
-    ws.cell(tot + 2, 1, "Revenue rows only. Deferred / accrued cost rows (column D in section 2) post line by line from WIP Movements.")
+    ws.cell(tot + 2, 1, "WIP Movements revenue rows only. Deferrals have their own journal on the Deferral Journal sheet. WIP cost rows post line by line from WIP Movements.")
     ws.cell(tot + 2, 1).font = Font(name=FONT, size=9, italic=True, color=GREY_TXT)
 
     # ---- 6 work won
@@ -947,14 +980,14 @@ def build_month_end():
         inputs.append(f"B{s0 + 1 + k}")
 
     # styling pass
-    for row in ws.iter_rows(min_row=7, max_row=s0 + 4, max_col=9):
+    for row in ws.iter_rows(min_row=7, max_row=s0 + 4, max_col=10):
         for c in row:
             if c.font.b and c.font.color is not None and c.font.color.rgb in ("00FFFFFF", "FFFFFFFF"):
                 continue
             if isinstance(c.value, str) and c.font.i:
                 continue
             c.font = Font(name=FONT, size=10, bold=(ws.cell(c.row, 1).value in ("TOTAL", "TOTAL WON THIS MONTH")))
-            if c.column in (2, 3, 4, 5, 6, 7, 8) and c.value is not None and not (
+            if c.column in (2, 3, 4, 5, 6, 7, 8, 9) and c.value is not None and not (
                     39 <= c.row <= last_chk or 29 <= c.row <= 34 and c.column == 2):
                 c.number_format = MONEY
     for a in inputs:
@@ -963,15 +996,289 @@ def build_month_end():
         ws[a].border = BORDER
     ws["B25"].number_format = ws["B23"].number_format = MONEY
     for r in range(8, 15):
-        ws[f"G{r}"].number_format = MONEY
+        ws[f"H{r}"].number_format = MONEY
     ws[f"B{s0 + 3}"].number_format = DATE
-    for rng_, f_ in [("I8:I15", 'LEFT(I8,5)="CHECK"'), ("I24:I26", 'I24="CHECK"'),
+    for rng_, f_ in [("J8:J15", 'LEFT(J8,5)="CHECK"'), ("I24:I26", 'I24="CHECK"'),
                      (f"I30:I{last_chk}", 'I30="REVIEW"')]:
         red_if(ws, rng_, f_)
-    for rng_, f_ in [("I8:I15", 'I8="Reconciled"'), ("I24:I26", 'I24="Reconciled"'), (f"I30:I{last_chk}", 'I30="Clear"')]:
+    for rng_, f_ in [("J8:J15", 'J8="Reconciled"'), ("I24:I26", 'I24="Reconciled"'), (f"I30:I{last_chk}", 'I30="Clear"')]:
         red_if(ws, rng_, f_, fill="D4EDDA", color="155724")
     red_if(ws, f"E{tot}", f'LEFT(E{tot},5)="CHECK"')
     ws.freeze_panes = "A5"
+    protect(ws)
+
+
+# ================================================================ Deferrals
+DEF_HDR, DEF_FIRST = 6, 7
+DEF_LAST = DEF_FIRST + DEF_N - 1
+GRID_MONTHS = [dt.date(2024 + (6 + i) // 12, (6 + i) % 12 + 1, 1) for i in range(72)]   # Jul-24 .. Jun-30
+DEF_COLS = [  # header, kind, format, width
+    ("Type", "fin", "@", 9), ("Invoice or Bill No", "fin", "@", 13), ("Invoice or Bill Date", "fin", DATE, 11),
+    ("Defer Start", "fin", "mmm-yy", 9), ("Defer End", "fin", "mmm-yy", 9),
+    ("Job Number Override", "fin", "@", 12), ("Amount Override", "fin", MONEY, 13), ("P&L GL Override", "fin", "@", 10),
+    ("Notes", "fin", "@", 24),
+    ("Finance Row", "calc", "0", 7), ("Project Number", "calc", "@", 13), ("Project Name", "calc", "@", 30),
+    ("Department", "calc", "@", 12), ("Client", "calc", "@", 20), ("Cost Centre", "calc", "@", 12),
+    ("Amount Ex GST", "calc", MONEY, 13), ("Invoice Month", "calc", "mmm-yy", 9), ("Start Month", "calc", "mmm-yy", 9),
+    ("End Month", "calc", "mmm-yy", 9), ("Months", "calc", "0", 7), ("Per Month", "calc", MONEY, 12),
+    ("P&L Account", "calc", "@", 30), ("Balance Sheet Account", "calc", "@", 24),
+    ("Opening Deferred", "calc", MONEY, 13), ("Movement This Month", "calc", MONEY, 13),
+    ("Closing Deferred", "calc", MONEY, 13), ("Issue", "calc", "@", 36), ("Journal Seq", "calc", "0", 7),
+]
+DEF_FIXED = len(DEF_COLS)
+DEF_COLS += [(m.strftime("%b-%y"), "calc", '#,##0.00;[Red]-#,##0.00;"-"', 10) for m in GRID_MONTHS]
+DC = {h: CL(i + 1) for i, (h, *_x) in enumerate(DEF_COLS)}
+DEF_G0, DEF_G1 = CL(DEF_FIXED + 1), CL(len(DEF_COLS))
+DEF_NOTES = {
+    "Type": "Revenue (a sales invoice) or Cost (a supplier bill).",
+    "Invoice or Bill No": "Exactly as in Xero. For revenue, the tracker finds the job and the amount on the Finance sheet.",
+    "Invoice or Bill Date": "The date on the Xero invoice or bill. The full amount hits the P&L in this month.",
+    "Defer Start": "Optional. First month the revenue/cost belongs to. Leave blank to start in the invoice month.",
+    "Defer End": "The last month the revenue/cost belongs to. Type any date in that month.",
+    "Job Number Override": "COST: type the job number. REVENUE: leave blank - it is found from the invoice number.",
+    "Amount Override": "COST: type the bill amount ex GST (positive). REVENUE: leave blank unless the invoice shares a cell on Finance with another invoice, or only part of it is deferred.",
+    "P&L GL Override": "COST: pick the expense GL. REVENUE: leave blank to use the job's revenue GL.",
+    "Opening Deferred": "Amount still deferred at the start of the journal month (Deferral Journal C4).",
+    "Movement This Month": "Journal month movement. Negative = deferred out of the month. Positive = released into the month.",
+    "Closing Deferred": "Amount still deferred at the end of the journal month.",
+    "Journal Seq": "Line number of this row on the Deferral Journal for the journal month.",
+}
+
+
+def build_deferrals():
+    ws = wb.create_sheet("Deferrals")
+    title_block(ws, "Deferrals - revenue and cost spread by month",
+                "Finance types the yellow cells: Revenue or Cost, the Xero invoice or bill number, its date, and the month "
+                "the deferral ends. The schedule on the right spreads it evenly, month by month, until it ends.")
+    ws["A3"] = ('="Journal month  "&TEXT(\'Deferral Journal\'!$C$4,"mmm-yy")&"      Revenue deferred at month end  "'
+                f'&TEXT(SUMIFS(tbl_Def[Closing Deferred],tbl_Def[Type],"Revenue"),"$#,##0.00")&"      Cost deferred at month end  "'
+                f'&TEXT(SUMIFS(tbl_Def[Closing Deferred],tbl_Def[Type],"Cost"),"$#,##0.00")&"      Rows with an issue  "'
+                '&COUNTIF(tbl_Def[Issue],"?*")')
+    ws.merge_cells("A3:Q3")
+    ws["A3"].font, ws["A3"].fill = F_TOT, FILL_TOT
+    ws["A4"] = ("REVENUE: type Type, Invoice No, Date and Defer End - the job, amount and GL come from Finance. "
+                "COST: also type Job Number, Amount and the expense GL.  Schedule sign: - = deferred out of that month, "
+                "+ = released into it.")
+    ws["A4"].font = Font(name=FONT, size=9, italic=True, color=GREY_TXT)
+    # grid month dates (row 5) - the schedule reads these
+    ws.merge_cells(f"A5:{CL(DEF_FIXED)}5")
+    ws["A5"] = "Schedule by month  ->"
+    ws["A5"].font, ws["A5"].fill, ws["A5"].alignment = F_HDR, FILL_CALC_HDR, Alignment(horizontal="right")
+    for i, m in enumerate(GRID_MONTHS):
+        c = ws.cell(DEF_HDR - 1, DEF_FIXED + 1 + i, f"=EOMONTH(DATE({m.year},{m.month},1),0)")
+        c.number_format, c.font, c.fill, c.alignment = "mmm-yy", F_HDR, FILL_CALC_HDR, HDR_ALIGN
+    for i, (h, kind, fmt, w) in enumerate(DEF_COLS):
+        hdr(ws.cell(DEF_HDR, i + 1), h, kind)
+        if h in DEF_NOTES:
+            ws.cell(DEF_HDR, i + 1).comment = Comment(DEF_NOTES[h], "Tracker")
+        ws.column_dimensions[CL(i + 1)].width = w
+    ws.row_dimensions[DEF_HDR].height = 34
+
+    r_ = "{r}"
+    A, B, Cc, D, E, Fo, Go, Ho = (f"${DC[h]}{r_}" for h in (
+        "Type", "Invoice or Bill No", "Invoice or Bill Date", "Defer Start", "Defer End",
+        "Job Number Override", "Amount Override", "P&L GL Override"))
+    J, K, P, Q, R, S, T, U = (f"${DC[h]}{r_}" for h in (
+        "Finance Row", "Project Number", "Amount Ex GST", "Invoice Month", "Start Month", "End Month",
+        "Months", "Per Month"))
+    X, Y = f"${DC['Opening Deferred']}{r_}", f"${DC['Movement This Month']}{r_}"
+    JM = "'Deferral Journal'!$C$4"
+    inv_cols = ["Prior Years Invoice Nos"] + [f"{m} Invoice No" for m in MONTHS]
+    amt_cols = ["Prior Years Ex GST"] + [f"{m} Ex GST" for m in MONTHS]
+    key = f'SUBSTITUTE({B}," ","")'
+    found = "+".join(f'ISNUMBER(SEARCH(","&{key}&",",","&SUBSTITUTE(tbl_Finance[{c}]," ","")&","))' for c in inv_cols)
+    inv_row = f"SUMPRODUCT(MAX((({found})>0)*(ROW(tbl_Finance[Row ID])-{FIN_HDR})))"
+    exact_amt = "+".join(f'SUMPRODUCT(--(SUBSTITUTE(tbl_Finance[{n}]," ","")={key}),tbl_Finance[{a}])'
+                         for n, a in zip(inv_cols, amt_cols))
+    exact_cnt = "+".join(f'COUNTIF(tbl_Finance[{n}],{B})' for n in inv_cols)
+    fpull = lambda fld: f'IF({J}="","",INDEX(tbl_Finance[{fld}],{J})&"")'
+    anydata = f"COUNTA(${DC['Type']}{r_}:${DC['P&L GL Override']}{r_})>0"
+    gl_name = lambda code: f'IFERROR(" "&INDEX(lst_GLName,MATCH({code},lst_RevGL,0)),"")'
+    F = {
+        "Finance Row": (f'=IF({Fo}<>"",IFERROR(MATCH({Fo}&"",tbl_Finance[Job Number],0),""),'
+                        f'IF(OR({A}<>"Revenue",{B}=""),"",IFERROR(1/(1/{inv_row}),"")))'),
+        "Project Number": f'=IF({Fo}<>"",{Fo}&"",{fpull("Job Number")})',
+        "Project Name": (f'=IF({K}="","",IFERROR(INDEX(lst_JobName,MATCH({K},lst_Jobs,0))&"",'
+                         f'{fpull("Job Description")}))'),
+        "Department": "=" + fpull("Department"),
+        "Client": "=" + fpull("Client"),
+        "Cost Centre": "=" + fpull("Cost Centre"),
+        "Amount Ex GST": (f'=IF({Go}<>"",{Go},IF(OR({A}<>"Revenue",{B}=""),"",'
+                          f'IF(({exact_cnt})=1,{exact_amt},"")))'),
+        "Invoice Month": f'=IF({Cc}="","",EOMONTH({Cc},0))',
+        "Start Month": f'=IF({Q}="","",IF({D}="",{Q},EOMONTH({D},0)))',
+        "End Month": f'=IF({E}="","",EOMONTH({E},0))',
+        "Months": f'=IF(OR({R}="",{S}=""),"",IF({S}<{R},"",(YEAR({S})-YEAR({R}))*12+MONTH({S})-MONTH({R})+1))',
+        "Per Month": f'=IF(OR({T}="",{P}=""),"",ROUND({P}/{T},2))',
+        "P&L Account": (f'=IF({A}="","",IF({Ho}<>"",{Ho}&{gl_name(Ho + "&" + chr(34) * 2)},IF({A}="Cost","(pick the cost GL)",'
+                        f'IF({J}="","(job not found)",INDEX(tbl_Finance[Revenue GL],{J})&'
+                        f'{gl_name("INDEX(tbl_Finance[Revenue GL]," + J + ")")}))))'),
+        "Balance Sheet Account": f'=IF({A}="","",IF({A}="Cost",set_DefCostAcct,set_DefRevAcct))',
+        "Opening Deferred": f'=IF({U}="","",-SUMIF(${DEF_G0}${DEF_HDR - 1}:${DEF_G1}${DEF_HDR - 1},"<"&{JM},{DEF_G0}{r_}:{DEF_G1}{r_}))',
+        "Movement This Month": f'=IF({U}="","",SUMIF(${DEF_G0}${DEF_HDR - 1}:${DEF_G1}${DEF_HDR - 1},{JM},{DEF_G0}{r_}:{DEF_G1}{r_}))',
+        "Closing Deferred": f'=IF({U}="","",{X}-{Y})',
+        "Journal Seq": f'=IF(ROUND(N({Y}),2)=0,"",COUNTIF({DC["Journal Seq"]}${DEF_HDR}:{DC["Journal Seq"]}{{rm1}},">0")+1)',
+    }
+    first_m, last_m = f"${DEF_G0}${DEF_HDR - 1}", f"${DEF_G1}${DEF_HDR - 1}"
+    checks = [
+        (f'{A}=""', "Pick Revenue or Cost"),
+        (f'{B}=""', "No invoice or bill number"),
+        (f'{Cc}=""', "No invoice or bill date"),
+        (f'{E}=""', "No defer end"),
+        (f'AND({R}<>"",{S}<>"",{S}<{R})', "Defer end is before the start"),
+        (f'AND({A}="Revenue",{Fo}="",{J}="",{B}<>"")', "Invoice number not found on Finance - check it, or type the job number"),
+        (f'AND({Fo}<>"",{J}="")', "Job number not on any department sheet"),
+        (f'AND({A}="Revenue",{B}<>"",{P}="")', "Amount not found (invoice shares a cell on Finance) - type it in Amount Override"),
+        (f'AND({A}="Cost",{Fo}="")', "Cost needs a job number"),
+        (f'AND({A}="Cost",{Go}="")', "Cost needs an amount"),
+        (f'AND({A}="Cost",{Ho}="")', "Cost needs a P&L GL"),
+        (f'AND({J}<>"",{fpull("Revenue GL")}="",{A}="Revenue",{Ho}="")', "Job has no cost centre, so no revenue GL"),
+        (f'OR(AND({Q}<>"",OR({Q}<{first_m},{Q}>{last_m})),AND({S}<>"",{S}>{last_m}),AND({R}<>"",{R}<{first_m}))',
+         "Dates fall outside the Jul-24 to Jun-30 schedule"),
+        (f'AND({B}<>"",COUNTIF(tbl_WIP[Xero Invoice No],{B})>0)', "Also on WIP Movements - it would count twice"),
+        (f'AND({B}<>"",COUNTIF(${DC["Invoice or Bill No"]}${DEF_FIRST}:${DC["Invoice or Bill No"]}${DEF_LAST},{B})>1)',
+         "Same invoice or bill number on two deferral rows"),
+    ]
+    F["Issue"] = (f'=IF(NOT({anydata}),"",MID(' + "&".join(f'IF({c},"; {t}","")' for c, t in checks) + ',3,500))')
+    for i in range(DEF_N):
+        r = DEF_FIRST + i
+        for j, (h, kind, fmt, _w) in enumerate(DEF_COLS):
+            c = ws.cell(r, j + 1)
+            if j >= DEF_FIXED:
+                L = CL(j + 1)
+                m = f"{L}${DEF_HDR - 1}"
+                c.value = (f'=IF(OR({U.format(r=r)}="",{Q.format(r=r)}=""),0,'
+                           f'IF(AND({m}>={R.format(r=r)},{m}<={S.format(r=r)}),'
+                           f'IF({m}={S.format(r=r)},{P.format(r=r)}-{U.format(r=r)}*({T.format(r=r)}-1),{U.format(r=r)}),0)'
+                           f'-IF({Q.format(r=r)}={m},{P.format(r=r)},0))')
+            elif h in F:
+                c.value = F[h].format(r=r, rm1=r - 1)
+            style_body(c, kind, fmt)
+    add_table(ws, "tbl_Def", f"A{DEF_HDR}:{DEF_G1}{DEF_LAST}")
+    ws.column_dimensions[DC["Finance Row"]].hidden = True
+    ws.freeze_panes = f"{DC['Project Number']}{DEF_FIRST}"
+    for h, lst in [("Type", "lst_RevCost"), ("P&L GL Override", "lst_RevGL")]:
+        dv = DataValidation(type="list", formula1=lst, allow_blank=True)
+        dv.add(f"{DC[h]}{DEF_FIRST}:{DC[h]}{DEF_LAST}")
+        ws.add_data_validation(dv)
+    for h in ("Invoice or Bill Date", "Defer Start", "Defer End"):
+        dv = DataValidation(type="date", operator="between", formula1="DATE(2020,1,1)", formula2="DATE(2035,12,31)",
+                            allow_blank=True, showErrorMessage=True, error="Type a date.")
+        dv.add(f"{DC[h]}{DEF_FIRST}:{DC[h]}{DEF_LAST}")
+        ws.add_data_validation(dv)
+    red_if(ws, f"{DC['Issue']}{DEF_FIRST}:{DC['Issue']}{DEF_LAST}", f'{DC["Issue"]}{DEF_FIRST}<>""')
+    # highlight the journal month column in the schedule
+    red_if(ws, f"{DEF_G0}{DEF_FIRST}:{DEF_G1}{DEF_LAST}", f"{DEF_G0}${DEF_HDR - 1}={JM}",
+           fill="FFF3CD", color="000000")
+    protect(ws)
+
+
+def build_def_journal():
+    ws = wb.create_sheet("Deferral Journal")
+    title_block(ws, "Deferral Journal",
+                "Pick the month. Every deferral that moves in that month is listed with its project, department, the "
+                "account to debit, the account to credit and the amount. The Xero lines on the right key straight in.")
+    ws["A4"], ws["A4"].font = "Journal month", F_BOLD
+    ws["C4"] = dt.datetime(2026, 8, 31)
+    ws["C4"].number_format = "mmm-yy"
+    ws["C4"].font = Font(name=FONT, size=12, bold=True, color=NAVY)
+    ws["C4"].fill = FILL_FIN
+    ws["C4"].protection = Protection(locked=False)
+    dv = DataValidation(type="list", formula1="lst_Months", allow_blank=False)
+    dv.add("C4")
+    ws.add_data_validation(dv)
+    ws["D4"] = "<- normally the same month as Month-End"
+    ws["D4"].font = F_SUB
+    ws["F4"] = '=IF($C$4=\'Month-End\'!$C$4,"","Note: Month-End is on "&TEXT(\'Month-End\'!$C$4,"mmm-yy"))'
+    ws["F4"].font = Font(name=FONT, size=10, bold=True, color="9C0006")
+    mv = "tbl_Def[Movement This Month]"
+    summ = [("Revenue deferred (pushed out of this month)", f'-SUMIFS({mv},tbl_Def[Type],"Revenue",{mv},"<0")'),
+            ("Revenue released (brought into this month)", f'SUMIFS({mv},tbl_Def[Type],"Revenue",{mv},">0")'),
+            ("Cost deferred (pushed out of this month)", f'-SUMIFS({mv},tbl_Def[Type],"Cost",{mv},"<0")'),
+            ("Cost released (brought into this month)", f'SUMIFS({mv},tbl_Def[Type],"Cost",{mv},">0")'),
+            ("Net effect on revenue this month (+ up / - down)", f'SUMIFS({mv},tbl_Def[Type],"Revenue")'),
+            ("Net effect on cost this month (+ up / - down)", f'SUMIFS({mv},tbl_Def[Type],"Cost")')]
+    for k, (lab, fm) in enumerate(summ):
+        ws.cell(5 + k, 1, lab).font = Font(name=FONT, size=10)
+        c = ws.cell(5 + k, 4, "=" + fm)
+        c.number_format, c.font = MONEY, Font(name=FONT, size=10, bold=True)
+    top = 12
+    ws.cell(top, 1, "JOURNAL LINES").font = F_SEC
+    for c in range(1, 16):
+        ws.cell(top, c).fill = FILL_IN_HDR
+    cols = [("Line", 6), ("Month", 9), ("Type", 9), ("Invoice or Bill No", 13), ("Project Number", 13),
+            ("Project Name", 30), ("Department", 12), ("Client", 20), ("Cost Centre", 12), ("Debit Account", 30),
+            ("Credit Account", 30), ("Amount", 13), ("Deferred or Released", 11), ("Narration", 50),
+            ("Still Deferred After", 13), ("Deferral Row", 7)]
+    hr = top + 1
+    for j, (h, w) in enumerate(cols):
+        hdr(ws.cell(hr, j + 1), h)
+        ws.column_dimensions[CL(j + 1)].width = w
+    ws.row_dimensions[hr].height = 34
+    ws.column_dimensions["P"].hidden = True
+    g = lambda fld, r: f"INDEX(tbl_Def[{fld}],$P{r})"
+    first = hr + 1
+    for i in range(DEF_N):
+        r = first + i
+        m = g("Movement This Month", r)
+        pl, bs = g("P&L Account", r), g("Balance Sheet Account", r)
+        vals = [
+            f'=IF({i + 1}<=MAX(tbl_Def[Journal Seq]),{i + 1},"")',
+            f'=IF($A{r}="","",$C$4)',
+            f'=IF($A{r}="","",{g("Type", r)}&"")',
+            f'=IF($A{r}="","",{g("Invoice or Bill No", r)}&"")',
+            f'=IF($A{r}="","",{g("Project Number", r)}&"")',
+            f'=IF($A{r}="","",{g("Project Name", r)}&"")',
+            f'=IF($A{r}="","",{g("Department", r)}&"")',
+            f'=IF($A{r}="","",{g("Client", r)}&"")',
+            f'=IF($A{r}="","",{g("Cost Centre", r)}&"")',
+            f'=IF($A{r}="","",IF($C{r}="Revenue",IF({m}<0,{pl},{bs}),IF({m}<0,{bs},{pl})))',
+            f'=IF($A{r}="","",IF($C{r}="Revenue",IF({m}<0,{bs},{pl}),IF({m}<0,{pl},{bs})))',
+            f'=IF($A{r}="","",ABS({m}))',
+            f'=IF($A{r}="","",IF({m}<0,"Deferred","Released"))',
+            (f'=IF($A{r}="","",$C{r}&" "&LOWER($M{r})&" - "&$D{r}&" - "&$E{r}&" "&$F{r}&" - "&$G{r}'
+             f'&" - "&TEXT($B{r},"mmm yyyy"))'),
+            f'=IF($A{r}="","",{g("Closing Deferred", r)})',
+            f'=IF($A{r}="","",MATCH($A{r},tbl_Def[Journal Seq],0))',
+        ]
+        fmts = ["0", "mmm-yy", "@", "@", "@", "@", "@", "@", "@", "@", "@", MONEY, "@", "@", MONEY, "0"]
+        for j, v in enumerate(vals):
+            c = ws.cell(r, j + 1, v)
+            style_body(c, "calc", fmts[j])
+    last = first + DEF_N - 1
+    ws.cell(top + 0, 12, f'="Total  "&TEXT(SUM(L{first}:L{last}),"$#,##0.00")').font = F_SEC
+    ws.auto_filter.ref = f"A{hr}:O{last}"
+    # Xero manual journal lines: two per entry
+    xc = 18   # column R
+    ws.cell(top, xc, "XERO MANUAL JOURNAL LINES  -  debits = credits").font = F_SEC
+    for c in range(xc, xc + 6):
+        ws.cell(top, c).fill = FILL_IN_HDR
+    xh = [("Line", 6), ("Account", 30), ("Description", 50), ("Tracking - Cost Centre", 14), ("Debit", 13), ("Credit", 13)]
+    for j, (h, w) in enumerate(xh):
+        hdr(ws.cell(hr, xc + j), h)
+        ws.column_dimensions[CL(xc + j)].width = w
+    for i in range(2 * DEF_N):
+        r = first + i
+        src_r = f"INDEX($A${first}:$O${last},INT(($R{r}+1)/2),{{col}})"
+        odd = f"ISODD($R{r})"
+        vals = [f'=IF(INT(({i + 1}+1)/2)<=MAX(tbl_Def[Journal Seq]),{i + 1},"")',
+                f'=IF($R{r}="","",IF({odd},{src_r.format(col=10)},{src_r.format(col=11)}))',
+                f'=IF($R{r}="","",{src_r.format(col=14)})',
+                f'=IF($R{r}="","",{src_r.format(col=9)})',
+                f'=IF($R{r}="","",IF({odd},{src_r.format(col=12)},""))',
+                f'=IF($R{r}="","",IF({odd},"",{src_r.format(col=12)}))']
+        fmts = ["0", "@", "@", "@", MONEY, MONEY]
+        for j, v in enumerate(vals):
+            c = ws.cell(r, xc + j, v)
+            style_body(c, "calc", fmts[j])
+    xl = first + 2 * DEF_N - 1
+    ws.cell(first - 3, xc, "Debits").font = F_BOLD
+    ws.cell(first - 3, xc + 1, f"=SUM(V{first}:V{xl})").number_format = MONEY
+    ws.cell(first - 3, xc + 2, "Credits").font = F_BOLD
+    ws.cell(first - 3, xc + 3, f"=SUM(W{first}:W{xl})").number_format = MONEY
+    ws.cell(first - 3, xc + 4, f'=IF(ROUND(S{first - 3}-U{first - 3},2)=0,"Balanced","CHECK - does not balance")').font = F_BOLD
+    red_if(ws, f"V{first - 3}", f'LEFT(V{first - 3},5)="CHECK"')
+    ws.freeze_panes = f"A{first}"
     protect(ws)
 
 
@@ -1021,8 +1328,29 @@ README = [
     ("A credit note: type it in the month it is dated, as a negative Ex GST. If that month already has an invoice for the job, net them in the one cell and list both numbers.", None),
     ("A video part of a production job that Xero holds on its own V job number (for example 26073110V) goes on its own Production row with cost centre VIDEO.", None),
     ("", None),
+    ("JOBS BROUGHT IN FROM 2024, FY25 AND FY26", "h"),
+    ("Departments set older jobs up exactly like new ones, with the whole job value in Expected Revenue Ex GST.", None),
+    ("On Finance, type everything Xero invoiced on that job before 1 July 2026 into the two Before FY27 cells: Prior Years Invoice Nos (separated by commas) and Prior Years Ex GST (the total).", None),
+    ("The variance then compares the department value with everything Xero has ever invoiced on the job, not just FY27. The monthly revenue on FY Summary and Month-End stays FY27 only.", None),
+    ("", None),
+    ("DEFERRALS  -  REVENUE AND COST", "h"),
+    ("Use the Deferrals sheet when an invoice or a supplier bill covers more than one month.", None),
+    ("Revenue: type Revenue, the Xero invoice number, the invoice date and the Defer End month. That is all. The project number, project name, department, client, cost centre, amount and revenue GL are found on the Finance sheet from the invoice number.", None),
+    ("Cost: type Cost, the bill number, the bill date, the Defer End month, the job number, the bill amount ex GST and the expense GL. Bills are not on the Finance sheet, so these have to be typed.", None),
+    ("Defer Start is optional. Leave it blank and the deferral starts in the invoice month.", None),
+    ("The schedule to the right of each row works out every month from the start to the end. The amount is spread evenly and the last month takes the rounding. A minus figure is revenue or cost pushed out of that month. A plus figure is revenue or cost released into it.", None),
+    ("Worked example: invoice INV-8001, $12,000 ex GST, dated 15 Sep 2026, Defer End Aug 2027. Xero puts the full $12,000 into September. The schedule shows September -11,000 (keep $1,000, defer $11,000), then +1,000 every month from October 2026 to August 2027. By August 2027 nothing is left deferred.", None),
+    ("The Deferral Journal sheet: pick the month and every deferral that moves that month is listed with Project Number, Project Name, Department, Client, Cost Centre, the account to debit, the account to credit, the amount and a narration. The Xero lines on the right are the same journal as two lines per entry, ready to key in.", None),
+    ("Revenue deferred: debit the job's revenue GL, credit the deferred revenue account. Revenue released: the other way round.", None),
+    ("Cost deferred: debit the prepaid cost account, credit the expense GL. Cost released: the other way round.", None),
+    ("The two balance sheet accounts are on Lists U15 and U16. They are set to 11300 Work in Progress, the same as v3. Change them there if you use separate income-in-advance or prepayment accounts.", None),
+    ("Month-End section 1 adds the revenue deferral movement to revenue recognised, so it ties to the Xero P&L once the journal is posted. Section 2 includes the deferral balances.", None),
+    ("Do not also put a deferred invoice on WIP Movements. It would count twice, and the Issue column will say so.", None),
+    ("The schedule runs from July 2024 to June 2030.", None),
+    ("", None),
     ("THE SHEETS", "h"),
     ("Finance: one row per job, all departments. Finance types the yellow invoice cells only.", None),
+    ("Deferrals: the deferral register and the month-by-month schedule. Deferral Journal: the journal for any month.", None),
     ("Month-End: pick the month. Revenue by cost centre against the Xero P&L, WIP, the missed revenue check, data checks, the WIP journal, work won and sign-off.", None),
     ("FY Summary: invoiced revenue by month, by cost centre and by department, and expected vs invoiced by department.", None),
     ("Onsite, Production, Consulting: the department sheets. Headings are unchanged from v3.", None),
@@ -1033,7 +1361,7 @@ README = [
     ("", None),
     ("LOCKS, SIZE AND NEXT YEAR", "h"),
     ("Every sheet is protected with the password CTS1234, the same as v3. The workbook structure is protected with the same password.", None),
-    ("Each department sheet has 500 job rows. When a department gets near 500, unprotect its sheet and the Finance sheet and ask whoever maintains the file to extend both together (new Row IDs on the department sheet and matching rows on Finance).", None),
+    ("Each department sheet has 1,500 job rows, and the Finance sheet has a matching row for every one (4,500). The Deferrals sheet has 500 rows. The file is built by build_tracker.py, so if you ever need more rows it is rebuilt bigger rather than extended by hand.", None),
     ("To roll to FY28: save a copy, clear the white and yellow cells, and change Lists cell U12 to 31-Jul-27. Every month heading follows.", None),
     ("", None),
     ("WHAT CHANGED FROM v3", "h"),
@@ -1041,7 +1369,8 @@ README = [
     ("The Finance sheet is now one row per job with twelve monthly invoice slots, instead of one row per invoice line.", None),
     ("Department headings are unchanged. A Row ID column was added at the end of each department sheet to link the row to Finance.", None),
     ("On the department sheets: Invoiced now shows the status text from Finance. To Invoice is Expected Revenue less Revenue Ex GST. Not Yet on Finance is now the completeness check. Cost Centres shows your cost centre and its revenue GL.", None),
-    ("Automatic deferrals (Defer Start and Defer End on an invoice line) and the Deferred Revenue sheet are gone, because Finance no longer types defer dates. Put deferral journals on WIP Movements as one row per month instead.", None),
+    ("Deferrals now have their own register (Deferrals) and their own journal (Deferral Journal), for revenue and cost, with the project number, project name and department on every journal line.", None),
+    ("Finance has two Before FY27 cells per job for invoicing done before 1 July 2026.", None),
 ]
 
 
@@ -1073,10 +1402,12 @@ build_finance()
 build_summary()
 build_month_end()
 build_wip()
+build_deferrals()
+build_def_journal()
 build_wip_summary()
 build_won()
 build_readme()
-order = ["Read Me", "Finance", "Month-End", "FY Summary", "Onsite", "Production", "Consulting",
+order = ["Read Me", "Finance", "Month-End", "Deferrals", "Deferral Journal", "FY Summary", "Onsite", "Production", "Consulting",
          "WIP Movements", "WIP Summary", "Work Won", "Lists"]
 wb._sheets = [wb[n] for n in order]
 wb.active = 0
