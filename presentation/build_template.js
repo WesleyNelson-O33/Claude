@@ -86,10 +86,12 @@ const M = 0.55; // side margin
 function logo(objects, { x, y, size, onDark, withName }) {
   const file = findLogo(onDark);
   if (file) {
+    // The real lock-up already carries "Seamless AV", so no text beside it.
+    // It is taller than the placeholder so the strapline stays legible.
     const px = pngSize(file);
-    const h = withName ? size : size;
+    const h = withName ? size * 1.7 : size * 1.4;
     const w = h * (px.w / px.h);
-    objects.push({ image: { path: file, x, y, w, h } });
+    objects.push({ image: { path: file, x: withName ? x : x + size - w, y, w, h } });
     return;
   }
   const box = onDark ? WHITE : BLACK;
@@ -228,7 +230,7 @@ function contentHeader(objects) {
 // Example slides, one or two per layout
 // ---------------------------------------------------------------------------
 const LOGO_NOTE = findLogo(false)
-  ? 'Logo from presentation/assets. The brand guidelines say the logo is always locked up with the promise "Seamless AV".'
+  ? 'Logo: the official CTS Seamless AV lock-up from presentation/assets (white on dark layouts, charcoal on white).'
   : 'The CTS mark on this layout is a placeholder. Drop the real logo into presentation/assets/cts-logo.png (and cts-logo-dark.png for dark slides) and rebuild, or replace it on the Slide Master (View > Slide Master).';
 
 {

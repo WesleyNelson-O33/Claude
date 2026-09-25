@@ -26,19 +26,20 @@ always something to copy. Delete the ones you do not need.
 ## Colour palette (official CTS Seamless AV brand palette)
 
 Source: the colour specification published with the CTS brand guidelines at
-https://brandpad.io/cts-seamless/ (file `cts_pantonevalues.pdf`). The palette
+https://brandpad.io/cts-seamless/ (file `cts_pantonevalues.pdf`, a copy is in
+`brand-source/`). The palette
 is built on the RGB spectrum: one colour per division, each with a light and a
 dark variant, on a black base.
 
 | Name | Hex | RGB | Pantone | Division / use |
 |---|---|---|---|---|
-| Black | 121820 | 18 24 32 | | Base colour, text, dark cover |
+| Black | 121820 | 18 24 32 | PMS Black 6 C | Base colour, text, dark cover |
 | Mint (light) | 3FD0C9 | 63 208 201 | PMS 3255 C | Production |
 | Lavender (light) | 6D71FF | 109 113 255 | PMS 2124 C | Consulting |
 | Rose (light) | F33844 | 243 56 68 | PMS 1788 C | Support |
 | Teal (dark) | 005358 | 0 83 88 | PMS 7476 C | Production, dark variant |
 | Navy (dark) | 122B82 | 18 43 130 | PMS 287 C | Consulting, dark variant |
-| Burgundy (dark) | A8052E | 168 5 46 | | Support, dark variant |
+| Burgundy (dark) | A8052E | 168 5 46 | PMS 1945 C | Support, dark variant |
 
 Rules the template follows:
 
@@ -60,9 +61,20 @@ change `FONT` in the script and rebuild.
 
 ## Logo
 
-The real logo could not be downloaded when this was built, so every layout
-carries a placeholder mark (a square with "CTS" and the "Seamless AV"
-lock-up, which the brand guidelines say must always accompany the logo). To
-replace it: View > Slide Master, select the placeholder shapes on each layout,
-delete them and insert the real logo image at the same position. Keep it about
-0.5 in tall on the covers and 0.42 in tall on the content layouts.
+Every layout carries the official CTS Seamless AV lock-up ("cts" wordmark with
+the "Seamless AV" strapline): white on the dark cover and the navy section
+divider, charcoal on the white layouts. The files, their sources and a
+20-year anniversary variant are in `assets/` (see `assets/README.md`). The
+brand guidelines say the logo always appears locked up with "Seamless AV",
+so do not crop the strapline off.
+
+## Brand source documents
+
+`brand-source/` holds the two documents the palette was taken from, downloaded
+from the CTS brand guidelines hub (brandpad.io/cts-seamless):
+
+- `cts_pantonevalues.pdf`: the colour palette with hex, RGB, CMYK and Pantone
+  values. The hex values are authoritative; two RGB cells in the PDF are
+  copy-paste errors (Black shows 26/26/26 and Navy repeats Lavender's RGB).
+- `cts_brand-strategy.pdf`: vision, purpose, values and brand architecture
+  (CTS Production, CTS Consulting, CTS Support under the "Seamless AV" promise).
