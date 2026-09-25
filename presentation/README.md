@@ -10,18 +10,39 @@ the files:
 
 ## Layouts built into the Slide Master
 
-Open View > Slide Master to see them, or Home > New Slide to pick one.
+Open View > Slide Master to see them, or Home > New Slide to pick one. There
+are nineteen layouts: six covers, five section dividers and a Header Only and
+Header and Text pair for CTS and for each division.
 
 | Layout | Use it for |
 |---|---|
-| CTS Cover (dark) | Opening slide, black background with the three division colours |
-| CTS Cover (light) | Opening slide, white with a black panel on the right |
-| CTS Section | Section divider, navy, with a mint number block |
+| CTS Cover (dark) | Opening slide, black background, three division colours as the motif |
+| CTS Cover (light) | Opening slide, white with a black panel |
+| CTS Cover (20 years) | Opening slide with the 20-year anniversary lock-up |
+| CTS Production / Consulting / Support Cover | Division decks, black background, division lock-up and colours |
+| CTS Section (navy) | Section divider, navy, mint number block |
+| CTS Section (light) | Section divider, white, black number block |
+| CTS Production / Consulting / Support Section | Division section divider on the division's dark colour |
 | CTS Header Only | Heading with an empty body for a chart, table or image |
 | CTS Header and Text | Heading with a body text placeholder (bullets by default) |
+| CTS Production / Consulting / Support Header Only | Same, with the division lock-up and label colour |
+| CTS Production / Consulting / Support Header and Text | Same, with the division lock-up and label colour |
 
-The deck opens with eight example slides, one or two per layout, so there is
-always something to copy. Delete the ones you do not need.
+The deck opens with twenty example slides, one per layout plus a callout-card
+variant, so there is always something to copy. Delete the ones you do not need.
+
+## Sub-brands
+
+The brand strategy sets out three divisions under the "Seamless AV" promise:
+CTS Production (mint / teal, "Engaging Experiences"), CTS Consulting
+(lavender / navy, "End to End collaboration") and CTS Support (rose /
+burgundy, "Personalised Service"). CTS does not publish separate division
+logo files, so the lock-ups in `assets/` follow the brand blueprint: the real
+"cts" wordmark with the division name set in Tomato Grotesk in the division
+colour, in the same position and size as "Seamless AV" on the master logo.
+Three versions each: charcoal wordmark with the dark division colour for white
+slides, white wordmark with the light colour for black slides, and all white
+for slides on the division's own colour.
 
 ## Colour palette (official CTS Seamless AV brand palette)
 
