@@ -402,7 +402,7 @@ def build_finance():
     ws.merge_cells("A3:R3")
     ws["A3"].font, ws["A3"].fill = F_TOT, FILL_TOT
     ws["A4"] = ("YELLOW = Finance types (Invoice No, Invoice Date, Ex GST).  GREY = pulled from the department "
-                "sheets or calculated.  Tip: filter Job Number and untick (Blanks) to see only live jobs.  "
+                "sheets or calculated.  Rows run Onsite, Production, Consulting in turn, so every department's jobs are at the top. Filter Job Number and untick (Blanks) to hide empty rows, or filter Department.  "
                 "Two invoices on one job in the same month: type both numbers in one cell (INV-1001, INV-1002), "
                 "the later date and the combined Ex GST.")
     ws["A4"].font = Font(name=FONT, size=9, italic=True, color=GREY_TXT)
@@ -490,11 +490,12 @@ def build_finance():
 
     for i in range(3 * N):
         r = FIN_FIRST + i
-        d_name, prefix, _t = DEPTS[i // N]
+        # interleaved: ONS-0001, PRD-0001, CON-0001, ONS-0002 ... so live jobs of every department sit at the top
+        d_name, prefix, _t = DEPTS[i % 3]
         for j, (h, kind, fmt, _w) in enumerate(FIN_COLS):
             cell = ws.cell(r, j + 1)
             if h == "Row ID":
-                cell.value = f"{prefix}-{i % N + 1:04d}"
+                cell.value = f"{prefix}-{i // 3 + 1:04d}"
             elif h == "Department":
                 cell.value = d_name
             elif h in F:
@@ -1349,7 +1350,7 @@ README = [
     ("The schedule runs from July 2024 to June 2030.", None),
     ("", None),
     ("THE SHEETS", "h"),
-    ("Finance: one row per job, all departments. Finance types the yellow invoice cells only.", None),
+    ("Finance: one row per job, all departments. The rows take turns - Onsite job 1, Production job 1, Consulting job 1, Onsite job 2 - so every department's jobs sit together at the top. Filter Job Number and untick (Blanks) to hide the empty rows. Finance types the yellow invoice cells only.", None),
     ("Deferrals: the deferral register and the month-by-month schedule. Deferral Journal: the journal for any month.", None),
     ("Month-End: pick the month. Revenue by cost centre against the Xero P&L, WIP, the missed revenue check, data checks, the WIP journal, work won and sign-off.", None),
     ("FY Summary: invoiced revenue by month, by cost centre and by department, and expected vs invoiced by department.", None),
