@@ -1611,6 +1611,14 @@ README = [
  ("P", "Each department types on its own sheet. Nowhere else. One row per job number."),
  ("P", "The two meet on Job Number, which is a real Xero tracking category and is checked "
        "against the live job list as you type. Nothing has to be kept lined up by hand."),
+ ("P", "Job Number is the only thing that joins them. The invoice date and invoice "
+       "number travel from Finance out to the department sheet that holds that job, "
+       "and the department's own figures - quote, costs, margin, notes - travel back "
+       "into the job block on Finance. The Team column plays no part in it, so a line "
+       "with Team blank or set to the wrong department still finds its job."),
+ ("P", "On Dept Sheet on the Finance sheet names which department sheet the job sits "
+       "on, or says not set up yet when no department has entered it. Month-End counts "
+       "those, and counts any job set up on two sheets at once."),
  ("B", ""),
  ("H", "HOW IT FITS TOGETHER"),
  ("R", "Finance",
