@@ -27,7 +27,9 @@ for ws in new.worksheets:
     src = old[ws.title]
     n = 0
     if ws.title == "Finance":
+        # match rows by Row ID and columns by header, so a new column order is safe
         where = {src[f"A{r}"].value: r for r in range(7, src.max_row + 1) if src[f"A{r}"].value}
+        src_col = {c.value: c.column for c in src[6] if c.value}
         for r in range(7, ws.max_row + 1):
             sr = where.get(ws[f"A{r}"].value)
             if sr is None:
@@ -35,7 +37,10 @@ for ws in new.worksheets:
             for c in ws[r]:
                 if isinstance(c, MergedCell) or c.protection.locked:
                     continue
-                v = src.cell(sr, c.column).value
+                sc = src_col.get(ws.cell(6, c.column).value)
+                if sc is None:
+                    continue
+                v = src.cell(sr, sc).value
                 if v is not None and not is_formula(v):
                     c.value = v
                     n += 1

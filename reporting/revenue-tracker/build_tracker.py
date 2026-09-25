@@ -389,21 +389,27 @@ def build_dept(dept, prefix, tname):
 FIN_FIRST, FIN_HDR = 7, 6
 FIN_LAST = FIN_FIRST + 3 * N - 1
 FIN_COLS = [  # header, kind, number format, width
+    # who / what - frozen on the left
     ("Row ID", "calc", "@", 10), ("Department", "calc", "@", 12), ("Job Number", "calc", "@", 13),
-    ("Client", "calc", "@", 24), ("Job in Xero?", "calc", "@", 9), ("Job Name (Xero)", "calc", "@", 26),
-    ("Job Description", "calc", "@", 28), ("Cost Centre", "calc", "@", 13), ("Invoice Type", "calc", "@", 13),
-    ("Tax Code", "calc", "@", 11), ("Revenue GL", "calc", "@", 10), ("PO or Quote Ref", "calc", "@", 16),
-    ("Dept Notes", "calc", "@", 26), ("Dept Expected Ex GST", "calc", MONEY, 15),
-    ("Xero Invoiced Ex GST", "calc", MONEY, 15), ("Variance Dept vs Xero", "calc", MONEY, 15),
-    ("Compare", "calc", "@", 22), ("Issue", "calc", "@", 34),
+    ("Client", "calc", "@", 22),
+    # the check - department value vs Xero
+    ("Dept Expected Ex GST", "calc", MONEY, 14), ("Xero Invoiced Ex GST", "calc", MONEY, 14),
+    ("Variance Dept vs Xero", "calc", MONEY, 14), ("Compare", "calc", "@", 22), ("Issue", "calc", "@", 26),
+    # FINANCE TYPES HERE - straight after the check so it is on screen
     ("Prior Years Invoice Nos", "fin", "@", 16), ("Prior Years Ex GST", "fin", MONEY, 14),
 ]
 for m in MONTHS:
     FIN_COLS += [(f"{m} Invoice No", "fin", "@", 12), (f"{m} Invoice Date", "fin", DATE, 11),
                  (f"{m} Ex GST", "fin", MONEY, 13)]
-FIN_COLS += [("GST", "calc", MONEY, 12), ("Inc GST", "calc", MONEY, 13), ("Invoice Count", "calc", "0", 9),
+FIN_COLS += [("Finance Notes", "fin", "@", 30),
+             # job detail from the department sheet
+             ("Job in Xero?", "calc", "@", 9), ("Job Name (Xero)", "calc", "@", 26),
+             ("Job Description", "calc", "@", 28), ("Cost Centre", "calc", "@", 13), ("Invoice Type", "calc", "@", 13),
+             ("Tax Code", "calc", "@", 11), ("Revenue GL", "calc", "@", 10), ("PO or Quote Ref", "calc", "@", 16),
+             ("Dept Notes", "calc", "@", 26),
+             ("GST", "calc", MONEY, 12), ("Inc GST", "calc", MONEY, 13), ("Invoice Count", "calc", "0", 9),
              ("Latest Invoice Date", "calc", DATE, 11), ("Invoice Numbers", "calc", "@", 26),
-             ("Finance Notes", "fin", "@", 30), ("Dept Row", "calc", "0", 8)]
+             ("Dept Row", "calc", "0", 8)]
 FC = {h: CL(i + 1) for i, (h, *_rest) in enumerate(FIN_COLS)}
 FIN_NOTES = {
     "Row ID": "Fixed key to the department row. Never change it.",
@@ -445,14 +451,24 @@ def build_finance():
                 '&"      Rows with an issue  "&COUNTIF(tbl_Finance[Issue],"?*")')
     ws.merge_cells("A3:R3")
     ws["A3"].font, ws["A3"].fill = F_TOT, FILL_TOT
-    ws["A4"] = ("CREAM = Finance types (Invoice No, Invoice Date, Ex GST).  GREY-BLUE = pulled from the department "
+    ws["A4"] = ("TYPE INVOICES IN THE CREAM COLUMNS - they start at column J, straight after Issue. CREAM = Finance types (Invoice No, Invoice Date, Ex GST).  GREY-BLUE = pulled from the department "
                 "sheets or calculated.  Rows run Onsite, Production, Consulting in turn, so every department's jobs are at the top. Filter Job Number and untick (Blanks) to hide empty rows, or filter Department.  "
                 "Two invoices on one job in the same month: type both numbers in one cell (INV-1001, INV-1002), "
                 "the later date and the combined Ex GST.")
     ws["A4"].font = Font(name=FONT, size=9, italic=True, color=GREY_TXT)
+    for first, last_, text, fill in [
+            ("Row ID", "Client", "THE JOB", FILL_CALC_HDR),
+            ("Dept Expected Ex GST", "Issue", "THE CHECK  -  department vs Xero", FILL_CALC_HDR),
+            ("Job in Xero?", "Dept Notes", "JOB DETAIL FROM THE DEPARTMENT SHEET", FILL_CALC_HDR),
+            ("GST", "Invoice Numbers", "TOTALS", FILL_CALC_HDR)]:
+        ws.merge_cells(f"{FC[first]}5:{FC[last_]}5")
+        bc = ws[f"{FC[first]}5"]
+        bc.value, bc.font, bc.fill, bc.alignment = text, F_HDR, fill, HDR_ALIGN
+    fn = ws[f"{FC['Finance Notes']}5"]
+    fn.value, fn.font, fn.fill, fn.alignment = "FINANCE", F_HDR, FILL_FIN_HDR, HDR_ALIGN
     ws.merge_cells(f"{FC['Prior Years Invoice Nos']}5:{FC['Prior Years Ex GST']}5")
     pc = ws[f"{FC['Prior Years Invoice Nos']}5"]
-    pc.value, pc.font, pc.fill, pc.alignment = "Before FY27", F_HDR, FILL_FIN_HDR, HDR_ALIGN
+    pc.value, pc.font, pc.fill, pc.alignment = "TYPE HERE  >  Before FY27", F_HDR, FILL_FIN_HDR, HDR_ALIGN
     # month banner row 5 (merged over each 3-column block)
     for i, m in enumerate(MONTHS):
         a = FC[f"{m} Invoice No"]
@@ -1362,7 +1378,7 @@ README = [
     ("Department managers (Onsite, Production, Consulting): fill in every white cell on your own sheet. One row per job number. Start at the top and use the next empty row.", None),
     ("The cells Finance needs before it can invoice are: Job Number, Client, Job Description, Cost Centre, Invoice Type, Tax Code and Expected Revenue Ex GST.", None),
     ("The Not Yet on Finance column checks those for you. It reads Complete, or Fix: followed by what is missing or wrong.", None),
-    ("Finance: on the Finance sheet, type only in the cream cells. Find the job, go to the month the invoice is dated, and type the Invoice No, Invoice Date and Ex GST.", None),
+    ("Finance: on the Finance sheet, type only in the cream cells. They start at column J, straight after the Issue column, under the gold heading TYPE HERE. Find the job, go to the month the invoice is dated (Jul, Aug, Sep ...), and type the Invoice No, Invoice Date and Ex GST. Invoices from before 1 July 2026 go in the two Before FY27 cells.", None),
     ("Grey-blue cells are formulas. They are locked so nobody can wipe them by accident.", None),
     ("", None),
     ("HOW THE INFORMATION FLOWS", "h"),
