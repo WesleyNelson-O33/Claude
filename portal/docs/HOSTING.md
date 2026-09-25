@@ -38,10 +38,26 @@ worth telling people up front.
 | Finance | Updates the templates monthly, clicks Build | Edit on the library, Edge or Chrome |
 | Everyone else | Opens the portal | Read on the library, any browser |
 
-## Rollback
+## Rollback and the archive
 
 Every Build copies the previous data files into `data/_previous` before
-writing. To go back a month, copy the contents of `_previous` over `data`.
+writing. To go back one build, copy the contents of `_previous` over `data`.
+
+Every Build also files a permanent copy under `archive`, one folder per
+reporting month:
+
+```
+archive/2026-08/
+  _archive.json     when it was written, what it holds
+  data/             the data files exactly as the portal showed that month
+  templates/        the eight Excel files exactly as they were pasted
+```
+
+That is the audit trail. To see what August looked like, copy
+`archive/2026-08/data` over `data` on a spare copy of the folder and open the
+portal from there. To check what was pasted, open the template in the archive.
+Nothing in `archive` is ever read by the portal, so it can be left to grow;
+a year is roughly 10 MB.
 
 ## A department head who must not see the ledger
 

@@ -32,10 +32,16 @@ Open the portal from the synced folder, **Admin, Build**.
    not in the chart, locations with no department, back pays reallocated,
    placeholder split bases. Fix anything red in the template and read again.
 3. **Write data files.** Last month's files go to `data/_previous`, the new
-   ones are written, the portal reloads on the new month.
+   ones are written, and a copy of the new data files and the eight templates
+   as pasted goes into `archive/YYYY-MM`. The portal reloads on the new month.
 
 OneDrive syncs the data files out. Everyone's portal is current the next time
 they open it.
+
+The archive is the record. Every month's folder holds exactly what the portal
+showed and exactly what was pasted to get there, so a question in March about
+an August number is answered from `archive/2026-08`, not from memory. Nothing
+in it is read by the portal and nothing in it needs tidying.
 
 ## 3. Email
 
@@ -57,3 +63,37 @@ into `outbox/YYYY-MM` as JSON and HTML. From there:
   say which department it is and whether it is client work.
 - **Split bases placeholder.** Type the live Staff and Office Dept percentages
   from the budget workbook on the Config Split bases tab and set Confirmed.
+
+## At the end of a financial year
+
+There is no rollover step. The templates run three years across and the
+portal reads the month from each column heading, so the July paste goes into
+the July column and the new year appears on its own. The Build page confirms
+it: the Calendar check names the years it built, and on a July build it says
+which year has started.
+
+What does need doing, in June, before the first build of the new year:
+
+1. **Budget.** Put the new year's budget into its twelve columns in
+   `07 Budget.xlsx`. Without it July is measured against nothing, and the
+   revenue schedule has no target.
+2. **Public holidays.** Add the coming year's holidays to the Holidays tab of
+   `08 Config.xlsx`. The Build page warns if a year in the calendar has none,
+   because plain weekdays overstate capacity and understate utilisation.
+3. **Split bases.** If the budget workbook moved the Staff or Office Dept
+   percentages, type them on the Split bases tab and set Confirmed.
+4. **Departments and users.** Check they still match the org chart.
+
+Then in July:
+
+- **P&L.** The year to date paste is July only. Leave the old year's columns
+  as they are; the revenue shares and the same month last year come off them.
+- **GL.** The Xero transactions report restarts from 1 July, so the paste is
+  short for a while. The ledger to P&L control only compares months both cover.
+- **Earnings.** Nothing changes; pay runs keep going under the last.
+
+Every third year, when the last year across is the one you are in, add twelve
+more month columns to the right of the P&L and Budget tabs, headed the same
+way. Columns older than two years back can be deleted once the archive has
+them; the prior year is the oldest the portal uses.
+

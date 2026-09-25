@@ -4026,13 +4026,14 @@
         var prog = h("p.note", "Writing…");
         writeStatus.appendChild(prog);
         try {
+          var month = (state.result.log && state.result.log.reportingMonth) || E.reportingMonth();
           var done = await B.write(state.dir, state.result.outputs, function (name, i, n) {
             prog.textContent = "Writing " + name + " (" + i + " of " + n + ")";
-          });
+          }, { month: month, buffers: state.result.buffers });
           writeStatus.innerHTML = "";
           writeStatus.appendChild(h("div.banner.banner-good", [
             h("strong", done.length + " data files written. "),
-            "The previous set is in data/_previous. Reloading the portal on the new data…"]));
+            "The previous set is in data/_previous and this month's data and templates are in archive/" + month + ". Reloading the portal on the new data…"]));
           setTimeout(function () { location.reload(); }, 1500);
         } catch (e) {
           writeStatus.innerHTML = "";
@@ -4043,7 +4044,7 @@
       var log = window.CTS_BUILD_LOG || null;
       return [
         U.h1("Build", "Templates in, data files out."),
-        U.note("Reads the eight Excel templates from the templates folder, checks them, and writes the data files the portal runs on. Last month's files go to data/_previous first, which is the rollback. Everyone else's portal picks the new files up on their next open, once OneDrive has synced."),
+        U.note("Reads the eight Excel templates from the templates folder, checks them, and writes the data files the portal runs on. Last month's files go to data/_previous first, which is the rollback, and a copy of this month's data files and templates goes into archive/YYYY-MM, which is the permanent record. Everyone else's portal picks the new files up on their next open, once OneDrive has synced."),
         h("div.steps", [
           stepEl(1, "Choose the portal folder", [
             U.note("The synced CTS Business Portal folder, the one this page was opened from. Edge asks you to confirm it; that is the one prompt."),
@@ -4059,7 +4060,7 @@
             readStatus,
           ]),
           stepEl(3, "Write the data files", [
-            U.note("Only after every check is green or amber. A red check blocks the write."),
+            U.note("Only after every check is green or amber. A red check blocks the write. The write also files a copy of the templates and data under archive, one folder per reporting month, so any month can be looked at again exactly as it was."),
             h("div.row", [h("button.btn", { onclick: writeFiles }, "Write data files")]),
             writeStatus,
           ]),

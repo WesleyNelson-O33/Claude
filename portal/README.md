@@ -20,7 +20,8 @@ the routine; `docs/AUTOMATION.md` the email flow.
 Paste each export into its template in `templates`, open the portal, Admin,
 Build, and click through Choose folder, Read templates, Write data files. The
 portal rewrites its own data files from the templates, keeps last month's in
-`data/_previous`, and OneDrive carries the result to everyone.
+`data/_previous`, files a permanent copy of the month under `archive/YYYY-MM`,
+and OneDrive carries the result to everyone.
 
 ## What is in it
 

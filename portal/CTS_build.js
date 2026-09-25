@@ -79,15 +79,70 @@
   }
   B.colIndex = colIndex;
 
+  var MON = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+  /** A month heading to its key, without looking at the calendar, so a
+   *  column for a year the calendar has not seen yet is still read. Accepts
+   *  2027-07, Jul-27, Jul 2027, July 2027, 07/2027 and an Excel date. */
   function monthOfLabel(v) {
     if (v == null || v === "") return null;
-    var s = String(v).trim();
-    var m = E().months.filter(function (x) {
-      return x.key === s || x.label.toLowerCase() === s.toLowerCase() ||
-             x.long.toLowerCase() === s.toLowerCase() || s.indexOf(x.key) === 0;
-    })[0];
-    return m ? m.key : null;
+    if (v instanceof Date && !isNaN(v)) {
+      var dd = new Date(v.getTime() + 12 * 3600 * 1000);
+      return dd.getUTCFullYear() + "-" + (dd.getUTCMonth() < 9 ? "0" : "") + (dd.getUTCMonth() + 1);
+    }
+    var s = String(v).trim().toLowerCase();
+    var m = s.match(/^(\d{4})-(\d{2})/);
+    if (m) return m[1] + "-" + m[2];
+    m = s.match(/^([a-z]{3})[a-z]*[\s\-\/']*(\d{2}|\d{4})$/);
+    if (m && MON.indexOf(m[1]) >= 0) {
+      var y = m[2].length === 2 ? 2000 + +m[2] : +m[2];
+      return y + "-" + (MON.indexOf(m[1]) < 9 ? "0" : "") + (MON.indexOf(m[1]) + 1);
+    }
+    m = s.match(/^(\d{1,2})[\/\-](\d{4})$/);
+    if (m && +m[1] >= 1 && +m[1] <= 12) return m[2] + "-" + (+m[1] < 10 ? "0" : "") + +m[1];
+    return null;
   }
+  B.monthOfLabel = monthOfLabel;
+
+  /** The calendar the build is working against. Set while a build runs so
+   *  the converters see the months of this build, not of the last one. */
+  var ACTIVE = { monthIdx: null };
+  function monthIdx() { return ACTIVE.monthIdx || E().monthIdx; }
+
+  /** Build the financial calendar for a span of month keys, padded out to
+   *  whole financial years, with working days net of the holidays given.
+   *  This is what lets the portal roll into a new financial year: the span
+   *  comes from the templates, so a Jul-27 column makes FY28 exist. */
+  B.calendar = function (keys, holidays, states, meta) {
+    var STATES = states || ["VIC", "NSW", "QLD", "WA", "SA", "TAS", "ACT", "NT"];
+    var NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    keys = keys.filter(Boolean).sort();
+    function fyOf(y, mo) { return (mo >= 7 ? y + 1 : y) % 100; }
+    var first = keys[0].split("-").map(Number), last = keys[keys.length - 1].split("-").map(Number);
+    var fyA = fyOf(first[0], first[1]), fyZ = fyOf(last[0], last[1]);
+    var index = {};
+    (holidays || []).forEach(function (h) { (h.states || STATES).forEach(function (s) { index[h.date + "|" + s] = 1; }); });
+    var months = [];
+    for (var fy = fyA; fy <= fyZ; fy++) {
+      for (var i = 0; i < 12; i++) {
+        var mo = ((6 + i) % 12) + 1, y = 2000 + fy - (mo >= 7 ? 1 : 0);
+        var bd = 0, wd = {}, days = new Date(y, mo, 0).getDate();
+        STATES.forEach(function (s) { wd[s] = 0; });
+        for (var d = 1; d <= days; d++) {
+          var dow = new Date(y, mo - 1, d).getDay();
+          if (dow === 0 || dow === 6) continue;
+          bd++;
+          var iso = y + "-" + (mo < 10 ? "0" : "") + mo + "-" + (d < 10 ? "0" : "") + d;
+          STATES.forEach(function (s) { if (!index[iso + "|" + s]) wd[s]++; });
+        }
+        months.push({ key: y + "-" + (mo < 10 ? "0" : "") + mo, y: y, m: mo, fy: fy,
+                      label: NAMES[mo - 1] + "-" + String(y).slice(2), long: NAMES[mo - 1] + " " + y,
+                      period: i + 1, quarter: Math.floor(i / 3) + 1, wd: wd, bd: bd, days: days });
+      }
+    }
+    return { fyStartMonth: 7, states: STATES, months: months, holidays: holidays || [],
+             quarters: [{ n: 1, label: "Q1 Jul-Sep" }, { n: 2, label: "Q2 Oct-Dec" }, { n: 3, label: "Q3 Jan-Mar" }, { n: 4, label: "Q4 Apr-Jun" }],
+             meta: Object.assign({ note: "Financial year 1 July to 30 June, named for the year it ends." }, meta || {}) };
+  };
 
   /* =========================================================== converters */
   var C = (B.convert = {});
@@ -112,7 +167,9 @@
         if (v) (out[name] = out[name] || {})[mk] = Math.round(v * 100) * sign;
       });
     });
-    return { grid: out, months: months.filter(Boolean), unknown: unknown,
+    var used = {};
+    Object.keys(out).forEach(function (a) { Object.keys(out[a]).forEach(function (mk) { used[mk] = 1; }); });
+    return { grid: out, months: Object.keys(used).sort(), unknown: unknown,
              skippedTotals: skippedTotals, matched: matched, label: label };
   }
   C.pnl = function (t) { return accountGrid(t, "P&L"); };
@@ -200,7 +257,7 @@
       var iso = ci.notes >= 0 ? p.noteDate(r[ci.notes]) : null;
       var mk = iso ? iso.slice(0, 7) : fallbackMonth;
       if (!iso) usedFallback++;
-      if (!E().monthIdx[mk]) return;
+      if (!monthIdx()[mk]) return;
       var isHours = ci.unitType < 0 || /hour/i.test(String(r[ci.unitType]));
       var units = isHours ? p.num(r[ci.units]) : 0;
       var gross = ci.gross >= 0 ? p.money(r[ci.gross]) : 0;
@@ -527,11 +584,42 @@
         check(gb.matched ? "ok" : "warn", "Budget", gb.matched + " accounts budgeted across " + gb.months.length + " months.");
       } catch (e) { check("fail", "Budget", e.message); }
     } else check("warn", "Budget", "07 Budget.xlsx not found; keeping the current budget.");
+    // Calendar: the span of months the templates carry, padded to whole
+    // financial years, so a new year appears when its first column does.
+    var cal = null;
+    ACTIVE.monthIdx = null;
+    try {
+      var span = {};
+      function spanOf(grid) { Object.keys(grid || {}).forEach(function (a) { Object.keys(grid[a]).forEach(function (mk) { if (grid[a][mk]) span[mk] = 1; }); }); }
+      spanOf(finActual); spanOf(finBudget);
+      if (reportingMonth) span[reportingMonth] = 1;
+      var keys = Object.keys(span);
+      if (keys.length) {
+        var baseCal = window.CTS_CAL || {};
+        var hol = (cfgOut && cfgOut.holidays.length) ? cfgOut.holidays.map(function (h) { return { date: h.date, name: h.name, states: h.states || baseCal.states, certain: h.certain }; })
+                                                     : (baseCal.holidays || []);
+        cal = B.calendar(keys, hol, baseCal.states, { built: today(),
+                         source: (cfgOut && cfgOut.holidays.length) ? "08 Config.xlsx Holidays tab" : "holidays carried from the previous calendar" });
+        ACTIVE.monthIdx = {};
+        cal.months.forEach(function (m) { ACTIVE.monthIdx[m.key] = m; });
+        outputs["CTS_cal_data.js"] = "window.CTS_CAL = " + JSON.stringify(cal) + ";\n";
+        results.cal = cal;
+        var fys = []; cal.months.forEach(function (m) { if (fys.indexOf(m.fy) < 0) fys.push(m.fy); });
+        var bare = fys.filter(function (fy) {
+          return !hol.some(function (h) { var k = h.date.slice(0, 7); return ACTIVE.monthIdx[k] && ACTIVE.monthIdx[k].fy === fy; });
+        });
+        check("ok", "Calendar", "FY" + fys[0] + (fys.length > 1 ? " to FY" + fys[fys.length - 1] : "") + ", " + cal.months.length + " months, " + hol.length + " public holidays" + (cfgOut && cfgOut.holidays.length ? " from the Holidays tab." : " carried over."));
+        if (bare.length) check("warn", "Calendar", "No public holidays listed for FY" + bare.join(", FY") + " on the Holidays tab. Working days in those months are plain weekdays until you add them, which overstates capacity and understates utilisation.");
+        var rmM = ACTIVE.monthIdx[reportingMonth];
+        if (rmM && rmM.m === 7) check("info", "Calendar", "Reporting month is July: FY" + rmM.fy + " has started. Budget for FY" + rmM.fy + " should be in 07 Budget.xlsx, and the P&L paste is now July only.");
+      }
+    } catch (e) { check("fail", "Calendar", e.message); }
+
     if (finActual || finBudget) {
       var cur = E().fin || {};
       var fin = { meta: { seed: false, built: today(), basis: "accrual", currency: "AUD", source: "01 Xero P&L.xlsx and 07 Budget.xlsx" },
                   actual: finActual || cur.actual || {}, budget: finBudget || cur.budget || {},
-                  months: E().months.map(function (m) { return m.key; }) };
+                  months: (cal ? cal.months : E().months).map(function (m) { return m.key; }) };
       outputs["CTS_fin_data.js"] = "window.CTS_FIN = " + JSON.stringify(fin) + ";\n";
       results.fin = fin;
     }
@@ -616,36 +704,10 @@
     });
     if (any) { outputs["CTS_pipeline_data.js"] = "window.CTS_PIPELINE = " + JSON.stringify(pipe) + ";\n"; results.pipeline = pipe; }
 
-    // Calendar: holidays from Config replace the generated ones
-    if (cfgOut && cfgOut.holidays.length && window.CTS_CAL) {
-      var cal = JSON.parse(JSON.stringify(window.CTS_CAL));
-      var STATES = cal.states;
-      cal.holidays = cfgOut.holidays.map(function (h) { return { date: h.date, name: h.name, states: h.states || STATES, certain: h.certain }; });
-      var index = {};
-      cal.holidays.forEach(function (h) { h.states.forEach(function (s) { index[h.date + "|" + s] = 1; }); });
-      cal.months.forEach(function (m) {
-        var y = m.y, mo = m.m, bd = 0, wd = {};
-        STATES.forEach(function (s) { wd[s] = 0; });
-        var d = new Date(y, mo - 1, 1);
-        while (d.getMonth() === mo - 1) {
-          var dow = d.getDay();
-          if (dow !== 0 && dow !== 6) {
-            bd++;
-            var iso = d.getFullYear() + "-" + (mo < 10 ? "0" : "") + mo + "-" + (d.getDate() < 10 ? "0" : "") + d.getDate();
-            STATES.forEach(function (s) { if (!index[iso + "|" + s]) wd[s]++; });
-          }
-          d.setDate(d.getDate() + 1);
-        }
-        m.bd = bd; m.wd = wd;
-      });
-      cal.meta = Object.assign({}, cal.meta, { built: today(), source: "08 Config.xlsx Holidays tab" });
-      outputs["CTS_cal_data.js"] = "window.CTS_CAL = " + JSON.stringify(cal) + ";\n";
-      check("ok", "Calendar", cal.holidays.length + " public holidays from the Holidays tab; working days recomputed.");
-    }
-
     var log = { built: new Date().toISOString(), reportingMonth: reportingMonth, checks: checks,
                 files: Object.keys(outputs), version: (cfgOut && cfgOut.config.VERSION) || (E().cfg && E().cfg.VERSION) };
     outputs["_build_log.json"] = JSON.stringify(log, null, 2);
+    ACTIVE.monthIdx = null;
     return { checks: checks, outputs: outputs, results: results, log: log };
   };
 
@@ -657,30 +719,52 @@
       if (t && t.need) r.checks.unshift({ level: "fail", area: "Templates", text: f + " is missing from the templates folder." });
     });
     r.missing = read.missing;
+    r.buffers = read.buffers;
     return r;
   };
 
   /** Write the outputs. Each existing file is copied into data/_previous
-   *  first, so one folder holds the rollback: copy it back over data. */
-  B.write = async function (dir, outputs, progress) {
+   *  first, so one folder holds the rollback: copy it back over data.
+   *  With an archive {month, buffers} the same outputs and the templates
+   *  they came from are also copied into archive/YYYY-MM, which is the
+   *  permanent record of what the portal showed for that month. */
+  B.write = async function (dir, outputs, progress, archive) {
     var dataDir = await dir.getDirectoryHandle("data", { create: true });
     var prev = await dataDir.getDirectoryHandle("_previous", { create: true });
     var names = Object.keys(outputs), done = [];
+    async function put(folder, name, content) {
+      var fh = await folder.getFileHandle(name, { create: true });
+      var w = await fh.createWritable();
+      await w.write(content); await w.close();
+    }
     for (var i = 0; i < names.length; i++) {
       var name = names[i];
       try {
         var old = await dataDir.getFileHandle(name);
         var of = await old.getFile();
-        var txt = await of.text();
-        var ph = await prev.getFileHandle(name, { create: true });
-        var pw = await ph.createWritable();
-        await pw.write(txt); await pw.close();
+        await put(prev, name, await of.text());
       } catch (e) { /* nothing to keep */ }
-      var fh = await dataDir.getFileHandle(name, { create: true });
-      var w = await fh.createWritable();
-      await w.write(outputs[name]); await w.close();
+      await put(dataDir, name, outputs[name]);
       done.push(name);
       if (progress) progress(name, i + 1, names.length);
+    }
+    if (archive && archive.month) {
+      var arc = await dir.getDirectoryHandle("archive", { create: true });
+      var md = await arc.getDirectoryHandle(archive.month, { create: true });
+      var ad = await md.getDirectoryHandle("data", { create: true });
+      for (var j = 0; j < names.length; j++) await put(ad, names[j], outputs[names[j]]);
+      var bufs = archive.buffers || {};
+      var td = await md.getDirectoryHandle("templates", { create: true });
+      var keys = Object.keys(bufs), copied = [];
+      for (var k = 0; k < keys.length; k++) {
+        var t = TEMPLATES.filter(function (x) { return x.key === keys[k]; })[0];
+        var b = bufs[keys[k]];
+        if (!t || !b) continue;
+        await put(td, t.file, b.buffer || b);
+        copied.push(t.file);
+      }
+      await put(md, "_archive.json", JSON.stringify({ month: archive.month, written: new Date().toISOString(),
+                                                       data: names, templates: copied }, null, 2));
     }
     return done;
   };

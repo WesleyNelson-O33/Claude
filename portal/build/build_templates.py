@@ -42,8 +42,13 @@ MONEY = '$#,##0.00;($#,##0.00);-'
 PCT = '0.0%'
 
 FY = 27
-MONTHS_FY27 = [date(2026, m, 1) for m in range(7, 13)] + [date(2027, m, 1) for m in range(1, 7)]
 MONTHS_FY26 = [date(2025, m, 1) for m in range(7, 13)] + [date(2026, m, 1) for m in range(1, 7)]
+MONTHS_FY27 = [date(2026, m, 1) for m in range(7, 13)] + [date(2027, m, 1) for m in range(1, 7)]
+MONTHS_FY28 = [date(2027, m, 1) for m in range(7, 13)] + [date(2028, m, 1) for m in range(1, 7)]
+# three years across: the prior year (revenue shares and same month comparisons
+# come off it), the current year, and the next so July needs no new template
+MONTHS_ALL = MONTHS_FY26 + MONTHS_FY27 + MONTHS_FY28
+NCOLS = len(MONTHS_ALL)
 
 
 def mlabel(d):
@@ -199,14 +204,23 @@ readme(wb, "01 Xero Profit and Loss", [
           "it. Section headings and total rows such as Total Income and Gross Profit are ignored, "
           "so pasting the whole report is fine. A row whose name is not in the chart is reported "
           "on the Build page rather than silently dropped."),
+    ("h", "At the start of a financial year"),
+    ("p", "Nothing to set up. The columns run three years across, and the portal reads the month "
+          "from each heading, so July's paste goes in July's column and the new year appears on "
+          "its own. Keep the prior year's columns filled: revenue shares and same month last year "
+          "come off them."),
+    ("p", "When the last year across is the one you are in, add the next twelve months to the "
+          "right of the last column, headed the same way (Jul-28, Aug-28 and so on), on this tab "
+          "and on the Budget tab of 07 Budget. Columns older than two years back can be deleted "
+          "once the archive folder holds them."),
 ])
-heads = ["Account"] + [mlabel(d) for d in MONTHS_FY26] + [mlabel(d) for d in MONTHS_FY27]
-ws = data_tab(wb, "P&L", heads, [40] + [11] * 24,
-              ["Contract Support Staff"] + [0.0] * 24,
-              "FY26 in columns B to M, FY27 in N to Y. Income positive, costs positive as Xero shows them.",
+heads = ["Account"] + [mlabel(d) for d in MONTHS_ALL]
+ws = data_tab(wb, "P&L", heads, [40] + [11] * NCOLS,
+              ["Contract Support Staff"] + [0.0] * NCOLS,
+              "FY26 in columns B to M, FY27 in N to Y, FY28 in Z to AK. Income positive, costs positive as Xero shows them. Add columns to the right for later years.",
               paste_rows=260)
 for r in range(2, 262):
-    for c in range(2, 26):
+    for c in range(2, 2 + NCOLS):
         ws.cell(row=r, column=c).number_format = MONEY
 # pre-list the chart so the paste has something to line up against
 for i, a in enumerate(ACCOUNTS):
@@ -402,13 +416,19 @@ readme(wb, "07 Budget", [
           "fills the months after the reporting month on the P&L."),
     ("h", "Once a year, and when the forecast moves"),
     ("p", "Type or paste the budget into the Budget tab against each account. FY26 in columns "
-          "B to M, FY27 in N to Y. Income positive, costs positive."),
+          "B to M, FY27 in N to Y, FY28 in Z to AK. Income positive, costs positive."),
     ("p", "Revise when the rolling forecast moves. The portal reads whatever is here."),
+    ("h", "At the start of a financial year"),
+    ("p", "The new year's budget goes into its own twelve columns before the July build, so the "
+          "first month of the year has something to be measured against. Leave the old year in "
+          "place: the prior year budget is still read for comparisons."),
+    ("p", "When the last year across is the one you are in, add the next twelve months to the "
+          "right, headed the same way as the P&L template."),
 ])
-ws = data_tab(wb, "Budget", heads, [40] + [11] * 24, ["Contract Support Staff"] + [0.0] * 24,
+ws = data_tab(wb, "Budget", heads, [40] + [11] * NCOLS, ["Contract Support Staff"] + [0.0] * NCOLS,
               "Same layout as the P&L template.", paste_rows=260)
 for r in range(2, 262):
-    for c in range(2, 26):
+    for c in range(2, 2 + NCOLS):
         ws.cell(row=r, column=c).number_format = MONEY
 for i, a in enumerate(ACCOUNTS):
     ws.cell(row=2 + i, column=1, value=a["account"])
@@ -425,6 +445,11 @@ readme(wb, "08 Config", [
     ("h", "Each month"),
     ("p", "Change the reporting month on the Reporting tab. That is the one control everything "
           "else follows from."),
+    ("h", "Each June, before the July build"),
+    ("p", "Add the coming year's public holidays to the Holidays tab. The portal warns on the "
+          "Build page if a year in the calendar has none. Type the new year's split base "
+          "percentages if the budget workbook moved them, and check the departments and users "
+          "still match the org chart."),
     ("h", "The split bases"),
     ("p", "The 3 Way percentages are confirmed from the budget bridge. Staff and Office Dept "
           "are placeholders until the live percentages from the budget workbook are typed in. "
@@ -517,7 +542,7 @@ try:
         d = date(y, m, 1); d += timedelta(days=(wd - d.weekday()) % 7); return d + timedelta(days=7 * (n - 1))
     def sub(d):
         return d + timedelta(days=2) if d.weekday() == 5 else d + timedelta(days=1) if d.weekday() == 6 else d
-    for y in (2026, 2027):
+    for y in (2026, 2027, 2028):
         e = easter(y)
         hol_rows += [[sub(date(y, 1, 1)), "All", "New Year's Day", "Fixed"],
                      [sub(date(y, 1, 26)), "All", "Australia Day", "Fixed"],
