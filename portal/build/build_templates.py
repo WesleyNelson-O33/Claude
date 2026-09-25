@@ -584,7 +584,7 @@ PAGES = [("home", "Dashboard"), ("context", "Business Context"), ("pnl", "P&L"),
          ("pnl-dept", "P&L by Department"), ("pnl-spread", "P&L Spread"),
          ("allocation", "Overhead Allocation"), ("control", "P&L Control"),
          ("bva", "Budget vs Actual"), ("actions", "Actions"), ("forecast", "Forecast"), ("cash", "Cash Flow"), ("rev-summary", "Revenue Summary"),
-         ("rev-schedule", "Revenue Schedule"), ("pipeline", "Pipeline"), ("clients", "Top Clients"),
+         ("rev-schedule", "Revenue Schedule"), ("rev-forecast", "Revenue Forecast"), ("pipeline", "Pipeline"), ("clients", "Top Clients"),
          ("client-dept", "Clients by Department"), ("util", "Utilisation"),
          ("profit-fte", "Profitability per FTE"), ("staff-profit", "Profitability by Employee"),
          ("ledger", "Detail Records"), ("charts", "Charts"), ("setup", "Setup"),
@@ -593,9 +593,9 @@ PAGES = [("home", "Dashboard"), ("context", "Business Context"), ("pnl", "P&L"),
 ROLE_PAGES = {
     "Finance": {p for p, _ in PAGES} - {"access"},
     "Executive": {"home", "context", "pnl", "pnl-dept", "pnl-spread", "bva", "actions", "forecast", "cash", "rev-summary",
-                  "rev-schedule", "pipeline", "clients", "client-dept", "util", "profit-fte",
+                  "rev-schedule", "rev-forecast", "pipeline", "clients", "client-dept", "util", "profit-fte",
                   "staff-profit", "charts", "about"},
-    "Department head": {"home", "context", "pnl-dept", "forecast", "rev-schedule", "pipeline", "clients", "util",
+    "Department head": {"home", "context", "pnl-dept", "forecast", "rev-schedule", "rev-forecast", "pipeline", "clients", "util",
                         "charts", "about"},
     "Viewer": {"home", "context", "about"},
 }
@@ -646,6 +646,13 @@ readme(wb, "09 Forecast", [
           "forecast revenue at the Parameter rate, or at the rate measured over the last twelve "
           "months when the Parameter is blank); Fixed (the Parameter, in dollars, every month); "
           "Budget (the budget figure); Zero."),
+    ("h", "The Pipeline tab"),
+    ("p", "How the systems' view of income replaces the baseline. Confirmed work is OnRent orders "
+          "by event month and accepted Qwilr quotes by acceptance month plus the lead time; open Zoho "
+          "deals count at their probability by close month. The near months are what is booked plus "
+          "the never in the pipeline share of last year; further out the forecast never falls below "
+          "the baseline. A won deal in Zoho counts only once an order or quote carries it, so nothing "
+          "is counted twice."),
     ("h", "The Overrides tab"),
     ("p", "One row per figure you want typed. Department blank means the company. Amount as the "
           "P&L shows it: income positive, a cost positive. The override replaces the method's "
@@ -667,6 +674,26 @@ list_tab(wb, "Assumptions",
           ["Growth on last year: CONSULTING", 0.0, ""],
           ["Growth on last year: ADMIN", 0.0, ""]],
          [34, 12, 70], editable_cols=[2])
+list_tab(wb, "Pipeline",
+         ["Setting", "Value", "Note"],
+         [["Use the pipeline for income", "Yes", "No leaves income on the Seasonal method alone"],
+          ["Near months", 3, "Months after the reporting month forecast as booked plus the never in the pipeline share, with no floor"],
+          ["Cancellation rate", 0.0, "Fraction taken off booked and weighted work; 0.05 is five per cent"],
+          ["Count won deals without an order or quote", "No", "Yes counts a Closed Won deal as confirmed even when no OnRent order or Qwilr quote carries it"],
+          ["Never in the pipeline: default", 0.3, "Share of the same month last year that never goes through a system. Assumed until measured"],
+          ["Never in the pipeline: ONSITE", 0.6, "Repeat onsite work is mostly not quoted"],
+          ["Never in the pipeline: PRODUCTION", 0.3, ""],
+          ["Never in the pipeline: VIDEO", 0.3, ""],
+          ["Never in the pipeline: INTEGRATION", 0.1, ""],
+          ["Never in the pipeline: CONSULTING", 0.2, ""],
+          ["Months from close to revenue: default", 0, "Whole months between a deal closing or a quote being accepted and the revenue landing"],
+          ["Months from close to revenue: INTEGRATION", 1, "Delivery follows acceptance"],
+          ["Confirmed order statuses", "Confirmed, Booked, In progress, Completed", "OnRent statuses counted as confirmed, comma separated"],
+          ["Accepted quote statuses", "Accepted", "Qwilr statuses counted as confirmed"],
+          ["Probability: Qualification", None, "Optional. A fraction typed here overrides Zoho's probability for that stage"],
+          ["Probability: Proposal/Price Quote", None, ""],
+          ["Probability: Negotiation/Review", None, ""]],
+         [42, 40, 70], editable_cols=[2])
 list_tab(wb, "Methods",
          ["Line", "Method", "Parameter", "Note"],
          [["Category: Income", "Seasonal", None, "Same month last year, grown by the department's growth assumption"],
@@ -689,7 +716,7 @@ for r in range(12, 302):
         wb["Methods"].cell(row=r, column=c).font = INPUT_FONT
 list_tab(wb, "Overrides",
          ["Department", "Account", "Month", "Amount", "Note"],
-         [["PRODUCTION", "Production Labour", date(2026, 11, 1), 0.0, "Example: blank the amount or delete the row. Department blank means the company."]],
+         [["PRODUCTION", "Production Labour", date(2026, 11, 1), None, "Example row, ignored while the amount is blank. Department blank means the company."]],
          [16, 40, 12, 14, 60],
          note="Amount as the P&L shows it: income positive, a cost positive. Month as a date or Nov-26.")
 dv9 = DataValidation(type="list", formula1='"ONSITE,PRODUCTION,VIDEO,INTEGRATION,CONSULTING,ADMIN"', allow_blank=True)

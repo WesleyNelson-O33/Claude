@@ -1110,6 +1110,7 @@
     fixed:       { label: "Fixed amount each month",          short: "fixed",        param: "dollars per month, positive as the P&L shows it" },
     budget:      { label: "Budget as the forecast",           short: "budget",       param: "none" },
     zero:        { label: "Nothing expected",                 short: "zero",         param: "none" },
+    pipeline:    { label: "Booked work, weighted deals and the baseline", short: "pipeline", param: "set on the Pipeline tab" },
   };
   E.FC_METHODS = METHODS;
   var DEFAULTS = { income: "seasonal", cos: "revenue_pct", expenses: "runrate", other_income: "runrate", other_expenses: "runrate" };
@@ -1184,6 +1185,77 @@
   E.hasForecast = function (monthKey) {
     if (!E.forecastEnabled()) return false;
     return build().monthSet[monthKey] === 1;
+  };
+
+  /* ---- the pipeline layer on income ------------------------------------
+   * Confirmed work (orders with an event date, accepted quotes), the open
+   * deals weighted by probability, and the baseline for the revenue that
+   * never goes through a system. Near months are what is booked plus the
+   * never-in-pipeline share; far months never fall below the baseline. */
+  function pipelineSettings() {
+    var p = ((E.fcData && E.fcData.assumptions) || {}).pipeline || {};
+    var never = Object.assign({ "default": 0.3, ADMIN: 1, UNALLOCATED: 1 }, p.never || {});
+    return {
+      enabled: p.enabled !== false && !!E.hasPipeline,
+      near: Math.max(0, +p.nearMonths >= 0 ? +p.nearMonths : 3),
+      cancel: Math.max(0, Math.min(1, +p.cancellationRate || 0)),
+      never: never, lead: Object.assign({ "default": 0 }, p.leadMonths || {}),
+      orderStatuses: p.orderStatuses || "Confirmed, Booked, In progress, Completed",
+      quoteStatuses: p.quoteStatuses || "Accepted",
+      probability: p.probability || {},
+      countWon: !!p.countWon,
+    };
+  }
+  E.pipelineSettings = pipelineSettings;
+  function listRe(s) { var parts = String(s).split(/[,;]/).map(function (x) { return x.trim(); }).filter(Boolean); return parts.length ? new RegExp("^(" + parts.map(function (x) { return x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }).join("|") + ")$", "i") : /^$/; }
+  function shift(iso, n) { if (!iso) return null; var y = +iso.slice(0, 4), m = +iso.slice(5, 7) - 1 + n; return (y + Math.floor(m / 12)) + "-" + ((((m % 12) + 12) % 12) + 1 < 10 ? "0" : "") + ((((m % 12) + 12) % 12) + 1); }
+  function norm(s) { return String(s || "").toLowerCase().replace(/[^a-z0-9]/g, ""); }
+
+  /** What the systems say lands in each month, by department. */
+  E.pipelineTargets = function (months) {
+    var S = pipelineSettings(), pl = E.pipeline || { deals: [], orders: [], quotes: [] };
+    var set = {}; months.forEach(function (m) { set[m] = 1; });
+    var out = {}, seen = {}, wonUncounted = [], counted = { orders: 0, quotes: 0, deals: 0, dupQuotes: 0 };
+    function slot(dept, m) { return ((out[dept] = out[dept] || {})[m] = out[dept][m] || { confirmed: 0, weighted: 0, items: [], deals: [] }); }
+    var okOrder = listRe(S.orderStatuses), okQuote = listRe(S.quoteStatuses);
+    var won = /closed won|^won$/i, lost = /closed lost|^lost$/i;
+    function leadFor(dept) { return S.lead[dept] != null ? +S.lead[dept] : +S.lead["default"] || 0; }
+    pl.orders.forEach(function (o) {
+      if (!okOrder.test(String(o.status || "").trim())) return;
+      var m = String(o.start || "").slice(0, 7); if (!set[m]) return;
+      var dept = o.dept || "UNALLOCATED", key = dept + "|" + norm(o.client) + "|" + norm(o.title);
+      seen[key] = 1; counted.orders++;
+      var s = slot(dept, m); s.confirmed += o.value || 0;
+      s.items.push({ kind: "order", ref: o.no, client: o.client, title: o.title, month: m, value: o.value || 0, status: o.status });
+    });
+    pl.quotes.forEach(function (q) {
+      if (!okQuote.test(String(q.status || "").trim())) return;
+      var dept = q.dept || "UNALLOCATED", base = String(q.accepted || q.sent || "").slice(0, 7);
+      var m = shift(base, leadFor(dept)); if (!m || !set[m]) return;
+      var key = dept + "|" + norm(q.client) + "|" + norm(q.title);
+      if (seen[key]) { counted.dupQuotes++; return; }
+      seen[key] = 1; counted.quotes++;
+      var s = slot(dept, m); s.confirmed += q.value || 0;
+      s.items.push({ kind: "quote", ref: q.ref, client: q.client, title: q.title, month: m, value: q.value || 0, status: q.status });
+    });
+    pl.deals.forEach(function (d) {
+      var dept = d.dept || "UNALLOCATED", m = shift(String(d.close || "").slice(0, 7), leadFor(dept));
+      if (!m || !set[m]) return;
+      var key = dept + "|" + norm(d.account) + "|" + norm(d.name);
+      if (won.test(d.stage || "")) {
+        if (seen[key]) return;
+        if (S.countWon) { seen[key] = 1; var sw = slot(dept, m); sw.confirmed += d.amount || 0; sw.items.push({ kind: "deal won", ref: "", client: d.account, title: d.name, month: m, value: d.amount || 0, status: d.stage }); }
+        else wonUncounted.push({ client: d.account, title: d.name, month: m, value: d.amount || 0 });
+        return;
+      }
+      if (lost.test(d.stage || "")) return;
+      var prob = S.probability[d.stage] != null ? +S.probability[d.stage] : (d.prob != null ? +d.prob : (d.amount ? (d.expected || 0) / d.amount : 0));
+      prob = Math.max(0, Math.min(1, prob || 0));
+      var s = slot(dept, m); var w = Math.round((d.amount || 0) * prob); s.weighted += w; counted.deals++;
+      s.deals.push({ client: d.account, title: d.name, stage: d.stage, month: m, amount: d.amount || 0, prob: prob, weighted: w });
+    });
+    return { byDept: out, wonUncounted: wonUncounted, counted: counted, settings: S,
+             deptsWithData: Object.keys(out).filter(function (d) { return Object.keys(out[d]).length; }) };
   };
 
   function priorKey(m) { return (+m.slice(0, 4) - 1) + m.slice(4); }
@@ -1267,6 +1339,49 @@
       });
     }
     run(incomeAccts);
+
+    // the pipeline layer: the systems' view of income replaces the baseline
+    // where they know more, department by department
+    fc.layers = {}; fc.pipeline = null;
+    var PS = pipelineSettings();
+    if (PS.enabled) {
+      var pt = E.pipelineTargets(months);
+      fc.pipeline = pt;
+      var incomeNames = incomeAccts.slice();
+      depts.forEach(function (dept) {
+        var hasData = pt.deptsWithData.indexOf(dept) >= 0;
+        var never = PS.never[dept] != null ? +PS.never[dept] : +PS.never["default"];
+        if (!hasData) never = 1;
+        months.forEach(function (m, i) {
+          var base = (fc.deptIncome[dept] || {})[m] || 0;
+          var L = (pt.byDept[dept] || {})[m] || { confirmed: 0, weighted: 0, items: [], deals: [] };
+          var booked = Math.round((L.confirmed + L.weighted) * (1 - PS.cancel));
+          var share = Math.round(base * never);
+          var near = i < PS.near;
+          var target = near ? booked + share : Math.max(base, booked + share);
+          var floor = target - booked - share;
+          (fc.layers[dept] = fc.layers[dept] || {})[m] = { baseline: base, confirmed: L.confirmed, weighted: L.weighted, booked: booked, never: share, floor: floor,
+                                                            target: target, rule: hasData ? (near ? "near" : "far") : "baseline", items: L.items, deals: L.deals };
+          if (target === base || !hasData) return;
+          var cells = fc.byDeptAcct[dept] || (fc.byDeptAcct[dept] = {});
+          if (base) {
+            var running = 0, lastName = null;
+            incomeNames.forEach(function (n) {
+              var v = (cells[n] || {})[m]; if (!v) return;
+              var nv = Math.round(v * target / base); cells[n][m] = nv; running += nv; lastName = n;
+            });
+            if (lastName && running !== target) cells[lastName][m] += target - running;
+          } else {
+            // nothing in the history for this month: put it on the department's biggest income line
+            var best = null, bestV = -1;
+            incomeNames.forEach(function (n) { var v = Math.abs(sum(dept, n, last12)); if (v > bestV) { bestV = v; best = n; } });
+            if (best) (cells[best] = cells[best] || {})[m] = target;
+          }
+          (fc.deptIncome[dept] = fc.deptIncome[dept] || {})[m] = target;
+        });
+      });
+      incomeNames.forEach(function (n) { if (fc.rules[n] && fc.rules[n].method === "seasonal") fc.rules[n] = Object.assign({}, fc.rules[n], { method: "pipeline", source: "pipeline" }); });
+    }
     run(otherAccts);
 
     // typed overrides: department level replaces the cell; company level is
@@ -1301,6 +1416,7 @@
     return (E._fc = fc);
   }
   E.forecast = function () { return E.forecastEnabled() ? build() : null; };
+  E.forecastLayers = function () { var f = E.forecast(); return f ? { layers: f.layers || {}, pipeline: f.pipeline, months: f.months } : null; };
 
   E.acctForecast = function (name, m) {
     if (!E.forecastEnabled()) return 0;
@@ -2858,7 +2974,7 @@
       ], deptRows);
 
       // how each line is made
-      var SRC = { account: "account line", subcategory: "subcategory line", category: "category line", "default": "default", mixed: "mixed" };
+      var SRC = { account: "account line", subcategory: "subcategory line", category: "category line", "default": "default", mixed: "mixed", pipeline: "Pipeline tab" };
       var lines = E.forecastLines(fcKeys).filter(function (r) { return r.total || r.source !== "default"; });
       var methodTable = U.table([
         { key: "cat", label: "Category", align: "left" },
@@ -3089,6 +3205,106 @@
             value: function (r) { return h("span.risk.risk-" + U.RISK_CLASS[r.risk], r.risk); } },
         ], rows),
           "Departmental budget is derived: the budget is held per account, and most accounts carry no department in their name, so each account's budget is spread on that account's own prior year ledger split."),
+      ];
+    },
+  };
+
+  /* ============================================= revenue forecast ====== */
+  P["rev-forecast"] = {
+    section: "Revenue", title: "Revenue Forecast",
+    sub: "Booked, weighted, baseline, typed.",
+    render: function () {
+      var p = CTS.period();
+      var L = E.forecastLayers();
+      if (!L) {
+        return [seedBanner(), CTS.periodBar(), U.h1("Revenue Forecast", "FY" + p.fy),
+          h("div.banner.banner-warn", [h("strong", "No forecast is loaded. "), "Put 09 Forecast.xlsx in the templates folder and run Build."])];
+      }
+      var PS = E.pipelineSettings();
+      var depts = E.visibleDepts().filter(function (d) { return d.isRevenue && d.code !== "ADMIN"; });
+      var codes = depts.map(function (d) { return d.code; });
+      var pick = CTS.store.get("revFcDept", "ALL");
+      if (pick !== "ALL" && codes.indexOf(pick) < 0) pick = "ALL";
+      var use = pick === "ALL" ? codes : [pick];
+      var months = L.months.filter(function (m) { return E.hasForecast(m); });
+      var labels = months.map(function (m) { return E.monthIdx[m].label; });
+      function layer(m, k) { var t = 0; use.forEach(function (d) { var x = (L.layers[d] || {})[m]; if (x) t += x[k] || 0; }); return t; }
+      function forecastIncome(m) { return use.reduce(function (a, d) { return a + (E.forecastByDept([m], "income")[d] || 0); }, 0); }
+      var rows = months.map(function (m, i) {
+        var conf = layer(m, "confirmed"), wgt = layer(m, "weighted"), nev = layer(m, "never"), floor = layer(m, "floor"), target = layer(m, "target");
+        var fc = forecastIncome(m), typed = fc - target;
+        var bud = use.reduce(function (a, d) { return a + (E.budgetByDept([m], "income")[d] || 0); }, 0);
+        var pk = (+m.slice(0, 4) - 1) + m.slice(4);
+        var ly = use.reduce(function (a, d) { return a + E.sumMonths((E.idx.deptCatMonth[d] || {}).income, [pk]); }, 0);
+        var rule = pick === "ALL" ? (i < PS.near ? "near" : "far") : ((L.layers[pick] || {})[m] || {}).rule || "";
+        return { m: E.monthIdx[m].label, key: m, rule: rule, conf: conf, wgt: wgt, nev: nev, floor: floor, typed: typed, fc: fc, bud: bud, ly: ly, v: fc - bud };
+      });
+      var chart = U.columns({
+        labels: labels, width: 780, height: 280, stacked: true,
+        series: [
+          { label: "Confirmed", colour: "var(--series-1)", values: rows.map(function (r) { return r.conf; }) },
+          { label: "Weighted deals", colour: "var(--series-2)", values: rows.map(function (r) { return r.wgt; }) },
+          { label: "Baseline share", colour: "var(--series-3)", values: rows.map(function (r) { return r.nev; }) },
+          { label: "Baseline floor", colour: "var(--series-4)", values: rows.map(function (r) { return r.floor; }) },
+          { label: "Typed", colour: "var(--series-5)", values: rows.map(function (r) { return r.typed; }) },
+        ],
+      });
+      var table = U.table([
+        { key: "m", label: "Month", align: "left" }, { key: "rule", label: "Rule", align: "left" },
+        { key: "conf", label: "Confirmed", fmt: F.k }, { key: "wgt", label: "Weighted deals", fmt: F.k },
+        { key: "nev", label: "Baseline share", fmt: F.k }, { key: "floor", label: "Baseline floor", fmt: F.k },
+        { key: "typed", label: "Typed", fmt: F.k, cell: U.moneyCell },
+        { key: "fc", label: "Forecast", fmt: F.k }, { key: "bud", label: "Budget", fmt: F.k },
+        { key: "v", label: "vs budget", fmt: F.k, cell: U.moneyCell }, { key: "ly", label: "Last year", fmt: F.k },
+      ], rows.concat([(function () { var t = { m: "Total", rule: "", _cls: "totalrow" }; ["conf", "wgt", "nev", "floor", "typed", "fc", "bud", "v", "ly"].forEach(function (k) { t[k] = rows.reduce(function (a, r) { return a + r[k]; }, 0); }); return t; })()]), { dense: true });
+
+      var items = [], deals = [];
+      use.forEach(function (d) { months.forEach(function (m) { var x = (L.layers[d] || {})[m]; if (!x) return; (x.items || []).forEach(function (it) { items.push(Object.assign({ dept: d }, it)); }); (x.deals || []).forEach(function (it) { deals.push(Object.assign({ dept: d }, it)); }); }); });
+      items.sort(function (a, b) { return b.value - a.value; }); deals.sort(function (a, b) { return b.weighted - a.weighted; });
+      var itemTable = items.length ? U.table([
+        { key: "month", label: "Lands", align: "left", value: function (r) { return (E.monthIdx[r.month] || {}).label || r.month; } },
+        { key: "dept", label: "Dept", align: "left", value: function (r) { return (E.deptOf[r.dept] || {}).short || r.dept; } },
+        { key: "client", label: "Client", align: "left" }, { key: "title", label: "What", align: "left" },
+        { key: "kind", label: "From", align: "left", value: function (r) { return h("span.chip.chip-muted", r.kind === "order" ? "OnRent order" : r.kind === "quote" ? "Qwilr quote" : "Zoho won"); } },
+        { key: "status", label: "Status", align: "left" }, { key: "value", label: "Value", fmt: F.money },
+      ], items.slice(0, 20), { dense: true }) : U.note("Nothing confirmed lands in these months.", "muted");
+      var dealTable = deals.length ? U.table([
+        { key: "month", label: "Lands", align: "left", value: function (r) { return (E.monthIdx[r.month] || {}).label || r.month; } },
+        { key: "dept", label: "Dept", align: "left", value: function (r) { return (E.deptOf[r.dept] || {}).short || r.dept; } },
+        { key: "client", label: "Account", align: "left" }, { key: "title", label: "Deal", align: "left" }, { key: "stage", label: "Stage", align: "left" },
+        { key: "amount", label: "Amount", fmt: F.money }, { key: "prob", label: "Probability", fmt: function (v) { return F.pct(v, 0); } },
+        { key: "weighted", label: "Weighted", fmt: F.money },
+      ], deals.slice(0, 20), { dense: true }) : U.note("No open deals land in these months.", "muted");
+
+      var pl = L.pipeline;
+      var wonNote = pl && pl.wonUncounted.length ? h("div.banner.banner-warn", [
+        h("strong", pl.wonUncounted.length + " won deal" + (pl.wonUncounted.length > 1 ? "s" : "") + " not counted, " + F.dollars(pl.wonUncounted.reduce(function (a, w) { return a + w.value; }, 0)) + ". "),
+        "A won deal in Zoho counts only once it has an OnRent order or an accepted Qwilr quote, which is where the date and the final value live. Set Count won deals to Yes on the Pipeline tab to count them anyway.",
+      ]) : null;
+      var never = codes.map(function (c) { return E.deptOf[c].short + " " + F.pct(PS.never[c] != null ? +PS.never[c] : +PS.never["default"], 0); }).join(", ");
+      var meta = (E.pipeline && E.pipeline.meta) || {};
+
+      return [
+        seedBanner(), CTS.periodBar(), U.h1("Revenue Forecast", "FY" + p.fy + ", " + (pick === "ALL" ? "all departments" : E.deptOf[pick].short)),
+        h("div.toolbar", [h("div.seg", [{ code: "ALL", short: "All" }].concat(depts).map(function (d) {
+          return h("button.seg-btn" + (d.code === pick ? ".on" : ""), { onclick: function () { CTS.store.set("revFcDept", d.code); CTS.router.reload(); } }, d.short);
+        }))]),
+        !PS.enabled ? h("div.banner.banner-warn", [h("strong", E.hasPipeline ? "The pipeline layer is off. " : "No pipeline is loaded. "),
+          E.hasPipeline ? "Income is on the baseline method alone. Set Use the pipeline to Yes on the Pipeline tab of 09 Forecast.xlsx." : "Fill the Zoho, OnRent and Qwilr templates and run Build; until then income is the baseline alone."]) : null,
+        meta.placeholder && PS.enabled ? h("div.banner.banner-warn", [h("strong", "Placeholder pipeline. "), "The deals, orders and quotes come from the placeholder templates. Once a real export from each system is matched, this page reads the real book."]) : null,
+        U.note("Income after " + ((E.monthIdx[p.rm] || {}).label || p.rm) + " is built in layers. Confirmed is OnRent orders and accepted Qwilr quotes by the month they land. Weighted deals is the open Zoho pipeline at each deal's probability. Baseline share is the part of revenue that never goes through a system, " + never + ", as a share of the same month last year. The first " + PS.near + " months are what is booked plus that share; after that the forecast never falls below the baseline. A typed override sits on top."),
+        U.section("By month", U.figure("Layers of the income forecast, FY" + p.fy, chart, table,
+          "Rule near means booked plus the baseline share; far means the larger of that and the baseline. Typed is the difference an override made.")),
+        wonNote,
+        U.section("Confirmed work landing in the forecast", itemTable, "Largest first. Value as the system holds it."),
+        U.section("Open deals landing in the forecast", dealTable, "Probability is Zoho's unless overridden per stage on the Pipeline tab."),
+        pl ? U.section("What was read", U.table([
+          { key: "l", label: "", align: "left" }, { key: "v", label: "" },
+        ], [
+          { l: "Orders counted as confirmed", v: pl.counted.orders }, { l: "Quotes counted as confirmed", v: pl.counted.quotes },
+          { l: "Quotes skipped because an order already carries them", v: pl.counted.dupQuotes },
+          { l: "Open deals weighted", v: pl.counted.deals }, { l: "Won deals not counted", v: pl.wonUncounted.length },
+        ], { dense: true }), "Order statuses counted: " + PS.orderStatuses + ". Quote statuses: " + PS.quoteStatuses + ". Cancellation rate " + F.pct(PS.cancel, 0) + ".") : null,
       ];
     },
   };

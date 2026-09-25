@@ -11,7 +11,7 @@ its own. Step 1 is built; the rest is the plan.
 |---|---|
 | 1. P&L forecast on run rate and seasonality, with overrides | Built. Forecast page, forecast column across the portal, 09 Forecast template, full year outlook in the tier one email |
 | 2. Twelve month cash, indirect | Built. Cash Flow page, 10 Cash and Commitments template with bank balances, credit cards, commitments and settings; cash tile on the Dashboard and a cash line in the tier one email |
-| 3. Pipeline driven revenue | Designed, needs the three system exports |
+| 3. Pipeline driven revenue | Built on the placeholder templates. Revenue Forecast page, Pipeline tab on 09 Forecast. Reads the real book once the Zoho, OnRent and Qwilr exports are matched |
 | 4. Thirteen week cash, direct | Designed. The 11 and 12 aged report templates exist, in the layout confirmed against the live Xero organisation |
 | 5. Forecast accuracy | Designed, needs three months of archive |
 
@@ -203,10 +203,19 @@ Each step stands on its own and needs only what is listed.
    receivables or payables balance from Xero measures the days to pay
    rather than assuming them. The bridge from profit to cash on the page
    closes exactly, and says so.
-3. **Pipeline driven revenue.** Needs the three real exports from Zoho, OnRent
-   and Qwilr matched to their templates, which is already the next input on
-   the list. Gives the Revenue Forecast page and replaces the baseline in the
-   near months with what is actually booked and quoted.
+3. **Pipeline driven revenue.** Built. Income after the reporting month is
+   made in layers: OnRent orders by event month and accepted Qwilr quotes by
+   acceptance month plus lead time as confirmed; open Zoho deals at their
+   probability by close month as weighted; and the never in the pipeline
+   share of the same month last year. The near months are booked plus that
+   share, with no floor, so a thin pipeline shows as a shortfall; further out
+   the forecast never falls below the baseline. A won deal in Zoho counts
+   only once an order or quote carries it, so nothing is counted twice. The
+   department total is spread across the income accounts on their own
+   history, so the P&L keeps its account detail. The Revenue Forecast page
+   shows the layers by month, the confirmed work and the open deals landing,
+   and what was read. It runs on the placeholder templates now and reads the
+   real book once the three exports are matched.
 4. **Thirteen week direct cash.** Needs the aged receivables and payables
    pastes and one run of paid invoice history. Gives the weekly view and the
    low point.
@@ -225,6 +234,10 @@ These are the defaults the build will start from unless told otherwise.
   under Payday Super from 1 July 2026, and there is no PAYG instalment. All
   three are settings on the cash template. Payroll frequency only matters
   for the weekly view in step 4.
+- The never in the pipeline shares (onsite 60 per cent, production and
+  video 30, integration 10, consulting 20) are assumed, not measured. After
+  a few months the archive can show what share of revenue was never in the
+  systems, and the Pipeline tab takes the measured figures.
 - Credit cards are paid in full each month, so the balance at the reporting
   month clears in the first forecast month and spend after that is paid
   within the month. A setting on the cash template turns that off.

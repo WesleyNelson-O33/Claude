@@ -531,6 +531,23 @@
         ass.growth[code] = +p.num(v) || 0;
       }
     });
+    var pipe = { enabled: true, nearMonths: 3, cancellationRate: 0, countWon: false, never: {}, leadMonths: {}, probability: {},
+                 orderStatuses: "Confirmed, Booked, In progress, Completed", quoteStatuses: "Accepted" };
+    tab("Pipeline").forEach(function (r) {
+      var k = String(r[0] || "").toLowerCase().trim(), v = r[1];
+      if (!k) return;
+      function deptIn(key) { return deptCodes.filter(function (c) { return key.indexOf(c.toLowerCase()) >= 0; })[0] || "default"; }
+      if (/^use the pipeline/.test(k)) pipe.enabled = !/^n|^off|^false|^0/.test(String(v || "").toLowerCase());
+      else if (/^near months/.test(k)) pipe.nearMonths = +p.num(v);
+      else if (/^cancellation/.test(k)) pipe.cancellationRate = +p.num(v) || 0;
+      else if (/^count won/.test(k)) pipe.countWon = /^y/i.test(String(v || ""));
+      else if (/^never in the pipeline/.test(k)) pipe.never[deptIn(k)] = +p.num(v) || 0;
+      else if (/^months from close/.test(k)) pipe.leadMonths[deptIn(k)] = +p.num(v) || 0;
+      else if (/^confirmed order statuses/.test(k)) pipe.orderStatuses = String(v || pipe.orderStatuses);
+      else if (/^accepted quote statuses/.test(k)) pipe.quoteStatuses = String(v || pipe.quoteStatuses);
+      else if (/^probability:/.test(k)) { var st = String(r[0]).replace(/^probability:\s*/i, "").trim(); if (st && v !== "" && v != null) pipe.probability[st] = +p.num(v); }
+    });
+    ass.pipeline = pipe;
     var methods = [], badMethod = [];
     tab("Methods").forEach(function (r) {
       var match = String(r[0] || "").trim(); if (!match) return;
@@ -540,15 +557,17 @@
       methods.push({ match: match, method: method, param: pv, note: String(r[3] || "").trim() });
     });
     var overrides = [], badOverride = [];
+    var blankOverrides = 0;
     tab("Overrides").forEach(function (r) {
       var acct = String(r[1] || "").trim(); if (!acct && !r[3]) return;
+      if (r[3] === "" || r[3] == null) { blankOverrides++; return; }   // a row with no amount is a note, not an override
       var mk = B.monthOfLabel(r[2]) || (p.isoDate(r[2]) || "").slice(0, 7) || null;
       if (!acct || !mk) { badOverride.push((acct || "(no account)") + " " + String(r[2] || "(no month)")); return; }
       overrides.push({ dept: String(r[0] || "").trim().toUpperCase(), account: acct, month: mk,
                        amount: p.num(r[3]), note: String(r[4] || "").trim() });
     });
     return { data: { meta: { built: today(), source: "09 Forecast.xlsx", version: 1 }, assumptions: ass, methods: methods, overrides: overrides },
-             badMethod: badMethod, badOverride: badOverride };
+             badMethod: badMethod, badOverride: badOverride, blankOverrides: blankOverrides };
   };
 
 
@@ -803,8 +822,9 @@
         outputs["CTS_forecast_data.js"] = "window.CTS_FORECAST = " + JSON.stringify(fcr.data) + ";\n";
         results.forecast = fcr.data;
         var unknownAcct = fcr.data.overrides.filter(function (o) { return !E().acct[o.account]; }).map(function (o) { return o.account; });
-        check("ok", "Forecast", (fcr.data.assumptions.enabled ? "On. " : "Off. ") + fcr.data.methods.length + " method lines, " + fcr.data.overrides.length + " typed overrides, horizon " + fcr.data.assumptions.horizonMonths + " months, run rate " + fcr.data.assumptions.runRateMonths + " months.");
+        check("ok", "Forecast", (fcr.data.assumptions.enabled ? "On. " : "Off. ") + fcr.data.methods.length + " method lines, " + fcr.data.overrides.length + " typed overrides, horizon " + fcr.data.assumptions.horizonMonths + " months, run rate " + fcr.data.assumptions.runRateMonths + " months. Pipeline layer " + (fcr.data.assumptions.pipeline.enabled ? "on, near months " + fcr.data.assumptions.pipeline.nearMonths : "off") + ".");
         if (fcr.badMethod.length) check("warn", "Forecast", fcr.badMethod.length + " method lines not understood and skipped: " + fcr.badMethod.slice(0, 4).join("; ") + ". Use Seasonal, Run rate, % of revenue, Fixed, Budget or Zero.");
+        if (fcr.blankOverrides) check("info", "Forecast", fcr.blankOverrides + " override row" + (fcr.blankOverrides > 1 ? "s" : "") + " with no amount ignored.");
         if (fcr.badOverride.length) check("warn", "Forecast", fcr.badOverride.length + " overrides without an account or a month, skipped: " + fcr.badOverride.slice(0, 4).join("; ") + ".");
         if (unknownAcct.length) check("warn", "Forecast", "Override accounts not in the chart: " + unknownAcct.slice(0, 4).join("; ") + ". Spell them as Xero does.");
       } catch (e) { check("fail", "Forecast", e.message); }
