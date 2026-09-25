@@ -14,35 +14,55 @@ Open View > Slide Master to see them, or Home > New Slide to pick one.
 
 | Layout | Use it for |
 |---|---|
-| CTS Cover (dark) | Opening slide, navy background |
-| CTS Cover (light) | Opening slide, white with a navy panel |
-| CTS Section | Section divider with a number and title |
+| CTS Cover (dark) | Opening slide, black background with the three division colours |
+| CTS Cover (light) | Opening slide, white with a black panel on the right |
+| CTS Section | Section divider, navy, with a mint number block |
 | CTS Header Only | Heading with an empty body for a chart, table or image |
 | CTS Header and Text | Heading with a body text placeholder (bullets by default) |
 
 The deck opens with eight example slides, one or two per layout, so there is
 always something to copy. Delete the ones you do not need.
 
-## Colour palette
+## Colour palette (official CTS Seamless AV brand palette)
 
-The palette is the CTS house palette already used by the manuals and packs in
-this repository.
+Source: the colour specification published with the CTS brand guidelines at
+https://brandpad.io/cts-seamless/ (file `cts_pantonevalues.pdf`). The palette
+is built on the RGB spectrum: one colour per division, each with a light and a
+dark variant, on a black base.
 
-| Name | Hex | Used for |
-|---|---|---|
-| CTS Navy | 1F4E79 | Titles, cover background, logo mark, section number block |
-| CTS Blue | 2E74B5 | Section labels, accents |
-| Pale Blue | D9E2F3 | Section slide background, callout cards |
-| Grey | 595959 | Captions, footers, subtitles |
-| Light Grey | F2F2F2 | Table bands and wells |
-| Body Text | 262626 | Paragraph text |
+| Name | Hex | RGB | Pantone | Division / use |
+|---|---|---|---|---|
+| Black | 121820 | 18 24 32 | | Base colour, text, dark cover |
+| Mint (light) | 3FD0C9 | 63 208 201 | PMS 3255 C | Production |
+| Lavender (light) | 6D71FF | 109 113 255 | PMS 2124 C | Consulting |
+| Rose (light) | F33844 | 243 56 68 | PMS 1788 C | Support |
+| Teal (dark) | 005358 | 0 83 88 | PMS 7476 C | Production, dark variant |
+| Navy (dark) | 122B82 | 18 43 130 | PMS 287 C | Consulting, dark variant |
+| Burgundy (dark) | A8052E | 168 5 46 | | Support, dark variant |
 
-Font is Calibri throughout: bold for headings, regular for body text.
+Rules the template follows:
+
+- Light variants (mint, lavender, rose) are used for fills, blocks, the cover
+  circles and chart series. They fail contrast as small text on white, so
+  never use them for body copy.
+- Dark variants and black are used for text on white. Section labels use
+  navy, callout labels use teal.
+- Derived neutrals that are not brand colours: grey 5F6670 for footers and
+  captions, C9CED6 for secondary text on dark backgrounds, E8F9F8 as a mint
+  tint for callout cards.
+
+## Typography
+
+The brand font is Tomato Grotesk. The template uses Calibri because Tomato
+Grotesk does not ship with Office and would fall back unpredictably on other
+machines. If the font is installed on every machine that will open the deck,
+change `FONT` in the script and rebuild.
 
 ## Logo
 
-No CTS logo file was available when this was built, so every layout carries a
-placeholder mark (a navy rounded square with "CTS" and the company name). To
+The real logo could not be downloaded when this was built, so every layout
+carries a placeholder mark (a square with "CTS" and the "Seamless AV"
+lock-up, which the brand guidelines say must always accompany the logo). To
 replace it: View > Slide Master, select the placeholder shapes on each layout,
 delete them and insert the real logo image at the same position. Keep it about
 0.5 in tall on the covers and 0.42 in tall on the content layouts.
