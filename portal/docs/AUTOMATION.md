@@ -26,6 +26,13 @@ Three tiers, decided per recipient on the Distribution tab:
 | 2 | Department head | Their own department in depth, one line on the rest |
 | 3 | Finance | The controls: does the ledger tie, what is uncoded, what rests on a placeholder, what the build did |
 
+Two more things arrive in the same folder. The fortnightly update goes to
+`outbox/YYYY-MM-F1` or `-F2`, the same JSON and HTML per recipient. The
+month end deck goes into `outbox/YYYY-MM` as a `.pptx` beside `deck_*.json`
+covering notes whose `attachments` array names it; the flow attaches every
+file the array names from the same folder. A `kind` field on each JSON says
+`monthly`, `fortnightly` or `deck`.
+
 Whatever sends the mail reads that folder. The portal does not need to know
 what it is. That is the whole design: rendering is deterministic and reviewed,
 dispatch is pluggable.

@@ -13,6 +13,7 @@ window.CTS_CONFIG = {
     reportingMonth: "2026-08",       // the one control that moves each month
     priorFY: 26,
     currentFY: 27,
+    portalUrl: "",   // the SharePoint link or synced folder path, from the Config Reporting tab; goes in every email
   },
 
   // ------------------------------------------------------------ departments

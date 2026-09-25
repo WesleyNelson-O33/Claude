@@ -102,6 +102,7 @@
       else el.setAttribute(k, attrs[k]);
     });
     (Array.isArray(kids) ? kids : kids == null ? [] : [kids]).forEach(function (kid) {
+      if (kid == null || kid === false) return;
       el.appendChild(kid.nodeType ? kid : document.createTextNode(String(kid)));
     });
     return el;
@@ -1670,6 +1671,18 @@
   "use strict";
   var CTS = window.CTS, E = CTS.engine, store = CTS.store;
 
+  /** Who gets the emails: the list edited in the portal (this browser), then
+   *  the list published to the folder, then the Config template. */
+  E.recipients = function () {
+    var local = store.get("distribution.list", null);
+    if (Array.isArray(local)) return local;
+    var pub = window.CTS_DISTRIBUTION && Array.isArray(window.CTS_DISTRIBUTION.list) ? window.CTS_DISTRIBUTION.list : null;
+    return pub || (E.cfg.DISTRIBUTION || []);
+  };
+  E.setRecipients = function (list) { store.set("distribution.list", list); };
+  E.recipientsLocal = function () { return Array.isArray(store.get("distribution.list", null)); };
+  E.clearRecipientsLocal = function () { store.set("distribution.list", null); };
+
   E.loadCommentary = function (data) {
     E.commentaryData = data && Array.isArray(data.items) ? data : { meta: {}, items: [] };
   };
@@ -1677,7 +1690,7 @@
   function removed() { return store.get("commentary.removed", []) || []; }
   E.canComment = function () {
     var r = E.currentRole();
-    return !!E.identity() && !!r && r.id !== "viewer";
+    return !!E.identity() && !!r && !!r.admin;
   };
   E.canPublishCommentary = function () { var r = E.currentRole(); return !!r && (r.admin || r.id === "finance"); };
 
@@ -1725,6 +1738,180 @@
 })();
 
 /* ===================================================================== *
+ * Engine part 6: the fortnight. Revenue by date off the ledger for the
+ * month in progress, hours off the pay runs, the forecast for the month
+ * as the benchmark, and the confirmed work landing next. This is what
+ * the fortnightly update reads.
+ * ===================================================================== */
+(function () {
+  "use strict";
+  var CTS = window.CTS, E = CTS.engine;
+
+  function dim(key) { return new Date(+key.slice(0, 4), +key.slice(5, 7), 0).getDate(); }
+  function weekdays(key, from, to) {
+    var y = +key.slice(0, 4), m = +key.slice(5, 7) - 1, n = 0;
+    for (var d = from; d <= to; d++) { var dow = new Date(y, m, d).getDay(); if (dow !== 0 && dow !== 6) n++; }
+    return n;
+  }
+  function nextKey(key) { var y = +key.slice(0, 4), m = +key.slice(5, 7); return m === 12 ? (y + 1) + "-01" : y + "-" + (m + 1 < 10 ? "0" : "") + (m + 1); }
+
+  /** The month the fortnightly update is about: the month after the
+   *  reporting month when the ledger already carries lines in it. */
+  E.progressMonth = function () {
+    var rm = E.reportingMonth(), later = (E.glMonths || []).filter(function (k) { return k > rm; });
+    return later.length ? later[later.length - 1] : rm;
+  };
+  E.snapshotDate = function () { return (E.quality && E.quality.maxDate) || null; };
+
+  E.fortnightFor = function (dept, monthKey, which) {
+    var key = monthKey || E.progressMonth(), days = dim(key), snap = E.snapshotDate() || (key + "-" + days);
+    var snapDay = snap.slice(0, 7) === key ? +snap.slice(8, 10) : (snap > key ? days : 0);
+    var closed = E.hasActual(key) || snap.slice(0, 7) > key;
+    if (closed) snapDay = days;
+    var F = [{ n: 1, from: 1, to: 15 }, { n: 2, from: 16, to: days }];
+    F.forEach(function (f) {
+      f.label = "Fortnight " + f.n; f.range = f.from + "–" + f.to + " " + (E.monthIdx[key] || {}).label;
+      f.complete = snapDay >= f.to; f.started = snapDay >= f.from;
+      f.weekdays = weekdays(key, f.from, f.to);
+      f.weekdaysDone = f.started ? weekdays(key, f.from, Math.min(f.to, snapDay)) : 0;
+      f.revenue = 0; f.clients = {};
+    });
+    var depts = dept ? [dept] : E.revenueDepts.map(function (d) { return d.code; });
+    var inDept = {}; depts.forEach(function (d) { inDept[d] = 1; });
+    (E.gl || []).forEach(function (r) {
+      if (r.cat !== "income" || r.month !== key || !inDept[r.dept]) return;
+      var day = +r.date.slice(8, 10), f = day <= 15 ? F[0] : F[1];
+      f.revenue += r.amount; if (r.contact) f.clients[r.contact] = (f.clients[r.contact] || 0) + r.amount;
+    });
+    var mtd = F[0].revenue + F[1].revenue;
+    // hours: the pay runs dated in the month, else the last month with any
+    var hoursKey = key, rows = E.staffRows.filter(function (r) { return r.month === key && inDept[r.dept]; });
+    if (!rows.length) { var prev = E.months.filter(function (m) { return m.key < key; }).map(function (m) { return m.key; }).reverse()
+      .filter(function (k) { return E.staffRows.some(function (r) { return r.month === k && inDept[r.dept]; }); })[0]; if (prev) { hoursKey = prev; rows = E.staffRows.filter(function (r) { return r.month === prev && inDept[r.dept]; }); } }
+    var people = {}, chg = 0, worked = 0, leave = 0;
+    rows.forEach(function (r) { people[r.empId] = r.name; chg += r.chargeable; worked += r.chargeable + r.nonChargeable; leave += r.leave; });
+    var wdTotal = F[0].weekdays + F[1].weekdays, wdDone = F[0].weekdaysDone + F[1].weekdaysDone;
+    var share = hoursKey === key && closed ? 1 : (wdTotal ? wdDone / wdTotal : 0);
+    var chgToDate = chg * share, workedToDate = worked * share;
+    F.forEach(function (f) { var sh = wdTotal ? f.weekdaysDone / wdTotal : 0; f.chargeable = chg * sh; f.worked = worked * sh; f.sellRate = f.chargeable ? Math.round(f.revenue / f.chargeable) : null; f.util = f.worked ? f.chargeable / f.worked : null; });
+    // benchmarks
+    var forecast = 0, budget = 0, actualMonth = null;
+    depts.forEach(function (d) {
+      budget += E.budgetByDept([key], "income")[d] || 0;
+      if (E.hasActual(key)) { actualMonth = (actualMonth || 0) + E.sumMonths((E.idx.deptCatMonth[d] || {}).income, [key]); }
+      else if (E.forecastEnabled() && E.hasForecast(key)) forecast += E.forecastByDept([key], "income")[d] || 0;
+    });
+    var benchmark = actualMonth != null ? actualMonth : (forecast || budget);
+    var benchmarkKind = actualMonth != null ? "actual" : forecast ? "forecast" : "budget";
+    var remaining = Math.max(0, benchmark - mtd);
+    var open = F.filter(function (f) { return !f.complete; });
+    var openWd = open.reduce(function (a, f) { return a + (f.weekdays - f.weekdaysDone); }, 0);
+    F.forEach(function (f) { f.schedule = f.complete ? f.revenue : f.revenue + (openWd ? Math.round(remaining * (f.weekdays - f.weekdaysDone) / openWd) : 0); });
+    var proRata = wdTotal ? Math.round(benchmark * wdDone / wdTotal) : 0;
+    // gross margin to date, off the ledger
+    var cos = 0; (E.gl || []).forEach(function (r) { if (r.cat === "cos" && r.month === key && inDept[r.dept] && +r.date.slice(8, 10) <= snapDay) cos += r.amount; });
+    // what lands next, from the pipeline layer
+    var landing = [], L = E.forecastLayers ? E.forecastLayers() : null;
+    if (L) [key, nextKey(key)].forEach(function (mk) { depts.forEach(function (d) { var x = (L.layers[d] || {})[mk]; if (!x) return; (x.items || []).forEach(function (it) { landing.push(Object.assign({ dept: d }, it)); }); }); });
+    landing.sort(function (a, b) { return b.value - a.value; });
+    var util = E.utilFor([hoursKey]);
+    var uRow = dept ? util.rows.filter(function (r) { return r.dept.code === dept; })[0] : null;
+    var current = which ? F[which - 1] : (F[1].started ? F[1] : F[0]);
+    return {
+      month: key, monthLabel: (E.monthIdx[key] || {}).long || key, snapshot: snap, snapDay: snapDay, days: days, closed: closed,
+      fortnights: F, current: current, mtd: mtd, benchmark: benchmark, benchmarkKind: benchmarkKind, budget: budget, proRata: proRata,
+      remaining: remaining, cos: cos, gm: mtd ? (mtd + cos) / mtd : null,
+      headcount: Object.keys(people).length, team: Object.keys(people).map(function (id) { return people[id]; }).sort(),
+      hoursMonth: hoursKey, hoursProRated: hoursKey !== key || !closed, chargeable: chgToDate, worked: workedToDate, leave: leave * share,
+      sellRate: chgToDate ? Math.round(mtd / chgToDate) : null, util: workedToDate ? chgToDate / workedToDate : null,
+      target: uRow ? uRow.target : (E.cfg.UTIL && E.cfg.UTIL.target) || null, fte: uRow ? uRow.fte : util.total.fte,
+      landing: landing.slice(0, 12), landingTotal: landing.reduce(function (a, i) { return a + i.value; }, 0),
+      topClients: Object.keys(current.clients).map(function (c) { return { client: c, amount: current.clients[c] }; }).sort(function (a, b) { return b.amount - a.amount; }).slice(0, 5),
+      dept: dept || null,
+    };
+  };
+})();
+
+/* ===================================================================== *
+ * Engine part 7: proposed commentary. A first draft written from the
+ * numbers for the page in view, for the finance head to edit. It says
+ * what moved and against what; the person adds why.
+ * ===================================================================== */
+(function () {
+  "use strict";
+  var CTS = window.CTS, E = CTS.engine, F = CTS.fmt;
+  function d(c) { return F.dollars(Math.abs(c)); }
+  function vs(a, b, what) { var v = a - b; return what + " " + (v >= 0 ? "ahead of" : "behind") + " budget by " + d(v) + (b ? " (" + (v >= 0 ? "+" : "−") + (Math.abs(v / b) * 100).toFixed(1) + "%)" : ""); }
+  function monthLabel(rm) { return (E.monthIdx[rm] || {}).long || rm; }
+  var GEN = {
+    home: function (rm, p) {
+      var a = E.pnlActual(p.keys).totals, b = E.pnlBudget(p.keys).totals, py = E.pnlActual(E.priorYearMonths(p.keys)).totals, u = E.utilFor(p.keys);
+      return [vs(a.income, b.income, "Revenue " + d(a.income) + " for " + p.label + ","), "against " + d(py.income) + " for the same period last year.",
+              "Gross margin " + F.pct(a.income ? a.grossProfit / a.income : null) + " against " + F.pct(b.income ? b.grossProfit / b.income : null) + " budgeted.",
+              vs(a.netProfit, b.netProfit, "Net profit " + F.money(a.netProfit) + ",") + ".", "Utilisation " + F.pct(u.total.util) + " across " + (u.total.fte ? u.total.fte.toFixed(1) + " FTE" : "the business") + ".",
+              "[Why: what drove the revenue, what moved margin, what is one off.]"].join(" ");
+    },
+    pnl: function (rm, p) {
+      var a = E.pnlActual(p.keys), b = E.pnlBudget(p.keys), out = [];
+      a.cats.forEach(function (cat) { var bc = b.by[cat.key]; cat.children.forEach(function (sub) { var bs = (bc.children || []).filter(function (x) { return x.sub === sub.sub; })[0]; var bv = bs ? bs.total : 0; if (E.risk(sub.total, bv) === "High") out.push(cat.label + ", " + sub.sub + ": " + F.money(sub.total) + " against " + F.money(bv) + " budget."); }); });
+      return (out.length ? "Lines flagged High for " + p.label + ": " + out.slice(0, 5).join(" ") : "No line is flagged High for " + p.label + ".") + " [Say whether each is timing, a one off, or a trend.]";
+    },
+    "pnl-dept": function (rm, p) {
+      var alloc = E.allocate(p.keys), bd = E.budgetByDept(p.keys, "income");
+      return alloc.rows.filter(function (r) { return r.dept.isRevenue && r.dept.code !== "ADMIN" && E.visibleDepts().some(function (x) { return x.code === r.code; }); }).map(function (r) {
+        return r.dept.short + ": revenue " + d(r.income) + " " + (r.income >= (bd[r.code] || 0) ? "ahead of" : "behind") + " budget by " + d(r.income - (bd[r.code] || 0)) + ", gross margin " + F.pct(r.gmPct) + (r.dept.gmNorm != null ? (r.gmPct != null && r.gmPct < r.dept.gmNorm ? " below" : " at or above") + " the " + F.pct(r.dept.gmNorm, 0) + " norm" : "") + ", net profit after the split " + F.money(r.netProfit) + ".";
+      }).join(" ") + " [Name the jobs behind the variance.]";
+    },
+    bva: function (rm, p) { return GEN.pnl(rm, p); },
+    "rev-summary": function (rm, p) {
+      var prior = E.priorYearMonths(p.keys), bd = E.budgetByDept(p.keys, "income");
+      return E.visibleDepts().filter(function (x) { return x.isRevenue && x.code !== "ADMIN"; }).map(function (x) {
+        var now = E.sumMonths((E.idx.deptCatMonth[x.code] || {}).income, p.keys), was = E.sumMonths((E.idx.deptCatMonth[x.code] || {}).income, prior);
+        return x.short + " " + d(now) + ", " + (now >= was ? "up" : "down") + " " + d(now - was) + " on last year, " + (now >= (bd[x.code] || 0) ? "ahead of" : "behind") + " budget by " + d(now - (bd[x.code] || 0)) + ".";
+      }).join(" ") + " [Which clients moved it.]";
+    },
+    "rev-schedule": function (rm, p) {
+      var dept = CTS.store.get("schedDept", "PRODUCTION"), s = E.schedule(dept, p.keys);
+      var misses = s.lines.filter(function (l) { return l.risk === "High"; }).slice(0, 5);
+      return (E.deptOf[dept] || {}).short + " schedule " + d(s.actualTotal) + " against " + d(s.budgetTotal) + " budgeted. " + (misses.length ? "High variances: " + misses.map(function (l) { return (l.client || l.line) + " " + F.money(l.variance); }).join(", ") + "." : "No line is flagged High.") + " [For each miss: lost, or moved to a later month?]";
+    },
+    forecast: function (rm, p) {
+      if (!E.forecastEnabled()) return "The forecast is not loaded.";
+      var fy = E.monthsOfFY(p.fy), land = E.pnlBlend(fy).totals, fb = E.pnlBudget(fy).totals, f = E.forecast();
+      return "FY" + p.fy + " is landing at revenue " + d(land.income) + " (" + (land.income >= fb.income ? "ahead of" : "behind") + " budget by " + d(land.income - fb.income) + ") and net profit " + F.money(land.netProfit) + " against " + F.money(fb.netProfit) + " budgeted. " + (f.overrides.length ? f.overrides.length + " typed override" + (f.overrides.length > 1 ? "s" : "") + " in force. " : "") + "[What would change the landing: the pipeline, a hire, a cost.]";
+    },
+    "rev-forecast": function (rm, p) {
+      var L = E.forecastLayers(); if (!L) return "The forecast is not loaded.";
+      var m = L.months[0], conf = 0, wgt = 0; Object.keys(L.layers).forEach(function (dpt) { var x = L.layers[dpt][m]; if (x) { conf += x.confirmed; wgt += x.weighted; } });
+      return "Next month has " + d(conf) + " confirmed in the systems and " + d(wgt) + " of weighted open deals" + (L.pipeline && L.pipeline.wonUncounted.length ? ", with " + L.pipeline.wonUncounted.length + " won deals not yet carried by an order or quote" : "") + ". [Which deals are the swing.]";
+    },
+    cash: function (rm) {
+      var c = E.cashEnabled() && E.forecastEnabled() ? E.cashflow() : null; if (!c) return "The cash flow is not loaded.";
+      return "Cash " + d(c.opening) + " at " + monthLabel(rm) + ", low point " + d(c.low.closing) + " in " + c.low.label + ", " + d(c.closing) + " in twelve months. Credit cards owing " + d(c.cardOwing) + ". [Anything large falling due that the commitments tab does not carry.]";
+    },
+    util: function (rm, p) {
+      var u = E.utilFor(p.keys), low = u.rows.filter(function (r) { return r.target != null && r.util != null && r.util < r.target - 0.05; });
+      return "Utilisation " + F.pct(u.total.util) + " for " + p.label + ". " + (low.length ? low.map(function (r) { return r.dept.short + " " + F.pct(r.util) + " against " + F.pct(r.target, 0); }).join(", ") + " under target." : "Every department is within five points of target.") + " [Leave, training, or a genuine gap in work.]";
+    },
+    clients: function (rm, p) {
+      var rows = E.clientRows(p.keys, E.priorYearMonths(p.keys)).slice(0, 3);
+      return "Top clients for " + p.label + ": " + rows.map(function (r) { return r.display + " " + d(r.amount) + " (" + (r.delta >= 0 ? "up" : "down") + " " + d(r.delta) + " on last year)"; }).join(", ") + ". [Any client at risk or new.]";
+    },
+    "staff-profit": function (rm, p) {
+      var st = E.staffFor(p.keys), neg = st.rows.filter(function (r) { return r.billable && r.margin < 0; });
+      return neg.length ? neg.length + " billable people carried a negative margin for " + p.label + ": " + neg.slice(0, 4).map(function (r) { return r.name; }).join(", ") + ". [Rate, hours, or a quiet month.]" : "Every billable person covered their cost for " + p.label + ".";
+    },
+  };
+  GEN["profit-fte"] = GEN.util; GEN.pipeline = GEN["rev-forecast"]; GEN["client-dept"] = GEN.clients; GEN.story = GEN.home; GEN["pnl-spread"] = GEN.pnl; GEN.actions = GEN.pnl;
+  E.proposeCommentary = function (pageId) {
+    var rm = E.reportingMonth(), p = CTS.period();
+    var g = GEN[pageId];
+    try { return g ? g(rm, p) : GEN.home(rm, p); } catch (e) { return "Could not draft from the data: " + (e && e.message || e); }
+  };
+  E.proposablePages = function () { return Object.keys(GEN).filter(function (k) { return CTS.pages[k] && E.can(k); }); };
+})();
+
+/* ===================================================================== *
  * UI primitives and charts.
  *
  * Charts are hand written SVG, no library, so the portal has no runtime
@@ -1751,12 +1938,44 @@
   U.RISK_CLASS = { "High": "critical", "Medium": "warning", "Low": "good", "No Activity": "muted" };
 
   /* ---- small pieces --------------------------------------------------- */
+  U.spark = function (values, colour) {
+    var vals = (values || []).filter(function (v) { return typeof v === "number" && isFinite(v); });
+    if (vals.length < 2) return null;
+    var w = 120, hh = 28, lo = Math.min.apply(null, vals.concat([0])), hi = Math.max.apply(null, vals.concat([0]));
+    var span = hi - lo || 1, n = vals.length;
+    var pts = vals.map(function (v, i) { return [(i / (n - 1)) * (w - 2) + 1, hh - 1 - ((v - lo) / span) * (hh - 2)]; });
+    var d = pts.map(function (p, i) { return (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join(" ");
+    var zero = hh - 1 - ((0 - lo) / span) * (hh - 2);
+    var last = pts[pts.length - 1];
+    return svg("svg", { class: "spark", viewBox: "0 0 " + w + " " + hh, "aria-hidden": "true", focusable: "false" }, [
+      svg("path", { d: d + " L" + last[0].toFixed(1) + " " + zero.toFixed(1) + " L1 " + zero.toFixed(1) + " Z", fill: colour || "var(--sec)", opacity: ".12" }),
+      lo < 0 ? svg("line", { x1: 1, x2: w - 1, y1: zero, y2: zero, stroke: "var(--line-strong)", "stroke-width": 1 }) : null,
+      svg("path", { d: d, fill: "none", stroke: colour || "var(--sec)", "stroke-width": 1.8, "stroke-linejoin": "round", "stroke-linecap": "round" }),
+      svg("circle", { cx: last[0], cy: last[1], r: 2.6, fill: colour || "var(--sec)" }),
+    ]);
+  };
+  /** A tile. With href it is a link to the page behind the number; with
+   *  spark it carries the last months as a line. */
   U.tile = function (opts) {
-    return h("div.tile" + (opts.tone ? ".tone-" + opts.tone : ""), [
+    var tag = opts.href ? "a.tile" : "div.tile";
+    var attrs = opts.href ? { href: opts.href, title: opts.title || "Open " + (opts.label || "").toLowerCase() } : null;
+    return h(tag + (opts.tone ? ".tone-" + opts.tone : ""), attrs, [
       h("div.tile-label", opts.label),
       h("div.tile-value", opts.value),
       opts.sub ? h("div.tile-sub", opts.sub) : null,
+      opts.spark ? U.spark(opts.spark, opts.sparkColour) : null,
       opts.note ? h("div.tile-note", opts.note) : null,
+      opts.href ? h("span.tile-go", { "aria-hidden": "true" }, "→") : null,
+    ]);
+  };
+  /** A dark cover band for one department, carrying its division mark. */
+  U.cover = function (code) {
+    var d = E.deptOf[code], b = window.CTS_BRAND || {};
+    if (!d) return null;
+    var sub = (b.subBrandOf || {})[code], mark = sub && b.marks && b.marks[sub];
+    return h("div.cover", { style: { "--cover": U.colourOf(code) } }, [
+      h("div.cover-text", [h("div.eyebrow", sub ? "CTS " + sub.charAt(0).toUpperCase() + sub.slice(1) : "CTS"), h("h2", d.name || d.short), d.normNote ? h("p", d.normNote) : null]),
+      mark ? h("img", { src: mark.onDark, alt: mark.alt }) : null,
     ]);
   };
 
@@ -1779,7 +1998,9 @@
   };
   U.icon = function (name) {
     var P = { speaker: "M3 6h3l4-3v10l-4-3H3z M12 5.5a3.5 3.5 0 0 1 0 5 M14 3.5a6 6 0 0 1 0 9",
-              stop: "M4 4h8v8H4z", collapse: "M3 5h10M3 8h10M3 11h10", expand: "M8 2v12M2 8h12" };
+              stop: "M4 4h8v8H4z", collapse: "M3 5h10M3 8h10M3 11h10", expand: "M8 2v12M2 8h12",
+              menu: "M2 4h12M2 8h12M2 12h12", theme: "M8 2a6 6 0 0 0 0 12z M8 2a6 6 0 0 1 0 12",
+              text: "M3 4h10M8 4v9M5.5 13h5", contrast: "M8 2a6 6 0 1 0 0 12 6 6 0 0 0 0-12z M8 2v12" };
     return svg("svg", { viewBox: "0 0 16 16", "aria-hidden": "true", focusable: "false" },
       [svg("path", { d: P[name] || "", fill: name === "stop" ? "currentColor" : "none", stroke: "currentColor", "stroke-width": "1.6", "stroke-linecap": "round", "stroke-linejoin": "round" })]);
   };
@@ -1975,16 +2196,19 @@
       return row;
     }
     if (items.length) items.forEach(function (c) { body.appendChild(item(c)); });
-    else body.appendChild(h("div.commentary-empty", can ? "Nothing written about this page for " + label + " yet. Explain the variance rather than restate it; management prefer dollars against dollars." : "Nothing written about this page for " + label + "."));
+    else body.appendChild(h("div.commentary-empty", can ? "Nothing written about this page for " + label + " yet. Explain the variance rather than restate it; management prefer dollars against dollars." : "Nothing written about this page for " + label + ". The finance head writes the commentary."));
     if (can) {
       var ta = h("textarea.commentary-text", { placeholder: "Add commentary for " + label + "…", "aria-label": "Commentary for " + label });
       var form = h("div.commentary-form", { hidden: true }, [ta, h("div.row", [
         h("button.btn.small", { type: "button", onclick: function () { if (E.addCommentary({ page: pageId, month: month, text: ta.value })) CTS.router.reload(); } }, "Save draft"),
         h("button.btn.btn-quiet.small", { type: "button", onclick: function () { form.hidden = true; addBtn.hidden = false; } }, "Cancel"),
-        h("span.muted", "Saved in this browser. Finance publishes drafts to the folder from the Commentary page."),
+        h("span.muted", "Saved in this browser until published from the Commentary page. Square brackets mark where the proposal needs your why."),
       ])]);
       var addBtn = h("button.btn.btn-quiet.small", { type: "button", onclick: function () { form.hidden = false; addBtn.hidden = true; ta.focus(); } }, "Add commentary");
-      body.appendChild(addBtn); body.appendChild(form);
+      var propBtn = h("button.btn.small", { type: "button", title: "Write a first draft from this page's numbers, for you to edit",
+        onclick: function () { form.hidden = false; addBtn.hidden = true; propBtn.hidden = true; ta.value = E.proposeCommentary(pageId); ta.focus(); } }, "Propose from the data");
+      body.appendChild(h("div.row", [addBtn, propBtn]));
+      body.appendChild(form);
     }
     var key = "sec." + pageId + ".commentary", collapsed = !!CTS.store.get(key, false);
     var wrap = h("section.commentary", { "data-collapsed": collapsed ? "1" : "0", "aria-label": "Commentary" });
@@ -2045,6 +2269,9 @@
         });
         t.bind(rect, "<b>" + lab + "</b><br>" + s.label + ": " +
                (opts.tipfmt || F.dollars)(v));
+        if (opts.onPick) { rect.classList.add("clickable"); rect.setAttribute("tabindex", "0"); rect.setAttribute("role", "button");
+          rect.addEventListener("click", function () { opts.onPick(i, s, v); });
+          rect.addEventListener("keydown", function (ev) { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); opts.onPick(i, s, v); } }); }
         g.appendChild(rect);
       });
     });
@@ -2103,6 +2330,7 @@
         if (v == null) return;
         var c = svg("circle", { cx: xs[i], cy: y(v), r: 4.5, fill: s.colour,
                                 stroke: "var(--surface-1)", "stroke-width": 2, class: "mark" });
+        if (opts.onPick) { c.classList.add("clickable"); c.addEventListener("click", function () { opts.onPick(i, s, v); }); }
         t.bind(c, "<b>" + labels[i] + "</b><br>" + s.label + ": " +
                (opts.tipfmt || F.dollars)(v));
         f.node.appendChild(c);
@@ -2274,8 +2502,8 @@
     if (!E.seed) return null;
     return h("div.banner.banner-seed", [
       h("strong", "Seed data. "),
-      "The FY26 totals, the July 2025 month and the August 2026 category totals are the real Xero figures and tie to the cent. Everything inside them is modelled from the seasonality and margin norms in the Monthly Reporting manual. Load the real Xero export on ",
-      h("a", { href: "#/loaders" }, "Data Loaders"), " to replace it.",
+      "The FY26 totals, the July 2025 month and the August 2026 category totals are the real Xero figures and tie to the cent. Everything inside them is modelled from the seasonality and margin norms in the Monthly Reporting manual. Paste the real exports into the templates and run ",
+      h("a", { href: "#/build" }, "Build"), " to replace it.",
     ]);
   }
   CTS.seedBanner = seedBanner;
@@ -2310,29 +2538,34 @@
                  (a - b >= 0 ? "+" : "−") + F.money(Math.abs(a - b)) + " vs last year");
       }
 
+      // twelve months of history behind each headline, for the sparklines
+      var histKeys = E.months.filter(function (m) { return m.key <= p.rm; }).slice(-12).map(function (m) { return m.key; });
+      var hist = E.pnlActual(histKeys);
+      var utilHist = histKeys.map(function (k) { var u = E.utilFor([k]); return u.total.util == null ? null : u.total.util * 100; });
       var tiles = h("div.tiles", [
         U.tile({ label: "Revenue", value: F.dollars(t.income), sub: delta(t.income, pt.income),
-                 note: "Budget " + F.dollars(bt.income) }),
+                 note: "Budget " + F.dollars(bt.income), href: "#/rev-summary", spark: hist.income, sparkColour: "var(--measure-1)" }),
         U.tile({ label: "Gross profit", value: F.dollars(t.grossProfit),
                  sub: F.pct(t.income ? t.grossProfit / t.income : null) + " margin",
-                 note: "Budget " + F.pct(bt.income ? bt.grossProfit / bt.income : null) }),
+                 note: "Budget " + F.pct(bt.income ? bt.grossProfit / bt.income : null), href: "#/pnl", spark: hist.grossProfit, sparkColour: "var(--measure-2)" }),
         U.tile({ label: "Net profit", value: F.dollars(t.netProfit),
                  tone: t.netProfit >= 0 ? "good" : "critical",
                  sub: F.pct(t.income ? t.netProfit / t.income : null) + " of revenue",
-                 note: "Budget " + F.dollars(bt.netProfit) }),
+                 note: "Budget " + F.dollars(bt.netProfit), href: "#/bva", spark: hist.netProfit, sparkColour: "var(--measure-3)" }),
         U.tile({ label: "Utilisation", value: F.pct(util.total.util),
                  sub: util.total.fte ? util.total.fte.toFixed(1) + " full time equivalents" : null,
-                 note: "Chargeable over worked hours, leave excluded" }),
+                 note: "Chargeable over worked hours, leave excluded", href: "#/util", spark: utilHist, sparkColour: "var(--series-5)" }),
       ].concat(E.cashEnabled() && E.forecastEnabled() && E.can("cash") ? [(function () {
         var c = E.cashflow(); if (!c) return null;
         return U.tile({ label: "Cash low point", value: F.dollars(c.low.closing), tone: c.low.closing < 0 ? "critical" : "good",
-                        sub: c.low.label + ", from " + F.dollars(c.opening) + " now", note: "Twelve months ahead, indirect method" });
+                        sub: c.low.label + ", from " + F.dollars(c.opening) + " now", note: "Twelve months ahead, indirect method", href: "#/cash",
+                        spark: c.rows.map(function (r) { return r.closing; }), sparkColour: "var(--series-2)" });
       })()] : []).concat(E.forecastEnabled() ? [(function () {
         var fyK = E.monthsOfFY(p.fy), land = E.pnlBlend(fyK).totals, fb = E.pnlBudget(fyK).totals;
         return U.tile({ label: "FY" + p.fy + " forecast", value: F.dollars(land.netProfit),
                         tone: land.netProfit >= fb.netProfit ? "good" : "critical",
                         sub: (land.netProfit - fb.netProfit >= 0 ? "+" : "\u2212") + F.money(Math.abs(land.netProfit - fb.netProfit)) + " vs budget",
-                        note: "Net profit, actual then forecast. Revenue " + F.dollars(land.income) });
+                        note: "Net profit, actual then forecast. Revenue " + F.dollars(land.income), href: "#/forecast" });
       })()] : []));
 
       // Revenue, gross profit and net profit by month across the year
@@ -2346,6 +2579,7 @@
           { label: "Gross profit", colour: "var(--measure-2)", values: full.grossProfit },
           { label: "Net profit", colour: "var(--measure-3)", values: full.netProfit },
         ],
+        onPick: function (i) { if (E.blendSource(fyKeys[i]) !== "actual") return; E.setReportingMonth(fyKeys[i]); CTS.store.set("period", "month"); CTS.router.reload(); },
       });
       var trendTable = U.table([
         { key: "m", label: "Month", align: "left" },
@@ -2363,11 +2597,12 @@
       // departmental result after allocation
       var alloc = E.allocate(p.keys);
       var deptRows = alloc.rows.filter(function (r) {
-        return r.dept.isRevenue && (r.income || r.expenses);
+        return r.dept.isRevenue && (r.income || r.expenses) && E.visibleDepts().some(function (d) { return d.code === r.code; });
       });
       var deptChart = U.columns({
         labels: deptRows.map(function (r) { return r.dept.short; }),
         width: 520, height: 250,
+        onPick: function (i) { E.setFocusDept(deptRows[i].code); CTS.router.go("pnl-dept"); },
         series: [
           { label: "Revenue", colour: "var(--measure-1)", values: deptRows.map(function (r) { return r.income; }) },
           { label: "Gross profit", colour: "var(--measure-2)", values: deptRows.map(function (r) { return r.grossProfit; }) },
@@ -2398,7 +2633,7 @@
         allocBanner(),
         U.section("Departments, after the overhead split",
           U.figure("Result by department, " + p.label, deptChart, deptTable,
-                   "Net profit here is after the Admin overhead pool has been pushed out. The norm column is the margin Monthly Reporting Part 3 says to expect."))
+                   "Net profit here is after the Admin overhead pool has been pushed out. The norm column is the margin Monthly Reporting Part 3 says to expect. Click a department to open it; click a month above to make it the reporting month."))
       ];
     },
   };
@@ -2629,8 +2864,10 @@
         tipfmt: F.dollars,
       });
 
+      var only = E.visibleDepts().filter(function (d) { return d.isRevenue; });
+      var cover = only.length === 1 ? U.cover(only[0].code) : null;
       return [
-        seedBanner(), CTS.periodBar(), allocBanner(),
+        seedBanner(), CTS.periodBar(), cover, allocBanner(),
         U.h1("P&L by Department", p.label),
         h("div.toolbar", [
           h("label.checkbox", [
@@ -3354,10 +3591,83 @@
         U.note("Commentary lives beside the numbers it explains: each page has its own block under the heading. What is typed there is a draft in that browser until finance publishes it, which writes one data file into the portal folder that OneDrive carries to everyone. Published commentary also goes into the monthly emails."),
         E.canPublishCommentary() ? h("div.toolbar", [
           h("button.btn", { type: "button", onclick: publish, disabled: !pending }, pending ? "Publish " + pending + " change" + (pending > 1 ? "s" : "") + " to the portal folder" : "Nothing to publish"),
-          h("span.muted", "Edge or Chrome, on the synced folder. Same folder prompt as Build."),
+          h("button.btn.btn-quiet", { type: "button", title: "A first draft for every page that has none yet, written from the numbers", onclick: function () {
+            var made = 0;
+            ["home", "pnl", "pnl-dept", "rev-summary", "util", "forecast", "cash", "clients"].forEach(function (pg) {
+              if (!CTS.pages[pg] || E.commentaryFor(pg, month).length) return;
+              if (E.addCommentary({ page: pg, month: month, text: E.proposeCommentary(pg) })) made++;
+            });
+            CTS.router.reload();
+          } }, "Propose commentary for every page"),
+          h("span.muted", "Proposals are drafts written from the data; edit each on its page, then publish."),
         ]) : (E.canComment() ? U.note("Your drafts are listed here. Finance publishes them.", "muted") : null),
         status,
       ].concat(list);
+    },
+  };
+
+  /* ======================================================= the month ===== */
+  P.story = {
+    section: "Dashboard", title: "The Month",
+    sub: "Five things that moved, written from the numbers.",
+    points: function () { return P.story._points(); },
+    render: function () {
+      var p = CTS.period(), rm = E.reportingMonth(), mLabel = (E.monthIdx[rm] || {}).long || rm;
+      var points = P.story._points();
+      var cards = points.map(function (pt, i) {
+        return h("a.storycard.tone-" + pt.tone, { href: pt.href }, [
+          h("div.story-n", String(i + 1)), h("div", [h("h3", pt.head), h("p", pt.body)]),
+        ]);
+      });
+      return [
+        seedBanner(), CTS.periodBar(), U.h1("The Month", mLabel + " in " + points.length + " points"),
+        U.note("Written from the numbers each time the page opens, so it is always the current build. The commentary block above it is where finance says what the numbers do not. Each point opens the page behind it."),
+        h("div.story", cards),
+      ];
+    },
+    _points: function () {
+      var p = CTS.period(), rm = E.reportingMonth(), mLabel = (E.monthIdx[rm] || {}).long || rm;
+      var keys = [rm], act = E.pnlActual(keys).totals, bud = E.pnlBudget(keys).totals, prior = E.pnlActual(E.priorYearMonths(keys)).totals;
+      var ytdA = E.pnlActual(E.ytd()).totals, ytdB = E.pnlBudget(E.ytd()).totals;
+      var alloc = E.allocate(keys), util = E.utilFor(keys);
+      var points = [];
+      function money(c) { return F.dollars(Math.abs(c)); }
+      function sign(c) { return c >= 0 ? "ahead of" : "behind"; }
+      // 1 revenue
+      points.push({ head: "Revenue " + money(act.income) + ", " + sign(act.income - bud.income) + " budget by " + money(act.income - bud.income),
+                    body: "Against " + money(bud.income) + " budgeted and " + money(prior.income) + " the same month last year. Year to date " + F.dollars(ytdA.income) + " against " + F.dollars(ytdB.income) + ".",
+                    tone: act.income >= bud.income ? "good" : "critical", href: "#/rev-summary" });
+      // 2 margin
+      var gm = act.income ? act.grossProfit / act.income : null, bgm = bud.income ? bud.grossProfit / bud.income : null;
+      points.push({ head: "Gross margin " + F.pct(gm) + (bgm != null ? (gm >= bgm ? ", above" : ", below") + " the " + F.pct(bgm) + " budgeted" : ""),
+                    body: "Gross profit " + money(act.grossProfit) + " on cost of sales " + money(act.cos) + ". " + (gm != null && bgm != null && gm < bgm ? "Every point of margin on this month's revenue is " + F.dollars(Math.round(act.income / 100)) + "." : "Holding margin at this volume is what turns revenue into profit."),
+                    tone: gm != null && bgm != null && gm >= bgm ? "good" : "warning", href: "#/pnl" });
+      // 3 biggest department story
+      var deptRows = alloc.rows.filter(function (r) { return r.dept.isRevenue && r.dept.code !== "ADMIN"; });
+      var budDept = E.budgetByDept(keys, "income");
+      var moves = deptRows.map(function (r) { return { r: r, v: r.income - (budDept[r.code] || 0) }; }).sort(function (a, b) { return Math.abs(b.v) - Math.abs(a.v); });
+      if (moves.length) {
+        var mv = moves[0];
+        points.push({ head: mv.r.dept.short + " " + (mv.v >= 0 ? "carried" : "missed") + " the month by " + money(mv.v),
+                      body: "Revenue " + money(mv.r.income) + " against " + money(budDept[mv.r.code] || 0) + " budgeted, gross margin " + F.pct(mv.r.gmPct) + (mv.r.dept.gmNorm != null ? " against a norm of " + F.pct(mv.r.dept.gmNorm, 0) : "") + ". Net profit after the overhead split " + F.money(mv.r.netProfit) + ".",
+                      tone: mv.v >= 0 ? "good" : "critical", href: "#/pnl-dept" });
+      }
+      // 4 utilisation
+      var low = (util.rows || []).filter(function (r) { return r.target != null && r.util != null && r.util < r.target - 0.05; }).sort(function (a, b) { return (a.util - a.target) - (b.util - b.target); })[0];
+      points.push({ head: "Utilisation " + F.pct(util.total.util) + " across " + (util.total.fte ? util.total.fte.toFixed(1) + " full time equivalents" : "the business"),
+                    body: low ? low.dept.short + " is the one to look at, at " + F.pct(low.util) + " against a target of " + F.pct(low.target, 0) + ". Read a small gap as leave before flagging it; a sustained gap is the one worth raising." : "No department is more than five points under its target this month.",
+                    tone: low ? "warning" : "good", href: "#/util" });
+      // 5 cash or profit
+      var c = E.cashEnabled() && E.forecastEnabled() ? E.cashflow() : null;
+      if (c) points.push({ head: "Cash " + F.dollars(c.opening) + ", low point " + F.dollars(c.low.closing) + " in " + c.low.label,
+                           body: "Twelve months ahead on the forecast, " + F.dollars(c.closing) + " at " + E.monthIdx[c.months[c.months.length - 1]].label + ". Credit cards owing " + F.dollars(c.cardOwing) + ".", tone: c.low.closing < 0 ? "critical" : "good", href: "#/cash" });
+      else points.push({ head: "Net profit " + F.money(act.netProfit) + " for the month", body: "Against " + F.money(bud.netProfit) + " budgeted. Year to date " + F.money(ytdA.netProfit) + " against " + F.money(ytdB.netProfit) + ".", tone: act.netProfit >= bud.netProfit ? "good" : "critical", href: "#/pnl" });
+      if (E.forecastEnabled()) {
+        var fy = E.monthsOfFY(p.fy), land = E.pnlBlend(fy).totals, fb = E.pnlBudget(fy).totals;
+        points.push({ head: "The year is landing at " + F.money(land.netProfit) + " net profit, " + (land.netProfit >= fb.netProfit ? "ahead of" : "behind") + " budget by " + money(land.netProfit - fb.netProfit),
+                      body: "Actual to " + mLabel + " then the forecast, line by line. Revenue " + F.dollars(land.income) + " against " + F.dollars(fb.income) + " budgeted.", tone: land.netProfit >= fb.netProfit ? "good" : "warning", href: "#/forecast" });
+      }
+      return points;
     },
   };
 
@@ -4731,153 +5041,6 @@
   };
 
   /* ======================================================== Loaders ==== */
-  P.loaders = {
-    section: "Admin", title: "Data Loaders",
-    sub: "Paste straight out of Xero. No add-in, no upload.",
-    render: function () {
-      var out = h("div.loadout");
-
-      function loader(opts) {
-        var ta = h("textarea.paste", { rows: 6, placeholder: opts.placeholder });
-        var btn = h("button.btn", { onclick: function () {
-          out.innerHTML = "";
-          try { opts.run(parseTable(ta.value), out); }
-          catch (err) { out.appendChild(h("div.banner.banner-warn", String(err && err.message || err))); }
-        } }, opts.action);
-        return h("div.card.loader", [
-          h("h3", opts.title),
-          U.note(opts.note),
-          opts.columns ? h("p.mono.small", "Expected columns: " + opts.columns) : null,
-          ta, h("div.row", [btn]),
-        ]);
-      }
-
-      function ok(node, msg) { node.appendChild(h("div.banner.banner-good", msg)); }
-
-      return [
-        U.h1("Data Loaders", "Copy the cells in Excel, click in the box and paste."),
-        U.note("Everything here is parsed in the browser. Nothing is uploaded anywhere. Copying a range out of Excel puts it on the clipboard tab separated, which is what these boxes read; a comma separated file works too."),
-        h("div.cards", [
-          loader({
-            title: "Ledger, from Xero",
-            note: "Run the saved custom report Account transactions for P&L analysis, year to date from 1 July, sorted by account code. Convert the values to number before you copy, or the totals will not add up. Re-paste every prior month, not just the new one: earlier months do move.",
-            columns: "Account Name, Date, Contact, Debit, Credit, Job Numbers, Cost Centres. Others are ignored.",
-            placeholder: "Paste the report here, including its header row",
-            action: "Load ledger",
-            run: function (t, node) {
-              var ci = {};
-              t.head.forEach(function (c, i) { ci[c.toLowerCase().replace(/[^a-z]/g, "")] = i; });
-              function col() {
-                for (var i = 0; i < arguments.length; i++) {
-                  if (ci[arguments[i]] != null) return ci[arguments[i]];
-                }
-                return -1;
-              }
-              var cAcc = col("accountname", "account"), cDate = col("date"),
-                  cContact = col("contact"), cDebit = col("debit"), cCredit = col("credit"),
-                  cJob = col("jobnumbers", "jobnumber", "job"),
-                  cCC = col("costcentres", "costcentre", "department");
-              if (cAcc < 0 || cDate < 0) throw new Error("Could not find an Account Name and a Date column in the header row.");
-              var rows = [], bad = 0;
-              t.rows.forEach(function (r) {
-                var d = isoDate(r[cDate]);
-                if (!d || !r[cAcc]) { bad++; return; }
-                rows.push([d, String(r[cAcc]).trim(),
-                           cContact >= 0 ? String(r[cContact] || "").trim() : "",
-                           num(r[cDebit]), num(r[cCredit]),
-                           "", cJob >= 0 ? String(r[cJob] || "") : "", "",
-                           cCC >= 0 ? String(r[cCC] || "") : "", ""]);
-              });
-              if (!rows.length) throw new Error("No usable rows found.");
-              var payload = { meta: { seed: false, built: new Date().toISOString().slice(0, 10),
-                                      rows: rows.length, note: "Loaded from a Xero paste." },
-                              cols: ["date", "account", "contact", "debit", "credit",
-                                     "source", "jobNo", "invoiceNo", "costCentre", "description"],
-                              rows: rows };
-              E.loadGL(payload);
-              E._deptShare = null;
-              E.seed = false;
-              ok(node, rows.length + " lines loaded" + (bad ? ", " + bad + " skipped for a missing date or account" : "") + ". Every page is now reading them.");
-              node.appendChild(U.table([
-                { key: "l", label: "", align: "left" }, { key: "v", label: "" },
-              ], [
-                { l: "Lines with no department", v: F.num(E.quality.noDept) },
-                { l: "Lines on an account not in the chart", v: F.num(E.quality.unknownAcct) },
-                { l: "Revenue lines with no contact", v: F.num(E.quality.noContact) },
-                { l: "Date range", v: F.date(E.quality.minDate) + " to " + F.date(E.quality.maxDate) },
-              ]));
-              node.appendChild(keepOrShow({
-                name: "CTS_gl_data.js",
-                keep: [{ kind: "gl", payload: function () { return payload; } }],
-                text: function () {
-                  return "// Loaded " + payload.meta.built + " from a Xero paste.\n" +
-                         "window.CTS_GL = " + JSON.stringify(payload) + ";\n";
-                },
-              }));
-            },
-          }),
-          loader({
-            title: "Profit and loss, from Xero",
-            note: "Run the profit and loss report for the year to date and copy it with the account names down the side and the months across the top. This is what the P&L Control page checks the ledger against.",
-            columns: "First column the account name, then one column per month headed Jul-25, Aug-25 and so on.",
-            placeholder: "Account\tJul-26\tAug-26\nContract Support Staff\t120,450\t131,200",
-            action: "Load P&L",
-            run: function (t, node) {
-              var months = t.head.slice(1).map(function (lbl) {
-                var m = E.months.filter(function (x) {
-                  return x.label.toLowerCase() === lbl.toLowerCase().trim() ||
-                         x.long.toLowerCase() === lbl.toLowerCase().trim() ||
-                         x.key === lbl.trim();
-                })[0];
-                return m ? m.key : null;
-              });
-              if (!months.filter(Boolean).length) throw new Error("No month columns recognised. Head them Jul-26, Aug-26 or 2026-07.");
-              var actual = {}, unknown = [];
-              t.rows.forEach(function (r) {
-                var name = String(r[0] || "").trim();
-                if (!name) return;
-                if (!E.acct[name]) { unknown.push(name); return; }
-                months.forEach(function (mk, i) {
-                  if (!mk) return;
-                  var v = Math.round(num(r[i + 1]) * 100);
-                  if (v) (actual[name] = actual[name] || {})[mk] = v;
-                });
-              });
-              E.fin.actual = actual;
-              E.loadFin(E.fin);
-              ok(node, Object.keys(actual).length + " accounts loaded across " +
-                 months.filter(Boolean).length + " months.");
-              if (unknown.length) {
-                node.appendChild(h("div.banner.banner-warn", [
-                  h("strong", unknown.length + " account names were not recognised and were skipped. "),
-                  "They have to match the Xero chart exactly: " + unknown.slice(0, 6).join(", ") +
-                  (unknown.length > 6 ? " and others." : ""),
-                ]));
-              }
-              var finPayload = { meta: { seed: false, basis: "accrual", currency: "AUD" },
-                                 actual: actual, budget: E.finBudget,
-                                 months: E.months.map(function (m) { return m.key; }) };
-              node.appendChild(keepOrShow({
-                name: "CTS_fin_data.js",
-                keep: [{ kind: "fin", payload: function () { return finPayload; } }],
-                text: function () {
-                  return "// Loaded " + new Date().toISOString().slice(0, 10) + " from a Xero paste.\n" +
-                         "window.CTS_FIN = " + JSON.stringify(finPayload) + ";\n";
-                },
-              }));
-              node.appendChild(U.note("Keeping it also keeps the budget already loaded.", "muted"));
-            },
-          }),
-          buildEarningsLoader(),
-        ]),
-        out,
-        U.section("Rolling back", [
-          U.note("A load lives in this browser tab only. Reload the page and the portal goes back to whatever is in portal/data. Nothing you paste here is written to disk unless you click a save button, and nothing leaves the machine."),
-        ]),
-      ];
-    },
-  };
-
   /* ========================================================= Config ==== */
   P.config = {
     section: "Admin", title: "Config & Variables",
@@ -4982,8 +5145,8 @@
           U.h1("Profitability by Employee", p.label),
           h("div.banner.banner-warn", [
             h("strong", "No people loaded. "),
-            "This page reads the Employment Hero earnings export, which is the only source that carries who worked, on what, and what they were paid. Load it on ",
-            h("a", { href: "#/loaders" }, "Data Loaders"), ".",
+            "This page reads the Employment Hero earnings export, which is the only source that carries who worked, on what, and what they were paid. Paste it into 03 Employment Hero Earnings.xlsx and run ",
+            h("a", { href: "#/build" }, "Build"), ".",
           ])];
       }
       var showAll = CTS.store.get("staffShowAll", false);
@@ -5273,82 +5436,174 @@
   /* ===================================================== Distribution == */
   P.distribution = {
     section: "Admin", title: "Distribution",
-    sub: "Who gets the month, and how it goes out.",
+    sub: "Who gets the month and the fortnight, and how it goes out.",
     render: function () {
       var M = CTS.email, B = CTS.build;
       if (!M) return [U.h1("Distribution", "The email module did not load"),
                       U.note("CTS_email.js is missing from the portal folder.", "warn")];
       var p = CTS.period();
-      var recipients = (E.cfg.DISTRIBUTION || []);
+      var recipients = E.recipients();
       var month = E.reportingMonth();
-      var state = P.distribution._state || (P.distribution._state = { preview: null });
-      var previewBox = h("div");
-      var outboxStatus = h("div");
+      var canEdit = E.canPublishCommentary();
+      var state = P.distribution._state || (P.distribution._state = { editing: null, fortnight: null });
+      var previewBox = h("div"), outboxStatus = h("div"), pubStatus = h("div");
+      var fnMonth = E.progressMonth();
+      var fnX = E.fortnightFor ? E.fortnightFor(null, fnMonth, state.fortnight || undefined) : null;
 
-      function showPreview(r) {
-        var msg = M.render(r, { keys: p.keys, log: window.CTS_BUILD_LOG || null });
+      function showPreview(msg) {
         previewBox.innerHTML = "";
         previewBox.appendChild(h("div.toolbar", [
-          h("strong", msg.subject), h("span.chip.chip-muted", M.TIERS[msg.tier]),
+          h("strong", msg.subject), h("span.chip.chip-muted", M.TIERS[msg.tier]), msg.kind === "fortnightly" ? h("span.chip.chip-good", "fortnightly") : h("span.chip.chip-muted", "monthly"),
           h("div.toolbar-right", [
             h("a.btn.btn-quiet", { href: M.mailto(msg), target: "_blank" }, "Open in Outlook (text)"),
             h("button.btn.btn-quiet", { onclick: function () {
-              try { navigator.clipboard.writeText(msg.html); alert("HTML copied. Paste into a new Outlook message."); }
-              catch (e) { alert("Copy failed in this browser. Use the outbox file instead."); }
+              try { navigator.clipboard.writeText(msg.html).then(function () { previewBox.insertBefore(h("div.banner.banner-good", "HTML copied. Paste into a new Outlook message."), previewBox.firstChild); }); }
+              catch (e) { previewBox.insertBefore(h("div.banner.banner-warn", "Copy failed in this browser. Use the outbox file instead."), previewBox.firstChild); }
             } }, "Copy HTML"),
           ]),
         ]));
         var frame = h("iframe.preview", { sandbox: "", title: "Email preview" });
         previewBox.appendChild(frame);
         frame.srcdoc = msg.html;
+        frame.scrollIntoView({ behavior: "smooth", block: "start" });
       }
-
-      async function writeOutbox() {
-        outboxStatus.innerHTML = "";
-        if (!B || !B.supported()) { outboxStatus.appendChild(h("div.banner.banner-warn", "Writing the outbox needs Edge or Chrome, from the synced folder.")); return; }
+      async function folder(status) {
+        if (!B || !B.supported()) { status.appendChild(h("div.banner.banner-warn", "This needs Edge or Chrome, from the synced folder.")); return null; }
         var dir = await CTS.reuseDir();
         if (!dir) {
           try { var pk = await B.pickFolder(); if (!pk.ok) throw new Error("not the portal folder"); dir = pk.handle; await CTS.saveDir(dir); }
-          catch (e) { if (e && e.name !== "AbortError") outboxStatus.appendChild(h("div.banner.banner-warn", "Could not open the folder: " + (e.message || e))); return; }
+          catch (e) { if (e && e.name !== "AbortError") status.appendChild(h("div.banner.banner-warn", "Could not open the folder: " + (e.message || e))); return null; }
         }
-        var msgs = M.renderAll({ keys: p.keys, log: window.CTS_BUILD_LOG || null });
+        return dir;
+      }
+      async function writeOutbox(kind) {
+        outboxStatus.innerHTML = "";
+        var dir = await folder(outboxStatus); if (!dir) return;
+        var msgs = kind === "fortnightly" ? M.renderAllFortnightly({ month: fnMonth, fortnight: state.fortnight || undefined }) : M.renderAll({ keys: p.keys, log: window.CTS_BUILD_LOG || null });
+        var fold = kind === "fortnightly" ? fnMonth + "-F" + (fnX ? fnX.current.n : 1) : month;
         var noAddr = msgs.filter(function (m) { return !m.to; });
         try {
-          var written = await B.writeOutbox(dir, month, msgs);
+          var written = await B.writeOutbox(dir, month, msgs, fold);
           outboxStatus.appendChild(h("div.banner.banner-good", [
-            h("strong", written.length + " messages written to outbox/" + month + ". "),
+            h("strong", written.length + " messages written to outbox/" + fold + ". "),
             "Each is a JSON for the flow and an HTML you can open and copy into Outlook now." +
-            (noAddr.length ? " " + noAddr.length + " of them have no address on the Distribution tab and will be skipped by the flow." : "")]));
-        } catch (e) {
-          outboxStatus.appendChild(h("div.banner.banner-warn", "Could not write the outbox: " + (e.message || e)));
-        }
+            (noAddr.length ? " " + noAddr.length + " of them have no address and will be skipped by the flow." : "")]));
+        } catch (e) { outboxStatus.appendChild(h("div.banner.banner-warn", "Could not write the outbox: " + (e.message || e))); }
       }
+
+      /* ---- the list, edited here ---- */
+      var deptOpts = [{ code: "", short: "All" }].concat(E.depts.filter(function (d) { return d.code !== "UNALLOCATED"; }));
+      function form(r, onDone) {
+        r = r || { name: "", email: "", tier: 1, dept: "", send: true, cadence: "monthly", note: "" };
+        var name = h("input.control", { value: r.name, placeholder: "Name", "aria-label": "Name" });
+        var email = h("input.control", { value: r.email || "", placeholder: "name@company.com.au", type: "email", "aria-label": "Email" });
+        var tier = h("select.control", [1, 2, 3].map(function (t) { return h("option", { value: t, selected: +r.tier === t }, t + " " + M.TIERS[t]); }));
+        var dept = h("select.control", deptOpts.map(function (d) { return h("option", { value: d.code, selected: (r.dept || "") === d.code }, d.short); }));
+        var cad = h("select.control", Object.keys(M.CADENCE).map(function (k) { return h("option", { value: k, selected: (r.cadence || "monthly") === k }, M.CADENCE[k]); }));
+        var send = h("input", { type: "checkbox", checked: r.send !== false, id: "send-" + (r.name || "new").replace(/\W/g, "") });
+        var note = h("input.control.grow", { value: r.note || "", placeholder: "Note", "aria-label": "Note" });
+        return h("div.card", [
+          h("div.row", [name, email, tier, dept, cad, h("label.checkbox", [send, " send"])]),
+          h("div.row", [note]),
+          h("div.row", [
+            h("button.btn.small", { type: "button", onclick: function () {
+              if (!name.value.trim()) { name.focus(); return; }
+              onDone({ name: name.value.trim(), email: email.value.trim(), tier: +tier.value, dept: dept.value || null, send: send.checked, cadence: cad.value, note: note.value.trim() });
+            } }, "Save"),
+            h("button.btn.btn-quiet.small", { type: "button", onclick: function () { state.editing = null; CTS.router.reload(); } }, "Cancel"),
+          ]),
+        ]);
+      }
+      function save(list) { E.setRecipients(list); state.editing = null; CTS.router.reload(); }
+      var listRows = recipients.map(function (r, i) {
+        if (state.editing === i) return form(r, function (nr) { var l = recipients.slice(); l[i] = nr; save(l); });
+        return null;
+      });
+      var table = U.table([
+        { key: "name", label: "Name", align: "left" },
+        { key: "email", label: "Email", align: "left", value: function (r) { return r.email || h("span.muted", "no address"); } },
+        { key: "tier", label: "Tier", align: "left", value: function (r) { return h("span.chip.chip-muted", r.tier + " " + M.TIERS[r.tier]); } },
+        { key: "dept", label: "Department", align: "left", value: function (r) { return r.dept ? (E.deptOf[r.dept] || {}).short || r.dept : "all"; } },
+        { key: "cadence", label: "Cadence", align: "left", value: function (r) { return M.CADENCE[r.cadence || "monthly"]; } },
+        { key: "send", label: "Send", align: "left", value: function (r) { return r.send === false ? U.flag("warn", "no") : U.flag("good", "yes"); } },
+        { key: "pv", label: "", align: "left", value: function (r, i) {
+          var idx = recipients.indexOf(r);
+          return h("span.row", [
+            h("button.btn.btn-quiet.small", { onclick: function () { showPreview(M.render(r, { keys: p.keys, log: window.CTS_BUILD_LOG || null })); } }, "Preview month"),
+            /fortnight|both/.test(r.cadence || "") && E.fortnightFor ? h("button.btn.btn-quiet.small", { onclick: function () { showPreview(M.renderFortnightly(r, { month: fnMonth, fortnight: state.fortnight || undefined })); } }, "Preview fortnight") : null,
+            canEdit ? h("button.btn.btn-quiet.small", { onclick: function () { state.editing = idx; CTS.router.reload(); } }, "Edit") : null,
+            canEdit ? h("button.btn.btn-quiet.small", { onclick: function () { var l = recipients.slice(); l.splice(idx, 1); save(l); } }, "Remove") : null,
+          ]);
+        } },
+      ], recipients);
+      async function publishList() {
+        pubStatus.innerHTML = "";
+        var dir = await folder(pubStatus); if (!dir) return;
+        try { await B.writeRecipients(dir, recipients); E.clearRecipientsLocal(); pubStatus.appendChild(h("div.banner.banner-good", "Recipients published to the folder. Reloading…")); setTimeout(function () { location.reload(); }, 1000); }
+        catch (e) { pubStatus.appendChild(h("div.banner.banner-warn", "Could not publish: " + (e.message || e))); }
+      }
+      var source = E.recipientsLocal() ? h("span.chip.chip-warning", "edited here, not yet published") : (window.CTS_DISTRIBUTION ? h("span.chip.chip-good", "published list") : h("span.chip.chip-muted", "from 08 Config.xlsx"));
+
+      var fnPick = fnX ? h("div.toolbar", [
+        h("strong", "Fortnightly update"), h("span.chip.chip-muted", fnX.monthLabel + ", snapshot " + F.date(fnX.snapshot)),
+        h("div.seg", [1, 2].map(function (n) { return h("button.seg-btn" + ((state.fortnight || fnX.current.n) === n ? ".on" : ""), { onclick: function () { state.fortnight = n; CTS.router.reload(); } }, "Fortnight " + n + (fnX.fortnights[n - 1].complete ? " (closed)" : fnX.fortnights[n - 1].started ? " (in progress)" : " (ahead)")); })),
+        h("div.toolbar-right", [h("button.btn.btn-quiet", { onclick: function () { showPreview(M.renderFortnightly({ name: "Executive", tier: 1 }, { month: fnMonth, fortnight: state.fortnight || undefined })); } }, "Preview consolidated")]),
+      ]) : null;
 
       return [
         CTS.seedBanner(), CTS.periodBar(),
-        U.h1("Distribution", "The monthly email, " + p.label),
-        U.note("Three tiers, decided per person on the Distribution tab of 08 Config.xlsx. The portal renders the messages and writes them to the outbox folder; whatever sends them reads that folder. Nothing goes out until Build has been run and read, which is deliberate."),
-        U.section("Recipients", U.table([
-          { key: "name", label: "Name", align: "left" },
-          { key: "email", label: "Email", align: "left", value: function (r) { return r.email || h("span.muted", "no address"); } },
-          { key: "tier", label: "Tier", align: "left", value: function (r) { return h("span.chip.chip-muted", r.tier + " " + M.TIERS[r.tier]); } },
-          { key: "dept", label: "Department", align: "left", value: function (r) { return r.dept ? (E.deptOf[r.dept] || {}).short || r.dept : "all"; } },
-          { key: "send", label: "Send", align: "left", value: function (r) { return r.send === false ? U.flag("warn", "no") : U.flag("good", "yes"); } },
-          { key: "pv", label: "", align: "left", value: function (r) { return h("button.btn.btn-quiet.small", { onclick: function () { showPreview(r); } }, "Preview"); } },
-        ], recipients),
-          "Edit the list on the Config template and rebuild; it is not edited here so there is one place it lives."),
+        U.h1("Distribution", "The monthly email, " + p.label + ", and the fortnightly update"),
+        U.note("Three tiers and two cadences per person. The portal renders the messages and writes them to the outbox folder; whatever sends them reads that folder. Nothing goes out until someone has clicked, which is deliberate."),
+        U.section("Recipients", [
+          h("div.row", [source, canEdit ? h("button.btn.small", { onclick: function () { state.editing = "new"; CTS.router.reload(); } }, "Add a recipient") : null,
+                        canEdit && E.recipientsLocal() ? h("button.btn.btn-quiet.small", { onclick: publishList }, "Publish this list to the portal folder") : null,
+                        canEdit && E.recipientsLocal() ? h("button.btn.btn-quiet.small", { onclick: function () { E.clearRecipientsLocal(); CTS.router.reload(); } }, "Discard my edits") : null]),
+          pubStatus,
+          state.editing === "new" ? form(null, function (nr) { save(recipients.concat([nr])); }) : null,
+        ].concat(listRows.filter(Boolean)).concat([table]),
+          canEdit ? "Edits are kept in this browser until you publish the list, which writes data/CTS_distribution_data.js into the folder and wins over the Config template's Distribution tab from then on." : "The finance head edits this list."),
         U.section("Preview", [previewBox]),
-        U.section("Write this month's emails", [
-          U.note("Writes one JSON and one HTML per recipient into outbox/" + month + " in the portal folder. The JSON is what a Power Automate flow sends; the HTML is what you copy into Outlook until the flow is on. See docs/AUTOMATION.md for the ten minute flow."),
-          h("div.row", [h("button.btn", { onclick: writeOutbox }, "Write outbox for " + ((E.monthIdx[month] || {}).long || month))]),
+        U.section("Write the monthly emails", [
+          U.note("Writes one JSON and one HTML per recipient into outbox/" + month + " in the portal folder. The JSON is what a Power Automate flow sends; the HTML is what you copy into Outlook until the flow is on. See docs/AUTOMATION.md."),
+          h("div.row", [h("button.btn", { onclick: function () { writeOutbox("monthly"); } }, "Write monthly outbox for " + ((E.monthIdx[month] || {}).long || month))]),
+        ]),
+        U.section("Write the fortnightly updates", [
+          U.note("Revenue by date off the ledger for the month in progress, hours off the last pay runs, the forecast for the month as the benchmark, and the confirmed work landing next. Department heads get their own department; tier one and finance get the consolidated version. Run Build with the latest GL paste first so the snapshot date is current."),
+          fnPick,
+          h("div.row", [h("button.btn", { onclick: function () { writeOutbox("fortnightly"); } }, fnX ? "Write fortnightly outbox for " + fnX.monthLabel + " F" + (state.fortnight || fnX.current.n) : "Fortnightly needs the engine")]),
           outboxStatus,
         ]),
+        U.section("The month end deck", (function () {
+          var D = CTS.deck, deckStatus = h("div");
+          if (!D || !D.supported()) return [U.note("The deck module did not load (vendor/pptxgen.bundle.js and CTS_deck.js).", "warn")];
+          async function sendDeck() {
+            deckStatus.innerHTML = "";
+            var dir = await folder(deckStatus); if (!dir) return;
+            try {
+              deckStatus.appendChild(h("p.note", "Building the deck\u2026"));
+              var bytes = await D.bytes(), name = D.fileName();
+              await B.writeBinary(dir, month, name, bytes);
+              var msgs = D.messages();
+              var written = await B.writeOutbox(dir, month, msgs, null, "deck_");
+              deckStatus.innerHTML = "";
+              deckStatus.appendChild(h("div.banner.banner-good", [h("strong", name + " written to outbox/" + month + " with " + written.length + " covering notes. "), "The flow sends each note with the deck attached; until the flow is on, open the outbox folder and attach it in Outlook."]));
+            } catch (e) { deckStatus.innerHTML = ""; deckStatus.appendChild(h("div.banner.banner-warn", "Could not send the deck: " + (e && e.message || e))); }
+          }
+          return [
+            U.note("The month end P&L pack as PowerPoint, in the CTS livery, built from the same engine as the pages: cover, headline, P&L, departments after the split, revenue, top clients, utilisation, the full year landing, cash, and the commentary from each page on its slide. Write and publish the commentary first; the deck carries what is there when it is built."),
+            h("div.row", [
+              h("button.btn", { type: "button", onclick: function () { try { D.download(); } catch (e) { deckStatus.appendChild(h("div.banner.banner-warn", "Could not build the deck: " + (e && e.message || e))); } } }, "Download " + D.fileName()),
+              h("button.btn.btn-quiet", { type: "button", onclick: sendDeck }, "Send to the distribution list (tiers 1 and 3)"),
+            ]),
+            deckStatus,
+          ];
+        })()),
         U.section("The three tiers", U.table([
           { key: "t", label: "Tier", align: "left" }, { key: "who", label: "Who", align: "left" }, { key: "gets", label: "Gets", align: "left" },
         ], [
-          { t: "1", who: "Executive", gets: "Company result, departments after the split, top clients under the four headings, utilisation, what is worth a comment" },
-          { t: "2", who: "Department head", gets: "Their own department in depth, one line on the rest" },
-          { t: "3", who: "Finance", gets: "The controls: does the ledger tie, what is uncoded, what rests on a placeholder, what the build did" },
+          { t: "1", who: "Executive", gets: "Monthly: company result, departments after the split, top clients, utilisation, commentary, what is worth a comment. Fortnightly: the consolidated update across departments" },
+          { t: "2", who: "Department head", gets: "Monthly: their own department in depth, one line on the rest. Fortnightly: their department's update with team, key calls and forward view" },
+          { t: "3", who: "Finance", gets: "Monthly: the controls, the company result, every comment. Fortnightly: the consolidated update" },
         ], { dense: true })),
       ];
     },
@@ -5676,7 +5931,7 @@
 
   /* ========================================================== Charts === */
   P.charts = {
-    section: "Ledger", title: "Charts",
+    section: "Finance", title: "Trends",
     sub: "The pack that goes into the monthly report.",
     render: function () {
       var p = CTS.period();
@@ -5788,17 +6043,146 @@
     });
   }
 
+  /* ---- header tools: read aloud, theme, text size, contrast, sidebar ---- */
+  var A11Y = (CTS.a11y = {
+    theme: function () {
+      var cur = document.documentElement.getAttribute("data-theme");
+      var next = cur === "dark" ? "light" : cur === "light" ? "dark"
+        : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark");
+      document.documentElement.setAttribute("data-theme", next);
+      CTS.store.set("theme", next);
+      if (CTS.repaintLogo) CTS.repaintLogo();
+    },
+    isDark: function () {
+      var stamp = document.documentElement.getAttribute("data-theme");
+      return stamp === "dark" || (!stamp && !!(window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches));
+    },
+    sizes: ["normal", "large", "larger"],
+    size: function () { return CTS.store.get("textsize", "normal"); },
+    cycleSize: function () {
+      var cur = A11Y.size(), next = A11Y.sizes[(A11Y.sizes.indexOf(cur) + 1) % A11Y.sizes.length];
+      CTS.store.set("textsize", next); A11Y.applySize();
+    },
+    applySize: function () {
+      var v = A11Y.size();
+      if (v === "normal") document.documentElement.removeAttribute("data-textsize"); else document.documentElement.setAttribute("data-textsize", v);
+    },
+    contrast: function () { return !!CTS.store.get("contrast", false); },
+    toggleContrast: function () { CTS.store.set("contrast", !A11Y.contrast()); A11Y.applyContrast(); },
+    applyContrast: function () {
+      if (A11Y.contrast()) document.documentElement.setAttribute("data-contrast", "high"); else document.documentElement.removeAttribute("data-contrast");
+    },
+    sideHidden: function () { return !!CTS.store.get("sideHidden", false); },
+    toggleSide: function () { CTS.store.set("sideHidden", !A11Y.sideHidden()); A11Y.applySide(); },
+    applySide: function () {
+      var shell = document.querySelector(".shell");
+      if (shell) shell.setAttribute("data-side", A11Y.sideHidden() ? "hidden" : "shown");
+      Array.prototype.forEach.call(document.querySelectorAll("[data-side-btn]"), function (b) {
+        b.setAttribute("aria-pressed", A11Y.sideHidden() ? "true" : "false");
+        b.replaceChildren(U.icon("menu"), A11Y.sideHidden() ? "Show menu" : "Hide menu");
+      });
+    },
+    init: function () {
+      var saved = CTS.store.get("theme", null);
+      if (saved) document.documentElement.setAttribute("data-theme", saved);
+      A11Y.applySize(); A11Y.applyContrast(); A11Y.applySide();
+    },
+  });
+
+  /* ---- a department in focus: set from a chart or a tile, cleared from the header ---- */
+  E.focusDept = function () { return E.deptScope() ? null : (CTS.store.get("focusDept", null) || null); };
+  E.setFocusDept = function (code) { CTS.store.set("focusDept", code || null); };
+  var baseVisible = E.visibleDepts;
+  E.visibleDepts = function (list) {
+    var out = baseVisible(list);
+    var f = E.focusDept();
+    if (!f) return out;
+    var hit = out.filter(function (d) { return d.code === f; });
+    return hit.length ? hit : out;
+  };
+
   function pageTools(id) {
-    var page = CTS.pages[id] || {};
+    var tools = [];
+    var f = E.focusDept();
+    if (f && E.deptOf[f]) {
+      tools.push(h("span.filterchip", [
+        h("span.dot", { style: { background: U.colourOf(f) } }), "Showing " + E.deptOf[f].short,
+        h("button", { type: "button", "aria-label": "Show all departments", title: "Show all departments",
+                      onclick: function () { E.setFocusDept(null); CTS.router.reload(); } }, "×"),
+      ]));
+    }
     var readBtn = h("button.tool", { type: "button", "aria-pressed": "false", title: "Read this page aloud" }, [U.icon("speaker"), "Read aloud"]);
     readBtn.addEventListener("click", function () { reader.on ? stopReading() : startReading(readBtn); });
+    tools.push(readBtn);
     var anyOpen = function () { return Array.prototype.some.call(document.querySelectorAll("#main section.block"), function (s) { return s.getAttribute("data-collapsed") !== "1"; }); };
     var colBtn = h("button.tool", { type: "button", title: "Collapse or expand every section on this page" }, [U.icon("collapse"), "Collapse all"]);
     function paintCol() { var open = anyOpen(); colBtn.replaceChildren(U.icon(open ? "collapse" : "expand"), open ? "Collapse all" : "Expand all"); }
     colBtn.addEventListener("click", function () { U.setAllSections(anyOpen()); paintCol(); });
     setTimeout(paintCol, 0);
-    return [readBtn, colBtn];
+    tools.push(colBtn);
+    var themeBtn = h("button.tool", { type: "button", title: "Switch between light and dark" }, [U.icon("theme"), A11Y.isDark() ? "Light" : "Dark"]);
+    themeBtn.addEventListener("click", function () { A11Y.theme(); themeBtn.replaceChildren(U.icon("theme"), A11Y.isDark() ? "Light" : "Dark"); });
+    tools.push(themeBtn);
+    var sizeBtn = h("button.tool", { type: "button", title: "Text size: normal, large, larger" }, [U.icon("text"), "Text " + A11Y.size()]);
+    sizeBtn.addEventListener("click", function () { A11Y.cycleSize(); sizeBtn.replaceChildren(U.icon("text"), "Text " + A11Y.size()); });
+    tools.push(sizeBtn);
+    var conBtn = h("button.tool" + (A11Y.contrast() ? ".on" : ""), { type: "button", "aria-pressed": A11Y.contrast() ? "true" : "false", title: "High contrast" }, [U.icon("contrast"), "Contrast"]);
+    conBtn.addEventListener("click", function () { A11Y.toggleContrast(); conBtn.classList.toggle("on", A11Y.contrast()); conBtn.setAttribute("aria-pressed", A11Y.contrast() ? "true" : "false"); });
+    tools.push(conBtn);
+    var sideBtn = h("button.tool", { type: "button", "data-side-btn": "1", title: "Show or hide the menu (S)" }, [U.icon("menu"), "Hide menu"]);
+    sideBtn.addEventListener("click", A11Y.toggleSide);
+    tools.push(sideBtn);
+    setTimeout(A11Y.applySide, 0);
+    var helpBtn = h("button.tool", { type: "button", title: "Keyboard shortcuts (?)", "aria-label": "Keyboard shortcuts" }, "?");
+    helpBtn.addEventListener("click", showHelp);
+    tools.push(helpBtn);
+    return tools;
   }
+
+  /* ---- keyboard shortcuts ---------------------------------------------- */
+  var SHORTCUTS = [
+    ["[", "Previous reporting month"], ["]", "Next reporting month"],
+    ["1 2 3 4", "Month, quarter, year to date, full year"],
+    ["S", "Show or hide the menu"], ["R", "Read aloud, or stop"], ["C", "Collapse or expand every section"],
+    ["D", "Light or dark"], ["G then a key", "Go: H dashboard, P profit and loss, F forecast, $ cash, U utilisation, M commentary"],
+    ["Esc", "Clear the department filter, close this"], ["?", "This list"],
+  ];
+  var helpOpen = null, goMode = false;
+  function showHelp() {
+    if (helpOpen) { helpOpen.remove(); helpOpen = null; return; }
+    var box = h("div.help", { role: "dialog", "aria-label": "Keyboard shortcuts" }, [
+      h("div.help-head", [h("h2", "Keyboard shortcuts"), h("button.tool", { type: "button", onclick: showHelp }, "Close")]),
+      h("dl", SHORTCUTS.map(function (s) { return [h("dt", h("kbd", s[0])), h("dd", s[1])]; }).reduce(function (a, b) { return a.concat(b); }, [])),
+    ]);
+    document.body.appendChild(box); helpOpen = box; box.querySelector("button").focus();
+  }
+  function shiftMonth(n) {
+    var m = E.monthIdx[E.reportingMonth()]; if (!m) return;
+    var next = E.months[m.i + n]; if (!next) return;
+    E.setReportingMonth(next.key); CTS.router.reload();
+  }
+  document.addEventListener("keydown", function (ev) {
+    var t = ev.target, tag = (t && t.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select" || (t && t.isContentEditable)) return;
+    if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+    var k = ev.key;
+    if (goMode) {
+      goMode = false;
+      var map = { h: "home", p: "pnl", f: "forecast", "$": "cash", "4": "cash", u: "util", m: "commentary", r: "rev-summary", b: "bva" };
+      if (map[k.toLowerCase()] && E.can(map[k.toLowerCase()])) CTS.router.go(map[k.toLowerCase()]);
+      return;
+    }
+    if (k === "?") { ev.preventDefault(); showHelp(); }
+    else if (k === "Escape") { if (helpOpen) showHelp(); else if (E.focusDept()) { E.setFocusDept(null); CTS.router.reload(); } }
+    else if (k === "[") shiftMonth(-1);
+    else if (k === "]") shiftMonth(1);
+    else if (k === "1" || k === "2" || k === "3" || k === "4") { CTS.store.set("period", { "1": "month", "2": "qtr", "3": "ytd", "4": "fy" }[k]); CTS.router.reload(); }
+    else if (k === "s" || k === "S") A11Y.toggleSide();
+    else if (k === "d" || k === "D") { A11Y.theme(); CTS.router.reload(); }
+    else if (k === "c" || k === "C") { var open = Array.prototype.some.call(document.querySelectorAll("#main section.block"), function (s) { return s.getAttribute("data-collapsed") !== "1"; }); U.setAllSections(open); CTS.router.reload(); }
+    else if (k === "r" || k === "R") { var b = document.querySelector('.page-tools .tool[aria-pressed]'); if (b) b.click(); }
+    else if (k === "g" || k === "G") goMode = true;
+  });
 
   var router = (CTS.router = {
     current: null,
@@ -5876,7 +6260,7 @@
       if (!ids.length) return;
       var key = "nav." + U.slug(sec), collapsed = !!CTS.store.get(key, false);
       var listId = "navlist-" + U.slug(sec);
-      var group = h("div.nav-group", { "data-collapsed": collapsed ? "1" : "0", style: { "--sec": NAV_COLOUR[sec] || "#FFFFFF" } });
+      var group = h("div.nav-group", { "data-collapsed": collapsed ? "1" : "0", style: { "--sec": SEC_COLOUR[sec] || "var(--accent)" } });
       var head = h("button.nav-head", { type: "button", "aria-expanded": collapsed ? "false" : "true", "aria-controls": listId }, [
         h("span.sec-dot", { "aria-hidden": "true" }), h("span", sec), U.chev("chev"),
       ]);
@@ -5905,7 +6289,7 @@
       var stamp = document.documentElement.getAttribute("data-theme");
       var dark = stamp === "dark" || (!stamp && window.matchMedia &&
                  window.matchMedia("(prefers-color-scheme: dark)").matches);
-      img.src = b.logo.dark;   // the sidebar is the brand black in both themes
+      img.src = dark ? b.logo.dark : b.logo.light;
       img.alt = b.logo.alt || "CTS";
       img.hidden = false;
     }
@@ -5944,33 +6328,6 @@
     }
   }
 
-  function accessibilityToggles() {
-    var ts = document.getElementById("textsize"), ct = document.getElementById("contrast");
-    var sizes = ["normal", "large", "larger"], cur = CTS.store.get("textsize", "normal");
-    function applySize(v) { if (v === "normal") document.documentElement.removeAttribute("data-textsize"); else document.documentElement.setAttribute("data-textsize", v); if (ts) ts.textContent = "Text size: " + v; }
-    applySize(cur);
-    if (ts) ts.addEventListener("click", function () { cur = sizes[(sizes.indexOf(cur) + 1) % sizes.length]; CTS.store.set("textsize", cur); applySize(cur); });
-    var hc = !!CTS.store.get("contrast", false);
-    function applyC() { if (hc) document.documentElement.setAttribute("data-contrast", "high"); else document.documentElement.removeAttribute("data-contrast"); if (ct) { ct.textContent = hc ? "Contrast: high" : "Contrast"; ct.setAttribute("aria-pressed", hc ? "true" : "false"); } }
-    applyC();
-    if (ct) ct.addEventListener("click", function () { hc = !hc; CTS.store.set("contrast", hc); applyC(); });
-  }
-
-  function themeToggle() {
-    var btn = document.getElementById("theme");
-    if (!btn) return;
-    var saved = CTS.store.get("theme", null);
-    if (saved) document.documentElement.setAttribute("data-theme", saved);
-    btn.addEventListener("click", function () {
-      var cur = document.documentElement.getAttribute("data-theme");
-      var next = cur === "dark" ? "light" : cur === "light" ? "dark"
-        : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark");
-      document.documentElement.setAttribute("data-theme", next);
-      CTS.store.set("theme", next);
-      if (CTS.repaintLogo) CTS.repaintLogo();
-    });
-  }
-
   CTS.boot = function () {
     try {
       E.init();
@@ -5983,8 +6340,7 @@
       return;
     }
     buildNav();
-    themeToggle();
-    accessibilityToggles();
+    CTS.a11y.init();
     var badge = document.getElementById("databadge");
     if (badge) {
       badge.textContent = E.seed ? "seed data" : "loaded data";

@@ -61,7 +61,46 @@ published notes for the pages each tier reads.
 Write the way the manual asks: explain the variance rather than restate it,
 dollars against dollars, and say whether a miss was lost or moved.
 
-## 4. Email
+Only the finance head role can add commentary. **Propose from the data** on
+any page writes a first draft from that page's numbers, with square brackets
+where the why is needed; **Propose commentary for every page** on the
+Commentary page does it for the main pages at once. Edit, then publish.
+
+## 4. The deck and the emails
+
+On Distribution:
+
+- **Download the deck** builds the month end P&L pack as PowerPoint in the
+  CTS livery: cover, headline, P&L, departments after the split, revenue,
+  top clients, utilisation, the full year landing, cash and what is worth a
+  comment, with each page's commentary on its slide. Build and publish the
+  commentary first; the deck carries what is there when it is made.
+- **Send to the distribution list** writes the deck into `outbox/YYYY-MM`
+  with a covering note per tier one and tier three recipient, the deck named
+  as the attachment. The flow attaches it; until the flow is on, attach it in
+  Outlook from the outbox folder.
+- **Recipients** are edited on the page (add, edit, remove, tier, department,
+  cadence). Edits live in that browser until **Publish this list** writes
+  `data/CTS_distribution_data.js` into the folder, which then wins over the
+  Config template's Distribution tab.
+
+## 5. The fortnightly update
+
+Mid month, paste the Xero GL year to date (it carries the month in progress)
+and the latest Earnings pay runs, run Build, then on Distribution **Write the
+fortnightly outbox**. Department heads get their own department: revenue by
+fortnight off the ledger, hours off the pay runs, sell rate, utilisation,
+team, key calls, the other departments, and the forward view with the
+confirmed work landing. Tier one and finance get the consolidated version.
+The fortnight is picked automatically from the ledger's latest date; the
+buttons let you choose. A person's cadence (Monthly, Fortnightly, Both)
+decides who gets it.
+
+Every email says where the portal is. Put the SharePoint link on the Config
+Reporting tab as **Portal link** so the emails carry a link rather than a
+folder path.
+
+## 6. Email
 
 Publish the commentary first, then on Distribution **Write this month's emails** puts one message per recipient
 into `outbox/YYYY-MM` as JSON and HTML. From there:

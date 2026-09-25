@@ -29,14 +29,14 @@ and OneDrive carries the result to everyone.
 
 | Section | Pages |
 |---|---|
-| Dashboard | Dashboard, Business Context, Commentary |
-| Finance | P&L, P&L by Department, P&L Spread, Overhead Allocation, P&L Control |
+| Dashboard | Dashboard, Business Context, Commentary, The Month |
+| Finance | P&L, P&L by Department, P&L Spread, Overhead Allocation, P&L Control, Trends |
 | Budget | Budget vs Actual, Actions, Forecast |
 | Cash | Cash Flow |
 | Revenue | Revenue Summary, Revenue Schedule, Revenue Forecast, Pipeline, Top Clients, Clients by Department |
 | Utilisation | Utilisation, Profitability per FTE |
-| Ledger | Detail Records, Charts |
-| Admin | Setup, Data Loaders, Config & Variables, About |
+| Ledger | Detail Records |
+| Admin | Setup, Build, Distribution, Config & Variables, Access Control, About |
 
 ## The conventions it is built on
 
@@ -148,4 +148,13 @@ groups do the same. Each page has Read aloud (the browser's own speech, an
 Australian English voice where one is installed) and Collapse all; the
 sidebar has text size and high contrast. The commentary block under each
 heading is where the month gets explained.
+
+## Emails, the fortnight and the deck
+
+Three tiers and two cadences, edited on Distribution. Monthly emails, a
+fortnightly update per department with a consolidated version for
+executives, and the month end P&L deck as PowerPoint, all in the CTS livery
+and all pointing at the portal. Everything is written to `outbox` for the
+flow; nothing is sent by the portal itself. `docs/MONTHLY.md` has the
+routine and `docs/AUTOMATION.md` the flow.
 

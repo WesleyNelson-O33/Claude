@@ -466,6 +466,7 @@ list_tab(wb, "Reporting",
           ["Medium risk (% variance)", 0.10, ""],
           ["High risk (% variance)", 0.25, ""],
           ["High risk ($ variance)", 50000, "Either test alone makes it High"],
+          ["Portal link", "", "Where people open the portal: the SharePoint link to CTS Business Intelligence Portal.html, or the synced folder path. Goes in every email"],
           ["Portal version", "2.0.0", ""]],
          [32, 16, 44], editable_cols=[2])
 wb["Reporting"]["B2"].number_format = "mmm yyyy"
@@ -580,24 +581,24 @@ for r in range(7, 202):
     for c in range(1, 6):
         wb["Users"].cell(row=r, column=c).fill = PASTE
         wb["Users"].cell(row=r, column=c).font = INPUT_FONT
-PAGES = [("home", "Dashboard"), ("context", "Business Context"), ("commentary", "Commentary"), ("pnl", "P&L"),
+PAGES = [("home", "Dashboard"), ("context", "Business Context"), ("commentary", "Commentary"), ("story", "The Month"), ("pnl", "P&L"),
          ("pnl-dept", "P&L by Department"), ("pnl-spread", "P&L Spread"),
          ("allocation", "Overhead Allocation"), ("control", "P&L Control"),
          ("bva", "Budget vs Actual"), ("actions", "Actions"), ("forecast", "Forecast"), ("cash", "Cash Flow"), ("rev-summary", "Revenue Summary"),
          ("rev-schedule", "Revenue Schedule"), ("rev-forecast", "Revenue Forecast"), ("pipeline", "Pipeline"), ("clients", "Top Clients"),
          ("client-dept", "Clients by Department"), ("util", "Utilisation"),
          ("profit-fte", "Profitability per FTE"), ("staff-profit", "Profitability by Employee"),
-         ("ledger", "Detail Records"), ("charts", "Charts"), ("setup", "Setup"),
-         ("loaders", "Data Loaders"), ("build", "Build"), ("distribution", "Distribution"),
+         ("ledger", "Detail Records"), ("charts", "Trends"), ("setup", "Setup"),
+         ("build", "Build"), ("distribution", "Distribution"),
          ("config", "Config & Variables"), ("access", "Access Control"), ("about", "About")]
 ROLE_PAGES = {
     "Finance": {p for p, _ in PAGES} - {"access"},
-    "Executive": {"home", "context", "commentary", "pnl", "pnl-dept", "pnl-spread", "bva", "actions", "forecast", "cash", "rev-summary",
+    "Executive": {"home", "context", "story", "commentary", "pnl", "pnl-dept", "pnl-spread", "bva", "actions", "forecast", "cash", "rev-summary",
                   "rev-schedule", "rev-forecast", "pipeline", "clients", "client-dept", "util", "profit-fte",
                   "staff-profit", "charts", "about"},
-    "Department head": {"home", "context", "commentary", "pnl-dept", "forecast", "rev-schedule", "rev-forecast", "pipeline", "clients", "util",
+    "Department head": {"home", "context", "story", "commentary", "pnl-dept", "forecast", "rev-schedule", "rev-forecast", "pipeline", "clients", "util",
                         "charts", "about"},
-    "Viewer": {"home", "context", "about"},
+    "Viewer": {"home", "context", "story", "about"},
 }
 list_tab(wb, "Tabs by role",
          ["Tab id", "Tab", "Finance head", "Finance", "Executive", "Department head", "Viewer"],
@@ -609,18 +610,20 @@ list_tab(wb, "Tabs by role",
          [14, 26, 12, 10, 11, 15, 9], editable_cols=[4, 5, 6, 7],
          note="Yes shows the tab to that role. This decides what people are shown; it does not protect anything.")
 list_tab(wb, "Distribution",
-         ["Name", "Email", "Tier", "Department", "Send", "Note"],
-         [["Duncan", "duncan@example.com.au", 1, "", "Yes", "Full result, cost and margin, commentary"],
-          ["Graham", "graham@example.com.au", 1, "", "Yes", ""],
-          ["Jordan", "jordan@example.com.au", 2, "CONSULTING", "Yes", "Own department in depth, one line on the rest"],
-          ["Production manager", "", 2, "PRODUCTION", "No", "No address yet"],
-          ["Danica Nelson", "danica@example.com.au", 3, "", "Yes", "Finance: the controls and data quality"]],
-         [22, 30, 6, 14, 6, 44],
-         note="Tier 1 executive, tier 2 department head, tier 3 finance. Send: Yes or No. Addresses here are placeholders; replace them.")
+         ["Name", "Email", "Tier", "Department", "Send", "Note", "Cadence"],
+         [["Duncan", "duncan@example.com.au", 1, "", "Yes", "Full result, cost and margin, commentary", "Both"],
+          ["Graham", "graham@example.com.au", 1, "", "Yes", "", "Monthly"],
+          ["Jordan", "jordan@example.com.au", 2, "CONSULTING", "Yes", "Own department in depth, one line on the rest", "Both"],
+          ["Production manager", "", 2, "PRODUCTION", "No", "No address yet", "Fortnightly"],
+          ["Danica Nelson", "danica@example.com.au", 3, "", "Yes", "Finance: the controls and data quality", "Both"]],
+         [22, 30, 6, 14, 6, 44, 12],
+         note="Tier 1 executive, tier 2 department head, tier 3 finance. Send: Yes or No. Cadence: Monthly, Fortnightly or Both. The list edited in the portal's Distribution page wins over this tab once published.")
 dv7 = DataValidation(type="list", formula1='"Yes,No"', allow_blank=True)
 wb["Distribution"].add_data_validation(dv7); dv7.add("E2:E200")
+dv7b = DataValidation(type="list", formula1='"Monthly,Fortnightly,Both"', allow_blank=True)
+wb["Distribution"].add_data_validation(dv7b); dv7b.add("G2:G200")
 for r in range(7, 202):
-    for c in range(1, 7):
+    for c in range(1, 8):
         wb["Distribution"].cell(row=r, column=c).fill = PASTE
         wb["Distribution"].cell(row=r, column=c).font = INPUT_FONT
 save(wb, "08 Config.xlsx")

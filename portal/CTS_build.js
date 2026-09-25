@@ -402,6 +402,7 @@
     var rm = p.isoDate(rep["reporting month"]);
     cfg.ORG = cfg.ORG || {};
     if (rm) cfg.ORG.reportingMonth = rm.slice(0, 7);
+    if (rep["portal link"] != null) cfg.ORG.portalUrl = String(rep["portal link"] || "").trim();
     cfg.UTIL = cfg.UTIL || {};
     if (rep["hours in a working day"]) cfg.UTIL.hoursPerDay = p.num(rep["hours in a working day"]);
     if (rep["state for working days"]) cfg.UTIL.state = String(rep["state for working days"]).toUpperCase();
@@ -473,7 +474,8 @@
     // Distribution
     var dist = tab("Distribution").filter(function (r) { return r[0]; }).map(function (r) {
       return { name: String(r[0]), email: String(r[1] || ""), tier: p.num(r[2]) || 3,
-               dept: String(r[3] || "").toUpperCase() || null, send: bool(r[4]), note: String(r[5] || "") };
+               dept: String(r[3] || "").toUpperCase() || null, send: bool(r[4]), note: String(r[5] || ""),
+               cadence: /fort/i.test(String(r[6] || "")) ? (/both|month/i.test(String(r[6])) ? "both" : "fortnightly") : "monthly" };
     });
     cfg.DISTRIBUTION = dist;
 
@@ -914,12 +916,11 @@
     return done;
   };
 
-  /** Publish the commentary: one data file, like the rest, so OneDrive
-   *  carries it to everyone. The previous file goes to data/_previous. */
-  B.writeCommentary = async function (dir, data) {
+  /** Publish one data file from the portal (commentary, recipients): the
+   *  previous copy goes to data/_previous, and OneDrive carries the new one. */
+  B.writeDataFile = async function (dir, name, global, data) {
     var dataDir = await dir.getDirectoryHandle("data", { create: true });
     var prev = await dataDir.getDirectoryHandle("_previous", { create: true });
-    var name = "CTS_commentary_data.js";
     try {
       var old = await dataDir.getFileHandle(name); var of = await old.getFile();
       var ph = await prev.getFileHandle(name, { create: true }); var pw = await ph.createWritable();
@@ -927,23 +928,35 @@
     } catch (e) { /* first publish */ }
     var fh = await dataDir.getFileHandle(name, { create: true });
     var w = await fh.createWritable();
-    await w.write("window.CTS_COMMENTARY = " + JSON.stringify(data, null, 1) + ";\n"); await w.close();
+    await w.write("window." + global + " = " + JSON.stringify(data, null, 1) + ";\n"); await w.close();
     return name;
+  };
+  B.writeCommentary = function (dir, data) { return B.writeDataFile(dir, "CTS_commentary_data.js", "CTS_COMMENTARY", data); };
+  B.writeRecipients = function (dir, list) {
+    return B.writeDataFile(dir, "CTS_distribution_data.js", "CTS_DISTRIBUTION", { meta: { published: new Date().toISOString(), note: "Recipients edited in the portal. Wins over the Config template's Distribution tab." }, list: list });
   };
 
   /** Write the month's emails into outbox/YYYY-MM, one JSON and one HTML per
    *  recipient, which is what the Power Automate flow reads. */
-  B.writeOutbox = async function (dir, month, messages) {
+  B.writeBinary = async function (dir, month, name, bytes) {
     var ob = await dir.getDirectoryHandle("outbox", { create: true });
     var md = await ob.getDirectoryHandle(month, { create: true });
+    var fh = await md.getFileHandle(name, { create: true });
+    var w = await fh.createWritable(); await w.write(bytes); await w.close();
+    return name;
+  };
+  B.writeOutbox = async function (dir, month, messages, folder, prefix) {
+    var ob = await dir.getDirectoryHandle("outbox", { create: true });
+    var md = await ob.getDirectoryHandle(folder || month, { create: true });
     var written = [];
     for (var i = 0; i < messages.length; i++) {
       var m = messages[i];
-      var base = String(m.to || m.name || ("recipient" + i)).replace(/[^a-z0-9]+/gi, "_").toLowerCase();
+      var base = (prefix || "") + String(m.to || m.name || ("recipient" + i)).replace(/[^a-z0-9]+/gi, "_").toLowerCase();
       var jh = await md.getFileHandle(base + ".json", { create: true });
       var jw = await jh.createWritable();
       await jw.write(JSON.stringify({ to: m.to, name: m.name, tier: m.tier, subject: m.subject,
                                       html: m.html, text: m.text, month: month, written: new Date().toISOString(),
+                                      kind: m.kind || "monthly", attachments: m.attachments || [],
                                       status: "pending" }, null, 2));
       await jw.close();
       var hh = await md.getFileHandle(base + ".html", { create: true });
@@ -951,7 +964,7 @@
       await hw.write(m.html); await hw.close();
       written.push(base);
     }
-    var ih = await md.getFileHandle("_manifest.json", { create: true });
+    var ih = await md.getFileHandle((prefix || "") + "_manifest.json", { create: true });
     var iw = await ih.createWritable();
     await iw.write(JSON.stringify({ month: month, count: messages.length, files: written,
                                     written: new Date().toISOString() }, null, 2));
