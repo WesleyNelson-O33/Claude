@@ -667,7 +667,7 @@ def build_summary():
 
 
 # ============================================================ WIP Movements
-WIP_N = 300
+WIP_N = 800
 WIP_COLS = [("Month", "in", "mmm-yy", 10), ("Job Number", "in", "@", 13), ("Job in Xero?", "calc", "@", 9),
             ("Client", "calc", "@", 24), ("Cost Centre", "in", "@", 13), ("Xero Invoice No", "in", "@", 13),
             ("Description", "in", "@", 30), ("Type", "in", "@", 22), ("Revenue or Cost", "in", "@", 10),
@@ -727,13 +727,14 @@ def build_wip_summary():
                 "file into column G and the variance shows which job is out.")
     ws["A4"], ws["C4"], ws["D4"] = "Month", "='Month-End'!C4", "<- set this on the Month-End sheet"
     ws["C4"].number_format = "mmm-yy"
-    rows = [("Opening total", '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],"<"&$C$4)'),
-            ("Movement this month", '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4)'),
+    rows = [("Opening total (WIP Movements + Deferrals)", '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],"<"&$C$4)+SUM(tbl_Def[WIP Opening])'),
+            ("Movement this month", '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4)+SUM(tbl_Def[WIP Movement])'),
             ("Closing total", "=B6+B7"),
             ("Of which is on a job Xero does not have - fix these",
              '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Job in Xero?],"CHECK",tbl_WIP[Month],"<="&$C$4)'),
             ("Of which has no job number", '=SUMIFS(tbl_WIP[Amount],tbl_WIP[Job Number],"",tbl_WIP[Month],"<="&$C$4)'),
-            ("Closing listed below, job by job", "=B8-B9-B10")]
+            ("Of which sits on jobs not in the Lists job list (deferrals)", '=SUM(tbl_Def[WIP Opening])+SUM(tbl_Def[WIP Movement])-SUMPRODUCT(SUMIFS(tbl_Def[WIP Opening],tbl_Def[Project Number],lst_Jobs)+SUMIFS(tbl_Def[WIP Movement],tbl_Def[Project Number],lst_Jobs))'),
+            ("Closing listed below, job by job", "=B8-B9-B10-B11")]
     for k, (lab, fm) in enumerate(rows):
         ws.cell(6 + k, 1, lab)
         ws.cell(6 + k, 2, fm).number_format = MONEY
@@ -746,8 +747,8 @@ def build_wip_summary():
         r = 14 + i
         vals = [f'=IF(INDEX(lst_Jobs,{i + 1})="","",INDEX(lst_Jobs,{i + 1})&"")',
                 f'=IF(A{r}="","",INDEX(lst_JobName,{i + 1})&"")',
-                f'=IF(A{r}="","",SUMIFS(tbl_WIP[Amount],tbl_WIP[Job Number],A{r},tbl_WIP[Month],"<"&$C$4))',
-                f'=IF(A{r}="","",SUMIFS(tbl_WIP[Amount],tbl_WIP[Job Number],A{r},tbl_WIP[Month],$C$4))',
+                f'=IF(A{r}="","",SUMIFS(tbl_WIP[Amount],tbl_WIP[Job Number],A{r},tbl_WIP[Month],"<"&$C$4)+SUMIFS(tbl_Def[WIP Opening],tbl_Def[Project Number],A{r}))',
+                f'=IF(A{r}="","",SUMIFS(tbl_WIP[Amount],tbl_WIP[Job Number],A{r},tbl_WIP[Month],$C$4)+SUMIFS(tbl_Def[WIP Movement],tbl_Def[Project Number],A{r}))',
                 f'=IF(A{r}="","",C{r}+D{r})',
                 f'=IF(A{r}="","",IF(AND(ROUND(C{r},2)=0,ROUND(D{r},2)=0),"","yes"))',
                 None,
@@ -875,13 +876,13 @@ def build_month_end():
     # ---- 2 WIP
     section(18, "2.  WORK IN PROGRESS AND DEFERRALS  -  GL 11300 (debit balance)")
     heads(19, ["", "Total", "Revenue (WIP + deferrals)", "Cost (WIP + deferrals)", "", "", "", "", "Check"])
-    wip = lambda crit, op: [f"=C{{r}}+D{{r}}",
-                            f'=SUMIFS(tbl_WIP[Amount],{crit},tbl_WIP[Revenue or Cost],"<>Cost")'
-                            f'+SUMPRODUCT(({dtype}="Revenue")*({dgrid}{op}$C$4)*{dvals})',
-                            f'=SUMIFS(tbl_WIP[Amount],{crit},tbl_WIP[Revenue or Cost],"Cost")'
-                            f'-SUMPRODUCT(({dtype}="Cost")*({dgrid}{op}$C$4)*{dvals})']
-    for r, lab, crit, op in [(20, "Opening balance (all months before this one)", 'tbl_WIP[Month],"<"&$C$4', "<"),
-                             (21, "Movement this month", "tbl_WIP[Month],$C$4", "=")]:
+    wip = lambda crit, col: [f"=C{{r}}+D{{r}}",
+                             f'=SUMIFS(tbl_WIP[Amount],{crit},tbl_WIP[Revenue or Cost],"<>Cost")'
+                             f'+SUMIFS(tbl_Def[{col}],tbl_Def[Type],"Revenue")',
+                             f'=SUMIFS(tbl_WIP[Amount],{crit},tbl_WIP[Revenue or Cost],"Cost")'
+                             f'+SUMIFS(tbl_Def[{col}],tbl_Def[Type],"Cost")']
+    for r, lab, crit, op in [(20, "Opening balance (all months before this one)", 'tbl_WIP[Month],"<"&$C$4', "WIP Opening"),
+                             (21, "Movement this month", "tbl_WIP[Month],$C$4", "WIP Movement")]:
         ws.cell(r, 1, lab)
         for j, fm in enumerate(wip(crit, op)):
             ws.cell(r, 2 + j, fm.format(r=r))
@@ -1062,14 +1063,15 @@ DEF_COLS = [  # header, kind, format, width
     ("Type", "fin", "@", 9), ("Invoice or Bill No", "fin", "@", 13), ("Invoice or Bill Date", "fin", DATE, 11),
     ("Defer Start", "fin", "mmm-yy", 9), ("Defer End", "fin", "mmm-yy", 9),
     ("Job Number Override", "fin", "@", 12), ("Amount Override", "fin", MONEY, 13), ("P&L GL Override", "fin", "@", 10),
-    ("Notes", "fin", "@", 24),
+    ("Cost Centre Override", "fin", "@", 12), ("Per Month Override", "fin", MONEY, 12), ("Notes", "fin", "@", 24),
     ("Finance Row", "calc", "0", 7), ("Project Number", "calc", "@", 13), ("Project Name", "calc", "@", 30),
     ("Department", "calc", "@", 12), ("Client", "calc", "@", 20), ("Cost Centre", "calc", "@", 12),
     ("Amount Ex GST", "calc", MONEY, 13), ("Invoice Month", "calc", "mmm-yy", 9), ("Start Month", "calc", "mmm-yy", 9),
     ("End Month", "calc", "mmm-yy", 9), ("Months", "calc", "0", 7), ("Per Month", "calc", MONEY, 12),
     ("P&L Account", "calc", "@", 30), ("Balance Sheet Account", "calc", "@", 24),
     ("Opening Deferred", "calc", MONEY, 13), ("Movement This Month", "calc", MONEY, 13),
-    ("Closing Deferred", "calc", MONEY, 13), ("Issue", "calc", "@", 36), ("Journal Seq", "calc", "0", 7),
+    ("Closing Deferred", "calc", MONEY, 13), ("WIP Opening", "calc", MONEY, 13), ("WIP Movement", "calc", MONEY, 13),
+    ("Issue", "calc", "@", 36), ("Journal Seq", "calc", "0", 7),
 ]
 DEF_FIXED = len(DEF_COLS)
 DEF_COLS += [(m.strftime("%b-%y"), "calc", '#,##0.00;[Red]-#,##0.00;"-"', 10) for m in GRID_MONTHS]
@@ -1088,6 +1090,10 @@ DEF_NOTES = {
     "Movement This Month": "Journal month movement. Negative = deferred out of the month. Positive = released into the month.",
     "Closing Deferred": "Amount still deferred at the end of the journal month.",
     "Journal Seq": "Line number of this row on the Deferral Journal for the journal month.",
+    "Per Month Override": "Optional. The monthly amount to release if it must match another schedule exactly (the last month takes any rounding). Leave blank to divide evenly.",
+    "Cost Centre Override": "Only for a deferral on a job that is not on a department sheet (e.g. an older licence). Otherwise leave blank.",
+    "WIP Opening": "GL 11300 balance this line carries at the start of the Month-End month (debit +, credit -). Ties to the WIP Schedule.",
+    "WIP Movement": "GL 11300 movement for this line in the Month-End month (debit +, credit -).",
 }
 
 
@@ -1131,7 +1137,13 @@ def build_deferrals():
     JM = "'Deferral Journal'!$C$4"
     inv_match = f'MATCH({B}&"",tbl_Finance[Xero Invoice No],0)'
     fpull = lambda fld: f'IF({J}="","",INDEX(tbl_Finance[{fld}],{J})&"")'
-    anydata = f"COUNTA(${DC['Type']}{r_}:${DC['P&L GL Override']}{r_})>0"
+    anydata = f"COUNTA(${DC['Type']}{r_}:${DC['Per Month Override']}{r_})>0"
+    PMo = f"${DC['Per Month Override']}{r_}"
+    CCo = f"${DC['Cost Centre Override']}{r_}"
+    ME = "'Month-End'!$C$4"
+    sgn = f'IF({A}="Cost",-1,1)'
+    hdr_rng = f"${DEF_G0}${DEF_HDR - 1}:${DEF_G1}${DEF_HDR - 1}"
+    grid_r = f"{DEF_G0}{r_}:{DEF_G1}{r_}"
     gl_name = lambda code: f'IFERROR(" "&INDEX(lst_GLName,MATCH({code},lst_RevGL,0)),"")'
     F = {
         "Finance Row": (f'=IF({Fo}<>"",IFERROR(MATCH({Fo}&"",tbl_Finance[Job Number],0),""),'
@@ -1141,14 +1153,16 @@ def build_deferrals():
                          f'{fpull("Job Description")}))'),
         "Department": "=" + fpull("Department"),
         "Client": "=" + fpull("Client"),
-        "Cost Centre": "=" + fpull("Cost Centre"),
+        "Cost Centre": f'=IF({CCo}<>"",{CCo}&"",{fpull("Cost Centre")})',
+        "WIP Opening": f'=IF({U}="",0,{sgn}*SUMIF({hdr_rng},"<"&{ME},{grid_r}))',
+        "WIP Movement": f'=IF({U}="",0,{sgn}*SUMIF({hdr_rng},{ME},{grid_r}))',
         "Amount Ex GST": (f'=IF({Go}<>"",{Go},IF(OR({A}<>"Revenue",{B}=""),"",'
                           f'IFERROR(INDEX(tbl_Finance[Xero Invoiced Ex GST],{inv_match})+0,"")))'),
         "Invoice Month": f'=IF({Cc}="","",EOMONTH({Cc},0))',
         "Start Month": f'=IF({Q}="","",IF({D}="",{Q},EOMONTH({D},0)))',
         "End Month": f'=IF({E}="","",EOMONTH({E},0))',
         "Months": f'=IF(OR({R}="",{S}=""),"",IF({S}<{R},"",(YEAR({S})-YEAR({R}))*12+MONTH({S})-MONTH({R})+1))',
-        "Per Month": f'=IF(OR({T}="",{P}=""),"",ROUND({P}/{T},2))',
+        "Per Month": f'=IF(OR({T}="",{P}=""),"",IF({PMo}<>"",{PMo},ROUND({P}/{T},2)))',
         "P&L Account": (f'=IF({A}="","",IF({Ho}<>"",{Ho}&{gl_name(Ho + "&" + chr(34) * 2)},IF({A}="Cost","(pick the cost GL)",'
                         f'IF({J}="","(job not found)",INDEX(tbl_Finance[Revenue GL],{J})&'
                         f'{gl_name("INDEX(tbl_Finance[Revenue GL]," + J + ")")}))))'),
@@ -1166,7 +1180,8 @@ def build_deferrals():
         (f'{E}=""', "No defer end"),
         (f'AND({R}<>"",{S}<>"",{S}<{R})', "Defer end is before the start"),
         (f'AND({A}="Revenue",{Fo}="",{J}="",{B}<>"")', "Invoice number not found on Finance - check it, or type the job number"),
-        (f'AND({Fo}<>"",{J}="")', "Job number not on any department sheet"),
+        (f'AND({Fo}<>"",{J}="",COUNTIF(lst_Jobs,{Fo}&"")=0)', "Job number not on a department sheet or the Xero job list"),
+        (f'AND({A}<>"",{DC["Cost Centre"]}{r_}="")', "No cost centre - type one in Cost Centre Override"),
         (f'AND({A}="Revenue",{B}<>"",{P}="")', "No Ex GST on Finance for this invoice yet - check Finance or type it in Amount Override"),
         (f'AND({A}="Cost",{Fo}="")', "Cost needs a job number"),
         (f'AND({A}="Cost",{Go}="")', "Cost needs an amount"),
@@ -1175,8 +1190,9 @@ def build_deferrals():
         (f'OR(AND({Q}<>"",OR({Q}<{first_m},{Q}>{last_m})),AND({S}<>"",{S}>{last_m}),AND({R}<>"",{R}<{first_m}))',
          "Dates fall outside the Jul-24 to Jun-30 schedule"),
         (f'AND({B}<>"",COUNTIF(tbl_WIP[Xero Invoice No],{B})>0)', "Also on WIP Movements - it would count twice"),
-        (f'AND({B}<>"",COUNTIF(${DC["Invoice or Bill No"]}${DEF_FIRST}:${DC["Invoice or Bill No"]}${DEF_LAST},{B})>1)',
-         "Same invoice or bill number on two deferral rows"),
+        (f'AND({B}<>"",COUNTIFS(${DC["Invoice or Bill No"]}${DEF_FIRST}:${DC["Invoice or Bill No"]}${DEF_LAST},{B},'
+         f'${DC["Project Number"]}${DEF_FIRST}:${DC["Project Number"]}${DEF_LAST},{K},${DC["Type"]}${DEF_FIRST}:${DC["Type"]}${DEF_LAST},{A})>1)',
+         "Same invoice or bill number twice on this job"),
     ]
     F["Issue"] = (f'=IF(NOT({anydata}),"",MID(' + "&".join(f'IF({c},"; {t}","")' for c, t in checks) + ',3,500))')
     for i in range(DEF_N):
@@ -1196,8 +1212,10 @@ def build_deferrals():
     add_table(ws, "tbl_Def", f"A{DEF_HDR}:{DEF_G1}{DEF_LAST}")
     ws.column_dimensions[DC["Finance Row"]].hidden = True
     ws.freeze_panes = f"{DC['Project Number']}{DEF_FIRST}"
-    for h, lst in [("Type", "lst_RevCost"), ("P&L GL Override", "lst_RevGL")]:
-        dv = DataValidation(type="list", formula1=lst, allow_blank=True)
+    for h, lst in [("Type", "lst_RevCost"), ("P&L GL Override", "lst_RevGL"), ("Cost Centre Override", "lst_CostCentre")]:
+        dv = DataValidation(type="list", formula1=lst, allow_blank=True, showErrorMessage=True,
+                            errorStyle="warning" if h == "P&L GL Override" else "stop",
+                            error="Not on the list - check the code (any Xero account can be used here)." if h == "P&L GL Override" else None)
         dv.add(f"{DC[h]}{DEF_FIRST}:{DC[h]}{DEF_LAST}")
         ws.add_data_validation(dv)
     for h in ("Invoice or Bill Date", "Defer Start", "Defer End"):

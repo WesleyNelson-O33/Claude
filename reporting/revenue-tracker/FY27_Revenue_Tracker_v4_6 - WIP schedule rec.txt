@@ -1,0 +1,55 @@
+Rounding adjustment -0.010000 added for schedule row 274 job 2519
+Deferrals sheet: 52 lines. WIP Movements: 172 rows.
+
+SEPTEMBER LINES NOT LOADED - the schedule repeats an August reversal on a line already cleared in August:
+  row 299  job 25121208  APA FYR August 2026 Package - Equipment Hire (Revenue)  Sep 2,737.50
+  row 300  job 25121208  APA FYR August 2026 Package - Prod Labour (Revenue)  Sep 1,900.00
+  row 301  job 25121208  APA FYR August 2026 Package - Conference Call (Revenue)  Sep 3,575.00
+  row 302  job 25121208  APA FYR August 2026 Package - Tech Event Mgmt (Revenue)  Sep 230.00
+  row 303  job 25121208  APA FYR August 2026 Package - Freight (Revenue)  Sep 300.00
+  row 310  job 26033003  Deloitte 8PSQ Dream Big Microphones Project - Fredon (Equipment)  Sep 17,470.08
+  row 311  job 26033003  Deloitte 8PSQ Dream Big Microphones Project - Fredon (Labour)  Sep 4,840.96
+  row 316  job 26033006  Deloitte Western Sydney Bluetooth Audio - Fredon (Equipment)  Sep 2,110.00
+  row 317  job 26033006  Deloitte Western Sydney Bluetooth Audio - Fredon (Labour)  Sep 2,114.22
+  row 386  job 26043003  PwC | SYD/MEL Screen Replacements AVIT PO-00016884 & PO-00016883 Equip  Sep 74,095.06
+  row 387  job 26043003  PwC | SYD/MEL Screen Replacements AVIT PO-00016884 & PO-00016883 Labou  Sep 13,439.61
+  row 388  job 26043003  PwC | SYD/MEL Screen Replacements AVIT PO-00016884 & PO-00016883 Freig  Sep 200.00
+  row 401  job 25111203  CoS | Barco E3 Sale [INT] Expense PO-00016890  Sep 149,604.26
+  row 402  job 26061501  Display Replacement in Melbourne Lv29 common area Fredon PO-00016897 (  Sep 1,688.07
+  row 403  job 26061501  Display Replacement in Melbourne Lv29 common area Fredon PO-00016897 (  Sep 1,344.20
+  row 416  job 2605605  DTTL Hobart Office AV Fitout Labour Expense Estimation (Supplier TBC)  Sep 10,485.00
+  row 417  job 26072101  Aware Super | Amplifier supply and replacement of faulty device in Mel  Sep 549.00
+  Total not loaded: 286,682.96
+
+DEFERRAL LINES WHERE THE SCHEDULE DIFFERS FROM A STRAIGHT-LINE RELEASE (tracker vs schedule balance):
+  row 236  job 25070702  Revenue  Sep-26: tracker -0.00  schedule 308.16  diff -308.16
+  row 237  job 25070702  Cost  Sep-26: tracker -0.00  schedule -256.80  diff 256.80
+  row 333  job 25060301  Cost  Jun-26: tracker 23,799.51  schedule 23,799.51  diff 0.00
+  row 337  job 3068  Cost  Jun-26: tracker 1,281.51  schedule 1,281.51  diff 0.00
+  row 337  job 3068  Cost  Jul-26: tracker 1,153.36  schedule 1,153.36  diff 0.00
+  row 337  job 3068  Cost  Aug-26: tracker 1,025.21  schedule 1,025.21  diff 0.00
+  row 337  job 3068  Cost  Sep-26: tracker 897.06  schedule 897.06  diff 0.00
+  row 345  job 2603202  Cost  Jun-26: tracker 17,941.16  schedule 17,941.16  diff 0.00
+  row 345  job 2603202  Cost  Jul-26: tracker 16,147.04  schedule 16,147.04  diff 0.00
+  row 345  job 2603202  Cost  Aug-26: tracker 14,352.92  schedule 14,352.92  diff 0.00
+  row 345  job 2603202  Cost  Sep-26: tracker 12,558.80  schedule 12,558.80  diff 0.00
+  row 346  job 25041502  Revenue  Jun-26: tracker -30,414.66  schedule -30,414.66  diff 0.00
+  row 346  job 25041502  Revenue  Jul-26: tracker -27,373.19  schedule -27,373.19  diff 0.00
+  row 346  job 25041502  Revenue  Aug-26: tracker -24,331.72  schedule -24,331.72  diff 0.00
+  row 346  job 25041502  Revenue  Sep-26: tracker -21,290.25  schedule -21,290.25  diff 0.00
+  row 348  job 3068  Revenue  Jun-26: tracker -40,853.61  schedule -40,853.61  diff 0.00
+  row 348  job 3068  Revenue  Jul-26: tracker -36,768.25  schedule -36,768.25  diff 0.00
+  row 348  job 3068  Revenue  Aug-26: tracker -32,682.89  schedule -32,682.89  diff 0.00
+  row 348  job 3068  Revenue  Sep-26: tracker -28,597.53  schedule -28,597.53  diff 0.00
+  row 350  job 2510205  Revenue  Jun-26: tracker -18,686.98  schedule -18,686.98  diff 0.00
+  row 350  job 2510205  Revenue  Jul-26: tracker -16,818.28  schedule -16,818.28  diff 0.00
+  row 350  job 2510205  Revenue  Aug-26: tracker -14,949.58  schedule -14,949.58  diff 0.00
+  row 350  job 2510205  Revenue  Sep-26: tracker -13,080.88  schedule -13,080.88  diff 0.00
+  row 351  job 2510205  Cost  Jun-26: tracker 14,920.46  schedule 14,920.46  diff 0.00
+  row 351  job 2510205  Cost  Jul-26: tracker 13,428.41  schedule 13,428.41  diff 0.00
+  row 351  job 2510205  Cost  Aug-26: tracker 11,936.36  schedule 11,936.36  diff 0.00
+  row 351  job 2510205  Cost  Sep-26: tracker 10,444.31  schedule 10,444.31  diff 0.00
+  row 471  job 25070702  Revenue  Sep-26: tracker -3,627.04  schedule 3,956.77  diff -7,583.81
+  row 472  job 25070702  Cost  Sep-26: tracker 3,022.53  schedule -3,297.31  diff 6,319.84
+  row 473  job 26091401  Revenue  Sep-26: tracker -19,270.34  schedule 21,197.37  diff -40,467.71
+  row 474  job 26091401  Cost  Sep-26: tracker 17,343.33  schedule -19,077.66  diff 36,420.99
