@@ -1099,6 +1099,8 @@ def build_month_end():
             if c.column in (2, 3, 4, 5, 6, 7, 8, 9) and c.value is not None and not (
                     39 <= c.row <= last_chk or 29 <= c.row <= 34 and c.column == 2):
                 c.number_format = MONEY
+    for rr in range(w0 + 2, w0 + 7):          # Work Won opportunity counts are numbers, not dollars
+        ws.cell(rr, 2).number_format = '#,##0;-#,##0;"-"'
     for a in inputs:
         ws[a].fill = FILL_FIN
         ws[a].protection = Protection(locked=False)
