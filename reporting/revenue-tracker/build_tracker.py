@@ -21,6 +21,8 @@ from openpyxl.utils import get_column_letter as CL
 from openpyxl.utils import column_index_from_string as CI
 from openpyxl.workbook.defined_name import DefinedName
 from openpyxl.workbook.protection import WorkbookProtection
+
+import zoho_feed
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
@@ -1524,6 +1526,15 @@ README = [
     ("(set the P&L Account) - on WIP Movements, a cost line has no P&L account, so the journal cannot say which GL to use.", None),
     ("Work Won - Status is Won, Open, Lost or Cancelled. Probability comes from the Pipeline Stage (Lists AA:AB - these percentages are assumptions you can change). Weighted Value = Value x Probability. Still to Invoice = Won value less what Xero has invoiced on the job and its V job.", None),
     ("", None),
+    ("WORK WON  -  MONTHLY ZOHO DUMP", "h"),
+    ("Work Won fills itself from Zoho. Nobody types on it. Once a month (or whenever you want it current):", None),
+    ("1. In Zoho run 'All Deals by Stage' (year to date plus all open deals) and export it to Excel.", None),
+    ("2. On the Zoho Paste sheet select A1:H3001 and press Delete. In the export click A1, press Ctrl+Shift+End, Ctrl+C. Back on Zoho Paste click A1 and Ctrl+V.", None),
+    ("3. The panel on the right of Zoho Paste must read OK: it compares the deals it read with Zoho's own Record Count.", None),
+    ("4. Work Won then shows every deal won, lost or closing this financial year plus every open deal, with Status, Pipeline Stage, Probability, Weighted Value, what Xero has invoiced on the job (and its V job) and what is still to invoice. Month-End section 6 and the FY Summary pipeline and forecast update too.", None),
+    ("5. Won Overrides is for what Zoho cannot tell us - the cost centre of a Multi-Service deal, a different expected invoice month, or a note. It is keyed on the Opportunity Number so it survives every new dump. Zoho departments map to cost centres on Lists AD:AE.", None),
+    ("Expected Invoice Month = the event date in the deal name if there is one (for example 'ASX - AGM - 22.10.26'), otherwise the Zoho closing date, unless Won Overrides says otherwise. The Opportunity Number is the job number.", None),
+    ("", None),
     ("RULES THAT KEEP IT ACCURATE", "h"),
     ("Never delete a row on a department sheet. If a line is cancelled, set its Expected Revenue Ex GST to 0 and say so in Notes.", None),
     ("Never type over a Row ID.", None),
@@ -1603,6 +1614,7 @@ build_deferrals()
 build_def_journal()
 build_wip_summary()
 build_won()
+zoho_feed.apply(wb)
 build_readme()
 order = ["Read Me", "Finance", "Month-End", "Deferrals", "Deferral Journal", "FY Summary", "Onsite", "Production", "Consulting",
          "WIP Movements", "WIP Summary", "Work Won", "Lists"]
