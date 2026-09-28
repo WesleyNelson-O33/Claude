@@ -479,6 +479,7 @@ def build_finance():
     jobs = f"${FC['Job Number']}${FIN_FIRST}:${FC['Job Number']}${FIN_LAST}"
     depts = f"${FC['Department']}${FIN_FIRST}:${FC['Department']}${FIN_LAST}"
     invs = f"${FC['Xero Invoice No']}${FIN_FIRST}:${FC['Xero Invoice No']}${FIN_LAST}"
+    amts = f"${FC['Xero Invoiced Ex GST']}${FIN_FIRST}:${FC['Xero Invoiced Ex GST']}${FIN_LAST}"
     F = {
         "Dept Row": (f'=IFERROR(MATCH($A{r_},IF($B{r_}="Onsite",tbl_Onsite[Row ID],IF($B{r_}="Production",'
                      f'tbl_Production[Row ID],tbl_Consulting[Row ID])),0),"")'),
@@ -513,7 +514,7 @@ def build_finance():
         (f'AND({job}<>"",{E}="")', "Dept has not entered an expected value"),
         (f'AND({anyin},OR(COUNTA({G}:{X})<3,NOT(ISNUMBER({X})),NOT(ISNUMBER({H}))))',
          "Invoice incomplete - needs Invoice No, a date and a number in Ex GST"),
-        (f'AND({G}<>"",COUNTIF({invs},{G})>1)', "Same invoice number on another row"),
+        (f'AND({G}<>"",COUNTIFS({invs},{G},{jobs},{job},{amts},{X})>1)', "Same invoice number and amount twice on this job"),
     ]
     body = "&".join(f'IF({cond},"; {txt}","")' for cond, txt in checks)
     F["Issue"] = f'=IF(AND(NOT({live}),${FC["Dept Row"]}{r_}<>""),"",MID({body},3,500))'
@@ -566,7 +567,7 @@ def build_finance():
 def build_summary():
     ws = wb.create_sheet("FY Summary", 2)
     title_block(ws, "FY27 Revenue Summary",
-                "Invoiced revenue (ex GST) by month, straight off the Finance sheet. Nothing is typed here.")
+                "Invoiced revenue (ex GST) by month, straight off the Finance sheet - only rows with a Xero invoice number count. Nothing is typed here.")
     ws.column_dimensions["A"].width = 30
     for i in range(2, 16):
         ws.column_dimensions[CL(i)].width = 14
@@ -591,11 +592,11 @@ def build_summary():
         r = 6 + k
         ws.cell(r, 1, f"=INDEX(lst_CostCentre,{k + 1})")
         for i, m in enumerate(MONTHS):
-            ws.cell(r, 2 + i, f'=SUMIFS(tbl_Finance[Xero Invoiced Ex GST],tbl_Finance[Invoice Month],{CL(2 + i)}$5,tbl_Finance[Cost Centre],$A{r})')
+            ws.cell(r, 2 + i, f'=SUMIFS(tbl_Finance[Xero Invoiced Ex GST],tbl_Finance[Invoice Month],{CL(2 + i)}$5,tbl_Finance[Cost Centre],$A{r},tbl_Finance[Xero Invoice No],"<>")')
     ws.cell(12, 1, "No cost centre set (fix on dept sheet)")
     for i, m in enumerate(MONTHS):
         L = CL(2 + i)
-        ws.cell(12, 2 + i, f"=SUMIFS(tbl_Finance[Xero Invoiced Ex GST],tbl_Finance[Invoice Month],{L}$5)-SUM({L}6:{L}11)")
+        ws.cell(12, 2 + i, f"=SUMIFS(tbl_Finance[Xero Invoiced Ex GST],tbl_Finance[Invoice Month],{L}$5,tbl_Finance[Xero Invoice No],\"<>\")-SUM({L}6:{L}11)")
     ws.cell(13, 1, "TOTAL")
     for c in range(2, 14):
         L = CL(c)
@@ -609,7 +610,7 @@ def build_summary():
         r = 17 + k
         ws.cell(r, 1, d)
         for i, m in enumerate(MONTHS):
-            ws.cell(r, 2 + i, f'=SUMIFS(tbl_Finance[Xero Invoiced Ex GST],tbl_Finance[Invoice Month],{CL(2 + i)}$16,tbl_Finance[Department],$A{r})')
+            ws.cell(r, 2 + i, f'=SUMIFS(tbl_Finance[Xero Invoiced Ex GST],tbl_Finance[Invoice Month],{CL(2 + i)}$16,tbl_Finance[Department],$A{r},tbl_Finance[Xero Invoice No],"<>")')
     ws.cell(20, 1, "TOTAL")
     for c in range(2, 14):
         L = CL(c)
@@ -847,7 +848,7 @@ def build_month_end():
         if k < 6:
             ws.cell(r, 1, f"=INDEX(lst_CostCentre,{k + 1})")
             ws.cell(r, 2, f"=IFERROR(INDEX('FY Summary'!$B${6 + k}:$M${6 + k},{mi}),0)")
-            gst = f'SUMIFS(tbl_Finance[Xero Invoiced Ex GST],tbl_Finance[Invoice Month],$C$4,tbl_Finance[Cost Centre],$A{r},tbl_Finance[Tax Code],"GST 10%")'
+            gst = f'SUMIFS(tbl_Finance[Xero Invoiced Ex GST],tbl_Finance[Invoice Month],$C$4,tbl_Finance[Cost Centre],$A{r},tbl_Finance[Tax Code],"GST 10%",tbl_Finance[Xero Invoice No],"<>")'
             ws.cell(r, 3, f"=IFERROR(ROUND(({gst})*set_GSTRate,2),0)")
             ws.cell(r, 5, f'=SUMIFS(tbl_WIP[Amount],tbl_WIP[Month],$C$4,tbl_WIP[Cost Centre],$A{r},tbl_WIP[Revenue or Cost],"<>Cost")')
             ws.cell(r, 6, f'=SUMPRODUCT(({dtype}="Revenue")*({dcc}=$A{r})*({dgrid}=$C$4)*{dvals})')
@@ -935,7 +936,7 @@ def build_month_end():
          'COUNTIF(tbl_Onsite[Not Yet on Finance],"Fix:*")+COUNTIF(tbl_Production[Not Yet on Finance],"Fix:*")'
          '+COUNTIF(tbl_Consulting[Not Yet on Finance],"Fix:*")'),
         ("Incomplete invoices (No, Date or Ex GST missing)", 'COUNTIF(tbl_Finance[Issue],"*incomplete*")'),
-        ("Same Xero invoice number on two rows", 'COUNTIF(tbl_Finance[Issue],"*Same invoice number*")'),
+        ("Same Xero invoice number typed twice on one job", 'COUNTIF(tbl_Finance[Issue],"*Same invoice number*")'),
         ("Department rows deleted (Row ID missing)", 'COUNTIF(tbl_Finance[Issue],"*Row ID not found*")'),
         ("Consulting revenue split does not equal the job value", 'COUNTIF(tbl_Consulting[Revenue Split Check],"MISMATCH")'),
         ("WIP movements with an amount but no month or no job",
@@ -1361,7 +1362,7 @@ README = [
     ("MAKING SURE NO REVENUE IS MISSED", "h"),
     ("Month-End section 3 counts and values every line that is not invoiced, under-invoiced or over-invoiced. FY Summary section 3 shows the same by department.", None),
     ("On Finance, filter Compare to Not invoiced or Dept higher to get the list to chase.", None),
-    ("The Issue column lists everything wrong on a row: job not in Xero, job number used by two departments, department information missing, an incomplete invoice, the same invoice number on two rows, or a deleted department row.", None),
+    ("The Issue column lists everything wrong on a row: job not in Xero, job number used by two departments, department information missing, an incomplete invoice, the same invoice number typed twice on one job, or a deleted department row. One Xero invoice can cover several jobs (for example a production line and a V video line) - each job's line goes on its own row with the same invoice number.", None),
     ("", None),
     ("OLDER JOBS FROM 2024, FY25 AND FY26", "h"),
     ("Enter them exactly the same way - one row per invoice, with the real Xero invoice date. FY Summary and Month-End only count invoices dated in the month you pick, so older invoices never land in FY27 revenue, but the job-level comparison still includes them.", None),
