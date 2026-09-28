@@ -1,0 +1,28 @@
+Loaded 205 deals into Work Won rows 5-209
+  Lost: 46 deals, $1,105,553.00
+  Open: 61 deals, $1,330,151.00
+  Won: 98 deals, $899,070.00
+Row 7: won deal 2602309 Elkiem Studio Support 1.7.26 - job not on the Lists job list yet
+Row 9: won deal 26061704 Ricoh / Qantas Extension (2 Months) - job not on the Lists job list yet
+Row 10: won deal 2607701 Litecard - Event Hire - 16.7.26 - job not on the Lists job list yet
+Row 17: won deal 2607301 Event Bump-in/Bump-out - job not on the Lists job list yet
+Row 33: won deal 26071301 Litecard - Event Photography - 16.7.26 - job not on the Lists job list yet
+Row 36: won deal 26063001 Skykick Ranger - Sydney Performance - 26.7.26 - job not on the Lists job list yet
+Row 41: won deal 2606101 APA | Young Eptura Proxyclick Licence Renewal - 2606101 - job not on the Lists job list yet
+Row 43: won deal 2607901 ON24 - KWM Event - 23.7.26 - job not on the Lists job list yet
+Row 52: won deal 26072901 Market Shapers - job not on the Lists job list yet
+Row 53: won deal 26072904 PWC - Event Technician - 30.7.26 - job not on the Lists job list yet
+Row 58: won deal 26072001 Pool of hours for National AV Support - 20JULY26 - job not on the Lists job list yet
+Row 68: won deal 26073102 Pool of Hours - National AV / IT Support - job not on the Lists job list yet
+Row 77: won deal 2608502 Tech Support - Change Maker - job not on the Lists job list yet
+Row 91: won deal 2608603 Pool of Hours - National AV / IT Support - job not on the Lists job list yet
+Row 122: won deal 2608104 Tech Support - ARC AI Symposium - job not on the Lists job list yet
+Row 128: won deal 2609401 Pool of Hours - National AV / IT Support - job not on the Lists job list yet
+Row 132: won deal 26081301 EY - Support Technician BNE - job not on the Lists job list yet
+Row 135: won deal 26081701 DAFF | Standards Package Drafting - 26081701 - job not on the Lists job list yet
+Row 136: won deal 26082401 HP-CSIRO | Phone Mod x3 - 26082401 - job not on the Lists job list yet
+Row 138: won deal 26091401 Appspace Subscription (12 Months) - job not on the Lists job list yet
+Row 141: won deal 26091702 AusPayNet - Prod Support 21 & 22.9.26 - job not on the Lists job list yet
+Row 142: won deal 26092101 Bankwest - BCEC WGEA Report Launch - 13.10.2026 - job not on the Lists job list yet
+Row 143: won deal 26092104 Dimensional - AV Support - 22.9.26 - job not on the Lists job list yet
+Row 144: won deal 2608105 Tech Support - Next Gen - job not on the Lists job list yet

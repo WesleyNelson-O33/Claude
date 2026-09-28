@@ -167,6 +167,10 @@ def red_if(ws, rng, formula, fill="F8D7DA", color="9C0006", bold=False):
 
 
 # ====================================================================== Lists
+STAGES = [("Building Value Proposition", 0.25), ("Proposal Sent", 0.5), ("Negotiation/Review", 0.75),
+          ("Verbal Approval", 0.9), ("Closed Won", 1.0), ("Closed Lost", 0.0)]
+
+
 def build_lists():
     old = src["Lists"]
     ws = wb.create_sheet("Lists")
@@ -215,6 +219,24 @@ def build_lists():
         c.number_format = "mmm-yy"
         c.font = F_CALC
     ws.column_dimensions["Y"].width = 12
+    # pipeline stage -> probability (assumed weights, finance can change them)
+    ws["AA4"], ws["AB4"] = "Pipeline Stage (Zoho)", "Win Probability"
+    for c in ("AA4", "AB4"):
+        ws[c].font = Font(name=FONT, size=10, bold=True, color="FFFFFF")
+        ws[c].fill = FILL_IN_HDR
+    for i, (stg, pr) in enumerate(STAGES):
+        ws.cell(5 + i, 27, stg).font = Font(name=FONT, size=10)
+        c = ws.cell(5 + i, 28, pr)
+        c.number_format = "0%"
+        c.fill = FILL_FIN
+        c.font = Font(name=FONT, size=10)
+        for cc in (27, 28):
+            ws.cell(5 + i, cc).protection = Protection(locked=False)
+    ws["AA12"] = ("These percentages are assumptions, not Zoho data - Zoho's export has no probability. "
+                  "Change them here and Work Won and the FY Summary forecast follow.")
+    ws["AA12"].font = Font(name=FONT, size=9, italic=True, color=GREY_TXT)
+    ws.column_dimensions["AA"].width = 28
+    ws.column_dimensions["AB"].width = 14
     # unlock the list areas so new values can be added under protection
     for col in "ABCDEFGHIJKLMNOV W".replace(" ", ""):
         for r in range(5, 120):
@@ -232,6 +254,7 @@ def build_lists():
         "lst_JobName": "$Q$5:$Q$1500", "lst_JobCC": "$R$5:$R$1500",
         "lst_FY27Months": "$Y$5:$Y$16", "set_FYFirstMonth": "$U$12", "lst_GLName": "$L$5:$L$39",
         "set_DefRevAcct": "$U$15", "set_DefCostAcct": "$U$16",
+        "lst_Stage": "$AA$5:$AA$10", "lst_StageProb": "$AB$5:$AB$10",
     }
     for n, ref in names.items():
         add_name(n, f"Lists!{ref}")
@@ -648,6 +671,52 @@ def build_summary():
         ws.cell(28, c, f"=SUM({L}25:{L}27)")
     ws.cell(29, 1, "Revenue still to invoice (Not invoiced $ + Part invoiced $)")
     ws.cell(29, 5, "=G28+I28")
+
+    # block 4 - pipeline and forecast (Work Won by Expected Invoice Month)
+    section(31, "4.  PIPELINE & FORECAST EX GST  -  by Expected Invoice Month on Work Won")
+    month_header(32, "Line")
+    lines = [
+        ("Invoiced (Xero, off Finance)", None),
+        ("Won - not yet invoiced on Finance", 'SUMIFS(tbl_Won[Still to Invoice],tbl_Won[Status],"Won",tbl_Won[Expected Invoice Month],{m})'),
+        ("Open pipeline - full value", 'SUMIFS(tbl_Won[Value Ex GST],tbl_Won[Status],"Open",tbl_Won[Expected Invoice Month],{m})'),
+        ("Open pipeline - weighted", 'SUMIFS(tbl_Won[Weighted Value],tbl_Won[Status],"Open",tbl_Won[Expected Invoice Month],{m})'),
+    ]
+    for k, (lab, fm) in enumerate(lines):
+        r = 33 + k
+        ws.cell(r, 1, lab)
+        for i in range(12):
+            L = CL(2 + i)
+            ws.cell(r, 2 + i, f"={L}13" if fm is None else "=" + fm.format(m=f"{L}$32"))
+        ws.cell(r, 14, f"=SUM(B{r}:M{r})")
+    ws.cell(37, 1, "FORECAST (invoiced + won to invoice + weighted)")
+    for c in range(2, 15):
+        L = CL(c)
+        ws.cell(37, c, f"={L}33+{L}34+{L}36")
+    ws.cell(38, 1, "Open deals with the expected month already gone")
+    ws.cell(38, 2, '=COUNTIFS(tbl_Won[Status],"Open",tbl_Won[Expected Invoice Month],"<"&EOMONTH(TODAY(),-1)+1)')
+    ws.cell(38, 3, '=SUMIFS(tbl_Won[Value Ex GST],tbl_Won[Status],"Open",tbl_Won[Expected Invoice Month],"<"&EOMONTH(TODAY(),-1)+1)')
+    ws.cell(38, 4, "<- update the closing date in Zoho or mark the deal lost")
+    ws.cell(39, 1, "Open deals dated outside this FY or undated (not in the grid)")
+    ws.cell(39, 2, '=COUNTIFS(tbl_Won[Status],"Open")-COUNTIFS(tbl_Won[Status],"Open",tbl_Won[Expected Invoice Month],">="&$B$32,tbl_Won[Expected Invoice Month],"<="&$M$32)')
+    ws.cell(39, 3, '=SUMIFS(tbl_Won[Value Ex GST],tbl_Won[Status],"Open")-SUMIFS(tbl_Won[Value Ex GST],tbl_Won[Status],"Open",tbl_Won[Expected Invoice Month],">="&$B$32,tbl_Won[Expected Invoice Month],"<="&$M$32)')
+    ws.cell(40, 1, "Win rate this FY (won value / won + lost value)")
+    ws.cell(40, 2, '=IFERROR(SUMIFS(tbl_Won[Value Ex GST],tbl_Won[Status],"Won")/(SUMIFS(tbl_Won[Value Ex GST],tbl_Won[Status],"Won")+SUMIFS(tbl_Won[Value Ex GST],tbl_Won[Status],"Lost")),"")')
+    ws.cell(41, 1, ("Weighted = Value x the stage probability on Lists (AA:AB). Those percentages are assumptions - change them there. "
+                    "Won not yet invoiced = deal value less Xero invoices on that job number and its V video job - in past months it is a to-check list, not future revenue. A negative means Xero has invoiced more than the deal value."))
+    ws.cell(41, 1).font = Font(name=FONT, size=9, italic=True, color=GREY_TXT)
+    for r in range(33, 41):
+        for c in range(1, 15):
+            cc = ws.cell(r, c)
+            if cc.value is None:
+                continue
+            cc.font = Font(name=FONT, size=10, bold=r == 37, italic=(r == 38 and c == 4), color=GREY_TXT if (r == 38 and c == 4) else None)
+            cc.border = BORDER
+            if c > 1 and not (r in (38, 39) and c == 2) and not (r == 38 and c == 4):
+                cc.number_format = MONEY
+            if r == 37:
+                cc.fill = FILL_TOT
+    ws["B38"].number_format = ws["B39"].number_format = "0"
+    ws["B40"].number_format = "0%"
     # styling
     for row in ws.iter_rows(min_row=6, max_row=29, max_col=14):
         for c in row:
@@ -770,31 +839,37 @@ def build_won():
     old = src["Work Won"]
     ws = wb.create_sheet("Work Won")
     title_block(ws, old["A1"].value,
-                "Paste the month's won opportunities here, one row each. Month-End compares them against what was "
-                "invoiced. Put the job number on the row and it shows what Xero has invoiced on that job so far.")
+                "One row per Zoho deal (won, open and lost) - load the Zoho 'All Deals by Stage' export with populate_won.py or type rows. "
+                "Status Won/Open/Lost; Pipeline Stage drives the probability (Lists AA:AB). Expected Invoice Month feeds the FY Summary forecast. "
+                "On the Finance Sheet shows what Xero has invoiced on the job and its V video job.")
     ws["A3"] = ('="Value Ex GST  "&TEXT(SUBTOTAL(109,tbl_Won[Value Ex GST]),"$#,##0.00")&"      On the Finance Sheet  "'
                 '&TEXT(SUBTOTAL(109,tbl_Won[On the Finance Sheet]),"$#,##0.00")')
     ws.merge_cells("A3:L3")
     ws["A3"].font, ws["A3"].fill = F_TOT, FILL_TOT
-    heads = [c.value for c in old[4] if c.value is not None]
-    f = {"Job in Xero?": '=IF(E{r}="","",IF(COUNTIF(lst_Jobs,E{r}&"")>0,"OK","CHECK"))',
-         "On the Finance Sheet": '=IF(E{r}="","",SUMIFS(tbl_Finance[Xero Invoiced Ex GST],tbl_Finance[Job Number],E{r}&""))',
+    heads = [c.value for c in old[4] if c.value is not None] + ["Pipeline Stage", "Probability", "Weighted Value"]
+    widths = {"Pipeline Stage": 24, "Probability": 11, "Weighted Value": 14}
+    fmts = {"Probability": "0%", "Weighted Value": MONEY, "Pipeline Stage": "@"}
+    f = {"Probability": '=IF(J{r}="","",IF(J{r}="Won",1,IF(J{r}<>"Open",0,IFERROR(INDEX(lst_StageProb,MATCH(P{r},lst_Stage,0)),0))))',
+         "Weighted Value": '=IF(Q{r}="","",ROUND(N(I{r})*Q{r},2))',
+         "Job in Xero?": '=IF(OR(E{r}="",J{r}<>"Won"),"",IF(COUNTIF(lst_Jobs,E{r}&"")>0,"OK","CHECK"))',
+         "On the Finance Sheet": '=IF(E{r}="","",SUMIFS(tbl_Finance[Xero Invoiced Ex GST],tbl_Finance[Job Number],E{r}&"")'
+                                 '+SUMIFS(tbl_Finance[Xero Invoiced Ex GST],tbl_Finance[Job Number],E{r}&"V"))',
          "Still to Invoice": '=IF(J{r}<>"Won","",IF(E{r}="",N(I{r}),N(I{r})-N(M{r})))'}
     for i, h in enumerate(heads):
         L = CL(i + 1)
         oldc = old.cell(5, i + 1)
         kind = "calc" if h in f else "in"
         hdr(ws.cell(4, i + 1), h, kind)
-        ws.column_dimensions[L].width = old.column_dimensions[L].width or 14
+        ws.column_dimensions[L].width = widths.get(h) or old.column_dimensions[L].width or 14
         for r in range(5, 605):
             c = ws.cell(r, i + 1)
             if h in f:
                 c.value = f[h].format(r=r)
-            style_body(c, kind, oldc.number_format)
+            style_body(c, kind, fmts.get(h, oldc.number_format))
     ws.row_dimensions[4].height = 34
     add_table(ws, "tbl_Won", f"A4:{CL(len(heads))}604")
     for col, lst in [("A", "lst_Months"), ("B", "lst_WonSource"), ("G", "lst_CostCentre"), ("J", "lst_WonStatus"),
-                     ("L", "lst_Months")]:
+                     ("L", "lst_Months"), ("P", "lst_Stage")]:
         dv = DataValidation(type="list", formula1=lst, allow_blank=True)
         dv.add(f"{col}5:{col}604")
         ws.add_data_validation(dv)

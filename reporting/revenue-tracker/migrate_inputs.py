@@ -52,6 +52,8 @@ for ws in new.worksheets:
                 v = src.cell(c.row, c.column).value
                 if is_formula(v):
                     continue
+                if v is None and src.cell(c.row, c.column).protection.locked:
+                    continue  # cell is new in this build (locked or absent in the old file) - keep its default
                 if v != c.value:
                     c.value = v
                     n += 1
