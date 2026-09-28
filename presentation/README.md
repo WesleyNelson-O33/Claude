@@ -16,12 +16,12 @@ Header and Text pair for CTS and for each division.
 
 | Layout | Use it for |
 |---|---|
-| CTS Cover (dark) | Opening slide, black background, three division colours as the motif |
-| CTS Cover (light) | Opening slide, white with a black panel |
+| CTS Cover (dark) | Opening slide, charcoal background, three division colours as the motif |
+| CTS Cover (light) | Opening slide, white with a charcoal panel |
 | CTS Cover (20 years) | Opening slide with the 20-year anniversary lock-up |
-| CTS Production / Consulting / Support Cover | Division decks, black background, division lock-up and colours |
+| CTS Production / Consulting / Support Cover | Division decks, charcoal background, division lock-up and colours |
 | CTS Section (navy) | Section divider, navy, mint number block |
-| CTS Section (light) | Section divider, white, black number block |
+| CTS Section (light) | Section divider, white, charcoal number block |
 | CTS Production / Consulting / Support Section | Division section divider on the division's dark colour |
 | CTS Header Only | Heading with an empty body for a chart, table or image |
 | CTS Header and Text | Heading with a body text placeholder (bullets by default) |
@@ -41,7 +41,7 @@ logo files, so the lock-ups in `assets/` follow the brand blueprint: the real
 "cts" wordmark with the division name set in Tomato Grotesk in the division
 colour, in the same position and size as "Seamless AV" on the master logo.
 Three versions each: charcoal wordmark with the dark division colour for white
-slides, white wordmark with the light colour for black slides, and all white
+slides, white wordmark with the light colour for charcoal slides, and all white
 for slides on the division's own colour.
 
 ## Colour palette (official CTS Seamless AV brand palette)
@@ -54,7 +54,7 @@ dark variant, on a black base.
 
 | Name | Hex | RGB | Pantone | Division / use |
 |---|---|---|---|---|
-| Black | 121820 | 18 24 32 | PMS Black 6 C | Base colour, text, dark cover |
+| Charcoal | 1A1A1A | 26 26 26 | PMS Black 6 C | Base colour, text, dark covers |
 | Mint (light) | 3FD0C9 | 63 208 201 | PMS 3255 C | Production |
 | Lavender (light) | 6D71FF | 109 113 255 | PMS 2124 C | Consulting |
 | Rose (light) | F33844 | 243 56 68 | PMS 1788 C | Support |
@@ -69,6 +69,8 @@ Rules the template follows:
   never use them for body copy.
 - Dark variants and black are used for text on white. Section labels use
   navy, callout labels use teal.
+- The site also defines a second charcoal 242424 and light greys F4F4F4, E0E0E0
+  and BABABA; use those for panels and rules rather than inventing new greys.
 - Derived neutrals that are not brand colours: grey 5F6670 for footers and
   captions, C9CED6 for secondary text on dark backgrounds, E8F9F8 as a mint
   tint for callout cards.
@@ -95,7 +97,10 @@ so do not crop the strapline off.
 from the CTS brand guidelines hub (brandpad.io/cts-seamless):
 
 - `cts_pantonevalues.pdf`: the colour palette with hex, RGB, CMYK and Pantone
-  values. The hex values are authoritative; two RGB cells in the PDF are
-  copy-paste errors (Black shows 26/26/26 and Navy repeats Lavender's RGB).
+  values. One correction: the PDF prints the base colour's hex as 121820 but
+  its RGB as 26/26/26 (1A1A1A). The website's stylesheet (`--charcoal: #1a1a1a`),
+  the logo export named "Charcoal" and the strategy PDF's page background all
+  use 1A1A1A, so the template uses 1A1A1A. The Navy row's RGB cell repeats
+  Lavender's by mistake; its hex 122B82 is used.
 - `cts_brand-strategy.pdf`: vision, purpose, values and brand architecture
   (CTS Production, CTS Consulting, CTS Support under the "Seamless AV" promise).

@@ -24,7 +24,7 @@ const pptxgen = require('pptxgenjs');
 const JSZip = require('jszip');
 
 // Brand palette (CTS Seamless AV)
-const BLACK = '121820';    // Base black, PMS Black 6 C
+const BLACK = '1A1A1A';    // Base charcoal (the site's --charcoal, the logo export and the strategy PDF pages; the palette PDF prints hex 121820 but RGB 26/26/26)
 const MINT = '3FD0C9';     // Production (light), PMS 3255 C
 const LAVENDER = '6D71FF'; // Consulting (light), PMS 2124 C
 const ROSE = 'F33844';     // Support (light), PMS 1788 C
@@ -38,6 +38,7 @@ const GREY = '5F6670';     // captions, footers, subtitles on white
 const SOFT = 'C9CED6';     // secondary text on black or navy
 const MINT_TINT = 'E8F9F8'; // callout cards on white
 const LINE = 'E3E6EA';     // chart gridlines
+const CHARCOAL2 = '242424'; // the site's --charcoal-2, for panels on charcoal
 
 const FONT = 'Calibri'; // Brand font is Tomato Grotesk; Calibri is the safe fallback that ships with Office.
 
