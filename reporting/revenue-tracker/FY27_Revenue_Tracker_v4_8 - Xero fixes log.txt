@@ -1,0 +1,187 @@
+ONS-0032  Invoice No: 'INV-10582' -> 'INV-10615'
+ONS-0032  why: INV-10582 is not in Xero. CBA Melbourne August $11,960 is INV-10615
+
+ONS-0033  Invoice No: 'INV-10615' -> 'INV-10583'
+ONS-0033  Date: datetime.datetime(2026, 8, 31, 0, 0) -> datetime.datetime(2026, 8, 31, 0, 0)
+ONS-0033  why: INV-10615 is the CBA Melbourne invoice. Aware Super August $11,000 is INV-10583
+
+ONS-0023  Invoice No: 'INV-10598' -> None
+ONS-0023  Date: datetime.datetime(2026, 8, 31, 0, 0) -> None
+ONS-0023  Ex GST: 8500 -> None
+ONS-0023  why: INV-10598 is job 2609401 in Xero and is already on ONS-0050 - it was counted twice ($8,500). No Xero invoice found for 26073102 Jul-Sep
+
+ONS-0063  Invoice No: 'INV-10645' -> None
+ONS-0063  why: INV-10645 in Xero is Bankwest BCEC WGEA Report Launch (job 26092101) $950, not this PwC job. No approved PwC invoice for 26073101 yet
+
+PRD-0016  Ex GST: 8550 -> 8882.5
+PRD-0016  why: Xero INV-10559 is $8,882.50 ex GST; the $332.50 loading reversal is the separate credit note row PRD-0017, so $8,550 here counted the credit twice
+
+CON-0024  Ex GST: 202647 -> 205352.17
+CON-0024  why: Xero INV-10596 is $205,352.17 ex GST
+
+ONS-0011  Ex GST: 11860.5 -> 11860.56
+ONS-0011  why: Xero INV-10536 is $11,860.56 ex GST
+
+PRD-0049  Date: datetime.datetime(2026, 7, 13, 0, 0) -> datetime.datetime(2026, 7, 13, 0, 0)
+PRD-0049  Ex GST: None -> 39.15
+PRD-0049  why: Xero INV-10523 $39.15 ex GST
+
+PRD-0050  Date: datetime.datetime(2026, 7, 13, 0, 0) -> datetime.datetime(2026, 8, 31, 0, 0)
+PRD-0050  Ex GST: None -> 60.58
+PRD-0050  why: Xero INV-10621 $60.58 ex GST dated 31-Aug-26
+
+PRD-0042  Invoice No: 'INV10567' -> 'INV-10567'
+PRD-0042  why: invoice number typed as in Xero
+
+PRD-0082  Invoice No: 'INV10567' -> 'INV-10567'
+PRD-0082  why: invoice number typed as in Xero
+
+PRD-0051  Invoice No: None -> 'INV-10624'
+PRD-0051  Date: datetime.datetime(2026, 9, 1, 0, 0) -> datetime.datetime(2026, 9, 15, 0, 0)
+PRD-0051  Ex GST: 2674 -> 2674
+PRD-0051  why: invoice found in Xero
+
+PRD-0084  Invoice No: None -> 'INV-10624'
+PRD-0084  Date: datetime.datetime(2026, 9, 1, 0, 0) -> datetime.datetime(2026, 9, 15, 0, 0)
+PRD-0084  Ex GST: 1500 -> 1500
+PRD-0084  why: invoice found in Xero
+
+PRD-0052  Invoice No: None -> 'INV-10623'
+PRD-0052  Date: datetime.datetime(2026, 9, 1, 0, 0) -> datetime.datetime(2026, 9, 15, 0, 0)
+PRD-0052  Ex GST: 6260 -> 6260
+PRD-0052  why: invoice found in Xero
+
+PRD-0085  Invoice No: None -> 'INV-10623'
+PRD-0085  Date: datetime.datetime(2026, 9, 1, 0, 0) -> datetime.datetime(2026, 9, 15, 0, 0)
+PRD-0085  Ex GST: 1508 -> 1508
+PRD-0085  why: invoice found in Xero
+
+PRD-0053  Invoice No: None -> 'INV-10626'
+PRD-0053  Date: datetime.datetime(2026, 9, 2, 0, 0) -> datetime.datetime(2026, 9, 15, 0, 0)
+PRD-0053  Ex GST: 495 -> 495
+PRD-0053  why: invoice found in Xero
+
+PRD-0054  Invoice No: None -> 'INV-10625'
+PRD-0054  Date: datetime.datetime(2026, 9, 2, 0, 0) -> datetime.datetime(2026, 9, 15, 0, 0)
+PRD-0054  Ex GST: 865 -> 865
+PRD-0054  why: invoice found in Xero
+
+PRD-0055  Invoice No: None -> 'INV-10627'
+PRD-0055  Date: datetime.datetime(2026, 9, 2, 0, 0) -> datetime.datetime(2026, 9, 15, 0, 0)
+PRD-0055  Ex GST: 2232 -> 2232
+PRD-0055  why: invoice found in Xero
+
+PRD-0086  Invoice No: None -> 'INV-10627'
+PRD-0086  Date: datetime.datetime(2026, 9, 2, 0, 0) -> datetime.datetime(2026, 9, 15, 0, 0)
+PRD-0086  Ex GST: 1029 -> 1029
+PRD-0086  why: invoice found in Xero
+
+PRD-0056  Invoice No: None -> 'INV-10632'
+PRD-0056  Date: datetime.datetime(2026, 9, 10, 0, 0) -> datetime.datetime(2026, 9, 16, 0, 0)
+PRD-0056  Ex GST: 8437.79 -> 7527.25
+PRD-0056  why: invoice found in Xero - INV-10632 total $9,105.35 is $910.54 under the department's $10,015.89 (video line kept at $1,578.10)
+
+PRD-0087  Invoice No: None -> 'INV-10632'
+PRD-0087  Date: datetime.datetime(2026, 9, 10, 0, 0) -> datetime.datetime(2026, 9, 16, 0, 0)
+PRD-0087  Ex GST: 1578.1 -> 1578.1
+PRD-0087  why: invoice found in Xero
+
+PRD-0057  Invoice No: None -> 'INV-10628'
+PRD-0057  Date: datetime.datetime(2026, 9, 10, 0, 0) -> datetime.datetime(2026, 9, 16, 0, 0)
+PRD-0057  Ex GST: 570 -> 570
+PRD-0057  why: invoice found in Xero
+
+PRD-0058  Invoice No: None -> 'INV-10629'
+PRD-0058  Date: datetime.datetime(2026, 9, 10, 0, 0) -> datetime.datetime(2026, 9, 16, 0, 0)
+PRD-0058  Ex GST: 380 -> 380
+PRD-0058  why: invoice found in Xero
+
+PRD-0059  Invoice No: None -> 'INV-10634'
+PRD-0059  Date: datetime.datetime(2026, 9, 16, 0, 0) -> datetime.datetime(2026, 9, 16, 0, 0)
+PRD-0059  Ex GST: 380 -> 380
+PRD-0059  why: invoice found in Xero
+
+PRD-0060  Invoice No: None -> 'INV-10633'
+PRD-0060  Date: datetime.datetime(2026, 9, 6, 0, 0) -> datetime.datetime(2026, 9, 16, 0, 0)
+PRD-0060  Ex GST: 4729 -> 4665
+PRD-0060  why: invoice found in Xero - Xero INV-10633 (ISE) $4,665 vs department $4,729
+
+PRD-0061  Invoice No: None -> 'INV-10630'
+PRD-0061  Date: datetime.datetime(2026, 9, 14, 0, 0) -> datetime.datetime(2026, 9, 16, 0, 0)
+PRD-0061  Ex GST: 946 -> 946.25
+PRD-0061  why: invoice found in Xero - Xero INV-10630 (ICAS) is on job 26082502, not 26082503 - department to check the job number
+
+PRD-0002  Date: 01-Jul-26 -> 07-Jul-26 (Xero INV-10519)
+PRD-0003  Date: 02-Jul-26 -> 07-Jul-26 (Xero INV-10515)
+PRD-0004  Date: 15-Jul-26 -> 16-Jul-26 (Xero INV-10524)
+PRD-0005  Date: 16-Jul-26 -> 07-Jul-26 (Xero INV-10518)
+PRD-0006  Date: 16-Jul-26 -> 13-Jul-26 (Xero INV-10522)
+PRD-0007  Date: 21-Jul-26 -> 31-Jul-26 (Xero INV-10554)
+PRD-0008  Date: 23-Jul-26 -> 29-Jul-26 (Xero INV-10538)
+PRD-0009  Date: 23-Jul-26 -> 30-Jul-26 (Xero INV-10540)
+PRD-0010  Date: 23-Jul-26 -> 31-Jul-26 (Xero INV-10552)
+PRD-0011  Date: 26-Jul-26 -> 20-Jul-26 (Xero INV-10533)
+ONS-0012  Date: 31-Jul-26 -> 30-Jul-26 (Xero INV-10537)
+PRD-0012  Date: 28-Jul-26 -> 31-Jul-26 (Xero INV-10557)
+ONS-0013  Date: 31-Jul-26 -> 30-Jul-26 (Xero INV-10541)
+PRD-0013  Date: 29-Jul-26 -> 31-Jul-26 (Xero INV-10555)
+ONS-0014  Date: 31-Jul-26 -> 30-Jul-26 (Xero INV-10539)
+PRD-0014  Date: 30-Jul-26 -> 31-Jul-26 (Xero INV-10558)
+PRD-0018  Date: 05-Aug-26 -> 13-Aug-26 (Xero INV-10561)
+PRD-0019  Date: 06-Aug-26 -> 13-Aug-26 (Xero INV-10560)
+PRD-0020  Date: 06-Aug-26 -> 13-Aug-26 (Xero INV-10562)
+PRD-0021  Date: 11-Aug-26 -> 21-Aug-26 (Xero INV-10580)
+PRD-0022  Date: 11-Aug-26 -> 21-Aug-26 (Xero INV-10581)
+CON-0022  Date: 31-Jul-26 -> 30-Jul-26 (Xero INV-10548)
+PRD-0023  Date: 11-Aug-26 -> 25-Aug-26 (Xero INV-10577)
+CON-0023  Date: 31-Jul-26 -> 30-Jul-26 (Xero INV-10547)
+PRD-0025  Date: 12-Aug-26 -> 13-Aug-26 (Xero INV-10563)
+PRD-0026  Date: 12-Aug-26 -> 21-Aug-26 (Xero INV-10579)
+PRD-0027  Date: 12-Aug-26 -> 21-Aug-26 (Xero INV-10578)
+PRD-0028  Date: 13-Aug-26 -> 27-Aug-26 (Xero INV-10599)
+PRD-0029  Date: 13-Aug-26 -> 21-Aug-26 (Xero INV-10576)
+PRD-0030  Date: 18-Aug-26 -> 27-Aug-26 (Xero INV-10600)
+PRD-0031  Date: 18-Aug-26 -> 26-Aug-26 (Xero INV-10590)
+PRD-0032  Date: 18-Aug-26 -> 26-Aug-26 (Xero INV-10589)
+PRD-0033  Date: 19-Aug-26 -> 26-Aug-26 (Xero INV-10588)
+PRD-0034  Date: 19-Aug-26 -> 26-Aug-26 (Xero INV-10591)
+PRD-0035  Date: 20-Aug-26 -> 25-Aug-26 (Xero INV-10587)
+PRD-0036  Date: 20-Aug-26 -> 26-Aug-26 (Xero INV-10586)
+PRD-0039  Date: 24-Aug-26 -> 31-Aug-26 (Xero INV-10593)
+PRD-0040  Date: 24-Aug-26 -> 31-Aug-26 (Xero INV-10612)
+PRD-0041  Date: 25-Aug-26 -> 31-Aug-26 (Xero INV-10611)
+PRD-0042  Date: 25-Aug-26 -> 19-Aug-26 (Xero INV-10567)
+PRD-0043  Date: 25-Aug-26 -> 27-Aug-26 (Xero INV-10595)
+PRD-0044  Date: 25-Aug-26 -> 26-Aug-26 (Xero INV-10594)
+PRD-0046  Date: 28-Aug-26 -> 31-Aug-26 (Xero INV-10617)
+PRD-0062  Date: 01-Jul-26 -> 07-Jul-26 (Xero INV-10519)
+PRD-0063  Date: 02-Jul-26 -> 07-Jul-26 (Xero INV-10515)
+PRD-0064  Date: 16-Jul-26 -> 13-Jul-26 (Xero INV-10522)
+PRD-0065  Date: 21-Jul-26 -> 31-Jul-26 (Xero INV-10554)
+PRD-0066  Date: 23-Jul-26 -> 30-Jul-26 (Xero INV-10540)
+PRD-0067  Date: 05-Aug-26 -> 13-Aug-26 (Xero INV-10561)
+PRD-0068  Date: 06-Aug-26 -> 13-Aug-26 (Xero INV-10562)
+PRD-0069  Date: 11-Aug-26 -> 21-Aug-26 (Xero INV-10581)
+PRD-0070  Date: 11-Aug-26 -> 25-Aug-26 (Xero INV-10577)
+PRD-0072  Date: 12-Aug-26 -> 13-Aug-26 (Xero INV-10563)
+PRD-0073  Date: 12-Aug-26 -> 21-Aug-26 (Xero INV-10579)
+PRD-0074  Date: 13-Aug-26 -> 27-Aug-26 (Xero INV-10599)
+PRD-0075  Date: 13-Aug-26 -> 21-Aug-26 (Xero INV-10576)
+PRD-0076  Date: 18-Aug-26 -> 27-Aug-26 (Xero INV-10600)
+PRD-0077  Date: 19-Aug-26 -> 26-Aug-26 (Xero INV-10591)
+PRD-0078  Date: 20-Aug-26 -> 25-Aug-26 (Xero INV-10587)
+PRD-0080  Date: 24-Aug-26 -> 31-Aug-26 (Xero INV-10593)
+PRD-0081  Date: 25-Aug-26 -> 31-Aug-26 (Xero INV-10611)
+PRD-0082  Date: 25-Aug-26 -> 19-Aug-26 (Xero INV-10567)
+
+Lists: added 10 job numbers from Xero tracking 'Job Numbers' (rows up to 437)
+  26073101  PwC MEL Tech Cover Aug-Sep 2026 [ONS]  -> ONSITE
+  26082401  CSIRO HP Poly CCX400 Phone Modification [INT]  -> INTEGRATION
+  26091401  Aware Super | Appspace Licencing Subscription | 12 Months [INT]  -> INTEGRATION
+  26091702  AusPayNet - Event Support 21-22.9.26 [PRD]  -> PRODUCTION
+  26092101  BCEC WGEA Report Launch 13.10.2026 [PRD]  -> PRODUCTION
+  26092101V  BCEC WGEA Report Launch 13.10.2026 [VID]  -> VIDEO
+  26092104  Dimensional - AV Support - 22.9.26 [PRD]  -> PRODUCTION
+  26092105  CBA - LES - October 2026 [PRD]  -> PRODUCTION
+  2609301  Sydney Local Health District AGM - 2.12.26 [PRD]  -> PRODUCTION
+  2609301V  Sydney Local Health District AGM - 2.12.26 [VID]  -> VIDEO
