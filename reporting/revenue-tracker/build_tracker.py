@@ -143,6 +143,7 @@ def protect(ws):
     p.sheet = True
     p.password = PASSWORD
     p.autoFilter = False        # filtering allowed
+    p.formatCells = False       # colours, fonts and borders allowed
     p.formatColumns = False     # column widths allowed
     p.formatRows = False
     p.sort = True               # sorting blocked (keeps rows lined up)
@@ -1486,7 +1487,7 @@ README = [
     ("WIP Movements and WIP Summary: manual WIP journals and WIP by job. Work Won: won opportunities vs invoiced. Lists: every dropdown and setting.", None),
     ("", None),
     ("LOCKS AND SIZE", "h"),
-    ("Every sheet is protected with the password CTS1234, as in v3.", None),
+    ("Formula cells are locked (password CTS1234, as in v3). You can colour and format any cell and add your own sheets. Do not rename or delete the tracker sheets - the formulas point at them.", None),
     ("Each department sheet has 1,500 rows and Finance has a matching 4,500. The Deferrals sheet has 500 rows. The file is built by build_tracker.py, so it is rebuilt bigger if ever needed.", None),
     ("To roll to FY28: save a copy, clear the white and cream cells, and change Lists cell U12 to 31-Jul-27.", None),
 ]
@@ -1556,7 +1557,8 @@ for _ws in wb.worksheets:
     if _ws.title != "Read Me":
         finish(_ws)
 wb.active = 0
-wb.security = WorkbookProtection(workbookPassword=PASSWORD, lockStructure=True)
+# structure left open so users can add their own sheets
+wb.security = WorkbookProtection(lockStructure=False)
 wb.calculation.fullCalcOnLoad = True
 wb.save(OUT)
 print("saved", OUT)
