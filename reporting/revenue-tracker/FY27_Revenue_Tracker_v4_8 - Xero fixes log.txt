@@ -185,3 +185,9 @@ Lists: added 10 job numbers from Xero tracking 'Job Numbers' (rows up to 437)
   26092105  CBA - LES - October 2026 [PRD]  -> PRODUCTION
   2609301  Sydney Local Health District AGM - 2.12.26 [PRD]  -> PRODUCTION
   2609301V  Sydney Local Health District AGM - 2.12.26 [VID]  -> VIDEO
+
+WIP Movements row 101 job 2512804 Jul-26 115: P&L Account 42101 -> 42100 (42101 is not an account in Xero - Production Labour is 42100)
+WIP Movements row 102 job 2512804 Aug-26 -115: P&L Account 42101 -> 42100 (42101 is not an account in Xero - Production Labour is 42100)
+WIP Movements row 103 job 26061108 Jul-26 172.5: P&L Account 42102 -> 42100 (42102 is not an account in Xero - Production Labour is 42100)
+WIP Movements row 104 job 26061108 Aug-26 -172.5: P&L Account 42102 -> 42100 (42102 is not an account in Xero - Production Labour is 42100)
+WIP Movements row 168 job 26061602V Aug-26 190: P&L Account 42100 -> 42150 (video job - Xero posted this to 42150 Video Labour)
