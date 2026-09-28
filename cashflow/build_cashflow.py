@@ -69,7 +69,7 @@ rows = [
     ("Gross wages per fortnight", 111000, MONEY, "Average of the last three known pay runs: 11 Aug $108,325 and 25 Aug $115,340 (Controller Pack GL journals #69396, #69669) and the two September runs $217,062 combined (Xero cash P&L 1-28 Sep). See Payroll tab."),
     ("Net pay as % of gross", 0.77, PCT, "25 Aug run: gross ~$115k, ABA file ~$88-89k (Payroll Part 6 transcript, 03:16-04:12). 88.5/115.3 = 76.8%. The rest is PAYG withholding and salary-sacrifice deductions."),
     ("PAYG withheld as % of gross", "=1-B10", PCT, "Formula: 1 - net %. Paid to the ATO on the IAS/BAS, not on payday."),
-    ("Superannuation as % of gross", 0.1275, PCT, "25 Aug run: super $14,678 / gross $115,340 = 12.7% (GL #69663). Sep: $27,816 / $217,062 = 12.8%. Above 12% SG because of salary-sacrifice super."),
+    ("Superannuation as % of gross", 0.12, PCT, "Superannuation Guarantee rate 12% (from 1 Jul 2025). 25 Aug run: SG $13,677 on gross $115,340 = 11.9% (Payroll Part 6 transcript, 04:12). Salary-sacrifice super (about $1,050 a run) is also paid in the same super batch but comes out of gross pay, so it is not added here."),
     ("Pay date - run 1 (fortnight ending Fri 2 Oct)", date(2026, 10, 6), DATE, "Pay date is always the Tuesday of the payroll processing week (Payroll Part 2 transcript; Checklist step 13). Super is direct-debited by Employment Hero at the same time (Checklist step 69) - Payday Super applies from 1 Jul 2026."),
     ("Pay date - run 2 (fortnight ending Fri 16 Oct)", date(2026, 10, 20), DATE, "Next run after that is Tue 3 Nov (fortnight ending 30 Oct) - outside this forecast."),
     ("Payroll tax NSW - September return (due 7 Oct)", 6295, MONEY, "August actual accrual $6,120.40 + $174.67 (GL journals #69671, #70351). NSW monthly return and payment due the 7th of the following month. Confirm against the Revenue NSW return when lodged."),
@@ -184,7 +184,7 @@ put(P, "A12", "Total payroll tax", BOLD); put(P, "B12", "=B10+B11", BOLD, MONEY)
 put(P, "A13", "Payroll tax for October wages is due 7 Nov - outside this forecast.", GREY)
 
 put(P, "A15", "Reference - actual pay runs this financial year", H2)
-for j, h in enumerate(["Pay run", "Pay date", "Gross wages", "Super", "Super % of gross", "Source"]):
+for j, h in enumerate(["Pay run", "Pay date", "Gross wages", "Super batch (SG + salary sacrifice)", "Batch % of gross", "Source"]):
     put(P, f"{get_column_letter(j+1)}16", h, BOLD, fill=HDR)
 actuals = [
     ("FE 10 Jul", date(2026, 7, 14), 104335.03, 13289.41, "Controller Pack GL_Paste journals #69527 / #69434"),
@@ -200,6 +200,7 @@ for i, (n, d, g, s, src) in enumerate(actuals):
 put(P, "A22", "Average gross per fortnight (last 4 fortnights)", BOLD)
 put(P, "B22", "=(C19+C20+C21)/4", BOLD, MONEY)
 put(P, "C22", "Aug runs plus the two Sep runs, divided by four fortnights", GREY)
+put(P, "A23", "SG is 12%. The batch ratio above is higher because the GL super accounts include salary-sacrifice super (e.g. 25 Aug: $13,677 SG + $1,052 salary sacrifice). The forecast uses 12%; the salary-sacrifice portion (~$1k a run) is deducted from gross pay, so it is not double counted.", GREY)
 put(P, "A24", "Reference - payroll tax accruals this financial year", H2)
 for j, h in enumerate(["Month", "NSW", "Other states", "Total", "Source"]):
     put(P, f"{get_column_letter(j+1)}25", h, BOLD, fill=HDR)
