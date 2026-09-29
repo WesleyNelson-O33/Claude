@@ -19,7 +19,7 @@ WHITE_B = font(bold=True, color="FFFFFF"); WHITE = font(color="FFFFFF")
 TITLE = font(14, True); H2 = font(11, True); GREY = font(9, color="666666", italic=True)
 NAVY = PatternFill("solid", fgColor="002060")
 G1 = PatternFill("solid", fgColor="F2F2F2"); G2 = PatternFill("solid", fgColor="D9D9D9"); G3 = PatternFill("solid", fgColor="BFBFBF")
-INPUT = PatternFill("solid", fgColor="FFF2CC"); YELLOW = PatternFill("solid", fgColor="FFFF00"); NOFILL = PatternFill(fill_type=None)
+INPUT = PatternFill("solid", fgColor="FFF2CC"); GREEN_FILL = PatternFill("solid", fgColor="C6EFCE"); AMBER_FILL = PatternFill("solid", fgColor="FFEB9C"); YELLOW = PatternFill("solid", fgColor="FFFF00"); NOFILL = PatternFill(fill_type=None)
 thin = Side(style="thin", color="7F7F7F"); TOP = Border(top=thin); TOPBOT = Border(top=thin, bottom=Side(style="double", color="7F7F7F"))
 MONEY = '$#,##0;($#,##0);-'; MONEY2 = '$#,##0.00;($#,##0.00);-'; PCT = '0.0%'; DATE = 'ddd d mmm yy'; DATE_S = 'd mmm yy'
 D = date
@@ -251,13 +251,11 @@ put(Y, "A1", "Payables - every open bill, plus October's recurring bills not yet
 put(Y, "A2", "Source: Xero aged payables 28 Sep 2026 ($283,042.53, 24 bills; Complete AV split per the 28 Sep meeting) and Xero repeating-bill templates. 'Card' rows are paid on the PL/DL credit cards and are covered by the credit-card settlement line on the Cash Flow tab, so they are excluded from the category totals. The P&L category drives which Cash Flow line each bill lands on.", GREY, wrap=True)
 Y.row_dimensions[2].height = 40
 hdr = ["Supplier", "Bill / reference", "Due date", "Amount (incl GST)", "Method", "P&L category", "Planned payment date", "Week", "Source", "Notes"]
-for j, h in enumerate(hdr): put(Y, f"{L(j+1)}4", h, WHITE_B, fill=NAVY, wrap=True)
-Y.row_dimensions[4].height = 30
 X = "Xero bill"; T = "Repeating template"
 ap = [
  ("Appspace, Inc.", "INV00133660 - Appspace licensing for Aware Super", D(2026,10,24), 20985.43, "EFT", "Client subscriptions", D(2026,10,23), X, "Pay once Aware's matching invoice INV-10635 ($23,317) is received (expected 16 Oct)"),
- ("Complete AV Solutions", "INV41565 - Aware seminar room: MATERIALS portion (hardware, cables, freight, waste, net of the $4,848.68 claim-balance reduction)", D(2026,9,26), 136163.28, "EFT", "Equipment purchases", D(2026,10,14), X, "Agreed 28 Sep meeting (Graham/Jordan): pay the materials part now, hold labour until Aware signs off. Materials $128,633.48 less $4,848.68 = $123,784.80 ex GST. Pay the week after Aware's $225,887 lands (exp 9 Oct)."),
- ("Complete AV Solutions", "INV41565 - Aware seminar room: LABOUR & PROGRAMMING portion - HELD", D(2026,9,26), 41955.98, "EFT", "Equipment purchases", D(2026,11,30), X, "HELD until Aware sign-off and handover docs (marked-up drawings, training docs). $38,141.80 ex GST = Labour & Programming $23,320 + Labour $7,196 + Labour $6,561.80 + Lighting programming $1,064. Dated after the forecast so it is excluded."),
+ ("Complete AV Solutions", "INV41565 - Aware seminar room: MATERIALS portion (hardware, cables, freight, waste, net of the $4,848.68 claim-balance reduction)", D(2026,9,26), "='Complete AV'!$D$44", "EFT", "Equipment purchases", "='Complete AV'!$D$46", X, "AGREED 28 Sep (Graham / Jordan): pay the materials now, hold labour until Aware sign off. Build-up is on the Complete AV tab - amount and date come from there."),
+ ("Complete AV Solutions", "INV41565 - Aware seminar room: LABOUR & PROGRAMMING portion - HELD", D(2026,9,26), "='Complete AV'!$D$55", "EFT", "Equipment purchases", D(2026,11,30), X, "HELD until Aware sign off and we get the handover docs (marked up drawings, training docs). Detail on the Complete AV tab. Dated past the forecast so it's excluded."),
  ("Crestron ANZ", "INV950936412 - Aware SYD 28.06 equipment", D(2026,10,19), 7103.26, "EFT", "Equipment purchases", D(2026,10,19), X, "On due date"),
  ("Employsure", "41 of 60", D(2026,9,6), 880.00, "EFT", "Professional fees", D(2026,10,1), X, "Overdue - pay this week"),
  ("Energy Australia", "INV260382065288 - energy 23 Jul-22 Aug", D(2026,9,29), 377.13, "Card", "Electricity", D(2026,9,29), X, "Direct debit via PL credit card"),
@@ -298,12 +296,49 @@ ap = [
  ("Investa Asset Management", "Rent October 2026", D(2026,11,22), 29280.72, "EFT", "Rent", D(2026,11,22), T, "Invoiced ~22 Oct, due ~22 Nov - AFTER this forecast"),
  ("Optus", "Staff mobiles - October", D(2026,11,8), 804.06, "BPAY", "Telephone & internet", D(2026,11,8), T, "Due 8 Nov - AFTER this forecast"),
 ]
-assert abs(sum(x[3] for x in ap if x[7] == X) - 283042.53) < 0.02, sum(x[3] for x in ap if x[7] == X)
-rr = 5; ap_first = rr
+assert abs(sum(x[3] for x in ap if x[7] == X and not isinstance(x[3], str)) + 136163.28 + 41955.98 - 283042.53) < 0.02
+# ---- payments-this-week block (rows 4..), then the main table below it
+W1_END = D(2026, 10, 7)
+CAV_DATE = D(2026, 10, 2)
+def _pd(x): return CAV_DATE if isinstance(x[6], str) else x[6]
+week1 = [x for x in ap if x[4] != "Card" and D(2026, 9, 28) <= _pd(x) <= W1_END]
+STATUS = {"Complete AV Solutions": ("AGREED - PAY", "Agreed 28 Sep meeting. Date assumed Fri 2 Oct - change it on the Complete AV tab if paying earlier."),
+          "Fredon Technology": ("AWAITING DH", "Bill says DH to confirm - don't pay until he does."),
+          "RJW Group Holdings": ("AWAITING DL", "Bill says check with DL before paying.")}
+put(Y, "A4", "PAYMENTS THIS WEEK (28 Sep - 7 Oct)", WHITE_B, fill=NAVY); band(Y, 4, 2, 10, NAVY)
+blk_hdr = ["Supplier", "Bill / reference", "Due date", "Amount (incl GST)", "Method", "Status", "Pay on", "", "", "Notes"]
+for j, h in enumerate(blk_hdr): put(Y, f"{L(j+1)}5", h, BOLD, fill=G1)
+main_hdr_row = 5 + len(week1) + 4
+rr_main = main_hdr_row + 1
+row_of = {}
+_r = rr_main
+for idx, x in enumerate(ap): row_of[idx] = _r; _r += 1
+blk = 6
+for x in week1:
+    idx = ap.index(x); mr = row_of[idx]
+    st, why = STATUS.get(x[0], ("Due this week", "Routine - on the due date"))
+    fill = GREEN_FILL if st.startswith("AGREED") else (AMBER_FILL if st.startswith("AWAITING") else None)
+    put(Y, f"A{blk}", f"=A{mr}", GREEN, fill=fill); put(Y, f"B{blk}", f"=B{mr}", GREEN, fill=fill, wrap=True)
+    put(Y, f"C{blk}", f"=C{mr}", GREEN, DATE_S, fill=fill); put(Y, f"D{blk}", f"=D{mr}", GREEN, MONEY2, fill=fill)
+    put(Y, f"E{blk}", f"=E{mr}", GREEN, fill=fill); put(Y, f"F{blk}", st, BOLD, fill=fill)
+    put(Y, f"G{blk}", f"=G{mr}", font(bold=True, color="008000"), DATE, fill=fill)
+    for col in "HI": Y[f"{col}{blk}"].fill = fill or NOFILL
+    put(Y, f"J{blk}", why, GREY, fill=fill, wrap=True); blk += 1
+put(Y, f"A{blk}", "Total this week", BOLD, fill=G2); band(Y, blk, 2, 10, G2)
+put(Y, f"D{blk}", f"=SUM(D6:D{blk-1})", BOLD, MONEY2, fill=G2); blk += 1
+put(Y, f"A{blk}", "of which agreed / routine (excludes the two awaiting sign-off)", GREY)
+put(Y, f"D{blk}", f'=SUMIFS(D6:D{blk-2},F6:F{blk-2},"AGREED - PAY")+SUMIFS(D6:D{blk-2},F6:F{blk-2},"Due this week")', BLACK, MONEY2); blk += 1
+put(Y, f"A{blk}", "Green = agreed to pay, with the pay date next to it. Amber = still waiting on someone. To move a payment, change the planned date in the main table below - this block and the Cash Flow follow it. Card bills aren't listed here; they go through the credit card line.", GREY, wrap=True)
+Y.merge_cells(f"A{blk}:J{blk}"); Y.row_dimensions[blk].height = 30
+put(Y, f"A{main_hdr_row - 1}", "ALL OPEN BILLS AND OCTOBER TEMPLATES", WHITE_B, fill=NAVY); band(Y, main_hdr_row - 1, 2, 10, NAVY)
+for j, h in enumerate(hdr): put(Y, f"{L(j+1)}{main_hdr_row}", h, WHITE_B, fill=NAVY, wrap=True)
+Y.row_dimensions[main_hdr_row].height = 30
+rr = rr_main; ap_first = rr
 for sup, ref, due, amt, method, cat, pdate, src, note in ap:
+    is_link = isinstance(amt, str)
     put(Y, f"A{rr}", sup); put(Y, f"B{rr}", ref, wrap=True); put(Y, f"C{rr}", due, BLUE, DATE_S)
-    put(Y, f"D{rr}", amt, BLUE, MONEY2); put(Y, f"E{rr}", method, BLUE); put(Y, f"F{rr}", cat, BLUE)
-    put(Y, f"G{rr}", pdate, BLUE, DATE_S, fill=YELLOW if amt > 50000 else None)
+    put(Y, f"D{rr}", amt, GREEN if is_link else BLUE, MONEY2); put(Y, f"E{rr}", method, BLUE); put(Y, f"F{rr}", cat, BLUE)
+    put(Y, f"G{rr}", pdate, GREEN if isinstance(pdate, str) else BLUE, DATE_S, fill=YELLOW if (is_link or (not is_link and amt > 50000)) else None)
     put(Y, f"H{rr}", f'=IF(G{rr}<{KEY["start"]},"Before",IF(G{rr}>{FC_END},"After",INT((G{rr}-{KEY["start"]})/7)+1))', BLACK)
     put(Y, f"I{rr}", src); put(Y, f"J{rr}", note, GREY, wrap=True); rr += 1
 ap_last = rr - 1
@@ -312,8 +347,62 @@ put(Y, f"D{rr}", f'=SUMIFS(D{ap_first}:D{ap_last},I{ap_first}:I{ap_last},"{X}")'
 put(Y, f"A{rr+1}", "of which paid by card (excluded - see credit card line)", GREY); put(Y, f"D{rr+1}", f'=SUMIFS(D{ap_first}:D{ap_last},E{ap_first}:E{ap_last},"Card",I{ap_first}:I{ap_last},"{X}")', BLACK, MONEY2)
 put(Y, f"A{rr+2}", "Recurring templates (non-card) falling inside the forecast", GREY); put(Y, f"D{rr+2}", f'=SUMIFS(D{ap_first}:D{ap_last},I{ap_first}:I{ap_last},"{T}",E{ap_first}:E{ap_last},"<>Card",G{ap_first}:G{ap_last},">="&{KEY["start"]},G{ap_first}:G{ap_last},"<="&{FC_END})', BLACK, MONEY2)
 put(Y, f"A{rr+3}", "Non-card bills dated after 1 Nov (Complete AV labour hold, Oct rent, Oct mobiles)", GREY); put(Y, f"D{rr+3}", f'=SUMIFS(D{ap_first}:D{ap_last},E{ap_first}:E{ap_last},"<>Card",G{ap_first}:G{ap_last},">"&{FC_END})', BLACK, MONEY2)
-Y.freeze_panes = "A5"; Y.auto_filter.ref = f"A4:J{ap_last}"
+from openpyxl.formatting.rule import FormulaRule
+Y.conditional_formatting.add(f"A{ap_first}:J{ap_last}", FormulaRule(formula=[f"$H{ap_first}=1"], fill=GREEN_FILL))
+Y.freeze_panes = f"A{ap_first}"; Y.auto_filter.ref = f"A{main_hdr_row}:J{ap_last}"
 AP = dict(amt=f"Payables!$D${ap_first}:$D${ap_last}", pd=f"Payables!$G${ap_first}:$G${ap_last}", m=f"Payables!$E${ap_first}:$E${ap_last}", cat=f"Payables!$F${ap_first}:$F${ap_last}")
+
+# =============================================================== Complete AV
+V = wb.create_sheet("Complete AV")
+for j, w in enumerate((62, 8, 14, 16, 60)): V.column_dimensions[L(j+1)].width = w
+put(V, "A1", "Complete AV Solutions - INV41565 - what we're paying and what's held", TITLE)
+put(V, "A2", "Aware Super seminar room audio upgrade (Q-12140v1, PO-00016902). Bill total $178,119.25 inc GST, dated 1 Sep, due 26 Sep. Agreed 28 Sep (Graham / Jordan): pay the materials now, hold labour and programming until Aware sign off and we get the handover docs. Line items are straight off the bill in Xero.", GREY, wrap=True)
+V.merge_cells("A2:E2"); V.row_dimensions[2].height = 42
+for j, h in enumerate(["Line on the bill", "Qty", "Unit (ex GST)", "Amount (ex GST)", "Notes"]): put(V, f"{L(j+1)}4", h, WHITE_B, fill=NAVY)
+hw = [("Crestron DM-NVX-E30 4K network AV encoder", 6, 1345.56), ("Crestron DM-NVX-385 AV-over-IP switcher", 2, 3390.25), ("Crestron DM-NVX-360 encoder/decoder", 8, 2144.14),
+      ("Panasonic AW-UE40 4K integrated camera", 4, 4063.96), ("Crestron UC-C100-T Teams Rooms integrator kit", 2, 5350.41), ("Q-SYS Core 24f DSP", 2, 8295.67),
+      ("Crestron DM-NAX Bluetooth audio wall plate", 2, 815.49), ("Crestron FP-G1-B-T face plate", 2, 21.00), ("Crestron TSS-880 room scheduling touch screen", 2, 1223.23),
+      ("Crestron TSW-1080 wall mount touch screen", 2, 3186.38), ("Crestron CP4N control system", 1, 3032.23), ("Netgear M4250 PoE+ managed switch", 2, 3179.58),
+      ("Netgear AXC761 SFP+ transceiver", 2, 121.46), ("Crestron DM-NVX-E30 encoder (second batch)", 2, 1517.06), ("Panasonic AW-SF200Z auto tracking software", 1, 2541.01),
+      ("Panasonic AW-SF300Z visual preset software", 1, 1921.47), ("Panasonic AW-SF501Z auto framing software", 1, 5309.33), ("Precision Computers 4U rack-mount PC", 1, 3883.95),
+      ("Sennheiser TeamConnect Ceiling 2 mic", 4, 5946.65), ("Q-SYS Dante 16x16 licence", 1, 743.84), ("Graphics card", 1, 2153.70), ("RMB hardware added", 1, 321.50),
+      ("Less: removed Panasonic cameras & licences", 1, -7281.07), ("Less: removed control processor", 1, -3032.23), ("Less: removed camera Crestron decoder", 1, -4600.20)]
+r_ = 5
+put(V, f"A{r_}", "Hardware", BOLD); r_ += 1
+hw_first = r_
+for desc, q, u in hw:
+    put(V, f"A{r_}", "   " + desc); put(V, f"B{r_}", q, BLUE, '0'); put(V, f"C{r_}", u, BLUE, MONEY2); put(V, f"D{r_}", f"=B{r_}*C{r_}", BLACK, MONEY2); r_ += 1
+hw_last = r_ - 1
+put(V, f"A{r_}", "Hardware subtotal", BOLD, fill=G1); band(V, r_, 2, 5, G1); put(V, f"D{r_}", f"=SUM(D{hw_first}:D{hw_last})", BOLD, MONEY2, fill=G1); HW = r_; r_ += 1
+put(V, f"A{r_}", "Consumables and delivery", BOLD); r_ += 1
+cons = [("Cables, fixings and hardware (4 lines: $1,515.30 + $696.24 + $934.08 + $691.60)", 3837.22), ("Freight & handling (3 lines: $100.00 + $53.20 + $59.85)", 213.05), ("E-waste / waste management (3 lines: $59.85 + $39.90 + $19.95)", 119.70)]
+c_first = r_
+for desc, amt in cons:
+    put(V, f"A{r_}", "   " + desc); put(V, f"D{r_}", amt, BLUE, MONEY2); r_ += 1
+c_last = r_ - 1
+put(V, f"A{r_}", "Consumables subtotal", BOLD, fill=G1); band(V, r_, 2, 5, G1); put(V, f"D{r_}", f"=SUM(D{c_first}:D{c_last})", BOLD, MONEY2, fill=G1); CS = r_; r_ += 1
+assert r_ == 37, r_
+put(V, "A40", "Materials subtotal (ex GST)", BOLD, fill=G2); band(V, 40, 2, 5, G2); put(V, "D40", f"=D{HW}+D{CS}", BOLD, MONEY2, fill=G2)
+put(V, "A41", "Less: Complete AV's own line 'Remaining claim balance $4,848.68 to be invoiced'"); put(V, "D41", -4848.68, BLUE, MONEY2)
+put(V, "E41", "Their reduction, not allocated to anything. Taken off the part we're paying now - conservative. If you'd rather take it off the held labour, pay $141,496.83 and hold $36,622.43.", GREY, wrap=True)
+put(V, "A42", "Materials net (ex GST)", BOLD); put(V, "D42", "=D40+D41", BOLD, MONEY2)
+put(V, "A43", "GST 10%"); put(V, "D43", "=ROUND(D42*0.1,2)", BLACK, MONEY2)
+put(V, "A44", "PAYING NOW (incl GST)", BOLD, fill=GREEN_FILL); band(V, 44, 2, 5, GREEN_FILL); put(V, "D44", "=D42+D43", BOLD, MONEY2, fill=GREEN_FILL)
+put(V, "A46", "Pay on", BOLD, fill=GREEN_FILL); band(V, 46, 2, 5, GREEN_FILL); put(V, "D46", D(2026, 10, 2), BLUE, DATE, fill=GREEN_FILL)
+put(V, "E46", "Agreed this week. Fri 2 Oct assumed - change it here and the Payables tab and Cash Flow follow.", GREY, fill=GREEN_FILL, wrap=True)
+put(V, "A48", "HELD - labour and programming (until Aware sign off + handover docs)", WHITE_B, fill=NAVY); band(V, 48, 2, 5, NAVY)
+held = [("Labour & programming", 23320.00), ("Labour", 7196.00), ("Labour", 6561.80), ("Lighting integration programming (coded to equipment in Xero, but it's programming)", 1064.00)]
+for k, (desc, amt) in enumerate(held):
+    put(V, f"A{49+k}", "   " + desc); put(V, f"D{49+k}", amt, BLUE, MONEY2)
+put(V, "A53", "Held (ex GST)", BOLD, fill=G1); band(V, 53, 2, 5, G1); put(V, "D53", "=SUM(D49:D52)", BOLD, MONEY2, fill=G1)
+put(V, "A54", "GST 10%"); put(V, "D54", "=ROUND(D53*0.1,2)", BLACK, MONEY2)
+put(V, "A55", "HELD (incl GST)", BOLD, fill=AMBER_FILL); band(V, 55, 2, 5, AMBER_FILL); put(V, "D55", "=D53+D54", BOLD, MONEY2, fill=AMBER_FILL)
+put(V, "A57", "Check", BOLD); put(V, "A58", "   Paying now + held"); put(V, "D58", "=D44+D55", BLACK, MONEY2)
+put(V, "A59", "   Bill total per Xero"); put(V, "D59", 178119.25, BLUE, MONEY2)
+put(V, "A60", "   Difference (rounding)"); put(V, "D60", "=D58-D59", BLACK, MONEY2)
+put(V, "A62", "Still to come from Complete AV on this job: PO 2/2 of the same quote (PO-00016899) $19,470.57 authorised but not billed yet, plus three small POs (occupancy sensors $2,441, huddle space $4,153, UC engine variation $605). Jordan thinks they may also push for programming / sub-trade costs - if we agree to any, add them on the Payables tab.", GREY, wrap=True)
+V.merge_cells("A62:E62"); V.row_dimensions[62].height = 44
+V.freeze_panes = "A5"; V.sheet_view.showGridLines = False
 
 # =============================================================== Cash Flow
 C = wb.create_sheet("Cash Flow", 0)
@@ -497,13 +586,10 @@ put(C, f"{TF}{row}", f'=SUMIFS({AP["amt"]},{AP["m"]},"<>Card",{AP["pd"]},">"&{FC
 put(C, f"{NOTE}{row}", "Complete AV labour & programming $41,956 (held for Aware sign-off), October rent, October mobiles.", GREY, wrap=True); row += 2
 put(C, f"A{row}", "KEY RISKS & THINGS TO CONFIRM", WHITE_B, fill=NAVY); band(C, row, 2, LASTCOL, NAVY); row += 1
 risks = [
-    "1. Aware Super $225,887 (INV-10596, due 9 Oct) is the single largest receipt. The Complete AV materials payment of $136,163 is timed for the week after it lands; if Aware slips, move both (Receivables row 12, Payables row 6).",
-    "2. Complete AV labour and programming ($41,956 incl GST) is held until Aware signs off and handover documents arrive, per the 28 Sep meeting. Jordan flagged Complete AV may push to include programming or sub-trade costs - if agreed, add them to the Payables tab.",
-    "3. Ventia $58,025 is a month overdue and its other three invoices ($36,677) are assumed 2-3 weeks late. PwC, Gen-e and Microsoft each have a month-old unpaid invoice. Chase this week.",
-    "4. Payroll is the fixed commitment: about $100k leaves the cheque account on 6 Oct and again on 20 Oct, plus ~$9k payroll tax on 7 Oct. Top up the cheque account from savings before each ABA upload.",
-    "5. BAS: the Sep-quarter BAS (Sep PAYG ~$50k + net GST + any instalment) is assumed paid 25 Nov via the tax agent. If self-lodged it is due 28 Oct - flip the toggle on the Assumptions tab.",
-    "6. Unbilled cost estimates ($100k cost of sales, $15k overheads, $25k card) come from the FY27 GL run-rate. October is budgeted as a heavy Production month, so hires and sub-contractors could exceed this.",
-    "7. Not visible through the Xero connector and NOT included: director drawings, dividends, loan movements, insurance instalment timing, income-tax instalment amounts, expense-claim runs, and the cheque/savings split of the opening balance.",
+    "1. Aware Super $225,887 (INV-10596, due 9 Oct) is the big one. We're paying Complete AV materials $136,163 this week (Fri 2 Oct), ahead of it landing - if Aware slip, the held labour stays held and we watch the cheque account. Build-up on the Complete AV tab.",
+    "2. Complete AV labour and programming ($41,956 inc GST) is held until Aware sign off and we get the handover docs - agreed 28 Sep. Jordan thinks they may push for programming or sub-trade costs. If we agree to any, add them on the Payables tab.",
+    "3. Ventia $58,025 is a month overdue and their other three ($36,677) are assumed 2-3 weeks late. PwC, Gen-e and Microsoft each have a month-old one too. Chase this week.",
+    "4. BAS - Sep quarter (Sep PAYG ~$50k + GST + any instalment) is assumed paid 25 Nov through the agent. If we lodge ourselves it's 28 Oct - flick the toggle on the Assumptions tab.",
 ]
 for t in risks:
     put(C, f"A{row}", t, BLACK, wrap=True); C.merge_cells(f"A{row}:{NOTE}{row}"); C.row_dimensions[row].height = 30; row += 1
