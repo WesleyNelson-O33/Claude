@@ -30,16 +30,12 @@ VOICE = {
 'Aug actual $2,700 (GL #69670), July was $3,000. All due on the 7th too.',
 'Wed 7 Oct 2026.':
 'Wed 7 Oct.',
-'Sep-quarter BAS is due 28 Oct if self-lodged, or 25 Nov through the tax agent. The Jun-quarter BAS was paid ~25 Aug (Part 6 transcript, 04:40), which matches the agent date, so default is 0 (paid November). Set to 1 to show it on 28 Oct.':
-"Sep quarter BAS is due 28 Oct if we lodge it ourselves, 25 Nov through the agent. The last one went out around 25 Aug (Part 6 video, 04:40) which is the agent date, so I've left this at 0 = paid in Nov. Flick it to 1 if we're paying on 28 Oct.",
 'Formula: PAYG % x September gross wages $217,062 (Xero cash P&L). July and August withholding were paid on the monthly IAS (21 Aug, 21 Sep), so no IAS falls in October.':
 'PAYG % x Sep gross $217,062 (Xero cash P&L). Jul and Aug went on the IAS (21 Aug, 21 Sep) so nothing falls in Oct.',
 'Rough: GST on ~$1.5m quarterly receipts less GST on ~$1.0m purchases. Replace with the Xero Activity Statement figure.':
 'Rough guess - GST on ~$1.5m in, less GST on ~$1.0m out. Replace with the activity statement figure from Xero.',
 'Unknown - not visible through the Xero connector. Enter the ATO instalment if one applies.':
 "Can't see this in Xero. Put the ATO instalment in here if there is one.",
-'Self-lodgement due date.':
-'28 Oct if we lodge it ourselves.',
 'COSTS NOT YET BILLED - MONTHLY ESTIMATES (spread evenly over the 5 weeks)':
 'COSTS NOT BILLED YET - MONTHLY ESTIMATES (spread over the 5 weeks)',
 'September cash P&L: Sub-Contract Labour INTEGRATION $31,990 + PRD $7,154. Bills for October work paid inside the month.':
@@ -278,8 +274,6 @@ VOICE = {
 '~$25k a month transferred to the PL and DL cards. Covers every Card row on the Payables tab (subscriptions, travel, electricity, Seek, Goget, EH).',
 'Payables tab: Persona Health (on hold until GC confirms).':
 'Persona Health - on hold until GC confirms.',
-'Assumptions toggle. Default 0 = lodged via tax agent, due 25 Nov. Set to 1 to show ~$100k on 28 Oct.':
-'Toggle on the Assumptions tab. 0 = agent lodges, paid 25 Nov. 1 = ~$100k out on 28 Oct.',
 "Opening + net cash flow. Actual column fills in once the week's flag is set to 1; the 5-week Actual total shows the latest completed week.":
 "Opening + net. The Actual column fills in once the week's flag is 1, and the total column shows the latest completed week.",
 'Type the real closing balance (all accounts) at the end of each week.':

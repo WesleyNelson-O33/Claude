@@ -63,11 +63,11 @@ rows = [
     ("Payroll tax other states (ACT/QLD/SA/VIC/WA) - Sep (due 7 Oct)", 2700, MONEY, "August actual accrual $2,700 (GL #69670; July $3,000). All due on the 7th of the following month."),
     ("Payroll tax payment date", D(2026, 10, 7), DATE, "Wed 7 Oct 2026."),
     ("BAS / PAYG WITHHOLDING", None, None, None),
-    ("Q1 BAS paid inside this forecast? (1 = yes, 0 = no)", 0, None, "Sep-quarter BAS is due 28 Oct if self-lodged, or 25 Nov through the tax agent. The Jun-quarter BAS was paid ~25 Aug (Part 6 transcript, 04:40), which matches the agent date, so default is 0 (paid November). Set to 1 to show it on 28 Oct."),
+    ("Q1 BAS paid inside this forecast? (1 = yes, 0 = no)", 1, None, "1 = we lodge it ourselves and pay 28 Oct (week 4). 0 = through the agent, 25 Nov, outside the forecast."),
     ("Sep PAYG withholding (goes on the Q1 BAS)", "=B11*217062", MONEY, "Formula: PAYG % x September gross wages $217,062 (Xero cash P&L). July and August withholding were paid on the monthly IAS (21 Aug, 21 Sep), so no IAS falls in October."),
     ("Net GST payable for Sep quarter - ESTIMATE", 50000, MONEY, "Rough: GST on ~$1.5m quarterly receipts less GST on ~$1.0m purchases. Replace with the Xero Activity Statement figure."),
     ("PAYG income-tax instalment for Sep quarter", 0, MONEY, "Unknown - not visible through the Xero connector. Enter the ATO instalment if one applies."),
-    ("BAS payment date if paid in October", D(2026, 10, 28), DATE, "Self-lodgement due date."),
+    ("BAS payment date if paid in October", D(2026, 10, 28), DATE, "28 Oct as we lodge it ourselves."),
     ("COSTS NOT YET BILLED - MONTHLY ESTIMATES (spread evenly over the 5 weeks)", None, None, None),
     ("Sub-contract labour", 40000, MONEY, "September cash P&L: Sub-Contract Labour INTEGRATION $31,990 + PRD $7,154. Bills for October work paid inside the month."),
     ("Equipment & service hires", 30000, MONEY, "September cash P&L: Service hires $17,344 + Equipment hires $11,427."),
@@ -302,7 +302,7 @@ W1_END = D(2026, 10, 7)
 CAV_DATE = D(2026, 10, 2)
 def _pd(x): return CAV_DATE if isinstance(x[6], str) else x[6]
 week1 = [x for x in ap if x[4] != "Card" and D(2026, 9, 28) <= _pd(x) <= W1_END]
-STATUS = {"Complete AV Solutions": ("AGREED - PAY", "Agreed 28 Sep meeting. Date assumed Fri 2 Oct - change it on the Complete AV tab if paying earlier."),
+STATUS = {"Complete AV Solutions": ("AGREED - PAY", "Agreed 28 Sep meeting. Pay date comes from the Complete AV tab."),
           "Fredon Technology": ("AWAITING DH", "Bill says DH to confirm - don't pay until he does."),
           "RJW Group Holdings": ("AWAITING DL", "Bill says check with DL before paying.")}
 put(Y, "A4", "PAYMENTS THIS WEEK (28 Sep - 7 Oct)", WHITE_B, fill=NAVY); band(Y, 4, 2, 10, NAVY)
@@ -389,7 +389,7 @@ put(V, "A42", "Materials net (ex GST)", BOLD); put(V, "D42", "=D40+D41", BOLD, M
 put(V, "A43", "GST 10%"); put(V, "D43", "=ROUND(D42*0.1,2)", BLACK, MONEY2)
 put(V, "A44", "PAYING NOW (incl GST)", BOLD, fill=GREEN_FILL); band(V, 44, 2, 5, GREEN_FILL); put(V, "D44", "=D42+D43", BOLD, MONEY2, fill=GREEN_FILL)
 put(V, "A46", "Pay on", BOLD, fill=GREEN_FILL); band(V, 46, 2, 5, GREEN_FILL); put(V, "D46", D(2026, 10, 2), BLUE, DATE, fill=GREEN_FILL)
-put(V, "E46", "Agreed this week. Fri 2 Oct assumed - change it here and the Payables tab and Cash Flow follow.", GREY, fill=GREEN_FILL, wrap=True)
+put(V, "E46", "Agreed this week. Change the date here and the Payables tab and Cash Flow follow.", GREY, fill=GREEN_FILL, wrap=True)
 put(V, "A48", "HELD - labour and programming (until Aware sign off + handover docs)", WHITE_B, fill=NAVY); band(V, 48, 2, 5, NAVY)
 held = [("Labour & programming", 23320.00), ("Labour", 7196.00), ("Labour", 6561.80), ("Lighting integration programming (coded to equipment in Xero, but it's programming)", 1064.00)]
 for k, (desc, amt) in enumerate(held):
@@ -527,7 +527,7 @@ SUB_OVH = total("Subtotal overheads", ovh)
 row += 1
 subhead("Tax")
 tax = []
-tax.append(line("BAS - GST, PAYG withholding & instalment (Q1)", lambda i: "=" + in_week(i, KEY["basdate"], f"{KEY['bastoggle']}*({KEY['baspayg']}+{KEY['basgst']}+{KEY['basinst']})"), "Assumptions toggle. Default 0 = lodged via tax agent, due 25 Nov. Set to 1 to show ~$100k on 28 Oct."))
+tax.append(line("BAS - GST, PAYG withholding & instalment (Q1)", lambda i: "=" + in_week(i, KEY["basdate"], f"{KEY['bastoggle']}*({KEY['baspayg']}+{KEY['basgst']}+{KEY['basinst']})"), f'="Q1 BAS est. "&TEXT({KEY["baspayg"]}+{KEY["basgst"]}+{KEY["basinst"]},"$#,##0")&" (Sep PAYG "&TEXT({KEY["baspayg"]},"$#,##0")&" + GST est "&TEXT({KEY["basgst"]},"$#,##0")&" + instalment "&TEXT({KEY["basinst"]},"$#,##0")&"), due "&TEXT({KEY["basdate"]},"d mmm")&". Toggle on Assumptions = "&{KEY["bastoggle"]}&" (1 = in the forecast)."'))
 SUB_TAX = total("Subtotal tax", tax)
 row += 1
 TOT_EXP = total("TOTAL OPERATING EXPENSES", [SUB_EMP, SUB_COS, SUB_OVH, SUB_TAX], fill=G2)
@@ -586,10 +586,10 @@ put(C, f"{TF}{row}", f'=SUMIFS({AP["amt"]},{AP["m"]},"<>Card",{AP["pd"]},">"&{FC
 put(C, f"{NOTE}{row}", "Complete AV labour & programming $41,956 (held for Aware sign-off), October rent, October mobiles.", GREY, wrap=True); row += 2
 put(C, f"A{row}", "KEY RISKS & THINGS TO CONFIRM", WHITE_B, fill=NAVY); band(C, row, 2, LASTCOL, NAVY); row += 1
 risks = [
-    "1. Aware Super $225,887 (INV-10596, due 9 Oct) is the big one. We're paying Complete AV materials $136,163 this week (Fri 2 Oct), ahead of it landing - if Aware slip, the held labour stays held and we watch the cheque account. Build-up on the Complete AV tab.",
+    "1. Aware Super $225,887 (INV-10596, due 9 Oct) is the big one. We're paying Complete AV materials $136,163 this week (30 Sep), ahead of it landing - if Aware slip, the held labour stays held and we watch the cheque account. Build-up on the Complete AV tab.",
     "2. Complete AV labour and programming ($41,956 inc GST) is held until Aware sign off and we get the handover docs - agreed 28 Sep. Jordan thinks they may push for programming or sub-trade costs. If we agree to any, add them on the Payables tab.",
     "3. Ventia $58,025 is a month overdue and their other three ($36,677) are assumed 2-3 weeks late. PwC, Gen-e and Microsoft each have a month-old one too. Chase this week.",
-    "4. BAS - Sep quarter (Sep PAYG ~$50k + GST + any instalment) is assumed paid 25 Nov through the agent. If we lodge ourselves it's 28 Oct - flick the toggle on the Assumptions tab.",
+    "4. BAS - Sep quarter (Sep PAYG ~$50k + GST est ~$50k + any instalment) is due 28 Oct as we lodge it ourselves - it's in week 4. Swap the GST estimate for the activity statement figure once it's run.",
 ]
 for t in risks:
     put(C, f"A{row}", t, BLACK, wrap=True); C.merge_cells(f"A{row}:{NOTE}{row}"); C.row_dimensions[row].height = 30; row += 1
@@ -608,6 +608,11 @@ for ws in wb.worksheets:
                 c.value = VOICE[c.value]; seen.add(c.value)
 missing = [k for k, v in VOICE.items() if v not in seen]
 assert not missing, "voice keys not found: " + " | ".join(m[:60] for m in missing)
+from user_edits import USER_EDITS
+for (sh, ref), val in USER_EDITS.items():
+    c = wb[sh][ref]; c.value = val
 wb.calculation = CalcProperties(fullCalcOnLoad=True)
 wb.save(OUT)
+import inject_values
+inject_values.inject(OUT)
 print("saved", OUT, "rows", row)
