@@ -56,7 +56,7 @@ rows = [
     ("PAYG withheld as % of gross", "=1-B10", PCT, "Formula: 1 - net %. Paid to the ATO via IAS/BAS, not on payday."),
     ("Superannuation as % of gross", 0.12, PCT, "Superannuation Guarantee 12%. 25 Aug run: SG $13,677 on gross $115,340 = 11.9%. Salary-sacrifice super (~$1,050 a run) is in the same super batch but comes out of gross pay, so it is not added here."),
     ("Employee reimbursements per pay run (expense claims)", 1000, MONEY, "PLACEHOLDER - not visible in Xero through the connector. Per diems ($75/night) are paid inside payroll and are already in net pay. Enter the typical expense-claim amount paid with each pay run."),
-    ("Pay date - run 1 (fortnight ending Fri 2 Oct)", D(2026, 10, 6), DATE, "Pay date is always the Tuesday of the processing week (Payroll Part 2 transcript; Checklist step 13). Super is direct-debited the same week (Checklist step 69); Payday Super applies from 1 Jul 2026."),
+    ("Pay date - run 1 (fortnight ending Fri 2 Oct)", D(2026, 10, 6), DATE, "Pay date is always the Tuesday of the processing week (Payroll Part 2 transcript; Checklist step 13). Mon 5 Oct is the Labour Day public holiday (NSW), so run 1 must be prepared, finalised and uploaded on Fri 2 Oct. Super is direct-debited the same week (Checklist step 69); Payday Super applies from 1 Jul 2026."),
     ("Pay date - run 2 (fortnight ending Fri 16 Oct)", D(2026, 10, 20), DATE, "Next run is Tue 3 Nov (fortnight ending 30 Oct) - outside this forecast."),
     ("Payroll tax NSW - September return (due 7 Oct)", 6295, MONEY, "August actual accrual $6,120.40 + $174.67 (GL journals #69671, #70351). NSW monthly return due the 7th of the following month. Replace with the lodged figure."),
     ("Payroll tax other states (ACT/QLD/SA/VIC/WA) - Sep (due 7 Oct)", 2700, MONEY, "August actual accrual $2,700 (GL #69670; July $3,000). All due on the 7th of the following month."),
@@ -127,7 +127,7 @@ put(P, "A2", "Fortnightly pay cycle. Pay date = Tuesday of the processing week. 
 hdr = ["Pay run", "Fortnight ending", "Pay date", "Gross wages", "Net pay (ABA file)", "PAYG withheld", "Super (direct debit)", "Reimbursements", "Cash out on payday (net + super + reimb.)", "Notes"]
 for j, h in enumerate(hdr): put(P, f"{L(j+1)}4", h, WHITE_B, fill=NAVY, wrap=True)
 P.row_dimensions[4].height = 30
-runs = [("Run 1 - Oct", D(2026, 10, 2), KEY["pay1"], "Timesheets close Fri 2 Oct, processed Mon 5 Oct, paid Tue 6 Oct."),
+runs = [("Run 1 - Oct", D(2026, 10, 2), KEY["pay1"], "Fortnight ends Fri 2 Oct. Mon 5 Oct is the Labour Day public holiday (NSW), so do the full process on Fri 2 Oct: chase timesheet approvals first thing, reconcile, finalise with Graham, upload the ABA to CommBiz and send the payroll email for Duncan to approve. Transfer the payroll funds from savings on the Friday. Paid Tue 6 Oct."),
         ("Run 2 - Oct", D(2026, 10, 16), KEY["pay2"], "Last pay run of the month: accrue bonus leave (Checklist step 48) - no cash effect.")]
 for i, (name, fe, payref, note) in enumerate(runs):
     rr = 5 + i
