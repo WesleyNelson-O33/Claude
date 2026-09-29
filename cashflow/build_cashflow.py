@@ -48,16 +48,17 @@ put(A, "A2", "Blue = input you can change. Black = formula. Bright yellow = key 
 rows = [
     ("TIMING & OPENING POSITION", None, None, None),
     ("Forecast start (Monday of this week)", D(2026, 9, 28), DATE, "Mon 28 Sep 2026. Five weeks: Wk1 28 Sep-4 Oct, Wk2 5-11 Oct, Wk3 12-18 Oct, Wk4 19-25 Oct, Wk5 26 Oct-1 Nov."),
-    ("Opening bank balance - all accounts", 909159.55, MONEY2, "Xero cash position 28 Sep 2026 (cheque, savings and credit cards combined). Payroll is paid from the cheque account with top-ups from savings - check the cheque balance separately before each pay run."),
+    ("Opening bank balance - cheque + savings", "=25155+410000", MONEY2, "Xero cash position 28 Sep 2026 (cheque, savings and credit cards combined). Payroll is paid from the cheque account with top-ups from savings - check the cheque balance separately before each pay run."),
     ("Number of weeks", 5, None, "Cash Flow tab has Forecast and Actual columns for each week."),
     ("PAYROLL (fortnightly, paid Tuesday of processing week)", None, None, None),
     ("Gross wages per fortnight", 111000, MONEY, "Average of the last three known pay runs: 11 Aug $108,325, 25 Aug $115,340 (GL journals #69396, #69669) and the two September runs $217,062 combined (Xero cash P&L 1-28 Sep). See Payroll tab."),
-    ("Net pay as % of gross", 0.77, PCT, "25 Aug run: gross ~$115k, ABA file ~$88-89k (Payroll Part 6 transcript, 03:16-04:12) = 76.8%. Balance is PAYG withholding and salary-sacrifice deductions."),
+    ("Net pay as % of gross", 0.768, PCT, "25 Aug run: gross ~$115k, ABA file ~$88-89k (Payroll Part 6 transcript, 03:16-04:12) = 76.8%. Balance is PAYG withholding and salary-sacrifice deductions."),
     ("PAYG withheld as % of gross", "=1-B10", PCT, "Formula: 1 - net %. Paid to the ATO via IAS/BAS, not on payday."),
     ("Superannuation as % of gross", 0.12, PCT, "Superannuation Guarantee 12%. 25 Aug run: SG $13,677 on gross $115,340 = 11.9%. Salary-sacrifice super (~$1,050 a run) is in the same super batch but comes out of gross pay, so it is not added here."),
     ("Employee reimbursements per pay run (expense claims)", 1000, MONEY, "PLACEHOLDER - not visible in Xero through the connector. Per diems ($75/night) are paid inside payroll and are already in net pay. Enter the typical expense-claim amount paid with each pay run."),
     ("Pay date - run 1 (fortnight ending Fri 2 Oct)", D(2026, 10, 6), DATE, "Pay date is always the Tuesday of the processing week (Payroll Part 2 transcript; Checklist step 13). Mon 5 Oct is the Labour Day public holiday (NSW), so run 1 must be prepared, finalised and uploaded on Fri 2 Oct. Super is direct-debited the same week (Checklist step 69); Payday Super applies from 1 Jul 2026."),
-    ("Pay date - run 2 (fortnight ending Fri 16 Oct)", D(2026, 10, 20), DATE, "Next run is Tue 3 Nov (fortnight ending 30 Oct) - outside this forecast."),
+    ("Pay date - run 2 (fortnight ending Fri 16 Oct)", D(2026, 10, 20), DATE, "Tue 20 Oct."),
+    ("Pay date - run 3 (fortnight ending Fri 30 Oct)", D(2026, 11, 3), DATE, "Tue 3 Nov. Only hits the forecast if the week table runs that far."),
     ("Payroll tax NSW - September return (due 7 Oct)", 6295, MONEY, "August actual accrual $6,120.40 + $174.67 (GL journals #69671, #70351). NSW monthly return due the 7th of the following month. Replace with the lodged figure."),
     ("Payroll tax other states (ACT/QLD/SA/VIC/WA) - Sep (due 7 Oct)", 2700, MONEY, "August actual accrual $2,700 (GL #69670; July $3,000). All due on the 7th of the following month."),
     ("Payroll tax payment date", D(2026, 10, 7), DATE, "Wed 7 Oct 2026."),
@@ -99,7 +100,7 @@ def AS(prefix):
     raise KeyError(prefix)
 KEY = {"start": AS("Forecast start"), "opening": AS("Opening bank"), "gross": AS("Gross wages"), "netpct": AS("Net pay as %"),
        "paygpct": AS("PAYG withheld as %"), "superpct": AS("Superannuation as %"), "reimb": AS("Employee reimbursements"),
-       "pay1": AS("Pay date - run 1"), "pay2": AS("Pay date - run 2"), "ptnsw": AS("Payroll tax NSW"), "ptoth": AS("Payroll tax other"),
+       "pay1": AS("Pay date - run 1"), "pay2": AS("Pay date - run 2"), "pay3": AS("Pay date - run 3"), "ptnsw": AS("Payroll tax NSW"), "ptoth": AS("Payroll tax other"),
        "ptdate": AS("Payroll tax payment date"), "bastoggle": AS("Q1 BAS paid"), "baspayg": AS("Sep PAYG withholding"),
        "basgst": AS("Net GST"), "basinst": AS("PAYG income-tax"), "basdate": AS("BAS payment date"),
        "est_sub": AS("Sub-contract labour"), "est_hire": AS("Equipment & service hires"), "est_equip": AS("Project equipment purchases"),
@@ -112,10 +113,12 @@ for k in ("netpct", "superpct", "ptnsw", "ptoth", "bastoggle", "basgst", "est_su
     A[KEY[k].replace("Assumptions!", "").replace("$", "")].fill = YELLOW
 r += 1
 put(A, f"A{r}", "WEEK TABLE (calculated)", WHITE_B, fill=NAVY); band(A, r, 2, 3, NAVY); r += 1
-put(A, f"A{r}", "Week", BOLD, fill=G1); put(A, f"B{r}", "Start (Mon)", BOLD, fill=G1); put(A, f"C{r}", "End (Sun)", BOLD, fill=G1); r += 1
+put(A, f"A{r}", "Week", BOLD, fill=G1); put(A, f"B{r}", "Start", BOLD, fill=G1); put(A, f"C{r}", "End", BOLD, fill=G1); r += 1
 WEEK_START, WEEK_END = [], []
 for i in range(5):
-    put(A, f"A{r}", i + 1); put(A, f"B{r}", f"={KEY['start']}+{7*i}", BLACK, DATE); put(A, f"C{r}", f"=B{r}+6", BLACK, DATE)
+    put(A, f"A{r}", i + 1)
+    put(A, f"B{r}", f"={KEY['start']}" if i == 0 else f"=C{r-1}+1", BLACK, DATE)
+    put(A, f"C{r}", f"=B{r}+9" if i == 0 else f"=B{r}+6", BLACK, DATE)
     WEEK_START.append(f"Assumptions!$B${r}"); WEEK_END.append(f"Assumptions!$C${r}"); r += 1
 FC_END = WEEK_END[-1]
 
@@ -128,15 +131,16 @@ hdr = ["Pay run", "Fortnight ending", "Pay date", "Gross wages", "Net pay (ABA f
 for j, h in enumerate(hdr): put(P, f"{L(j+1)}4", h, WHITE_B, fill=NAVY, wrap=True)
 P.row_dimensions[4].height = 30
 runs = [("Run 1 - Oct", D(2026, 10, 2), KEY["pay1"], "Fortnight ends Fri 2 Oct. Mon 5 Oct is the Labour Day public holiday (NSW), so do the full process on Fri 2 Oct: chase timesheet approvals first thing, reconcile, finalise with Graham, upload the ABA to CommBiz and send the payroll email for Duncan to approve. Transfer the payroll funds from savings on the Friday. Paid Tue 6 Oct."),
-        ("Run 2 - Oct", D(2026, 10, 16), KEY["pay2"], "Last pay run of the month: accrue bonus leave (Checklist step 48) - no cash effect.")]
+        ("Run 2 - Oct", D(2026, 10, 16), KEY["pay2"], "Last pay run of the month: accrue bonus leave (Checklist step 48) - no cash effect."),
+        ("Run 3 - Nov", D(2026, 10, 30), KEY["pay3"], "Paid Tue 3 Nov. Only counts if the forecast window covers 3 Nov.")]
 for i, (name, fe, payref, note) in enumerate(runs):
     rr = 5 + i
     put(P, f"A{rr}", name); put(P, f"B{rr}", fe, BLUE, DATE); put(P, f"C{rr}", f"={payref}", GREEN, DATE)
     put(P, f"D{rr}", f"={KEY['gross']}", GREEN, MONEY); put(P, f"E{rr}", f"=D{rr}*{KEY['netpct']}", BLACK, MONEY)
     put(P, f"F{rr}", f"=D{rr}*{KEY['paygpct']}", BLACK, MONEY); put(P, f"G{rr}", f"=D{rr}*{KEY['superpct']}", BLACK, MONEY)
     put(P, f"H{rr}", f"={KEY['reimb']}", GREEN, MONEY); put(P, f"I{rr}", f"=E{rr}+G{rr}+H{rr}", BLACK, MONEY); put(P, f"J{rr}", note, GREY, wrap=True)
-put(P, "A7", "Total October pay runs", BOLD, fill=G2); band(P, 7, 2, 10, G2)
-for col in "DEFGHI": put(P, f"{col}7", f"=SUM({col}5:{col}6)", BOLD, MONEY, fill=G2)
+put(P, "A8", "Total pay runs listed", BOLD, fill=G2); band(P, 8, 2, 10, G2)
+for col in "DEFGHI": put(P, f"{col}8", f"=SUM({col}5:{col}7)", BOLD, MONEY, fill=G2)
 put(P, "A9", "Payroll tax for September wages (paid October)", H2)
 put(P, "A10", "NSW - due 7 Oct"); put(P, "B10", f"={KEY['ptnsw']}", GREEN, MONEY); put(P, "C10", f"={KEY['ptdate']}", GREEN, DATE)
 put(P, "A11", "Other states - due 7 Oct"); put(P, "B11", f"={KEY['ptoth']}", GREEN, MONEY); put(P, "C11", f"={KEY['ptdate']}", GREEN, DATE)
@@ -332,7 +336,7 @@ for i in range(NW):
     put(C, f"{f}6", f'=TEXT({WEEK_START[i]},"d mmm")&" - "&TEXT({WEEK_END[i]},"d mmm")', WHITE, fill=NAVY, align="center"); C[f"{a}6"].fill = NAVY; C.merge_cells(f"{f}6:{a}6")
     put(C, f"{f}7", "Forecast", WHITE_B, fill=NAVY, align="center"); put(C, f"{a}7", "Actual", WHITE_B, fill=NAVY, align="center")
 put(C, "A5", "", fill=NAVY); put(C, "A6", "", fill=NAVY); put(C, "A7", "$ AUD (GST inclusive)", WHITE_B, fill=NAVY)
-put(C, f"{TF}5", "5-week total", WHITE_B, fill=NAVY, align="center"); C[f"{TA}5"].fill = NAVY; C.merge_cells(f"{TF}5:{TA}5")
+put(C, f"{TF}5", "Total", WHITE_B, fill=NAVY, align="center"); C[f"{TA}5"].fill = NAVY; C.merge_cells(f"{TF}5:{TA}5")
 put(C, f"{TF}6", "", fill=NAVY); put(C, f"{TA}6", "", fill=NAVY)
 put(C, f"{TF}7", "Forecast", WHITE_B, fill=NAVY, align="center"); put(C, f"{TA}7", "Actual", WHITE_B, fill=NAVY, align="center")
 put(C, f"{VAR}5", "Variance", WHITE_B, fill=NAVY, align="center", wrap=True); put(C, f"{VAR}6", "(weeks with", WHITE, fill=NAVY, align="center"); put(C, f"{VAR}7", "actuals)", WHITE, fill=NAVY, align="center")
@@ -351,7 +355,7 @@ def wk_ap(i, cats):
     parts = [f'SUMIFS({AP["amt"]},{AP["pd"]},">="&{WEEK_START[i]},{AP["pd"]},"<="&{WEEK_END[i]},{AP["m"]},"<>Card",{AP["cat"]},"{c}")' for c in cats]
     return "+".join(parts)
 def wk_pay(i, col):
-    return f'SUMIFS(Payroll!${col}$5:${col}$6,Payroll!$C$5:$C$6,">="&{WEEK_START[i]},Payroll!$C$5:$C$6,"<="&{WEEK_END[i]})'
+    return f'SUMIFS(Payroll!${col}$5:${col}$7,Payroll!$C$5:$C$7,">="&{WEEK_START[i]},Payroll!$C$5:$C$7,"<="&{WEEK_END[i]})'
 def in_week(i, dateref, amtref):
     return f'IF(AND({dateref}>={WEEK_START[i]},{dateref}<={WEEK_END[i]}),{amtref},0)'
 def est(key):
@@ -509,6 +513,15 @@ for i in range(NW):
 for ws in wb.worksheets:
     ws.sheet_properties.pageSetUpPr = openpyxl.worksheet.properties.PageSetupProperties(fitToPage=True)
     ws.page_setup.orientation = "landscape"
+from voice import VOICE
+seen = set()
+for ws in wb.worksheets:
+    for row_ in ws.iter_rows():
+        for c in row_:
+            if isinstance(c.value, str) and c.value in VOICE:
+                c.value = VOICE[c.value]; seen.add(c.value)
+missing = [k for k, v in VOICE.items() if v not in seen]
+assert not missing, "voice keys not found: " + " | ".join(m[:60] for m in missing)
 wb.calculation = CalcProperties(fullCalcOnLoad=True)
 wb.save(OUT)
 print("saved", OUT, "rows", row)
