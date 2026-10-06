@@ -35,7 +35,7 @@ spec = [
  ("type", "EmploymentType", 13, "in", "current: Full-Time / Part-Time / Casual"),
  ("dob", "DateOfBirth", 11, "in", "type here"), ("bday", "Birthday", 11, "out", "next birthday"),
  ("start", "StartDate", 11, "in", "type here"),
- ("pte", "PTE Start", 11, "in", "date part-time began"), ("fte", "FTE Start", 11, "in", "date full-time began"), ("cas", "Casual Start", 11, "in", "date casual began"),
+ ("cas", "Casual Start", 11, "in", "date casual began"), ("pte", "PTE Start", 11, "in", "date part-time began"), ("fte", "FTE Start", 11, "in", "date full-time began"),
  ("anniv_in", "AnniversaryDate", 12, "in", "optional: HR-adjusted service start (unpaid leave)"), ("anniv", "Anniversary", 11, "out", "next anniversary of commencement (FT/PT start)"),
  ("ten", "Tenure", 8, "out", "years since commencement (FT/PT start)"), ("tenymd", "Tenure (Y/M/D)", 12, "out", "qualifying service counted"),
  ("hrs_due", "Bonus leave Accrued", 11, "out", "HOURS due per policy to date"), ("days_due", "Days", 7, "out", "days due per policy to date"),
@@ -47,6 +47,7 @@ spec = [
  ("accq", "Add to EH now?", 9, "eh", "Yes = hours owed"), ("action", "Action", 36, "eh", ""),
  ("gap", "Opening gap vs policy (hrs)", 10, "eh", "0 when the report covers full history"), ("rows", "Rows in EH report", 8, "eh", "Bonus Leave rows found"),
  ("check", "Data Check", 30, "out", ""),
+ ("mdays", "Earned this month (days)", 10, "eh", "days whose milestone falls in the accrual month"), ("mdate", "Milestone this month", 11, "eh", "date of that milestone"),
  # helpers
  ("h_act", "h active", 6, "hp", ""), ("h_S", "h S", 10, "hp", ""), ("h_n", "h n dates", 6, "hp", ""),
  ("h_D1", "h D1", 10, "hp", ""), ("h_D2", "h D2", 10, "hp", ""), ("h_D3", "h D3", 10, "hp", ""),
@@ -56,15 +57,18 @@ spec = [
  ("h_MP", "h MP", 6, "hp", ""), ("h_B1P", "h B1P", 6, "hp", ""), ("h_B2P", "h B2P", 6, "hp", ""),
  ("h_dn", "h daysNow", 6, "hp", ""), ("h_dp", "h daysPFY", 6, "hp", ""), ("h_no", "h nextoff", 6, "hp", ""),
  ("h_rows", "h rows", 6, "hp", ""), ("h_last", "h lastrow", 6, "hp", ""),
+ ("h_MM", "h MM", 6, "hp", ""), ("h_B1M", "h B1M", 6, "hp", ""), ("h_B2M", "h B2M", 6, "hp", ""), ("h_dm", "h daysLastMonth", 6, "hp", ""), ("h_lastoff", "h lastoff", 6, "hp", ""),
 ]
 C = {k: get_column_letter(i + 1) for i, (k, *_) in enumerate(spec)}
 kind = {k: kd for k, _, _, kd, _ in spec}
-first_help = C["h_act"]; last_help = C["h_last"]
+first_help = C["h_act"]; last_help = C["h_lastoff"]
 
 ws["A1"] = "CTS BONUS LEAVE TRACKER"; ws["A1"].font = f_title
-ws["A2"] = (f'="As at "&TEXT(AsOfDate,"dd/mm/yyyy")&"  |  Report from "&TEXT(PFYDate+1,"dd/mm/yyyy")&"  |  Staff: "&COUNTIF(${C["h_act"]}$5:${C["h_act"]}${R1},1)'
+ws["A2"] = (f'="ACCRUING FOR "&UPPER(TEXT(AsOfDate,"mmmm yyyy"))&"  |  As at "&TEXT(AsOfDate,"dd/mm/yyyy")&"  |  Report from "&TEXT(PFYDate+1,"dd/mm/yyyy")&"  |  Staff: "&COUNTIF(${C["h_act"]}$5:${C["h_act"]}${R1},1)'
             f'&"  |  Accruing: "&COUNTIF(${C["elig"]}$5:${C["elig"]}${R1},"Yes*")&"  |  To accrue now: "&ROUND(SUMIF(${C["toacc"]}$5:${C["toacc"]}${R1},">0"),2)&""'
-            f'&" hrs for "&COUNTIF(${C["accq"]}$5:${C["accq"]}${R1},"Yes")&" people"')
+            f'&" hrs for "&COUNTIF(${C["accq"]}$5:${C["accq"]}${R1},"Yes")&" people  |  Earned this month: "&ROUND(SUM(${C["mdays"]}$5:${C["mdays"]}${R1}),2)&" days"')
+ws["D1"] = "Accrual month = the month of the As-of date on Settings.  EARNED THIS MONTH = days whose milestone falls in that month.  HOURS TO ACCRUE = everything still missing in EH (this month + any earlier months not yet posted).  Post Hours to Accrue; the Action says how much is this month and how much is catch-up."
+ws["D1"].font = f_note
 ws["A2"].font = f_bold
 for k, h, w, kd, note in spec:
     L = C[k]; ws.column_dimensions[L].width = w
@@ -97,7 +101,7 @@ def formulas(r):
     v = lambda k: f'${C[k]}{r}'
     dm1 = lambda k: f'({C[k]}{r}-1)'
     A = f'{c("h_act")}=0'
-    S = c("h_S"); dates = f'${C["pte"]}{r}:${C["cas"]}{r}'
+    S = c("h_S"); dates = f'${C["cas"]}{r}:${C["fte"]}{r}'
     def typeof(dcell):
         return f'IF({dcell}="","",IF({dcell}=${C["pte"]}{r},"Part-Time",IF({dcell}=${C["fte"]}{r},"Full-Time","Casual")))'
     def days_at(M, B1, B2):
@@ -105,7 +109,7 @@ def formulas(r):
                 f'+IF(AND({c("h_n")}>=3,{c("h_D3")}<={{D}}),{Fn(c("h_P3"), M)}-{Fn(c("h_P3"), B2)},0)')
     f = {}
     f["h_act"] = f'=IF(OR(LEN($A{r}&$B{r})=0,${C["start"]}{r}=""),0,1)'
-    f["h_S"] = f'=IF({A},"",IF(${C["anniv_in"]}{r}<>"",${C["anniv_in"]}{r},IF(OR(CasualCounts="Yes",COUNT(${C["pte"]}{r}:${C["cas"]}{r})=0,COUNT(${C["pte"]}{r}:${C["fte"]}{r})=0),${C["start"]}{r},MIN(${C["pte"]}{r}:${C["fte"]}{r}))))'
+    f["h_S"] = f'=IF({A},"",IF(${C["anniv_in"]}{r}<>"",${C["anniv_in"]}{r},IF(OR(CasualCounts="Yes",COUNT(${C["cas"]}{r}:${C["fte"]}{r})=0,COUNT(${C["pte"]}{r}:${C["fte"]}{r})=0),${C["start"]}{r},MIN(${C["pte"]}{r}:${C["fte"]}{r}))))'
     f["h_n"] = f'=IF({A},"",COUNT({dates}))'
     for k, i in (("h_D1", 1), ("h_D2", 2), ("h_D3", 3)):
         f[k] = f'=IF({A},"",IFERROR(SMALL({dates},{i}),""))'
@@ -128,6 +132,15 @@ def formulas(r):
     f["h_no"] = (f'=IF({A},"",IF({Pc}="FT",IF({M0}<FT_First,FT_First,IF({M0}<FT_Y5,MIN(FT_Y5,FT_First+FT_Int1*(INT(({M0}-FT_First)/FT_Int1)+1)),'
                  f'FT_Y5+12*INT(({M0}-FT_Y5)/12)+FT_Int2*(INT(MOD({M0}-FT_Y5,12)/FT_Int2)+1))),'
                  f'IF({Pc}="PT",IF({M0}<PT_First,PT_First,PT_First+PT_Int*(INT(({M0}-PT_First)/PT_Int)+1)),"")))')
+    Dm = 'EOMONTH(AsOfDate,-1)'
+    f["h_MM"] = f'=IF({A},"",{months(S, Dm)})'
+    f["h_B1M"] = f'=IF({A},"",IF(OR({c("h_n")}<2,{c("h_D2")}>{Dm}),{c("h_MM")},{months(S, dm1("h_D2"))}))'
+    f["h_B2M"] = f'=IF({A},"",IF(OR({c("h_n")}<3,{c("h_D3")}>{Dm}),{c("h_MM")},{months(S, dm1("h_D3"))}))'
+    f["h_dm"] = f'=IF({A},"",' + days_at(c("h_MM"), c("h_B1M"), c("h_B2M")).replace("{D}", Dm) + ')'
+    f["h_lastoff"] = (f'=IF({A},"",IF({c("h_Pc")}="FT",IF({c("h_M0")}<FT_First,"",IF({c("h_M0")}<FT_Y5,FT_First+FT_Int1*INT(({c("h_M0")}-FT_First)/FT_Int1),FT_Y5+FT_Int2*INT(({c("h_M0")}-FT_Y5)/FT_Int2))),'
+                      f'IF({c("h_Pc")}="PT",IF({c("h_M0")}<PT_First,"",PT_First+PT_Int*INT(({c("h_M0")}-PT_First)/PT_Int)),"")))')
+    f["mdays"] = f'=IF({A},"",{c("days_due")}-{c("h_dm")})'
+    f["mdate"] = f'=IF(OR({A},{c("mdays")}="",N({c("mdays")})=0,{c("h_lastoff")}=""),"",EDATE({S},{c("h_lastoff")}))'
     f["h_rows"] = f'=IF({A},"",IF(NOT(LH_Ready),0,COUNTIFS(INDEX(LH_Data,0,LH_ColFirst),$A{r},INDEX(LH_Data,0,LH_ColSur),$B{r},INDEX(LH_Data,0,LH_ColCat),BonusCat)))'
     f["h_last"] = f'=IF({A},"",IF(OR(NOT(LH_Ready),{c("h_rows")}=0),0,SUMPRODUCT(MAX((INDEX(LH_Data,0,LH_ColFirst)=$A{r})*(INDEX(LH_Data,0,LH_ColSur)=$B{r})*(INDEX(LH_Data,0,LH_ColCat)=BonusCat)*ROW(LH_Data)))))'
     # visible
@@ -142,7 +155,7 @@ def formulas(r):
     f["chg"] = (f'=IF({A},"",IF({c("h_n")}<2,"",{seg(c("h_T1"), c("h_T2"), c("h_D2"), c("h_P1"), c("h_P2"))}'
                 f'&IF({c("h_n")}<3,"","; "&{seg(c("h_T2"), c("h_T3"), c("h_D3"), c("h_P2"), c("h_P3"))})))')
     f["elig"] = (f'=IF({A},"",IF({Pc}="None",IF({c("days_due")}>0,"No longer accruing","Not eligible - "&IF(AND({isPT(v("type"))},${C["pthrs"]}{r}<>"",N(${C["pthrs"]}{r})<PT_MinHours),"under "&PT_MinHours&" hrs",IF({norm(v("type"))}="Unknown","type not recognised",${C["type"]}{r}))),'
-                 f'IF({c("days_due")}>0,"Yes - accruing","Not yet - from "&TEXT({c("next")},"dd/mm/yyyy"))))')
+                 f'IF({c("days_due")}>0,"Yes - Accrual Required","Not yet - from "&TEXT({c("next")},"dd/mm/yyyy"))))')
     f["next"] = f'=IF({A},"",IF({Pc}="None","",EDATE({S},{c("h_no")})))'
     load = f'SUMIFS(INDEX(LH_Data,0,LH_ColAcc),INDEX(LH_Data,0,LH_ColFirst),$A{r},INDEX(LH_Data,0,LH_ColSur),$B{r},INDEX(LH_Data,0,LH_ColCat),BonusCat,INDEX(LH_Data,0,LH_ColPeriod),LH_OpenLabel)'
     since = f'INDEX(LH_Data,0,LH_ColStart),">="&{S}'
@@ -159,10 +172,10 @@ def formulas(r):
     f["action"] = (f'=IF({A},IF(LEN($A{r}&$B{r})=0,"","FIX INPUT - StartDate missing"),'
                    f'IF({c("check")}<>"","FIX INPUT - "&{c("check")},'
                    f'IF(NOT(LH_Ready),"Paste Leave History export (Settings must show YES)",'
-                   f'IF({X}>0,"ACCRUE "&ROUND({X},2)&" hrs ("&ROUND({X}/HoursPerDay,2)&" days)"&IF({Rw}=0," - no Bonus Leave in EH yet, full catch-up since start",""),'
+                   f'IF({X}>0,"ACCRUE "&ROUND({X},2)&" hrs ("&ROUND({X}/HoursPerDay,2)&" days): "&IF(N({c("mdays")})>0,{c("mdays")}&" day(s) for "&UPPER(TEXT(AsOfDate,"mmm yyyy"))&" (milestone "&UPPER(TEXT({c("mdate")},"dd mmm yy"))&")"&IF({X}/HoursPerDay>{c("mdays")}+0.001," + "&ROUND({X}/HoursPerDay-{c("mdays")},2)&" day(s) catch-up from earlier months",""),"all catch-up from earlier months, nothing new this month")&IF({Rw}=0,"; no Bonus Leave in EH yet",""),'
                    f'IF({X}<0,"CHECK - EH accrued "&ROUND(-{X},2)&" hrs more than policy since commencement",'
                    f'IF(N({c("close")})>{N_}*HoursPerDay+0.01,"CHECK - EH balance "&ROUND({c("close")}-{N_}*HoursPerDay,2)&" hrs more than policy entitlement",'
-                   f'IF({N_}>0,"OK - nothing to add",'
+                   f'IF({N_}>0,"OK - nothing to add"&IF(N({c("mdays")})>0," ("&{c("mdays")}&" day(s) for "&UPPER(TEXT(AsOfDate,"mmm yyyy"))&" already in EH)",""),'
                    f'IF({Pc}="None",{c("elig")},'
                    f'"Not yet - first day on "&TEXT({c("next")},"dd/mm/yyyy")))))))))')
     # data check
@@ -184,8 +197,8 @@ for r in range(R0, R1 + 1):
             cell.fill = fill_in; cell.font = f_input
         else:
             cell.fill = fill_calc; cell.font = f_norm; cell.value = fr[k]
-    for k in ("dob", "bday", "start", "pte", "fte", "cas", "anniv_in", "anniv", "next", "h_S", "h_D1", "h_D2", "h_D3"): ws[f"{C[k]}{r}"].number_format = DATE
-    for k in ("hrs_due", "days_due", "pthrs", "open", "acc", "taken", "close", "due", "toacc", "gap"): ws[f"{C[k]}{r}"].number_format = NUM
+    for k in ("dob", "bday", "start", "pte", "fte", "cas", "anniv_in", "anniv", "next", "mdate", "h_S", "h_D1", "h_D2", "h_D3"): ws[f"{C[k]}{r}"].number_format = DATE
+    for k in ("hrs_due", "days_due", "pthrs", "open", "acc", "taken", "close", "due", "toacc", "gap", "mdays"): ws[f"{C[k]}{r}"].number_format = NUM
     ws[f"{C['ten']}{r}"].number_format = "0.0"
 
 dv = DataValidation(type="list", formula1='"Full-Time,Part-Time,Casual"', allow_blank=True); ws.add_data_validation(dv); dv.add(f"{C['type']}{R0}:{C['type']}{R1}")
@@ -197,7 +210,7 @@ ws.conditional_formatting.add(f"{ac}{R0}:{ac}{R1}", FormulaRule(formula=[f'LEFT(
 ws.conditional_formatting.add(f"{ac}{R0}:{ac}{R1}", FormulaRule(formula=[f'LEFT({ac}{R0},5)="CHECK"'], fill=PatternFill("solid", fgColor="FFC7CE"), font=Font(name=F, size=10, bold=True, color="9C0006")))
 ws.conditional_formatting.add(f"{ac}{R0}:{ac}{R1}", FormulaRule(formula=[f'LEFT({ac}{R0},3)="FIX"'], fill=PatternFill("solid", fgColor="FFC7CE"), font=Font(name=F, size=10, bold=True, color="9C0006")))
 ws.conditional_formatting.add(f"{ac}{R0}:{ac}{R1}", FormulaRule(formula=[f'LEFT({ac}{R0},2)="OK"'], fill=PatternFill("solid", fgColor="C6EFCE"), font=Font(name=F, size=10, color="006100")))
-for k, test, color in (("accq", '="Yes"', "FCE4D6"), ("elig", 'LEFT(X,3)="Yes"', "C6EFCE"), ("chg", '<>""', "FFEB9C"), ("check", '<>""', "FFC7CE")):
+for k, test, color in (("accq", '="Yes"', "FCE4D6"), ("mdays", '>0', "FCE4D6"), ("elig", 'LEFT(X,3)="Yes"', "C6EFCE"), ("chg", '<>""', "FFEB9C"), ("check", '<>""', "FFC7CE")):
     L = C[k]
     formula = f'LEFT({L}{R0},3)="Yes"' if test.startswith("LEFT") else f'{L}{R0}{test}'
     ws.conditional_formatting.add(f"{L}{R0}:{L}{R1}", FormulaRule(formula=[formula], fill=PatternFill("solid", fgColor=color)))

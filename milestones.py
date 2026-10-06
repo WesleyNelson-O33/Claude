@@ -125,14 +125,13 @@ def add_all_staff(wb, r0=5, r1=154):
         del wb["All Staff Breakdown"]
     a = wb.create_sheet("All Staff Breakdown"); a.sheet_properties.tabColor = "7030A0"
     a["A1"] = "ALL STAFF - how each person's days were earned"; a["A1"].font = f_title
-    a["A2"] = '="As at "&TEXT(AsOfDate,"dd/mm/yyyy")&". Each entry is: milestone date, pathway on that date (FT or PT), days earned. Only milestones already reached are listed. Casual time and milestones that fell while casual or under 24 hrs earn nothing and are not shown."'
     a["A2"].font = f_note
-    heads = [("A", "Name", 12), ("B", "Surname", 13), ("C", "Type today", 11), ("D", "Commencement", 12), ("E", "Days", 7), ("F", "Hours", 7), ("G", "How the days were earned (date  pathway  days)", 120)]
+    heads = [("A", "Name", 12), ("B", "Surname", 13), ("C", "Type today", 11), ("D", "Commencement", 12), ("E", "Days", 7), ("F", "Hours", 7), ("G", "Earned this month (days)", 10), ("H", "How the days were earned (date  pathway  days)", 120)]
     for L, h, w in heads:
         c = a[f"{L}4"]; c.value = h; c.font = f_hdr; c.fill = fill_hdr; c.alignment = center; c.border = border; a.column_dimensions[L].width = w
     E = 2 * ROWS; per = 20; npieces = (E + per - 1) // per
-    piece_cols = [get_column_letter(8 + p) for p in range(npieces)]
-    hcols = [get_column_letter(8 + npieces + k) for k in range(7)]
+    piece_cols = [get_column_letter(9 + p) for p in range(npieces)]
+    hcols = [get_column_letter(9 + npieces + k) for k in range(7)]
     helpers = list(zip(hcols, ["h n dates", "h D2", "h D3", "h P1", "h P2", "h P3", "h Pc"]))
     for L in piece_cols:
         c = a[f"{L}4"]; c.value = "piece"; c.font = f_hdr; c.fill = PatternFill("solid", fgColor="7F7F7F")
@@ -148,6 +147,7 @@ def add_all_staff(wb, r0=5, r1=154):
         a[f"D{r}"] = f'=IF(Staff!$A{sr}="","",Staff!${col["h S"]}{sr})'; a[f"D{r}"].number_format = DATE
         a[f"E{r}"] = f'=IF(Staff!$A{sr}="","",Staff!${col["Days"]}{sr})'
         a[f"F{r}"] = f'=IF(E{r}="","",E{r}*HoursPerDay)'
+        a[f"G{r}"] = f'=IF(Staff!$A{sr}="","",Staff!${col["Earned this month (days)"]}{sr})'
         for L, h in helpers:
             a[f"{L}{r}"] = f'=IF(Staff!$A{sr}="","",Staff!${col[h]}{sr})'
         for p, L in enumerate(piece_cols):
@@ -156,12 +156,13 @@ def add_all_staff(wb, r0=5, r1=154):
                 mr = 20 + e
                 d = f'EDATE($D{r},Milestones!$AA${mr})'
                 path_at = f'IF(${hn}{r}=0,${hpc}{r},IF(AND(${hd3}{r}<>"",{d}>=${hd3}{r}),${hp3}{r},IF(AND(${hd2}{r}<>"",{d}>=${hd2}{r}),${hp2}{r},${hp1}{r})))'
-                pieces.append(f'IF(AND({d}<=AsOfDate,{path_at}=Milestones!$AB${mr}),TEXT({d},"dd/mm/yy")&" "&Milestones!$AB${mr}&" "&Milestones!$AC${mr}&";  ","")')
+                pieces.append(f'IF(AND({d}<=AsOfDate,{path_at}=Milestones!$AB${mr}),UPPER(TEXT({d},"dd mmm yy"))&" "&Milestones!$AB${mr}&" "&Milestones!$AC${mr}&";  ","")')
             a[f"{L}{r}"] = f'=IF(OR($A{r}="",$D{r}=""),"",' + "&".join(pieces) + ")"
-        a[f"G{r}"] = f'=IF($A{r}="","",' + "&".join(f"{L}{r}" for L in piece_cols) + ")"
-        for L in "ABCDEFG":
+        a[f"H{r}"] = f'=IF($A{r}="","",' + "&".join(f"{L}{r}" for L in piece_cols) + ")"
+        for L in "ABCDEFGH":
             c = a[f"{L}{r}"]; c.font = f_norm; c.fill = fill_calc; c.border = border
-        a[f"G{r}"].alignment = Alignment(wrap_text=True, vertical="top")
+        a[f"H{r}"].alignment = Alignment(wrap_text=True, vertical="top")
     a.freeze_panes = "C5"
-    a.auto_filter.ref = f"A4:G{r1}"
+    a.auto_filter.ref = f"A4:H{r1}"
+    a["A2"] = '="Accruing for "&UPPER(TEXT(AsOfDate,"mmmm yyyy"))&" (as at "&TEXT(AsOfDate,"dd/mm/yyyy")&"). Each entry is: milestone date, pathway on that date (FT or PT), days earned. Only milestones already reached are listed."'
     return a
