@@ -6,3 +6,4 @@ ptax/*.xlsx
 ptaxvid/raw/
 ptaxvid/audio/
 ptaxvid/frames/
+ptax/out/
