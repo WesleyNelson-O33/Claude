@@ -3,3 +3,6 @@ package-lock.json
 package.json
 __pycache__/
 ptax/*.xlsx
+ptaxvid/raw/
+ptaxvid/audio/
+ptaxvid/frames/
