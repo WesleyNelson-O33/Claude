@@ -1,0 +1,182 @@
+Payroll Tax recording, stitched transcript
+
+Source: five MP4 clips published to the 'payrolltax' GitHub release.
+Two of the five uploads are the same clip (621316512 and 621317430 are
+byte-for-byte the same recording), so there are four distinct clips.
+
+The original Stream recording runs 1:31:46. The on-screen player timeline in
+the first frame of clip 621313494 reads 20:49, and the four clips run back to
+back from there to the end. So the first 20 minutes and 49 seconds of the
+original was not uploaded and is not covered below.
+
+Timestamps below are the position in the original recording.
+Machine transcription. Names and figures may be misheard.
+
+==========================================================================
+clip 621313494   starts at 20:49 of the original
+==========================================================================
+[0:20:49] termination payments and I don't know. Probably how they have configured it. Yeah. So the notes when it's done now we need to copy and paste the rape. I don't know why it does that but the report from employment hero
+[0:21:17] Voice comes up as like a weird type of data. Luckily, everything on-- [BELL RINGING] It's time to be delivered. So I'm going to highlight that. I'm just going to drag this one down so that when the pivot table picks it up, it gets the total of August. And then same with this section here. So this one now--
+[0:21:45] So that's the pay to run totals report. The EH data too is now the earnings details, which is this one here. Okay. The only thing that we need to do here is we need to transpose this into a text to columns so that we're only taking the date without the notes. So I'm going to highlight that.
+[0:22:13] That text to columns so fixed with If that's fine, yeah, that's fine General here destination. I don't want it to be whole one. I just want to move it here
+[0:22:41] I don't think I did the right thing. Hold on. Yeah, sorry. It's meant to be delimited. We want everything after the dash to be removed. Ah, okay. And then... R3, I think. Was it R? Yes, it was R3, yeah.
+[0:23:09] So I just need these dates. It's all on. There's wording in there. Come on, there we go. There's some words in there. Yeah, we'll just need to finally-
+[0:23:37] change that. Okay so I'll paste that here under the note section. That's the back pay. So normally I would just put the date of the last pay period for it. Okay. So anything that we have, once you watch the payroll videos, anything that we add is kind of like an earnings list. It'll make sense why there's no dates in it.
+[0:24:05] because we manually type in what it is. Essentially everything that forms part of your period is within that fortnight anyway so using the last day of the pay run is already safe enough. We had a few back days.
+[0:24:33] That's it. So that's just the date. We still need to copy and paste everything on the left side. Luckily, everything on the left side is just automatic. Yeah, you don't need to delete any other column. So up until the--
+[0:25:01] here. Up until before the note section. We'll just copy that. Paste. Just double check that everything is the same. Only this one here so we need to convert that to number. I don't know why it does that but the
+[0:25:29] from Employment Hero always comes up as like a weird type of data so you always have to convert to number. That's weird. It's probably the like, I don't know, probably how they configured it. Yeah. So the notes one is done now we need to copy and paste the rate section all the way to super.
+[0:25:57] So I'm going to skip this section here and then copy all of this up until the bottom. And then again, there's a VLOOKUP for the states. So that should just be all done.
+[0:26:25] Yeah. Cool. So that's two of the data dumps done. Now we just need to update the pivot table. So there's two pivot tables here. This first one is looking at EH data. Okay. Because we just need the total dull values anyway. The second one is looking at EH data too. Because we need to know
+[0:26:53] whatever is added on top of their normal pay like notices, per diem, termination payments and things like that that only gets picked up in the age data tube. Okay. I'm gonna refresh this and then I'm gonna refresh this one as well. There's a check button here as well here so the variance would always be zero.
+[0:27:21] So this one needs to be my data. So in order to do that, I'm going to jump into payroll. And I'm going to screenshot this section here. Okay. That's the one that we need to update.
+[0:27:49] 25, where am I doing 28? I'm way ahead of time. - Way too far ahead. - I want 2.40. 19, 770. So that means that any data that we got is actually reconciling correctly. - That's good.
+[0:28:17] Now that's what we need for payroll tax. So that report is done once you've reconciled this. Okay. This is done. Let's jump in here and take this one off. So Em knows how to do this so it can be split between two depending on like who's working on that date. Okay cool. Let us now do payroll tax.
+[0:28:45] So Parrot text will file with the saved in. Tax and compliance. We need to create one for August. And then I'm going to copy this file here. Yeah.
+[0:29:13] Actually, we need these. What about the other two? This one is downloaded from... This one is downloaded from Intimate Hero. This one, Primilla, saves that one. Okay. So we prepared it out of a Primilla logistic. Fair enough. I'm gonna do eight drops.
+[0:29:41] So this is your main working file? I wonder if she still had this massive comment in there. Why is that comment so thick? I know, that's why I'm like, that's new. That Jessica is the previous person before me. Oh, okay. Oh yeah, I saw an email to Jessica and I was like, okay.
+[0:30:09] Also, why does this look funny in terms of formatting? It's different. But this is bad. It's penelope-rated green.
+[0:30:37] Anyway, that's fine. Okay, so main and NSW tab is basically because NSW gets launched every month. All the other states are just accruals. And the main state that we operate in is NSW. So obviously we need to declare everything in NSW. So...
+[0:31:05] Salary wise, we use the, there's no tier on the side. So it's the sum of gross earnings minus annually of payment minus bonuses, minus exempt allowance. - Yeah. - So the first thing that we do actually is to run the payroll tax report from employment hero. We need it for August. - Glass.
+[0:31:33] and then we group that by residential location. Okay. And we got an Excel. We don't really need a PDF one. And then down here at the bottom, it should say which categories are except for parot text. So usually just the prettiest.
+[0:32:01] So what we'll do is we paid quite a bit of per diem. So I'm going to deduct that there. So that's now the new totals per state.
+[0:32:29] So that's the one I will use. Superannuation, I'm gonna get that from the payroll split file. Just remember that with superannuation, you need to include employer contribution as well. Yes. Sorry, we need to toggle just with August, not July and August.
+[0:32:57] So I need this plus this. And then we can look on this side here if there's any termination payments. So nothing for oldest, but there are bonuses. So I'm going to
+[0:33:25] copied over the NSW bonus only. And then basically the formula is cross payment minus superannuation minus termination minus this.
+[0:33:53] So that's 1-89-07.33. Let's check the payroll tax file from 1-89-07.32. Let's reconcile. Let's go back to the EH split. Now we need to put the gross earnings per state. So this is done. There's different tax per state.
+[0:34:21] states here. We've separated them about two years ago because it's easier for Pramila to kind of declare our wages at the end of the year if we have separate types for the states. So what I'm gonna do, I'm gonna update the ACT first. So ACT, there is nothing because we don't have anyone.
+[0:34:49] Working in the city. We used to have one but he's resigned so I think up until the end of the year we probably won't have anything in there. Okay. Mainland. And then super is that. Just check for bonuses as well.
+[0:35:17] is a perdience so we actually need to deduct that 300 in there. South Australia. Let's say it has 150.
+[0:35:45] Victoria. Pickle Perdiums, 150 as well.
+[0:36:13] W.A. I'm sorry my husband is extremely loud. You're fine. You guys were from home the same days? Well he works from home today.
+[0:36:41] He just comes to the office or because I'm going to the office. Oh, nice, nice, yeah. But you'll just hear him speaking out of the blue. And he's not speaking to you at all. He's speaking to anybody out of the black. He's so loud.
+[0:37:09] Okay, so question why did you put in the per diem or the per diem in there? Well, the per diem is taxic scent. So remember this one here, we did nothing. So I essentially just did minus 150 instead of covering back into this file. Okay, I don't want to get confused.
+[0:37:37] Let's just double check now that these totals match your actual payroll tax file. So we've updated all of the tabs. All of the tabs should essentially flow through the main tab here. So we've confirmed the MSW is correct. Now Queensland, not correct.
+[0:38:05] I don't need to deduct super from it. I think that might be my error. Sorry. You don't need to deduct super. You need to deduct bonuses and unused terminations. So it's an employer contribution. Yeah. So it doesn't cover the salary. So 15, 5, 1, 8.26. And I think that's that. So that's all.
+[0:38:33] next is SAE 6759.06 balance as well Victoria yes and ACT we said there was nothing so that's good yeah so just double check your totals it's two
+[0:39:01] So that should be good. So that's the payroll tax payable for that period.
+
+==========================================================================
+clip 621314503   starts at 39:21 of the original
+==========================================================================
+[0:39:21] And then Zang's employee ID is empty. It's okay. It doesn't pick up on anywhere in the pivot table. Ah, okay. So you'll see some of them are empty because they don't matter in terms of the report. So let's copy over one by one. So employee name, external ID, client, job name, units, and then state.
+[0:39:49] Why don't we call it exactly the same? No. Oh, the location external ID. And then make this location name. Just to make our lives easier. Easier.
+[0:40:17] Alrighty, let's start with the employee name It's gonna be long like two pay runs Just make sure as well that nothing is captured at the bottom okay, that doesn't fall within
+[0:40:45] paper normally you shouldn't so that's perfect next one is external ID which is your job number so this is job number job name which should just be here and they're side by side perfect that's what we want
+[0:41:13] And then that should automatically combine it together. Units is your hours. There's hours, you're going to sit here.
+[0:41:41] Yep, so 5 3 8 4.76 5 3 8 4.76. And then last one is the state. I believe yes. So the state is the last one that we copy over.
+[0:42:09] That's done. So now, so August 2026 timesheets is done. Basically the allocation is based on this because it's getting the total number of hours per job name divided by the total hours for that state.
+[0:42:37] and then that percentage then gets multiplied by the dollar value. Okay. So let's update this one here to be, so I'm referencing it now to the August one because a while ago it was referencing to July. To July, okay. It's out by four cents which we already knew anyway. Yeah, that's the
+[0:43:05] This one here is just across the tape. Whatever we put in here for NSW. Make sure you continue to just link it through.
+[0:43:33] So the 0.04 I normally just remove that from here the first one. Okay. But it's very small and too material. Yeah. The only other bit is you shouldn't have any variants here. So see how you have a variance of 949 and normally that's because in a given
+[0:44:01] you could have more or less job numbers so you just have to make sure that it's capturing everything. It's actually capturing everything. 6120 because the last one is the grand total already. Yeah. So why are we out? But are you really out? Oh no it's not it's bounced out. It's because it's bouncing. What is this? P22.
+[0:44:29] Okay, good now. So it's getting from here. Yeah, so it's the check one. Okay, oh good. Maybe we lay for this check for you. Yeah. That also made me forget what I'm actually looking at.
+[0:44:57] Oh, that's MSW done. Oh, okay, cool. We just now need to do the other states. Actually, no, I missed one step, sorry. So that was dividing it based on the data for the previous Fortnite.
+[0:45:25] Yeah. We didn't, we forgot to refresh the pivot table. Okay. So before we actually did that part, this was the step before that. Okay. So this is a pivot table here. Obviously, if we try to make formulas out of a pivot table, it becomes funny the next time you are going to do it.
+[0:45:53] So we'll just copy this over and then just paste it here at the bottom.
+[0:46:21] So now in terms of the hours, this is when we actually need to, the one I told you, divide the hours per cost center by the total number of hours for the entire state. Which is then using that. So B48.
+[0:46:49] Usually the only thing you need to change is the grand total section because that's the one that moves every single month. So last month was just CS. This month is this one here, DG. Then you drag that across up until the grand total.
+[0:47:17] We try... I think it's too much already. No? Yeah. So it's still out, but that's because this is not calculating it up until the end of it.
+[0:47:45] 0.02. 2. Oh! It's plus. Plus. Oh, it's not. What? 0.06. 0.06.
+[0:48:13] So that's done officially. Oh yeah, it's the salary $2 plus the super $4. Yes. So that's just NSW. Let's unhide everything else except for NSW. We now need to do the other states. If there's a blank in there that's also worth
+[0:48:41] checking that means there's probably something that didn't get captured if there's if there's all the values in there sorry no dollar values if there's numbers in there yeah that means there's there's time sheets for one person that didn't get captured in terms of the state okay so that person is basically stateless and then you need to find out which state they actually go in yeah but because there's no time
+[0:49:09] I'm just gonna remove that. So same thing, copy this pivot table over and then there's a tab called other states-ptax and then paste that in there. I'm gonna delete this. I'm gonna format this to that and then delete this and then choose. Yep.
+[0:49:37] There's a blank There's a blank loss center with 117 hours. Oh wait no, formula is not correct. But still, there's something that is blank.
+[0:50:05] So we need to figure that out. This one here. Yeah. So going into the August time sheets. I don't think there's any.
+[0:50:33] Did I copy over the pivot table correctly? It looks like it does. Yeah, there is a blank. Interesting. Did you refresh the permit ever before you did it? Good question. I thought I did.
+[0:51:01] yeah yeah okay let's have a look. The train that it's blank here. Ah the former legislative get dragged down. So there was more data this month compared to last month. So the first one.
+[0:51:29] the raw data, the normal data. Yes. So we need to refresh this for now. We might need to refresh NSW again as well.
+[0:51:57] Yep, okay, that's what we want. This can wait at note. That was the note from last month. And then same concept where we need to relink areas in this spreadsheet into the actual allocation tabs. - Okay. - So see how it's in B3 divided by--
+[0:52:25] W3 yeah, so B3 is fine, but again, this is ACT. There's nothing for ACT. Queensland is B4, which should be correct. I think no, Queensland became B3. B3. And then we need to check where the social dependence.
+[0:52:53] I think I deleted it accidentally. I just want to check that it's X3. So A3 divided by X3.
+[0:53:21] That's weird, it's still alphatic 69.
+[0:53:49] I haven't been back since 2009. Oh, instead of zeroing it all out, it counted it. I remember there's no ACT. Yeah. So it's down by 300 because of the ACT accrual. Oh, I could not have been the per day.
+[0:54:17] We need to remove that as well and then make this zero. So accrual dropped from August. Because no one's working in Canberra, so we can drop the accrual. Oh, okay. Yeah. We were, you're assuming back in if you notice that we actually have someone working on that account in Canberra.
+[0:54:45] Fair enough. So that's fine, that's balanced out. Perfect. Nothing to adjust, which is great. Let's just double check NSW before we do this actual kernel.
+[0:55:13] But you know what I'm gonna write for shit before I copy it. I don't trust myself. Hello Mike, wait, wait. If this goes wrong, we have to repeat it again. We'll be fine. It's not that much. Okay, so that's making sure that everything is at the end of it. It's actually S Y.
+[0:55:41] So, D, F now instead of D, G. Perfect.
+[0:56:09] No variables. Yeah. Done. So that's the allocation bit. We just need to copy and paste it into a zero template. OK. So that we can upload it in.
+[0:56:37] So I thought I was out focused. Let's rename that to zero eight. So the journal looks exactly the same as the payroll one. In the same situation where we copy and paste like track.
+[0:57:05] one tracking two and things like that okay so we just need to change the order
+
+==========================================================================
+clip 621312777   starts at 57:19 of the original
+==========================================================================
+[0:57:19] So this one here the account code that's always
+[0:57:47] there that's the credit sign that's the payroll tax accrual? accruals or payable? payroll tax payable I think that's the account code for them okay so because this exists like um horizontally I'm just gonna copy from cost center here up until the job number here I'm gonna copy over both
+[0:58:15] these numbers here but the only thing that we're going to use is the rounded one. Okay. I'm just going to copy it over so that I don't have to go back and forth. That's why there's this sheet here that's where we dump the data. And then I'm going to make sure I don't copy that. So we just want the rounded to here.
+[0:58:43] So dollar value is the transpose that vertically. This is the job number. Then the tracking option here.
+[0:59:11] That's your cost center? Yep. And then the account code for all of it is basically 65106. That's your payroll tax. Oh, okay. I don't know why I deleted it, but it should stay the same. Stay the same.
+[0:59:39] The description is exactly the same as you're tracking to. Okay. Just copy that. This one here.
+[1:00:07] Didn't realize the office in admin isn't included. Yep. That's done. We just need to update the total here to be... What did we say it was? Six points. Six points. Six points.
+[1:00:35] Too many decimals Let's just total check that 0.35 Is that what we want? We have not yeah because remember we have that No, but because we put it in onsite right the difference. Yeah
+[1:01:03] Also 0.06 is big. Yeah, given what we have. It should just be 0.01, isn't it? Because this is 6120.41. And the apparel tax will be calculated on the main spreadsheet is--
+[1:01:31] 6 1 20 point 40 so technically it's one-seventh yeah so where's the six and it's not one yeah let's go back here check the different sheet check whether that's calculating it correctly from this one here somewhere no the the one on top the red one 206 oh the point five is there
+[1:01:59] Yeah, yeah
+[1:02:27] Other states? I would look to the fringe sheets of reports. Yeah. So one is for the actual MSW and the other one is for the other states. And then do you play it exactly on the seventh or prior to? Well, we don't have to really worry about that because we're primarily at the right.
+[1:02:55] Yeah, she does it. Yeah, and it's usually direct debited. So other states here, so same thing. We copy over from the cost center all the way through to the job number. But we don't need this one because we just need the rounded number.
+[1:03:23] This one becomes -2.7 because we dropped the CT
+[1:03:51] We're going to copy the same one here as well. Oh, so two seconds.
+[1:04:19] 7 not quite 2699.98 yeah I copied over the post entry right? I think so yeah
+[1:04:47] With with the other states as well just bear in mind that normally all of our engagement with other states are just for support services Okay So normally the cost centers are fixed By a fixed I mean if you'll see it every single month because they're not gonna change yeah
+[1:05:15] variants that you will see, no variants in terms of variation, you'll see a few consulting ones and integration ones in there and that's because we engage someone from Melbourne as a casual basis to work on consulting and innovation. Because at the moment we don't have a consulting head.
+[1:05:43] this person is the one that's working on those projects. But if anything seems out of the ordinary in terms of, 'cause you'll be aware of the active projects anyway, if anything seems out of the ordinary in terms of like, oh, this looks like an NSW job, you then have to verify if it's actually someone from Interstate working on it. - Okay. - 'Cause then that'll throw off your payroll tax payments for that month, essentially.
+[1:06:11] And then I'll find an employment hero, right? Yes, you'll find an employment hero. That and then, so you'll find an employment hero who that person is where they're based and then you'll need to verify it with them if they actually worked on it. Oh, okay. Or because it could be the case where they copied it correctly. Okay. Hopefully nothing like that.
+[1:06:39] So this is done. Let's upload that in employment hero. Oh, sorry, not zero. I'm going to close this as well because this is done. Same with this. The report I downloaded, I'm just going to move it over to here, to this folder.
+[1:07:07] so accounting or priority management so i'm just going to import so let's go to payroll tax
+[1:07:35] I'm gonna untick that. And then again make sure that everything is accounted for but there's one that's black. Cool everything else is fine. And then let's do the same for Emma Stumpley.
+[1:08:03] Employee town hall, this one here.
+[1:08:31] Down there again. Oh yeah, because it's still labeled as 19 in the title. This one didn't get picked up at all. So this one is production. 9100.
+[1:08:59] So that's their default cost center if it's just as production. Oh, okay. AGLFYR investor briefing PRD. Yeah. Hold on. 6120.40 is done.
+[1:09:27] So we can tick this one off. The only other note that I would like to add here. And then when you start picking it up and there's work done in ECT.
+[1:09:55] just put a note as well that you've resumed the amakross. Okay. Nice, so we only have these ones left. Essentially I can't do these with you. Okay. Because you can only do them once the month has finished. So this one, these two, you can only do that when all
+[1:10:23] bills have been entered in the system so Em you should you should confirm with Em if everything is done. I'm telling you credit. But it's not right because we're not. It's not I think she'll probably work on them tomorrow because it's quite a few goals that it's still being processed. So to be processed. Normally she finishes all the bills a few days after the month is finished because
+[1:10:51] that's when she gets Duncan's credit cards payment. Okay, cool. And then these three, you can do it as soon as the 31st has been closed. And I mean, has been rolled and implemented through. Okay. So I tried doing it early in the past. And then I noticed that even though the last pay run is 21st,
+[1:11:19] Whenever I would run a report from the 21st and I would do the accrual journals for the AO, LSL and stuff The balance would change by the time it hits 31. I have no idea So I would always get like a few dollar variance. So then I stopped doing it early. Ah, okay. So I normally now wait until the month is actually finished in order to do these three trials.
+[1:11:47] So you'll do those three generous normally on the first? Yes. Okay. But I'm not worried, Em knows how to do them so she can show them to you next week. Okay. Same with Whip. We can probably start with this again. Which is the one that I would need some time on. We'll start on it together, but, and we'll probably have to finish that off with you. Okay.
+[1:12:15] Because normally that's a really long process. The data for WIP officially only gets finalized when almost all of your journals are uploaded already. So what would normally be the last journal? The very last one, yeah. So that's the payroll tax journal. I'm now going to jump into reconciling the
+[1:12:43] August pay run with you In terms of what is posted in P&L and ensuring that whatever is in the profit and loss matches employment here, okay So reporting I'm just gonna download the P&L Even though the month is not finished, but the payroll has been fixed. So the fairly stuff. Yeah, we've uploaded the last pay period struggle
+[1:13:11] I'm going to run this from August 1, 2, 3, 1 You'll need to compare it to months, I just need 1 month
+[1:13:39] I reconcile as well what I mean by that is we want to make sure that whatever actual payroll dollar value has been paid out of employment payroll matches the piano. So we need to add back any approvals and
+[1:14:07] the takaniya kurus that we have for the new month. So under here, I'm going to create one for zero total, zero payroll total, zero super total. And it doesn't have to be fancy because you're just really checking.
+[1:14:35] Whether it's sales or not. So I'm taking all of those salaries and wages only. Okay. And then I'm gonna have a separate one for super. So direct superannuation plus one line of super underneath here. I'm gonna show you
+[1:15:03] what I did in jubai because the amount is essentially the same where is my payroll wreck I thought I saved it on the monkend did I not
+[1:15:31] This is so sad. Where did I save it? It's so sad. Because I did it for July already. But I can't remember where I saved it.
+
+==========================================================================
+clip 621316512   starts at 75:53 of the original
+==========================================================================
+[1:15:53] I swear I thought I did it for here. Nope. Let me find the six. See, I did it for the little financial leader. Yeah. Okay. Maybe I didn't do it for July.
+[1:16:21] but we can start in August. So if it's here till date anyway you don't need to... Actually, hold on. Was this not just a month? Yeah, we need to run the P&L for the full financial year if we didn't do July 8th. I swear I did it though. Did you search it at the bottom? Maybe you saved it somewhere else. I probably did it...
+[1:16:49] save it as a... Ah see, I didn't save it as payroll. So let me save this one now properly. So normally it would be under month end here and then payroll, right? July 20th.
+[1:17:17] six. That's my bag as well. We need to save the P&L July to August because we're reconciling every time a new month kicks in.
+[1:17:45] That's what I was like I know I did it I know for a fact that I did this I have a bad habit of saving everything in my downloads so That's the problem. I have to say that haven't so I find like try to do So let's do that again
+[1:18:13] total this is payroll total and then the sum of all salaries oops not super and then same with super
+[1:18:41] So that's based on the zero P&L. So in July, so we need to add back and deduct certain numbers. So add back whatever is approved for June Tarot because we only want to get the actuals.
+[1:19:09] this data will always be the same every single month. And then the deduct one will be different because that's based on our accrues. But essentially the idea is exactly the same. Yeah, we actually can finalize that because the till is in the, the till is not supposed to get, but that's fine.
+[1:19:37] Okay, so we need to find out whatever value we posted for KO and Super Accrues. So I'm just gonna jump back in here. I don't need to go anywhere because I'm just gonna copy that number. This one here, sorry. 4943.36.
+[1:20:05] and then 6290.54. This one not applicable yet because we haven't posted the journal for time loop. But it shouldn't matter, that's fine. So, payroll total and super total. So, what we need to do is the payroll total that we have for zero. Yes.
+[1:20:33] Plus payroll here - there Same with the super plus Minus here. Sorry, I forgot to add in the till So the till author comes part of payroll Now we let check the H flip
+[1:21:01] The report that we updated a while ago. Yep. That should tell us essentially if we are balanced. We need to run that for the entire year till date. 48849.05. Perfect. Yep.
+[1:21:29] Why is that June, 2026? This one here? We're adding back the accrual that we reversed for June. Because this is P&L, you can order. Pardon? For the year end? Yeah, for the year end, last financial year. So in order to get the axles, we need to add it back in. That's fine. So that's fine. So as long as you've got those two values.
+[1:21:57] that's fine okay I'm gonna mark that as bold and I'm gonna save it that's the right thing wait until cool guest
+[1:22:25] Then in September you just do the same thing as well. Okay. So that's done. I want to, since we finished a little bit early, I do want you to watch the payroll video. Oh yeah, I am. And then let me know if you have any questions because too
+[1:22:53] tomorrow we will be doing on-site invoicing so that's gonna take some time okay and then and we'll show you the rest of the credit cards tomorrow as well. Oh she needs to show me all of the credit cards I haven't seen any of them. Oh I thought you did some last week. No. Okay then yes you need to free up you need to free up yourself for tomorrow so watch
+[1:23:21] For the remainder of the time just watch the pero videos that Graham and I went through yesterday. Yeah, and then let me know if you have any questions. That's fine. I'll go through them because I started I think number one. Yeah, I just need to go number one I think I finished number one number two and I'll go through the other ones But I'll quickly also do this the job number
+[1:23:49] the job numbers that come in. - Yes, yes please. When you receive emails like this, we just forward it to the employee as well. - The, of the initiative. - Yeah, so I'll forward this one to Tyler. - Yeah. - Same with the other one. I don't know why they send two, but normally I just send both. And then they can see why there's two different ones. - Hmm?
+[1:24:17] And then really file them afterwards? There is a section for flight status. So do you wait, so you all have them then? Yeah. Okay. Because we already have a receipt for it somewhere in the DLP LCC. So when when M booked it? Yeah. It's already here. Also M booked it.
+[1:24:45] Yeah, if Emma is off and they need flights with you, you will need to book as well. Then you will need to show me. Yeah, when did she book this? Because this isn't always 18. Oh, perfect. She can show you because... Oh, I don't know if she did it already. Oh, no, she hasn't. She can show you because she needs to book this. Okay.
+[1:25:13] So that's why it's flagged in there. Okay cool. But basically there's already a form. You just need to follow whatever they pick. So they give you all the details. Okay and just flagging what's the policy? Is it the cheapest flight or? It shouldn't be the cheapest flight so it should be the flex one.
+[1:25:41] Just in case there's anything that happens. Okay. But if the amount that they put in here is very far off from the flex, then you'll need to consult with them if it's still within the budget. Okay. And if anything, if this form is not complete, do not book it. Okay. So you shouldn't be left to guessing around like, oh, what should I book for them? Blah, blah, blah.
+[1:26:09] should be providing everything to you. Okay cool, fair enough. So like this one see how very detailed it is. Yeah. Turns out even the cost and things like that and also don't book anything unless it's already signed for here. Signed. So I think that's why it's been updated. Yeah so the person that's meant to sign this is Jordan but he's been off since last week. Oh so in
+[1:26:37] these absence who would sign Duncan Duncan would be the next one yes okay she can probably you can probably have a look at the old ones as well they're all just staked here like all travel request forms yeah so Mitch would sign them like that okay so that it's
+[1:27:05] confirmed that he knows what the team is requesting. It's within the budget, blah, blah, blah. So even if they send it to you as a team member, it always has to be approved by a manager. Production one is really good at providing travel request forms because they actually provide a screenshot of what they need to be booked.
+[1:27:33] Okay, even the link to the hotel is there You'll find a little bit of trouble with on-site people Which is the one that I just showed you. Yeah, this one here Because they do not provide screenshots. So you'll you're you'll end up having to look for the specifics Okay Yeah, so that's that
+[1:28:01] I'll put that in my notes tomorrow for him to show you so credit cards and then travel forms. Yeah those two needs to be done. So the only thing she can show you tomorrow is Pramila's credit card though. Yeah she can show you because Duncan's one gets done like you don't really get the statements. Correct until after the month is done. Yeah and you normally have to chase him for it as well.
+[1:28:29] So what do on-site invoicing credit cards travel for? I also noticed that there's a few production ones in there that you can actually practice on. I'll go ahead and do those. Please close me. Yeah, I'll go ahead and do those. Leave the ones that already have invoice numbers because these are the ones I've worked on.
+[1:28:57] So we need to go through tomorrow. Yeah, it's just the production ones I did last week. So I'll just go ahead and do those ones because of them. Some of them I'll just save them to draft and you got to go through it and see. Yeah, just message me which one you've done and then I can go ahead and check it and then we can send it together. Okay, no problem. Leave the whole thing in one day. There was one or two where I...
+[1:29:25] I would, oh no, because I didn't have the PO numbers but I have access to the mailbox now so that's fine. - The PwC? Oh, this one here? - Yeah. - Oh yeah, so-- - PwC. - Did Em show you where to look for them? - Um... - I can show you now. - No. - It would be here under PO's to invoice. - Okay. - So if the PO hadn't been used--
+[1:29:53] She couldn't show me because I didn't have access yet. Oh, gotcha, gotcha. Yeah. But it would be here. And it should match with... Hold on, that's cochlear. Where is PwC? What does GB stand for? Global bankruptcy. I don't know.
+[1:30:21] Maybe it's things. Let's just have a look. 1,650. I don't think so, because that's 4,300. No, that's 4,300. So it's a trial and error with PwC, by the way. That's the same one I did last week.
+[1:30:49] yeah close enough but that's June 30, 2026
+

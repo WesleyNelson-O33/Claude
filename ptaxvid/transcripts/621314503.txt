@@ -1,0 +1,39 @@
+[00:00] And then Zang's employee ID is empty. It's okay. It doesn't pick up on anywhere in the pivot table. Ah, okay. So you'll see some of them are empty because they don't matter in terms of the report. So let's copy over one by one. So employee name, external ID, client, job name, units, and then state.
+[00:28] Why don't we call it exactly the same? No. Oh, the location external ID. And then make this location name. Just to make our lives easier. Easier.
+[00:56] Alrighty, let's start with the employee name It's gonna be long like two pay runs Just make sure as well that nothing is captured at the bottom okay, that doesn't fall within
+[01:24] paper normally you shouldn't so that's perfect next one is external ID which is your job number so this is job number job name which should just be here and they're side by side perfect that's what we want
+[01:52] And then that should automatically combine it together. Units is your hours. There's hours, you're going to sit here.
+[02:20] Yep, so 5 3 8 4.76 5 3 8 4.76. And then last one is the state. I believe yes. So the state is the last one that we copy over.
+[02:48] That's done. So now, so August 2026 timesheets is done. Basically the allocation is based on this because it's getting the total number of hours per job name divided by the total hours for that state.
+[03:16] and then that percentage then gets multiplied by the dollar value. Okay. So let's update this one here to be, so I'm referencing it now to the August one because a while ago it was referencing to July. To July, okay. It's out by four cents which we already knew anyway. Yeah, that's the
+[03:44] This one here is just across the tape. Whatever we put in here for NSW. Make sure you continue to just link it through.
+[04:12] So the 0.04 I normally just remove that from here the first one. Okay. But it's very small and too material. Yeah. The only other bit is you shouldn't have any variants here. So see how you have a variance of 949 and normally that's because in a given
+[04:40] you could have more or less job numbers so you just have to make sure that it's capturing everything. It's actually capturing everything. 6120 because the last one is the grand total already. Yeah. So why are we out? But are you really out? Oh no it's not it's bounced out. It's because it's bouncing. What is this? P22.
+[05:08] Okay, good now. So it's getting from here. Yeah, so it's the check one. Okay, oh good. Maybe we lay for this check for you. Yeah. That also made me forget what I'm actually looking at.
+[05:36] Oh, that's MSW done. Oh, okay, cool. We just now need to do the other states. Actually, no, I missed one step, sorry. So that was dividing it based on the data for the previous Fortnite.
+[06:04] Yeah. We didn't, we forgot to refresh the pivot table. Okay. So before we actually did that part, this was the step before that. Okay. So this is a pivot table here. Obviously, if we try to make formulas out of a pivot table, it becomes funny the next time you are going to do it.
+[06:32] So we'll just copy this over and then just paste it here at the bottom.
+[07:00] So now in terms of the hours, this is when we actually need to, the one I told you, divide the hours per cost center by the total number of hours for the entire state. Which is then using that. So B48.
+[07:28] Usually the only thing you need to change is the grand total section because that's the one that moves every single month. So last month was just CS. This month is this one here, DG. Then you drag that across up until the grand total.
+[07:56] We try... I think it's too much already. No? Yeah. So it's still out, but that's because this is not calculating it up until the end of it.
+[08:24] 0.02. 2. Oh! It's plus. Plus. Oh, it's not. What? 0.06. 0.06.
+[08:52] So that's done officially. Oh yeah, it's the salary $2 plus the super $4. Yes. So that's just NSW. Let's unhide everything else except for NSW. We now need to do the other states. If there's a blank in there that's also worth
+[09:20] checking that means there's probably something that didn't get captured if there's if there's all the values in there sorry no dollar values if there's numbers in there yeah that means there's there's time sheets for one person that didn't get captured in terms of the state okay so that person is basically stateless and then you need to find out which state they actually go in yeah but because there's no time
+[09:48] I'm just gonna remove that. So same thing, copy this pivot table over and then there's a tab called other states-ptax and then paste that in there. I'm gonna delete this. I'm gonna format this to that and then delete this and then choose. Yep.
+[10:16] There's a blank There's a blank loss center with 117 hours. Oh wait no, formula is not correct. But still, there's something that is blank.
+[10:44] So we need to figure that out. This one here. Yeah. So going into the August time sheets. I don't think there's any.
+[11:12] Did I copy over the pivot table correctly? It looks like it does. Yeah, there is a blank. Interesting. Did you refresh the permit ever before you did it? Good question. I thought I did.
+[11:40] yeah yeah okay let's have a look. The train that it's blank here. Ah the former legislative get dragged down. So there was more data this month compared to last month. So the first one.
+[12:08] the raw data, the normal data. Yes. So we need to refresh this for now. We might need to refresh NSW again as well.
+[12:36] Yep, okay, that's what we want. This can wait at note. That was the note from last month. And then same concept where we need to relink areas in this spreadsheet into the actual allocation tabs. - Okay. - So see how it's in B3 divided by--
+[13:04] W3 yeah, so B3 is fine, but again, this is ACT. There's nothing for ACT. Queensland is B4, which should be correct. I think no, Queensland became B3. B3. And then we need to check where the social dependence.
+[13:32] I think I deleted it accidentally. I just want to check that it's X3. So A3 divided by X3.
+[14:00] That's weird, it's still alphatic 69.
+[14:28] I haven't been back since 2009. Oh, instead of zeroing it all out, it counted it. I remember there's no ACT. Yeah. So it's down by 300 because of the ACT accrual. Oh, I could not have been the per day.
+[14:56] We need to remove that as well and then make this zero. So accrual dropped from August. Because no one's working in Canberra, so we can drop the accrual. Oh, okay. Yeah. We were, you're assuming back in if you notice that we actually have someone working on that account in Canberra.
+[15:24] Fair enough. So that's fine, that's balanced out. Perfect. Nothing to adjust, which is great. Let's just double check NSW before we do this actual kernel.
+[15:52] But you know what I'm gonna write for shit before I copy it. I don't trust myself. Hello Mike, wait, wait. If this goes wrong, we have to repeat it again. We'll be fine. It's not that much. Okay, so that's making sure that everything is at the end of it. It's actually S Y.
+[16:20] So, D, F now instead of D, G. Perfect.
+[16:48] No variables. Yeah. Done. So that's the allocation bit. We just need to copy and paste it into a zero template. OK. So that we can upload it in.
+[17:16] So I thought I was out focused. Let's rename that to zero eight. So the journal looks exactly the same as the payroll one. In the same situation where we copy and paste like track.
+[17:44] one tracking two and things like that okay so we just need to change the order

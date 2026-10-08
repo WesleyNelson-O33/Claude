@@ -1,0 +1,805 @@
+{
+  "eyebrow": "MONTH END",
+  "title": "Payroll Tax: The Monthly Process",
+  "subtitle": "Corporate Technology Services  \u00b7  Employment Hero Payroll  \u00b7  Xero  \u00b7  Monthly",
+  "runningHead": "Payroll Tax: The Monthly Process",
+  "screenshotDir": "manuals/screenshots/payrolltax",
+  "output": "manuals/Payroll Tax - The Monthly Process.docx",
+  "toc": true,
+  "blocks": [
+    {
+      "type": "h1",
+      "text": "About this manual"
+    },
+    {
+      "type": "p",
+      "text": "This is the monthly payroll tax process, written from the handover recording Gi made."
+    },
+    {
+      "type": "p",
+      "text": "Payroll tax is the last journal of the month. Nothing downstream can be finished until it is posted, so it sits on the critical path for month end."
+    },
+    {
+      "type": "p",
+      "text": "Work the steps in order. Each one feeds the next."
+    },
+    {
+      "type": "callout",
+      "label": "Read this before you start.",
+      "text": "The recording runs for one hour and thirty one minutes. Only the part from twenty minutes onward was captured. The first twenty minutes is not covered here. That missing part is the start of the Employment Hero split file data dump. Step 1 below is written from what is visible later in the recording and from the file itself, not from narration. Check it with Gi or with Em before you rely on it."
+    },
+    {
+      "type": "h2",
+      "text": "What you need open"
+    },
+    {
+      "type": "bullet",
+      "text": "The Employment Hero payroll split file for the financial year"
+    },
+    {
+      "type": "bullet",
+      "text": "The payroll tax workbook for the month, saved in Tax and Compliance"
+    },
+    {
+      "type": "bullet",
+      "text": "Employment Hero Payroll, for the payroll tax report and the pay run totals report"
+    },
+    {
+      "type": "bullet",
+      "text": "Xero, for the two journals and for the month end profit and loss"
+    },
+    {
+      "type": "h2",
+      "text": "The five things you produce"
+    },
+    {
+      "type": "bullet",
+      "text": "A lodged NSW payroll tax return for the month"
+    },
+    {
+      "type": "bullet",
+      "text": "An accrual figure for each other state"
+    },
+    {
+      "type": "bullet",
+      "text": "A NSW allocation journal in Xero, split by job number"
+    },
+    {
+      "type": "bullet",
+      "text": "An other states accrual journal in Xero, split by job number"
+    },
+    {
+      "type": "bullet",
+      "text": "A payroll reconciliation showing Xero agrees with Employment Hero"
+    },
+    {
+      "type": "h1",
+      "text": "Part 1  The Employment Hero split file"
+    },
+    {
+      "type": "p",
+      "text": "Everything else reads off this file, so it gets done first and it gets balanced before you move on."
+    },
+    {
+      "type": "step",
+      "number": 1,
+      "title": "Dump the pay run totals report into EH data"
+    },
+    {
+      "type": "p",
+      "text": "The EH data tab holds the pay run totals report. Paste the month's pay runs in at the bottom."
+    },
+    {
+      "type": "p",
+      "text": "Drag the last row of the block down so the pivot table picks up the whole month. Do the same for the section below it."
+    },
+    {
+      "type": "callout",
+      "label": "Partly unverified.",
+      "text": "This step happens in the first twenty minutes of the recording, which was not captured. The structure of the tab is clear and the later steps depend on it, but the exact clicks are not on the recording. Confirm them before you do it alone the first time."
+    },
+    {
+      "type": "step",
+      "number": 2,
+      "title": "Dump the earnings details report into EH data (2)"
+    },
+    {
+      "type": "p",
+      "text": "The EH data (2) tab holds the earnings details report. This is the tab that carries per diems, bonuses, notice payments and termination payments."
+    },
+    {
+      "type": "p",
+      "text": "Paste the month's rows in at the bottom, then fix the two columns that do not come in clean."
+    },
+    {
+      "type": "h2",
+      "text": "The Notes column"
+    },
+    {
+      "type": "p",
+      "text": "The Notes column arrives with the date and the note text joined together. You only want the date."
+    },
+    {
+      "type": "p",
+      "text": "Highlight the column. Use Data, then Text to Columns, then Delimited. Everything after the dash gets removed. Set the destination so it lands beside the column, not over the top of it."
+    },
+    {
+      "type": "p",
+      "text": "Paste the cleaned dates back under the note section."
+    },
+    {
+      "type": "callout",
+      "label": "Blank dates are normal.",
+      "text": "Anything added to a pay run by hand, like a back pay, comes through with no date. Use the last day of that pay period. Everything in a pay run falls inside the fortnight anyway, so the last day of the pay run is safe."
+    },
+    {
+      "type": "h2",
+      "text": "The column that comes through as text"
+    },
+    {
+      "type": "p",
+      "text": "One column always arrives from Employment Hero as the wrong data type. Convert it to number."
+    },
+    {
+      "type": "p",
+      "text": "This happens every month. It is how Employment Hero exports it, not a mistake at your end."
+    },
+    {
+      "type": "h2",
+      "text": "The rest of the paste"
+    },
+    {
+      "type": "p",
+      "text": "Everything on the left side of the tab is automatic. You do not need to delete any columns. Copy up to the column before the note section and paste."
+    },
+    {
+      "type": "p",
+      "text": "Then copy the rate section through to super and paste that in as well."
+    },
+    {
+      "type": "p",
+      "text": "The State column is a lookup, so it fills itself in."
+    },
+    {
+      "type": "callout",
+      "label": "The State column is residential state.",
+      "text": "The State column looks up the Employee Details Report and returns Residential State. That matters later, in Part 2. The whole file is built on where the employee lives, not on where the work was done."
+    },
+    {
+      "type": "step",
+      "number": 3,
+      "title": "Refresh both pivot tables"
+    },
+    {
+      "type": "p",
+      "text": "There are two pivot tables. One reads EH data, because you only need the total dollar values from it. The other reads EH data (2), because that is where anything paid on top of normal pay shows up."
+    },
+    {
+      "type": "p",
+      "text": "Refresh both."
+    },
+    {
+      "type": "step",
+      "number": 4,
+      "title": "Balance the split file to Employment Hero"
+    },
+    {
+      "type": "p",
+      "text": "There is a check row in the file. The variance has to be zero."
+    },
+    {
+      "type": "p",
+      "text": "To get the comparison figures, go into Employment Hero Payroll and take a screenshot of the pay run totals section. Put those figures into the check row."
+    },
+    {
+      "type": "p",
+      "text": "When the variance is zero, the data is reconciling correctly and the split file is done."
+    },
+    {
+      "type": "callout",
+      "label": "This step can be shared.",
+      "text": "Em also knows how to do the data dump and the reconciliation, so it can be split between the two of you depending on who is working that day."
+    },
+    {
+      "type": "next",
+      "text": "Part 2, the payroll tax workbook."
+    },
+    {
+      "type": "h1",
+      "text": "Part 2  The payroll tax workbook"
+    },
+    {
+      "type": "step",
+      "number": 5,
+      "title": "Create the month's file"
+    },
+    {
+      "type": "p",
+      "text": "The payroll tax files live in Tax and Compliance. Create one for the month by copying the previous month's file."
+    },
+    {
+      "type": "p",
+      "text": "Two of the files in that folder you do not create. One is downloaded from Employment Hero. The other one Pramila saves."
+    },
+    {
+      "type": "h2",
+      "text": "How the workbook is laid out"
+    },
+    {
+      "type": "p",
+      "text": "The Main and NSW tab is the one that matters. NSW is lodged every month, because NSW is the state the business operates in, so everything has to be declared there."
+    },
+    {
+      "type": "p",
+      "text": "All the other states are accruals only. They each have their own tab. Those tabs flow through to the Main and NSW tab on their own."
+    },
+    {
+      "type": "callout",
+      "label": "Why the states are on separate tabs.",
+      "text": "They were separated about two years ago. It makes it easier for Pramila to declare wages for each state at the end of the year."
+    },
+    {
+      "type": "step",
+      "number": 6,
+      "title": "Run the payroll tax report from Employment Hero"
+    },
+    {
+      "type": "p",
+      "text": "In Employment Hero Payroll, run the payroll tax report for the month."
+    },
+    {
+      "type": "p",
+      "text": "Group it by Residential location. Download it as Excel. You do not need the PDF."
+    },
+    {
+      "type": "callout",
+      "label": "Residential location is the only correct grouping.",
+      "text": "If you group by earnings location or by employee default location the report will not agree with the split file, and your states will be out. The split file looks up Residential State for every employee, so the report has to be on the same basis. This is the single easiest way to end up with a difference you cannot find."
+    },
+    {
+      "type": "p",
+      "text": "At the bottom of the report it lists which pay categories are exempt from payroll tax. Usually that is just the per diems."
+    },
+    {
+      "type": "step",
+      "number": 7,
+      "title": "Take the per diems out"
+    },
+    {
+      "type": "p",
+      "text": "Per diems are exempt, so they come out of the gross. Deduct them in the workbook, on the line itself."
+    },
+    {
+      "type": "p",
+      "text": "Do not go back and change the split file. Just subtract the per diem amount in the payroll tax workbook. That keeps the split file clean."
+    },
+    {
+      "type": "p",
+      "text": "The result is your new gross total for each state."
+    },
+    {
+      "type": "step",
+      "number": 8,
+      "title": "Fill in Salaries and Wages"
+    },
+    {
+      "type": "p",
+      "text": "The Salaries and Wages line is the gross earnings, less unused leave paid on termination, less bonuses and allowances, less exempt allowances."
+    },
+    {
+      "type": "callout",
+      "label": "Do not deduct super here.",
+      "text": "Super is employer contributed, so it is not part of the salary figure and it does not get taken out of it. Super goes on its own line in Step 9 and the two lines add together. Gi did deduct it by mistake partway through the recording and then corrected herself. Deduct bonuses and unused leave on termination only."
+    },
+    {
+      "type": "step",
+      "number": 9,
+      "title": "Fill in Superannuation Contributions"
+    },
+    {
+      "type": "p",
+      "text": "Super comes from the payroll split file, not from the payroll tax report."
+    },
+    {
+      "type": "p",
+      "text": "Include employer contributed super as well as SG super. There are two columns and you add them together."
+    },
+    {
+      "type": "callout",
+      "label": "Check the filter.",
+      "text": "The split file runs for the whole financial year. Toggle it to the month you are doing. If you leave it on two months you will pick up both."
+    },
+    {
+      "type": "step",
+      "number": 10,
+      "title": "Check for bonuses and termination payments"
+    },
+    {
+      "type": "p",
+      "text": "Look at the EH data (2) pivot for anything paid on top of normal pay. That is where bonuses, notice payments and termination payments appear."
+    },
+    {
+      "type": "p",
+      "text": "Copy across the bonus for the state you are working on, and only that state."
+    },
+    {
+      "type": "p",
+      "text": "Put unused leave paid on termination on the Termination Payments line."
+    },
+    {
+      "type": "step",
+      "number": 11,
+      "title": "Do the same for every other state"
+    },
+    {
+      "type": "p",
+      "text": "Work down the tabs: ACT, QLD, SA, VIC, WA."
+    },
+    {
+      "type": "p",
+      "text": "For each one, enter gross earnings, then super, then check for bonuses, then deduct any per diem."
+    },
+    {
+      "type": "callout",
+      "label": "ACT is usually nil.",
+      "text": "Nobody works in Canberra at the moment. The one employee who did has resigned. Expect ACT to be nil for the rest of the year, and if you are still carrying an ACT accrual, drop it."
+    },
+    {
+      "type": "step",
+      "number": 12,
+      "title": "Check the totals"
+    },
+    {
+      "type": "p",
+      "text": "Every state tab flows through to the Main and NSW tab. Go down the Main tab and check each state's total against the state tab."
+    },
+    {
+      "type": "p",
+      "text": "When they all agree, the payroll tax payable for the month is done."
+    },
+    {
+      "type": "next",
+      "text": "Part 3, the NSW allocation."
+    },
+    {
+      "type": "h1",
+      "text": "Part 3  The NSW allocation"
+    },
+    {
+      "type": "p",
+      "text": "The payable now has to be split across job numbers so it can be posted to the right cost centres. NSW first, then the other states."
+    },
+    {
+      "type": "step",
+      "number": 13,
+      "title": "Paste the month's timesheets in"
+    },
+    {
+      "type": "p",
+      "text": "The workbook has a timesheets tab named for the month, for example August 2026 Timesheets. Rename it for the month you are doing."
+    },
+    {
+      "type": "p",
+      "text": "The six columns come from the EH data (2) tab in the split file. Copy them across one at a time."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Employee name",
+          "Employee Name"
+        ],
+        [
+          "External ID",
+          "Location External Id, which is the job number"
+        ],
+        [
+          "Client",
+          "the client"
+        ],
+        [
+          "Job name",
+          "Location Name"
+        ],
+        [
+          "Units",
+          "hours"
+        ],
+        [
+          "State",
+          "State"
+        ]
+      ]
+    },
+    {
+      "type": "p",
+      "text": "Rename the two location headers so they read as job number and job name. It makes the rest of the work easier to follow."
+    },
+    {
+      "type": "callout",
+      "label": "Two things to check as you paste.",
+      "text": "First, it will be long, because it covers two pay runs. Make sure nothing is captured at the bottom that falls outside the month. Second, some employee IDs come through empty. That is fine. The pivot table does not use them."
+    },
+    {
+      "type": "p",
+      "text": "Check the hours total against the split file before you move on."
+    },
+    {
+      "type": "step",
+      "number": 14,
+      "title": "Refresh the pivot table"
+    },
+    {
+      "type": "p",
+      "text": "Refresh the pivot on the timesheets tab. Do this before you touch any formulas."
+    },
+    {
+      "type": "callout",
+      "label": "This is the step that gets missed.",
+      "text": "If the pivot still holds last month's data every allocation below it will be wrong, and the error is hard to see because the numbers still look reasonable. Refresh first."
+    },
+    {
+      "type": "step",
+      "number": 15,
+      "title": "Copy the pivot values down to the bottom"
+    },
+    {
+      "type": "p",
+      "text": "Copy the refreshed pivot and paste it at the bottom of the tab as values."
+    },
+    {
+      "type": "p",
+      "text": "Formulas built straight off a pivot table go strange the next time you run the process, which is why Gi pastes the values down and works off those."
+    },
+    {
+      "type": "step",
+      "number": 16,
+      "title": "Work out each allocation"
+    },
+    {
+      "type": "p",
+      "text": "The allocation is the hours for a job number, divided by the total hours for that state, multiplied by the dollar value."
+    },
+    {
+      "type": "p",
+      "text": "Update the reference so it points at this month's block. Last month it pointed at the month before."
+    },
+    {
+      "type": "callout",
+      "label": "The grand total column moves every month.",
+      "text": "The only thing you normally have to change is the grand total reference, because it shifts as the number of job numbers changes. In the recording it moved from column CS to column DG, and then to DF once a column came out. Check where the grand total actually sits, then drag the formula across to it."
+    },
+    {
+      "type": "step",
+      "number": 17,
+      "title": "Get the variance to zero"
+    },
+    {
+      "type": "p",
+      "text": "The variance at the bottom has to be zero."
+    },
+    {
+      "type": "p",
+      "text": "A variance of a few cents comes from rounding. Take it off the first line."
+    },
+    {
+      "type": "p",
+      "text": "A variance of hundreds means job numbers are missing, because a month can have more or fewer job numbers than the month before. Check the formula has been dragged the whole way across, and check the grand total reference."
+    },
+    {
+      "type": "callout",
+      "label": "Blanks mean a stateless employee.",
+      "text": "If a cost centre comes through blank with hours against it, someone's timesheet did not pick up a state. Find that person in Employment Hero, confirm which state they belong to, and fix it. Do not leave it blank."
+    },
+    {
+      "type": "next",
+      "text": "Part 4, the other states allocation."
+    },
+    {
+      "type": "h1",
+      "text": "Part 4  The other states allocation"
+    },
+    {
+      "type": "step",
+      "number": 18,
+      "title": "Copy the pivot to the other states tab"
+    },
+    {
+      "type": "p",
+      "text": "Unhide the other state tabs. Copy the same pivot table over to the Other States PTAX Allocations tab and paste it in."
+    },
+    {
+      "type": "p",
+      "text": "Format it to match, then tidy up the rows you do not need."
+    },
+    {
+      "type": "step",
+      "number": 19,
+      "title": "Relink each state"
+    },
+    {
+      "type": "p",
+      "text": "Each state's allocation reads a row on the Main tab divided by its own total. Those references shift when rows move, so check each one."
+    },
+    {
+      "type": "p",
+      "text": "In the recording QLD had moved from row 4 to row 3, and the SA reference had been deleted by accident. Check every state, do not assume."
+    },
+    {
+      "type": "step",
+      "number": 20,
+      "title": "Zero out ACT"
+    },
+    {
+      "type": "p",
+      "text": "ACT has no wages, so set it to zero and drop the accrual."
+    },
+    {
+      "type": "p",
+      "text": "Leave a note on the tab saying you have dropped it. If someone starts working in Canberra again, the note tells the next person to put the accrual back."
+    },
+    {
+      "type": "step",
+      "number": 21,
+      "title": "Check NSW again, then balance"
+    },
+    {
+      "type": "p",
+      "text": "Before you build the journals, go back and check the NSW allocation one more time. Confirm the formula still runs to the right grand total column."
+    },
+    {
+      "type": "p",
+      "text": "The variance has to be zero on both the NSW tab and the other states tab."
+    },
+    {
+      "type": "next",
+      "text": "Part 5, the two Xero journals."
+    },
+    {
+      "type": "h1",
+      "text": "Part 5  The two Xero journals"
+    },
+    {
+      "type": "p",
+      "text": "There are two journals every month. One for NSW, one for the other states. They are built the same way."
+    },
+    {
+      "type": "step",
+      "number": 22,
+      "title": "Build the NSW journal"
+    },
+    {
+      "type": "p",
+      "text": "Use the Xero journal template. Rename it for the month."
+    },
+    {
+      "type": "p",
+      "text": "From the allocation tab, copy from the cost centre column across to the job number column. Copy the dollar values too, but only use the rounded column. The unrounded one is not used."
+    },
+    {
+      "type": "p",
+      "text": "The allocation sits across the page and the journal reads down the page, so transpose the dollar values vertically."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Credit account",
+          "the payroll tax payable account, posted to Office and Admin"
+        ],
+        [
+          "Debit account",
+          "65106 for every line, which is payroll tax"
+        ],
+        [
+          "Dollar value",
+          "the rounded allocation, transposed vertically"
+        ],
+        [
+          "Description",
+          "the same text as the tracking option"
+        ],
+        [
+          "Tracking 1",
+          "cost centre"
+        ],
+        [
+          "Tracking 2",
+          "job number"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "Use the rounded column.",
+      "text": "Copy both columns across so you are not going back and forth, but only the rounded one goes into the journal. There is a dump sheet in the template for exactly this. Make sure the unrounded column does not end up in the journal."
+    },
+    {
+      "type": "step",
+      "number": 23,
+      "title": "Check the journal total"
+    },
+    {
+      "type": "p",
+      "text": "The journal total has to agree with the payroll tax payable on the Main tab."
+    },
+    {
+      "type": "p",
+      "text": "If it is out by a cent or two that is the rounding. If it is out by more, go back to the allocation tab and find out why before you upload."
+    },
+    {
+      "type": "step",
+      "number": 24,
+      "title": "Build the other states journal"
+    },
+    {
+      "type": "p",
+      "text": "Same process. Copy from cost centre across to job number, use the rounded value only, transpose, and set the same accounts and tracking."
+    },
+    {
+      "type": "p",
+      "text": "The narration on this journal says it is an accrual, with the month and the year in it."
+    },
+    {
+      "type": "callout",
+      "label": "What other states should look like.",
+      "text": "Work interstate is nearly all support services, so the cost centres are fixed. You will see the same ones every month. You will also see a few consulting and integration lines, because a casual in Melbourne works on consulting and innovation while there is no consulting head."
+    },
+    {
+      "type": "callout",
+      "label": "If a job number looks wrong, check it.",
+      "text": "If something looks like an NSW job but has turned up in the other states, find the employee in Employment Hero, check where they are based, and confirm with them that they worked on it. It may just be coded wrong. If it is wrong and you post it, your payroll tax payments for the month are out."
+    },
+    {
+      "type": "step",
+      "number": 25,
+      "title": "Upload both journals to Xero"
+    },
+    {
+      "type": "p",
+      "text": "Import both journals. As you import, check that every line is accounted for and nothing is blank."
+    },
+    {
+      "type": "p",
+      "text": "In the recording one line did not get picked up because the title still said the old month. It was a production job, so it went to the production cost centre."
+    },
+    {
+      "type": "p",
+      "text": "File the downloaded payroll tax report into the month's folder."
+    },
+    {
+      "type": "next",
+      "text": "Part 6, the payroll reconciliation."
+    },
+    {
+      "type": "h1",
+      "text": "Part 6  The payroll reconciliation"
+    },
+    {
+      "type": "p",
+      "text": "The last step is proving that what Xero shows for payroll is what Employment Hero actually paid."
+    },
+    {
+      "type": "step",
+      "number": 26,
+      "title": "Download the profit and loss from Xero"
+    },
+    {
+      "type": "p",
+      "text": "In Xero reporting, download the profit and loss from the start of the financial year to the end of the month you are doing."
+    },
+    {
+      "type": "p",
+      "text": "Save it under month end, then payroll, named so it is clear it is the payroll profit and loss for July to that month. Not in your downloads folder."
+    },
+    {
+      "type": "callout",
+      "label": "Save it properly the first time.",
+      "text": "Gi lost twenty minutes of the recording looking for the July file because it had been saved to downloads and never moved. You reconcile cumulatively every month, so you need last month's file to still be where you can find it."
+    },
+    {
+      "type": "step",
+      "number": 27,
+      "title": "Build the two Xero totals"
+    },
+    {
+      "type": "p",
+      "text": "Under the profit and loss, build a payroll total and a super total. It does not have to be pretty. You are only checking."
+    },
+    {
+      "type": "p",
+      "text": "The payroll total is the sum of the salaries and wages lines only. Do not include super in it."
+    },
+    {
+      "type": "p",
+      "text": "The super total is direct superannuation plus the super line underneath it."
+    },
+    {
+      "type": "step",
+      "number": 28,
+      "title": "Add back and deduct the accruals"
+    },
+    {
+      "type": "p",
+      "text": "The profit and loss carries accruals, and you only want the actuals."
+    },
+    {
+      "type": "p",
+      "text": "Add back the accrual that was reversed at the end of last financial year. That add back is the same every month."
+    },
+    {
+      "type": "p",
+      "text": "Deduct this month's annual leave accrual and super accrual. Those two change every month. Take the figures straight off the journals you posted."
+    },
+    {
+      "type": "p",
+      "text": "Include the time in lieu accrual in the payroll total once that journal is posted."
+    },
+    {
+      "type": "step",
+      "number": 29,
+      "title": "Compare to the split file"
+    },
+    {
+      "type": "p",
+      "text": "Run the split file for the whole financial year to date, not just the month."
+    },
+    {
+      "type": "p",
+      "text": "The two should agree. Mark the result in bold and save the file."
+    },
+    {
+      "type": "p",
+      "text": "Then next month you do the same thing again, one month further on."
+    },
+    {
+      "type": "h1",
+      "text": "Where payroll tax sits in month end"
+    },
+    {
+      "type": "p",
+      "text": "Payroll tax is the very last journal of the month. Work in progress only gets finalised once almost all the journals are uploaded, and payroll tax is the one that holds it up."
+    },
+    {
+      "type": "p",
+      "text": "Three other journals cannot be done early either. The annual leave, long service leave and super accrual journals have to wait until the month has actually closed and rolled."
+    },
+    {
+      "type": "callout",
+      "label": "Do not run the accrual journals early.",
+      "text": "The last pay run is the twenty first, so it is tempting to run them then. Gi tried that. The balance moves between the twenty first and the thirty first, and you end up with a variance of a few dollars. Wait until the month is finished."
+    },
+    {
+      "type": "p",
+      "text": "The bills journals also have to wait, because they need every bill in the system. Em normally finishes the bills a few days after month end, once Duncan's credit card statement arrives. Check with Em before you start."
+    },
+    {
+      "type": "h1",
+      "text": "What this manual does not cover"
+    },
+    {
+      "type": "p",
+      "text": "Said plainly, so you know where the gaps are."
+    },
+    {
+      "type": "bullet",
+      "text": "The first twenty minutes of the recording was not uploaded. That is the start of the split file data dump, which is Step 1 and part of Step 2."
+    },
+    {
+      "type": "bullet",
+      "text": "There are no screenshots. The recording was filmed off a screen, so the frames are not clear enough to use."
+    },
+    {
+      "type": "bullet",
+      "text": "The annual leave, long service leave and super accrual journals are not covered. Gi said Em would show those."
+    },
+    {
+      "type": "bullet",
+      "text": "Work in progress is not covered. Gi said that one needs a session of its own."
+    },
+    {
+      "type": "bullet",
+      "text": "Figures quoted in the recording are from August 2026 and are examples only."
+    }
+  ]
+}
