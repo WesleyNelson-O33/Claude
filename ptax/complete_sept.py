@@ -491,53 +491,57 @@ def nsw_payable():
     return (total - threshold - inter) * rate
 
 
-XERO_HEAD = ["*Narration", "*Date", "Description", "*AccountCode", "TaxRate", "*Amount",
+# The journal layout, read off the recording: Gi's own template, columns A to J,
+# the credit line first, then one debit a job number.
+XERO_HEAD = ["*Narration", "*Date", "Description", "*AccountCode", "*TaxRate", "*Amount",
              "TrackingName1", "TrackingOption1", "TrackingName2", "TrackingOption2"]
 DEBIT, CREDIT = "65106", "21440"
 ADMIN_JOB = "9000 - OFFICE / ADMIN [CTS]"
 BAS = "BAS Excluded"
 
 
-def write_journal(path, narration, date, lines):
+def write_journal(path, narration, date, lines, credit_desc):
     total = round(sum(a for _, a in lines), 2)
     with open(path, "w", newline="") as fh:
         w = csv.writer(fh)
         w.writerow(XERO_HEAD)
+        w.writerow([narration, date, credit_desc, CREDIT, BAS, "%.2f" % -total,
+                    "Cost Centres", "CTS", "Job Numbers", ADMIN_JOB])
         for job, amt in lines:
             if round(amt, 2) == 0:
                 continue
             w.writerow([narration, date, job, DEBIT, BAS, "%.2f" % amt,
                         "Cost Centres", cost_centre(job), "Job Numbers", job])
-        w.writerow([narration, date, narration, CREDIT, BAS, "%.2f" % -total,
-                    "Cost Centres", "CTS", "Job Numbers", ADMIN_JOB])
     return total
+
+
+def allocate(order, weights, pot):
+    """Split pot across the job numbers by hours, with the rounding difference
+    taken on the first line, the way Gi does it."""
+    tot = sum(weights.values())
+    out = [(j, round(pot * weights[j] / tot, 2)) for j in order]
+    diff = round(pot - sum(a for _, a in out), 2)
+    if diff:
+        out[0] = (out[0][0], round(out[0][1] + diff, 2))
+    return out
 
 
 def journals(dst, nsw_order, nsw, payable, plug, os_order, hrs, report):
     date = "30/09/2026"
-    tot = sum(nsw.values())
-    lines = []
-    for i, j in enumerate(nsw_order):
-        amt = round(payable * nsw[j] / tot, 2)
-        if i == 0:
-            amt = round(amt + plug, 2)
-        lines.append((j, amt))
     report["nsw_journal_total"] = write_journal(
         os.path.join(OUT, "2026-09 Payroll Tax NSW Xero Journal.csv"),
-        "Payroll Tax NSW September 2026", date, lines)
+        "Payroll Tax NSW September 2026", date,
+        allocate(nsw_order, nsw, round(payable, 2)), "OFFICE / ADMIN")
 
     accrual = {"QLD": 500.0, "SA": 200.0, "VIC": 1300.0, "WA": 700.0}
-    olines = []
+    weights = {}
     for j in os_order:
-        amt = 0.0
-        for st in OTHER:
-            h = hrs.get(st, {})
-            if j in h and sum(h.values()):
-                amt += accrual[st] * h[j] / sum(h.values())
-        olines.append((j, round(amt, 2)))
+        weights[j] = sum(accrual[st] * hrs[st][j] / sum(hrs[st].values())
+                         for st in OTHER if j in hrs.get(st, {}))
     report["other_states_journal_total"] = write_journal(
-        os.path.join(OUT, "2026-09 Payroll Tax Other States Xero Journal - ACCRUAL.csv"),
-        "Payroll Tax ACT/QLD/SA/VIC/WA September 2026 Accrual", date, olines)
+        os.path.join(OUT, "2026-09 Payroll Tax Alloc Other States Xero Journal - ACCRUAL.csv"),
+        "Payroll Tax ACT/QLD/SA/VIC/WA September 2026 Accrual", date,
+        allocate(os_order, weights, sum(accrual.values())), "OFFICE / ADMIN [CTS]")
 
 
 if __name__ == "__main__":
