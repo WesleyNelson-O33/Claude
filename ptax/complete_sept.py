@@ -380,9 +380,18 @@ def build():
     osgt = colname(os_gt)
     acc.replace_tail(12, 6, [(c, "f", CC.format(r=colname(c), cc=16))
                              for c in range(6, oj_last + 1)], style_from=6)
-    acc.replace_tail(14, 5, [(5, "f", "ROUND(SUM(F14:%s14),0)" % colname(oj_last))] +
-                     [(c, "f", "ROUND(%s15,2)" % colname(c)) for c in range(6, oj_last + 1)],
-                     style_from=6)
+    accrual = {"QLD": 500.0, "SA": 200.0, "VIC": 1300.0, "WA": 700.0}
+    ow = {j: sum(accrual[st] * hrs[st][j] / sum(hrs[st].values())
+                 for st in OTHER if j in hrs.get(st, {})) for j in os_order}
+    oplug = round(sum(accrual.values()) - sum(round(v, 2) for v in ow.values()), 2)
+    report["other_states_rounding_plug"] = oplug
+    tail14 = [(5, "f", "ROUND(SUM(F14:%s14),0)" % colname(oj_last))]
+    for c in range(6, oj_last + 1):
+        f = "ROUND(%s15,2)" % colname(c)
+        if c == 6 and oplug:
+            f += "%+.2f" % oplug
+        tail14.append((c, "f", f))
+    acc.replace_tail(14, 5, tail14, style_from=6)
     acc.replace_tail(15, 6, [(c, "f", "SUM(%s17:%s22)" % (colname(c), colname(c)))
                              for c in range(6, oj_last + 1)], style_from=6)
     acc.replace_tail(16, 6, [(c, "f", "'Other States PTAX Allocations'!%s$2" % colname(c - 4))
