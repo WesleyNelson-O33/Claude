@@ -48,6 +48,7 @@ spec = [
  ("gap", "Opening gap vs policy (hrs)", 10, "eh", "0 when the report covers full history"), ("rows", "Rows in EH report", 8, "eh", "Bonus Leave rows found"),
  ("check", "Data Check", 30, "out", ""),
  ("mdays", "Earned this month (days)", 10, "eh", "days whose milestone falls in the accrual month"), ("mdate", "Milestone this month", 11, "eh", "date of that milestone"),
+ ("note", "Notes", 60, "in", "free text - reconciliation notes, HR decisions"),
  # helpers
  ("h_act", "h active", 6, "hp", ""), ("h_S", "h S", 10, "hp", ""), ("h_n", "h n dates", 6, "hp", ""),
  ("h_D1", "h D1", 10, "hp", ""), ("h_D2", "h D2", 10, "hp", ""), ("h_D3", "h D3", 10, "hp", ""),

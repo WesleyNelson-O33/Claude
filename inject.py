@@ -78,6 +78,29 @@ if tally_path:
             v=parts[p+1].strip() if p+1<len(parts) else ''
             if v: t.cell(row=8+i,column=2+p).value=float(v)
         i+=1
+# notes next to names
+NOTES={
+ ("Daniel","SOBKOWSKI"):"HR tally 44 vs tracker 43: HR back-dated 1 day to his Jul-17 anniversary, before the scheme started 27/11/17. 5-yr anniversary Jul-18 = 1 day under the 2017 scheme (tracker applies this).",
+ ("Duncan","LUGSTEIN"):"HR tally runs a Feb/May/Aug/Nov cycle from 2017 (eligibility letter); tracker uses his 16/10 anniversary. 1.5 day variance = Aug-17 pre-scheme day + 0.5 in Nov-17 + cycle timing. Confirm cycle date with HR.",
+ ("Jordan","SEXTY"):"HR moved him to the 5-day rate in Jan-23; his 5-yr anniversary was Apr-21. Tracker is 2 days above the HR tally - owed.",
+ ("Tyler","WOOD"):"HR moved him to the 5-day rate in Jul-24; his 5-yr anniversary was Jul-22. Tracker is 2 days above the HR tally - owed.",
+ ("Wade","TONNA"):"HR adjusted him to the 5-day rate in Jan-26; his 5-yr anniversary was Jun-23. Tracker is 1 day above the HR tally - owed.",
+ ("Milo","RANKIN"):"HR tally cycle Feb/Jun/Oct implies a start around Feb-20; tracker start is 05/08/2019. Confirm start date with HR. Tracker is 3 days above the HR tally.",
+ ("Kyle","Krishnappa"):"Part-time 19/04/22 to 05/09/22 counted as service. If that part-time contract was under 24 hrs, treat as casual (move the date to Casual Start). Tracker is 1 day above the HR tally.",
+ ("Carlo","Daru"):"HR tally has nothing accrued; tracker 4 days from 19/09/25 (3 yrs from full-time start). HR eligibility date agrees (19/09/2025).",
+ ("Danielle","HURLEY"):"Matches HR tally (8). 5-yr anniversary Apr-26 = 1 day under the 2017 scheme.",
+ ("Isaac","BUTTERWORTH"):"Matches HR tally (9). Part-time days credited from Sep-24 per HR practice; part-time eligibility is formally from the 2026 policy.",
+ ("Blake","Crisford"):"Matches HR tally (2).",
+}
+if "Notes" in hn:
+    nc=hn["Notes"]
+    for r in range(5,155):
+        key=(ns[f'A{r}'].value, ns[f'B{r}'].value)
+        for (fn,sn),txt in NOTES.items():
+            if key[0]==fn and (key[1] or '').lower()==sn.lower(): ns.cell(row=r,column=nc).value=txt
+    for r in range(3,155): copy_style(ss.cell(row=r,column=hs["Casual Start"]), ns.cell(row=r,column=nc))
+    ns.cell(row=4,column=nc).value="Notes"; ns.cell(row=3,column=nc).value="free text - reconciliation notes, HR decisions"
+    ns.column_dimensions[L(nc)].width=60
 # Milestones default = Isaac
 ms=new['Milestones']; key=ms['C5'].value
 for r in range(5,155):
