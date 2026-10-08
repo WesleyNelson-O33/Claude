@@ -166,3 +166,109 @@ def add_all_staff(wb, r0=5, r1=154):
     a.auto_filter.ref = f"A4:H{r1}"
     a["A2"] = '="Accruing for "&UPPER(TEXT(AsOfDate,"mmmm yyyy"))&" (as at "&TEXT(AsOfDate,"dd/mm/yyyy")&"). Each entry is: milestone date, pathway on that date (FT or PT), days earned. Only milestones already reached are listed."'
     return a
+
+
+NP = 20          # people columns on the tally tab
+NM = 200         # month rows
+
+
+def add_tally_check(wb, r0=5, r1=154, tally_rows=None, tally_names=None):
+    """'HR Tally Check' tab: paste the HR tally (names in row 7, months down column A from row 8).
+    Tracker days per person-month come from a helper sheet built off the merged milestone schedule."""
+    ws = wb["Staff"]; ms = wb["Milestones"]
+    col = {ws.cell(row=4, column=c).value: get_column_letter(c) for c in range(1, ws.max_column + 1) if ws.cell(row=4, column=c).value}
+    keycol = col["h key"]; keyrng = f"Staff!${keycol}${r0}:${keycol}${r1}"
+    E = 2 * ROWS
+    for n in ("HR Tally Check", "Tally Helper"):
+        if n in wb.sheetnames: del wb[n]
+    t = wb.create_sheet("HR Tally Check"); t.sheet_properties.tabColor = "ED7D31"
+    h = wb.create_sheet("Tally Helper"); h.sheet_properties.tabColor = "7F7F7F"; h.sheet_state = "hidden"
+
+    # ---------- helper: per person 3 rows (date / pathway / earned) x E entries ----------
+    h["A1"] = "Per person: milestone dates, pathway on that date, days earned. Built from the merged schedule on the Milestones tab."; h["A1"].font = f_note
+    for j, lab in enumerate(["Person", "Key found", "S", "n", "D2", "D3", "P1", "P2", "P3", "Pc", "Row"]):
+        h.cell(row=2, column=1 + j, value=lab).font = f_bold
+    first_e_col = 12
+    for p in range(NP):
+        base = 3 + p * 3                 # date row; +1 pathway; +2 earned
+        name_cell = f"'HR Tally Check'!{get_column_letter(2 + p)}$7"
+        h[f"A{base}"] = f'=IF({name_cell}="","",{name_cell})'
+        h[f"B{base}"] = f'=IF(A{base}="","",ISNUMBER(MATCH(A{base},{keyrng},0)))'
+        def pull(hd): return f'IF(B{base}<>TRUE,"",INDEX(Staff!${col[hd]}${r0}:${col[hd]}${r1},MATCH($A{base},{keyrng},0)))'
+        for L, hd in (("C", "h S"), ("D", "h n dates"), ("E", "h D2"), ("F", "h D3"), ("G", "h P1"), ("H", "h P2"), ("I", "h P3"), ("J", "h Pc")):
+            h[f"{L}{base}"] = "=" + pull(hd)
+        h[f"C{base}"].number_format = DATE; h[f"E{base}"].number_format = DATE; h[f"F{base}"].number_format = DATE
+        h[f"K{base}"] = "date"; h[f"K{base+1}"] = "pathway"; h[f"K{base+2}"] = "earned"
+        for e in range(E):
+            cL = get_column_letter(first_e_col + e); mr = 20 + e
+            d = f"{cL}{base}"
+            h[d] = f'=IF($C{base}="","",EDATE($C{base},Milestones!$AA${mr}))'
+            h[f"{cL}{base+1}"] = f'=IF({d}="","",IF($D{base}=0,$J{base},IF(AND($F{base}<>"",{d}>=$F{base}),$I{base},IF(AND($E{base}<>"",{d}>=$E{base}),$H{base},$G{base}))))'
+            h[f"{cL}{base+2}"] = f'=IF({d}="",0,IF({cL}{base+1}=Milestones!$AB${mr},Milestones!$AC${mr},0))'
+            h[d].number_format = DATE
+    lastE = get_column_letter(first_e_col + E - 1)
+
+    # ---------- tally tab layout ----------
+    t.column_dimensions["A"].width = 12
+    for p in range(NP): t.column_dimensions[get_column_letter(2 + p)].width = 11
+    t["A1"] = "HR TALLY CHECK - paste the HR tally grid here and compare it with the tracker"; t["A1"].font = f_title
+    t["A2"] = "Row 7 = names exactly as on the Staff tab (Name Surname). Column A from row 8 = months (Jan-17 style text or a date). Grid = days HR tallied. The tracker's days for the same person and month appear in the TRACKER block to the right, and the DIFFERENCE block after that. Only months listed in column A are compared - add earlier month rows to see milestones before the tally began."; t["A2"].font = f_note
+    t["A3"] = "Compare totals up to (month end):"; t["A3"].font = f_bold
+    t["B3"] = "=EOMONTH(AsOfDate,-1)"; t["B3"].number_format = DATE; t["B3"].font = f_input; t["B3"].fill = fill_key; t["B3"].border = border
+    t["C3"] = "Defaults to the end of last month. Change it to compare up to a different month."; t["C3"].font = f_note
+    labels = {4: "HR tally total to that month", 5: "Tracker total to that month", 6: "Difference (tracker - HR)"}
+    for r, lab in labels.items(): t[f"A{r}"] = lab; t[f"A{r}"].font = f_bold
+    t["A7"] = "Month"; t["A7"].font = f_hdr; t["A7"].fill = fill_hdr; t["A7"].border = border
+    # month-start helper in a hidden column (AZ) and month-end (BA)
+    mcol, ecol = get_column_letter(2 + 3 * NP + 8), get_column_letter(2 + 3 * NP + 9)
+    t.column_dimensions[mcol].hidden = True; t.column_dimensions[ecol].hidden = True
+    t[f"{mcol}7"] = "month start"; t[f"{ecol}7"] = "month end"
+    months_const = '{"JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"}'
+    for i in range(NM):
+        r = 8 + i
+        t[f"{mcol}{r}"] = (f'=IF($A{r}="","",IF(ISNUMBER($A{r}),DATE(YEAR($A{r}),MONTH($A{r}),1),'
+                           f'IFERROR(DATE(2000+VALUE(RIGHT(TRIM($A{r}),2)),MATCH(UPPER(LEFT(TRIM($A{r}),3)),{months_const},0),1),"")))')
+        t[f"{ecol}{r}"] = f'=IF({mcol}{r}="","",EOMONTH({mcol}{r},0))'
+        t[f"{mcol}{r}"].number_format = DATE; t[f"{ecol}{r}"].number_format = DATE
+    # blocks: tracker at column X (24), difference at AP (42) -> use offsets
+    tr0, df0 = 2 + NP + 2, 2 + 2 * NP + 4     # 24, 46
+    t.cell(row=7, column=tr0 - 1, value="TRACKER").font = f_bold
+    t.cell(row=7, column=df0 - 1, value="DIFFERENCE").font = f_bold
+    for p in range(NP):
+        inL = get_column_letter(2 + p); trL = get_column_letter(tr0 + p); dfL = get_column_letter(df0 + p)
+        t.column_dimensions[trL].width = 10; t.column_dimensions[dfL].width = 10
+        base = 3 + p * 3
+        t[f"{trL}7"] = f'=IF({inL}7="","",{inL}7)'; t[f"{dfL}7"] = f'=IF({inL}7="","",{inL}7)'
+        for c in (f"{inL}7", f"{trL}7", f"{dfL}7"):
+            t[c].font = f_hdr; t[c].fill = fill_hdr; t[c].border = border; t[c].alignment = center
+        t[f"{inL}7"].font = f_input; t[f"{inL}7"].fill = fill_key
+        for i in range(NM):
+            r = 8 + i
+            t[f"{inL}{r}"].fill = fill_key; t[f"{inL}{r}"].font = f_input; t[f"{inL}{r}"].border = border
+            t[f"{trL}{r}"] = (f'=IF(OR({inL}$7="",${mcol}{r}=""),"",IF(\'Tally Helper\'!$B${base}<>TRUE,"not on Staff",'
+                              f'SUMIFS(\'Tally Helper\'!${get_column_letter(first_e_col)}${base+2}:${lastE}${base+2},'
+                              f'\'Tally Helper\'!${get_column_letter(first_e_col)}${base}:${lastE}${base},">="&${mcol}{r},'
+                              f'\'Tally Helper\'!${get_column_letter(first_e_col)}${base}:${lastE}${base},"<="&${ecol}{r})))')
+            t[f"{dfL}{r}"] = f'=IF(OR({trL}{r}="",NOT(ISNUMBER({trL}{r}))),"",{trL}{r}-N({inL}{r}))'
+            for c in (f"{trL}{r}", f"{dfL}{r}"):
+                t[c].font = f_norm; c2 = t[c]; c2.fill = fill_calc; c2.border = border; c2.number_format = 'General;-General;"-"'
+        # totals
+        t[f"{inL}4"] = f'=IF({inL}7="","",SUMIFS({inL}8:{inL}{7+NM},${ecol}8:${ecol}{7+NM},"<="&$B$3))'
+        t[f"{inL}5"] = f'=IF({inL}7="","",IF(\'Tally Helper\'!$B${base}<>TRUE,"not on Staff",SUMIFS({trL}8:{trL}{7+NM},${ecol}8:${ecol}{7+NM},"<="&$B$3)))'
+        t[f"{inL}6"] = f'=IF(OR({inL}5="",NOT(ISNUMBER({inL}5))),"",{inL}5-N({inL}4))'
+        for r in (4, 5, 6):
+            t[f"{inL}{r}"].font = f_bold; t[f"{inL}{r}"].fill = fill_calc; t[f"{inL}{r}"].border = border; t[f"{inL}{r}"].number_format = 'General;-General;"-"'
+    dfl0 = get_column_letter(df0); dfl1 = get_column_letter(df0 + NP - 1)
+    t.conditional_formatting.add(f"{dfl0}8:{dfl1}{7+NM}", FormulaRule(formula=[f'AND(ISNUMBER({dfl0}8),{dfl0}8<>0)'], fill=PatternFill("solid", fgColor="FFC7CE")))
+    t.conditional_formatting.add(f"B6:{get_column_letter(1+NP)}6", FormulaRule(formula=['AND(ISNUMBER(B6),B6<>0)'], fill=PatternFill("solid", fgColor="FFC7CE")))
+    t.conditional_formatting.add(f"B5:{get_column_letter(1+NP)}5", FormulaRule(formula=['B5="not on Staff"'], fill=PatternFill("solid", fgColor="FFC7CE")))
+    t.freeze_panes = "B8"
+    # optional preload
+    if tally_names:
+        for p, nm in enumerate(tally_names): t[f"{get_column_letter(2+p)}7"] = nm
+    if tally_rows:
+        for i, (lab, vals) in enumerate(tally_rows):
+            t[f"A{8+i}"] = lab
+            for p, v in enumerate(vals):
+                if v not in (None, ""): t[f"{get_column_letter(2+p)}{8+i}"] = v
+    return t

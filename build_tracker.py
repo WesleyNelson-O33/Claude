@@ -355,9 +355,9 @@ for i, t in enumerate(notes, 34):
     if len(t) > 120: st.row_dimensions[i].height = 30 if len(t) < 240 else 44
 
 import sys; sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from milestones import add_milestones, add_all_staff
-add_milestones(wb, R0, R1); add_all_staff(wb, R0, R1)
-wb._sheets = [wb[n] for n in ["Staff", "Leave History", "Milestones", "All Staff Breakdown", "Settings"]]
+from milestones import add_milestones, add_all_staff, add_tally_check
+add_milestones(wb, R0, R1); add_all_staff(wb, R0, R1); add_tally_check(wb, R0, R1)
+wb._sheets = [wb[n] for n in ["Staff", "Leave History", "Milestones", "All Staff Breakdown", "HR Tally Check", "Settings", "Tally Helper"]]
 wb.calculation.fullCalcOnLoad = True
 wb.save(OUT)
 print("saved", OUT, "| columns:", {k: C[k] for k in ("cas", "anniv_in", "chg", "action", "check", "h_act", "h_last")})
