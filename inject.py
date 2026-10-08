@@ -23,7 +23,7 @@ for r in range(5,155):
 for h,cs in hs.items():
     if h in hn and not h.startswith('h '):
         cn=hn[h]
-        for r in range(1,155): copy_style(ss.cell(row=r,column=cs), ns.cell(row=r,column=cn))
+        for r in range(3,155): copy_style(ss.cell(row=r,column=cs), ns.cell(row=r,column=cn))
         ns.column_dimensions[L(cn)].width=ss.column_dimensions[L(cs)].width
         ns.column_dimensions[L(cn)].hidden=ss.column_dimensions[L(cs)].hidden
 for h in ("Earned this month (days)","Milestone this month"):
@@ -34,8 +34,9 @@ if "Milestone this month" in hn:
     for r in range(5,155): ns.cell(row=r,column=hn["Milestone this month"]).number_format='dd/mm/yyyy'
 for r in range(1,5):
     ns.row_dimensions[r].height=ss.row_dimensions[r].height
-    for c in range(1,4): copy_style(ss.cell(row=r,column=c), ns.cell(row=r,column=c))
+    for c in range(1,3): copy_style(ss.cell(row=r,column=c), ns.cell(row=r,column=c))
 ns.freeze_panes=ss.freeze_panes
+ns['D1'].number_format='dd/mm/yyyy'
 # Leave History data A:L
 sl=src['Leave History']; nl=new['Leave History']
 for r in range(1,sl.max_row+1):
@@ -50,7 +51,7 @@ for name in ('Settings','Leave History'):
     for k,dim in a.column_dimensions.items(): b.column_dimensions[k].width=dim.width
 for cell in ('C32','C33'): new['Settings'][cell].number_format='dd/mm/yyyy'
 # Settings values the HR team set
-for cell in ('C5','C6','C7','C8','C9','C19','C31'):
+for cell in ('C6','C7','C8','C9','C19','C31'):
     v=src['Settings'][cell].value
     if v is not None: new['Settings'][cell].value=v
 # READ ME

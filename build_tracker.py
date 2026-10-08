@@ -66,11 +66,14 @@ kind = {k: kd for k, _, _, kd, _ in spec}
 first_help = C["h_act"]; last_help = C["h_ds"]
 
 ws["A1"] = "CTS BONUS LEAVE TRACKER"; ws["A1"].font = f_title
-ws["A2"] = (f'="ACCRUING FOR "&UPPER(TEXT(AsOfDate,"mmmm yyyy"))&"  |  As at "&TEXT(AsOfDate,"dd/mm/yyyy")&"  |  Report from "&TEXT(PFYDate+1,"dd/mm/yyyy")&"  |  Staff: "&COUNTIF(${C["h_act"]}$5:${C["h_act"]}${R1},1)'
+ws["A2"] = (f'="ACCRUING FOR "&UPPER(TEXT(AsOfDate,"mmmm yyyy"))&"  |  As at "&TEXT(AsOfDate,"dd/mm/yyyy")&" (change in D1)"&"  |  Report from "&TEXT(PFYDate+1,"dd/mm/yyyy")&"  |  Staff: "&COUNTIF(${C["h_act"]}$5:${C["h_act"]}${R1},1)'
             f'&"  |  Accruing: "&COUNTIF(${C["elig"]}$5:${C["elig"]}${R1},"Yes*")&"  |  To accrue now: "&ROUND(SUMIF(${C["toacc"]}$5:${C["toacc"]}${R1},">0"),2)&""'
             f'&" hrs for "&COUNTIF(${C["accq"]}$5:${C["accq"]}${R1},"Yes")&" people  |  Earned this month: "&ROUND(SUM(${C["mdays"]}$5:${C["mdays"]}${R1}),2)&" days"')
-ws["D1"] = "Accrual month = the month of the As-of date on Settings.  EARNED THIS MONTH = days whose milestone falls in that month.  HOURS TO ACCRUE = everything still missing in EH (this month + any earlier months not yet posted).  Post Hours to Accrue; the Action says how much is this month and how much is catch-up."
-ws["D1"].font = f_note
+ws["C1"] = "ACCRUAL MONTH (type the month-end date):"; ws["C1"].font = f_bold; ws["C1"].alignment = Alignment(horizontal="right")
+ws["D1"] = dt.date(2026, 9, 30); ws["D1"].number_format = DATE; ws["D1"].font = Font(name=F, size=11, bold=True, color="0000FF"); ws["D1"].fill = PatternFill("solid", fgColor="FFFF00"); ws["D1"].border = border
+ws["E1"] = "Everything in the workbook is calculated as at this date: EARNED THIS MONTH = days whose milestone falls in that month. HOURS TO ACCRUE = everything still missing in EH (this month + any earlier months not yet posted). To see who you accrued for in a month, set the month here and filter Earned this month > 0."
+ws["E1"].font = f_note
+ws.row_dimensions[1].height = 22
 ws["A2"].font = f_bold
 for k, h, w, kd, note in spec:
     L = C[k]; ws.column_dimensions[L].width = w
@@ -289,7 +292,7 @@ def setting(row, label, value, nm, note="", fmt=None, calc=False):
     if note: st.cell(row=row, column=6, value=note).font = f_note
     name(nm, f"Settings!$C${row}")
 hdr(st, "B4", "General", fill_hout); hdr(st, "C4", "Value", fill_hout)
-setting(5, "As-of date", "=TODAY()", "AsOfDate", "Type a fixed date for a month-end run.", DATE)
+setting(5, "As-of date (set on the Staff tab, cell D1)", "=Staff!$D$1", "AsOfDate", "Do not type here - change the Accrual month cell at the top of the Staff tab.", DATE, True)
 setting(6, "Day BEFORE the Leave History report starts", dt.date(2019, 6, 30), "PFYDate", "Run the report from the first day of business and enter the day before its start date here. Then Hours to Accrue = lifetime policy entitlement minus everything EH has ever credited.", DATE)
 setting(7, "Hours per Bonus Leave day", 8, "HoursPerDay", "Policy p.3")
 setting(8, "Bonus Leave category name in EH", "Bonus Leave", "BonusCat", "Must match the Leave Category text in the export exactly.")
@@ -343,6 +346,7 @@ notes = [
  "HOW TO USE",
  "1. Staff tab: type Name, Surname, EmploymentType (current type), DateOfBirth, StartDate.",
  "2. PTE Start / FTE Start / Casual Start: the date each employment type began. Always fill the one for the type they started on (same as StartDate). If they later changed type, fill the date the new type began as well. The latest date is the current type. Up to two changes are handled (e.g. Casual > Full-Time > Part-Time). Column Q writes the change out and says whether accrual stopped, started or changed pathway.",
+ "2b. Accrual month: type the month-end date in the yellow cell D1 at the top of the Staff tab (e.g. 30/09/2026). Every tab calculates as at that date. Set it to the month you are posting, not today.",
  "3. AnniversaryDate: only if HR has pushed the qualifying-service start out for unpaid or parental leave (policy p.4-5). Otherwise leave blank and StartDate is used.",
  "4. Bonus leave Accrued = HOURS the policy says the person should have received in total to date. Days = the same in days. Eligible? and Next Accrual show who is in the scheme and when the next day lands.",
  "5. Leave History tab: run the EH Leave History Report from the first day of business to today and paste it at A1 (headers in row 1). On this tab set the day BEFORE the report start date. A full-history report is what makes the reconciliation clean: leave taken is then fully accounted for.",

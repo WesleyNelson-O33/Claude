@@ -216,8 +216,8 @@ def add_tally_check(wb, r0=5, r1=154, tally_rows=None, tally_names=None):
     t["A1"] = "HR TALLY CHECK - paste the HR tally grid here and compare it with the tracker"; t["A1"].font = f_title
     t["A2"] = "Row 7 = names exactly as on the Staff tab (Name Surname). Column A from row 8 = months (Jan-17 style text or a date). Grid = days HR tallied. The tracker's days for the same person and month appear in the TRACKER block to the right, and the DIFFERENCE block after that. Only months listed in column A are compared - add earlier month rows to see milestones before the tally began."; t["A2"].font = f_note
     t["A3"] = "Compare totals up to (month end):"; t["A3"].font = f_bold
-    t["B3"] = "=EOMONTH(AsOfDate,-1)"; t["B3"].number_format = DATE; t["B3"].font = f_input; t["B3"].fill = fill_key; t["B3"].border = border
-    t["C3"] = "Defaults to the end of last month. Change it to compare up to a different month."; t["C3"].font = f_note
+    t["B3"] = "=EOMONTH(AsOfDate,0)"; t["B3"].number_format = DATE; t["B3"].font = f_input; t["B3"].fill = fill_key; t["B3"].border = border
+    t["C3"] = "Defaults to the end of the accrual month (Staff tab D1). Change it to compare up to a different month."; t["C3"].font = f_note
     labels = {4: "HR tally total to that month", 5: "Tracker total to that month", 6: "Difference (tracker - HR)"}
     for r, lab in labels.items(): t[f"A{r}"] = lab; t[f"A{r}"].font = f_bold
     t["A7"] = "Month"; t["A7"].font = f_hdr; t["A7"].fill = fill_hdr; t["A7"].border = border
