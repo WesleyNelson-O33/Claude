@@ -58,10 +58,11 @@ spec = [
  ("h_dn", "h daysNow", 6, "hp", ""), ("h_dp", "h daysPFY", 6, "hp", ""), ("h_no", "h nextoff", 6, "hp", ""),
  ("h_rows", "h rows", 6, "hp", ""), ("h_last", "h lastrow", 6, "hp", ""),
  ("h_MM", "h MM", 6, "hp", ""), ("h_B1M", "h B1M", 6, "hp", ""), ("h_B2M", "h B2M", 6, "hp", ""), ("h_dm", "h daysLastMonth", 6, "hp", ""), ("h_lastoff", "h lastoff", 6, "hp", ""),
+ ("h_MS", "h MS", 6, "hp", ""), ("h_B1S", "h B1S", 6, "hp", ""), ("h_B2S", "h B2S", 6, "hp", ""), ("h_ds", "h daysPreScheme", 6, "hp", ""),
 ]
 C = {k: get_column_letter(i + 1) for i, (k, *_) in enumerate(spec)}
 kind = {k: kd for k, _, _, kd, _ in spec}
-first_help = C["h_act"]; last_help = C["h_lastoff"]
+first_help = C["h_act"]; last_help = C["h_ds"]
 
 ws["A1"] = "CTS BONUS LEAVE TRACKER"; ws["A1"].font = f_title
 ws["A2"] = (f'="ACCRUING FOR "&UPPER(TEXT(AsOfDate,"mmmm yyyy"))&"  |  As at "&TEXT(AsOfDate,"dd/mm/yyyy")&"  |  Report from "&TEXT(PFYDate+1,"dd/mm/yyyy")&"  |  Staff: "&COUNTIF(${C["h_act"]}$5:${C["h_act"]}${R1},1)'
@@ -78,9 +79,10 @@ ws.row_dimensions[3].height = 36; ws.row_dimensions[4].height = 42
 ws.freeze_panes = "C5"
 ws.column_dimensions.group(first_help, last_help, hidden=True, outline_level=1)
 
-def Fn(p, s):
+def Fn(p, s, S=None):
+    adj = f'-IF(EDATE({S},FT_Y5)<PolicyDate,FT_AnnivDays-1,0)' if S else ''
     return (f'IF({p}="FT",IF({s}<FT_First,0,IF({s}<FT_Y5,1+INT(({s}-FT_First)/FT_Int1),'
-            f'FT_PreY5+FT_PerYear*INT(({s}-FT_Y5)/12)+FT_AnnivDays+INT(MOD({s}-FT_Y5,12)/FT_Int2))),'
+            f'FT_PreY5+FT_PerYear*INT(({s}-FT_Y5)/12)+FT_AnnivDays+INT(MOD({s}-FT_Y5,12)/FT_Int2){adj})),'
             f'IF({p}="PT",IF({s}<PT_First,0,1+INT(({s}-PT_First)/PT_Int)),0))')
 def months(S, D):
     return f'IF({D}<{S},-1,12*(YEAR({D})-YEAR({S}))+MONTH({D})-MONTH({S})-IF(DAY({D})<MIN(DAY({S}),DAY(EOMONTH({D},0))),1,0))'
@@ -105,8 +107,8 @@ def formulas(r):
     def typeof(dcell):
         return f'IF({dcell}="","",IF({dcell}=${C["pte"]}{r},"Part-Time",IF({dcell}=${C["fte"]}{r},"Full-Time","Casual")))'
     def days_at(M, B1, B2):
-        return (f'{Fn(c("h_P1"), B1)}+IF(AND({c("h_n")}>=2,{c("h_D2")}<={{D}}),{Fn(c("h_P2"), B2)}-{Fn(c("h_P2"), B1)},0)'
-                f'+IF(AND({c("h_n")}>=3,{c("h_D3")}<={{D}}),{Fn(c("h_P3"), M)}-{Fn(c("h_P3"), B2)},0)')
+        return (f'{Fn(c("h_P1"), B1, S)}+IF(AND({c("h_n")}>=2,{c("h_D2")}<={{D}}),{Fn(c("h_P2"), B2, S)}-{Fn(c("h_P2"), B1, S)},0)'
+                f'+IF(AND({c("h_n")}>=3,{c("h_D3")}<={{D}}),{Fn(c("h_P3"), M, S)}-{Fn(c("h_P3"), B2, S)},0)')
     f = {}
     f["h_act"] = f'=IF(OR(LEN($A{r}&$B{r})=0,${C["start"]}{r}=""),0,1)'
     f["h_S"] = f'=IF({A},"",IF(${C["anniv_in"]}{r}<>"",${C["anniv_in"]}{r},IF(OR(CasualCounts="Yes",COUNT(${C["cas"]}{r}:${C["fte"]}{r})=0,COUNT(${C["pte"]}{r}:${C["fte"]}{r})=0),${C["start"]}{r},MIN(${C["pte"]}{r}:${C["fte"]}{r}))))'
@@ -139,8 +141,13 @@ def formulas(r):
     f["h_dm"] = f'=IF({A},"",' + days_at(c("h_MM"), c("h_B1M"), c("h_B2M")).replace("{D}", Dm) + ')'
     f["h_lastoff"] = (f'=IF({A},"",IF({c("h_Pc")}="FT",IF({c("h_M0")}<FT_First,"",IF({c("h_M0")}<FT_Y5,FT_First+FT_Int1*INT(({c("h_M0")}-FT_First)/FT_Int1),FT_Y5+FT_Int2*INT(({c("h_M0")}-FT_Y5)/FT_Int2))),'
                       f'IF({c("h_Pc")}="PT",IF({c("h_M0")}<PT_First,"",PT_First+PT_Int*INT(({c("h_M0")}-PT_First)/PT_Int)),"")))')
-    f["mdays"] = f'=IF({A},"",{c("days_due")}-{c("h_dm")})'
+    f["mdays"] = f'=IF({A},"",{c("days_due")}-MAX(0,{c("h_dm")}-{c("h_ds")}))'
     f["mdate"] = f'=IF(OR({A},{c("mdays")}="",N({c("mdays")})=0,{c("h_lastoff")}=""),"",EDATE({S},{c("h_lastoff")}))'
+    Ds = '(SchemeStart-1)'
+    f["h_MS"] = f'=IF({A},"",{months(S, Ds)})'
+    f["h_B1S"] = f'=IF({A},"",IF(OR({c("h_n")}<2,{c("h_D2")}>{Ds}),{c("h_MS")},{months(S, dm1("h_D2"))}))'
+    f["h_B2S"] = f'=IF({A},"",IF(OR({c("h_n")}<3,{c("h_D3")}>{Ds}),{c("h_MS")},{months(S, dm1("h_D3"))}))'
+    f["h_ds"] = f'=IF({A},"",' + days_at(c("h_MS"), c("h_B1S"), c("h_B2S")).replace("{D}", Ds) + ')'
     f["h_rows"] = f'=IF({A},"",IF(NOT(LH_Ready),0,COUNTIFS(INDEX(LH_Data,0,LH_ColFirst),$A{r},INDEX(LH_Data,0,LH_ColSur),$B{r},INDEX(LH_Data,0,LH_ColCat),BonusCat)))'
     f["h_last"] = f'=IF({A},"",IF(OR(NOT(LH_Ready),{c("h_rows")}=0),0,SUMPRODUCT(MAX((INDEX(LH_Data,0,LH_ColFirst)=$A{r})*(INDEX(LH_Data,0,LH_ColSur)=$B{r})*(INDEX(LH_Data,0,LH_ColCat)=BonusCat)*ROW(LH_Data)))))'
     # visible
@@ -148,7 +155,7 @@ def formulas(r):
     f["anniv"] = f'=IF({A},"",{nextdate(S, "AsOfDate")})'
     f["ten"] = f'=IF({A},"",ROUND((AsOfDate-{S})/365.25,1))'
     f["tenymd"] = f'=IF({A},"",IF(AsOfDate<{S},"-",DATEDIF({S},AsOfDate,"y")&"y "&DATEDIF({S},AsOfDate,"ym")&"m "&DATEDIF({S},AsOfDate,"md")&"d"))'
-    f["days_due"] = f'=IF({A},"",{c("h_dn")})'
+    f["days_due"] = f'=IF({A},"",MAX(0,{c("h_dn")}-{c("h_ds")}))'
     f["hrs_due"] = f'=IF({A},"",{c("days_due")}*HoursPerDay)'
     def seg(tfrom, tto, d, p_from, p_to):
         return (f'{tfrom}&" to "&{tto}&" on "&TEXT({d},"dd/mm/yyyy")&IF({d}>AsOfDate," (future)",IF({p_from}={p_to},"",IF({p_to}="None"," - STOPPED accruing",IF({p_from}="None"," - commencement for Bonus Leave"," - pathway changed"))))')
@@ -163,10 +170,10 @@ def formulas(r):
     f["taken"] = f'=IF({A},"",IF(NOT(LH_Ready),"",SUMIFS(INDEX(LH_Data,0,LH_ColTaken),INDEX(LH_Data,0,LH_ColFirst),$A{r},INDEX(LH_Data,0,LH_ColSur),$B{r},INDEX(LH_Data,0,LH_ColCat),BonusCat,{since})*UnitFactor))'
     f["close"] = f'=IF({A},"",IF(NOT(LH_Ready),"",IF({c("h_last")}=0,0,INDEX(INDEX(LH_Data,0,LH_ColClose),{c("h_last")}-1)*UnitFactor)))'
     f["open"] = f'=IF({A},"",IF(NOT(LH_Ready),"",IF({S}>PFYDate,0,IF(LH_ColPeriod=0,{c("close")}-{c("acc")}+{c("taken")},{load}*UnitFactor))))'
-    f["due"] = f'=IF({A},"",({c("h_dn")}-{c("h_dp")})*HoursPerDay)'
+    f["due"] = f'=IF({A},"",(MAX(0,{c("h_dn")}-{c("h_ds")})-MAX(0,{c("h_dp")}-{c("h_ds")}))*HoursPerDay)'
     f["toacc"] = f'=IF({A},"",IF(NOT(LH_Ready),"",IF({c("h_rows")}=0,{c("hrs_due")},IF(PFYDate<${C["start"]}{r},{c("hrs_due")}-N({c("open")})-N({c("acc")}),{c("due")}-N({c("acc")})))))'
     f["accq"] = f'=IF(OR({A},{c("toacc")}=""),"",IF({c("toacc")}>0,"Yes","No"))'
-    f["gap"] = f'=IF(OR({A},{c("open")}=""),"",{c("h_dp")}*HoursPerDay-{c("open")})'
+    f["gap"] = f'=IF(OR({A},{c("open")}=""),"",MAX(0,{c("h_dp")}-{c("h_ds")})*HoursPerDay-{c("open")})'
     f["rows"] = f'=IF({A},"",{c("h_rows")})'
     X = c("toacc"); N_ = c("days_due"); Rw = c("h_rows"); Mh = c("hrs_due")
     f["action"] = (f'=IF({A},IF(LEN($A{r}&$B{r})=0,"","FIX INPUT - StartDate missing"),'
@@ -326,6 +333,8 @@ setting(27, "Part-time: months between days", 4, "PT_Int", "1 day every 4 months
 setting(28, "Part-time: minimum hours per week", 24, "PT_MinHours", "Under 24 hrs = not eligible - p.4")
 setting(29, "Full-time days before 5-yr milestone (calc)", "=1+INT((FT_Y5-1-FT_First)/FT_Int1)", "FT_PreY5", "", None, True)
 setting(30, "Full-time days per year from year 6 (calc)", "=FT_AnnivDays+INT(11/FT_Int2)", "FT_PerYear", "", None, True)
+setting(32, "Scheme start date", dt.date(2017, 11, 27), "SchemeStart", "CTS Additional Leave Bonus Scheme v1.0 announced 27/11/2017. No milestone before this date earns anything.", DATE)
+setting(33, "2026 policy effective date", dt.date(2026, 9, 8), "PolicyDate", "Before this date the 5-year anniversary earned 1 day (2017 scheme); from this date it earns the days in row 24 (2026 policy p.5).", DATE)
 setting(31, "Does casual service count towards qualifying service?", "No", "CasualCounts", "No = service counts from the first full-time or part-time start date (CTS decision; policy p.3 defines commencement as the original start date). Yes = service counts from StartDate.")
 dvc = DataValidation(type="list", formula1='"Yes,No"', allow_blank=True); st.add_data_validation(dvc); dvc.add("C31")
 
@@ -346,9 +355,10 @@ notes = [
  "Part-time 24+ hrs: nothing until 5 years, then 1 day every 4 months (3 a year). Policy p.5-6.",
  "Casual, contractor, part-time under 24 hrs: not eligible (p.3-4). No pro-rata (p.7). Status on the accrual date decides the pathway (p.7-8). 1 day = 8 hours (p.3). By CTS decision, casual service does not count: qualifying service runs from the first full-time or part-time start date (Settings switch 'Does casual service count'). The policy itself defines commencement as the original start date (p.3), so keep HR's written decision on file.",
  "",
+ "HISTORY: the scheme started 27/11/2017 (2017 flowchart v1.0). Under it only full-time staff were eligible, and the 5-year anniversary earned 1 day with 2 days from the 6-year anniversary onwards. The 2026 policy (effective 08/09/2026) added part-time eligibility and made the 5-year anniversary 2 days. The tracker applies both dates (Settings rows 32-33). Part-time days before 08/09/2026 are still credited because HR has credited them - change the PT first-accrual month on Settings if that decision changes.",
  "ASSUMPTIONS: PT Hrs/Week blank means 24+ (eligible). Staff are matched to EH on First Name + Surname, so spelling must match the export. Rows in the report are assumed to be in date order within each employee. Terminated staff forfeit the balance (p.8) - delete them from the Staff tab and zero the EH balance.",
 ]
-for i, t in enumerate(notes, 34):
+for i, t in enumerate(notes, 36):
     c = st.cell(row=i, column=2, value=t); c.font = f_bold if (t.isupper() or t.startswith("ASSUMPTIONS")) else f_norm
     st.merge_cells(start_row=i, start_column=2, end_row=i, end_column=6)
     c.alignment = Alignment(wrap_text=True, vertical="top")
