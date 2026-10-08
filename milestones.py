@@ -130,7 +130,7 @@ def add_all_staff(wb, r0=5, r1=154):
     heads = [("A", "Name", 12), ("B", "Surname", 13), ("C", "Type today", 11), ("D", "Commencement", 12), ("E", "Days", 7), ("F", "Hours", 7), ("G", "Earned this month (days)", 10), ("H", "How the days were earned (date  pathway  days)", 120)]
     for L, h, w in heads:
         c = a[f"{L}4"]; c.value = h; c.font = f_hdr; c.fill = fill_hdr; c.alignment = center; c.border = border; a.column_dimensions[L].width = w
-    E = 2 * ROWS; per = 20; npieces = (E + per - 1) // per
+    E = 2 * ROWS; per = 12; npieces = (E + per - 1) // per
     piece_cols = [get_column_letter(9 + p) for p in range(npieces)]
     hcols = [get_column_letter(9 + npieces + k) for k in range(7)]
     helpers = list(zip(hcols, ["h n dates", "h D2", "h D3", "h P1", "h P2", "h P3", "h Pc"]))
