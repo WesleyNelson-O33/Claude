@@ -325,8 +325,10 @@ def build():
     parts["xl/worksheets/sheet13.xml"] = osheet.dump()
     report["other_grand_total_col"] = colname(os_gt)
 
-    # the same block is pasted at the top of PTax Allocations NSW
-    pivot_block(alloc, 2, 3, os_order, 7)
+    # Rows 1 to 7 of PTax Allocations NSW are the live pivot table itself, not a
+    # paste of it. Nothing in the workbook points at them, and Excel redraws them
+    # on open now that the cache is repointed, so they are left alone: rewriting
+    # them would put the sheet out of step with the pivot's own definition.
 
     # ---------------------------------------------- 3  the NSW allocation
     gt47 = pivot_block_nsw(alloc, nsw_order, nsw)
