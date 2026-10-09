@@ -87,11 +87,11 @@ NOTES={
  ("Tyler","WOOD"):"Employed Jul-2017, so treated as commencing 27/11/2017 (no counting back). First day 27/11/2020. HR tally ran from his Jul-20 anniversary.",
  ("Wade","TONNA"):"HR adjusted him to the 5-day rate in Jan-26; his 5-yr anniversary was Jun-23. Tracker is 1 day above the HR tally - owed.",
  ("Milo","RANKIN"):"HR tally cycle Feb/Jun/Oct implies a start around Feb-20; tracker start is 05/08/2019. Confirm start date with HR. Tracker is 3 days above the HR tally.",
- ("Kyle","Krishnappa"):"Part-time 19/04/22 to 05/09/22 counted as service. If that part-time contract was under 24 hrs, treat as casual (move the date to Casual Start). Tracker is 1 day above the HR tally.",
  ("Carlo","Daru"):"HR tally has nothing accrued; tracker 4 days from 19/09/25 (3 yrs from full-time start). HR eligibility date agrees (19/09/2025).",
  ("Danielle","HURLEY"):"Matches HR tally (8). 5-yr anniversary Apr-26 = 1 day under the 2017 scheme.",
- ("Isaac","BUTTERWORTH"):"2017 scheme is full-time only: part-time service from 2019 does not count. Full-time from 19/01/2026, first day 19/01/2029. HR tally gave 9 part-time-based days - to be confirmed/reversed with Graham.",
- ("Tyrell","SHORTT"):"Part-time: not eligible under the 2017 scheme (full-time only). HR tally shows 1 day - to be confirmed/reversed with Graham.",
+ ("Isaac","BUTTERWORTH"):"Matches HR tally (9). Part-time (38 hrs) from 2019 counts under the 2026 policy; full-time from 19/01/2026. Note: part-time eligibility is a 2026 change - raised with Graham.",
+ ("Tyrell","SHORTT"):"Part-time 38 hrs: eligible under the 2026 policy, first day 31/08/2026. Note: part-time eligibility is a 2026 change - raised with Graham.",
+ ("Kyle","Krishnappa"):"Part-time 19/04/22 to 05/09/22 counts as service under the 2026 policy (if under 24 hrs, move the date to Casual Start). Tracker is 1 day above the HR tally, which counted from his full-time date.",
  ("Blake","Crisford"):"Matches HR tally (2).",
 }
 if "Accept EH balance to date?" in hn:
