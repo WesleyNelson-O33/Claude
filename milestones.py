@@ -92,8 +92,8 @@ def add_milestones(wb, r0=5, r1=154):
             ms[f"{ml}{r}"] = f'=INT({off}{r}/12)&"y "&MOD({off}{r},12)&"m"'
             ms[f"{dte}{r}"] = f'=IF(OR($C$6<>"Yes",{S}=""),"",EDATE({S},{off}{r}))'
             ms[f"{typ}{r}"] = (f'=IF({dte}{r}="","",IF({N}=0,{TYPE},IF(AND({D3}<>"",{dte}{r}>={D3}),{T3},IF(AND({D2}<>"",{dte}{r}>={D2}),{T2},{T1}))))')
-            ms[f"{pth}{r}"] = (f'=IF({dte}{r}="","",IF({isFT(typ + str(r))},"FT",IF(AND({isPT(typ + str(r))},OR({HRS}="",N({HRS})>=PT_MinHours)),"PT","None")))')
-            dy_adj = f'IF(AND("{path}"="FT",{off}{r}=FT_Y5,{dte}{r}<PolicyDate),1,{dy}{r})'
+            ms[f"{pth}{r}"] = (f'=IF({dte}{r}="","",IF({isFT(typ + str(r))},"FT",IF(AND({isPT(typ + str(r))},Apply2026="Yes",OR({HRS}="",N({HRS})>=PT_MinHours)),"PT","None")))')
+            dy_adj = f'IF(AND("{path}"="FT",{off}{r}=FT_Y5,{dte}{r}<PolicyEff),1,{dy}{r})'
             ms[f"{earned}{r}"] = f'=IF({dte}{r}="","",IF(AND({pth}{r}="{path}",{dte}{r}<=AsOfDate,{dte}{r}>=SchemeStart),{dy_adj},0))'
             ms[f"{why}{r}"] = (f'=IF({dte}{r}="","",IF(N({earned}{r})>0,"",IF({dte}{r}<SchemeStart,"before scheme start",IF({dte}{r}>AsOfDate,"future",'
                                f'IF({pth}{r}<>"{path}","not " & IF("{path}"="FT","full-time","eligible part-time") & " on that date","")))))')
@@ -161,7 +161,7 @@ def add_all_staff(wb, r0=5, r1=154):
                 mr = 20 + e
                 d = f'EDATE($D{r},Milestones!$AA${mr})'
                 path_at = f'IF(${hn}{r}=0,${hpc}{r},IF(AND(${hd3}{r}<>"",{d}>=${hd3}{r}),${hp3}{r},IF(AND(${hd2}{r}<>"",{d}>=${hd2}{r}),${hp2}{r},${hp1}{r})))'
-                dys = f'IF(AND(Milestones!$AB${mr}="FT",Milestones!$AA${mr}=FT_Y5,{d}<PolicyDate),1,Milestones!$AC${mr})'
+                dys = f'IF(AND(Milestones!$AB${mr}="FT",Milestones!$AA${mr}=FT_Y5,{d}<PolicyEff),1,Milestones!$AC${mr})'
                 pieces.append(f'IF(AND({d}<=AsOfDate,{d}>=SchemeStart,{path_at}=Milestones!$AB${mr}),UPPER(TEXT({d},"dd mmm yy"))&" "&Milestones!$AB${mr}&" "&{dys}&";  ","")')
             a[f"{L}{r}"] = f'=IF(OR($A{r}="",$D{r}=""),"",' + "&".join(pieces) + ")"
         a[f"H{r}"] = f'=IF($A{r}="","",' + "&".join(f"{L}{r}" for L in piece_cols) + ")"
@@ -210,7 +210,7 @@ def add_tally_check(wb, r0=5, r1=154, tally_rows=None, tally_names=None):
             d = f"{cL}{base}"
             h[d] = f'=IF($C{base}="","",EDATE($C{base},Milestones!$AA${mr}))'
             h[f"{cL}{base+1}"] = f'=IF({d}="","",IF($D{base}=0,$J{base},IF(AND($F{base}<>"",{d}>=$F{base}),$I{base},IF(AND($E{base}<>"",{d}>=$E{base}),$H{base},$G{base}))))'
-            h[f"{cL}{base+2}"] = f'=IF({d}="",0,IF(AND({cL}{base+1}=Milestones!$AB${mr},{d}>=SchemeStart),IF(AND(Milestones!$AB${mr}="FT",Milestones!$AA${mr}=FT_Y5,{d}<PolicyDate),1,Milestones!$AC${mr}),0))'
+            h[f"{cL}{base+2}"] = f'=IF({d}="",0,IF(AND({cL}{base+1}=Milestones!$AB${mr},{d}>=SchemeStart),IF(AND(Milestones!$AB${mr}="FT",Milestones!$AA${mr}=FT_Y5,{d}<PolicyEff),1,Milestones!$AC${mr}),0))'
             h[d].number_format = DATE
     lastE = get_column_letter(first_e_col + E - 1)
 

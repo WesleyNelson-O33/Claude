@@ -85,7 +85,7 @@ ws.freeze_panes = "C5"
 ws.column_dimensions.group(first_help, last_help, hidden=True, outline_level=1)
 
 def Fn(p, s, S=None):
-    adj = f'-IF(EDATE({S},FT_Y5)<PolicyDate,FT_AnnivDays-1,0)' if S else ''
+    adj = f'-IF(EDATE({S},FT_Y5)<PolicyEff,FT_AnnivDays-1,0)' if S else ''
     return (f'IF({p}="FT",IF({s}<FT_First,0,IF({s}<FT_Y5,1+INT(({s}-FT_First)/FT_Int1),'
             f'FT_PreY5+FT_PerYear*INT(({s}-FT_Y5)/12)+FT_AnnivDays+INT(MOD({s}-FT_Y5,12)/FT_Int2){adj})),'
             f'IF({p}="PT",IF({s}<PT_First,0,1+INT(({s}-PT_First)/PT_Int)),0))')
@@ -97,7 +97,7 @@ def isCAS(t): return f'OR(ISNUMBER(SEARCH("cas",{t})),UPPER(TRIM({t}))="CAS")'
 def norm(t):
     return f'IF({t}="","",IF({isFT(t)},"Full-Time",IF({isPT(t)},"Part-Time",IF({isCAS(t)},"Casual","Unknown"))))'
 def pathway(t, h):
-    return f'IF({isFT(t)},"FT",IF(AND({isPT(t)},OR({h}="",N({h})>=PT_MinHours)),"PT","None"))'
+    return f'IF({isFT(t)},"FT",IF(AND({isPT(t)},Apply2026="Yes",OR({h}="",N({h})>=PT_MinHours)),"PT","None"))'
 def eh(col, r):
     return f'SUMIFS(INDEX(LH_Data,0,LH_Col{col}),INDEX(LH_Data,0,LH_ColFirst),$A{r},INDEX(LH_Data,0,LH_ColSur),$B{r},INDEX(LH_Data,0,LH_ColCat),BonusCat)*UnitFactor'
 def nextdate(d, asof):
@@ -116,7 +116,9 @@ def formulas(r):
                 f'+IF(AND({c("h_n")}>=3,{c("h_D3")}<={{D}}),{Fn(c("h_P3"), M, S)}-{Fn(c("h_P3"), B2, S)},0)')
     f = {}
     f["h_act"] = f'=IF(OR(LEN($A{r}&$B{r})=0,${C["start"]}{r}=""),0,1)'
-    f["h_S"] = f'=IF({A},"",IF(PreSchemeCounts="No",MAX(SchemeStart,IF(${C["anniv_in"]}{r}<>"",${C["anniv_in"]}{r},IF(OR(CasualCounts="Yes",COUNT(${C["cas"]}{r}:${C["fte"]}{r})=0,COUNT(${C["pte"]}{r}:${C["fte"]}{r})=0),${C["start"]}{r},MIN(${C["pte"]}{r}:${C["fte"]}{r})))),IF(${C["anniv_in"]}{r}<>"",${C["anniv_in"]}{r},IF(OR(CasualCounts="Yes",COUNT(${C["cas"]}{r}:${C["fte"]}{r})=0,COUNT(${C["pte"]}{r}:${C["fte"]}{r})=0),${C["start"]}{r},MIN(${C["pte"]}{r}:${C["fte"]}{r})))))'
+    base = (f'IF(${C["anniv_in"]}{r}<>"",${C["anniv_in"]}{r},IF(OR(CasualCounts="Yes",COUNT(${C["cas"]}{r}:${C["fte"]}{r})=0),${C["start"]}{r},'
+            f'IF(Apply2026="No",IF(${C["fte"]}{r}="",${C["start"]}{r},${C["fte"]}{r}),IF(COUNT(${C["pte"]}{r}:${C["fte"]}{r})=0,${C["start"]}{r},MIN(${C["pte"]}{r}:${C["fte"]}{r})))))')
+    f["h_S"] = f'=IF({A},"",IF(PreSchemeCounts="No",MAX(SchemeStart,{base}),{base}))'
     f["h_n"] = f'=IF({A},"",COUNT({dates}))'
     for k, i in (("h_D1", 1), ("h_D2", 2), ("h_D3", 3)):
         f[k] = f'=IF({A},"",IFERROR(SMALL({dates},{i}),""))'
@@ -167,7 +169,7 @@ def formulas(r):
         return (f'{tfrom}&" to "&{tto}&" on "&TEXT({d},"dd/mm/yyyy")&IF({d}>AsOfDate," (future)",IF({p_from}={p_to},"",IF({p_to}="None"," - STOPPED accruing",IF({p_from}="None"," - commencement for Bonus Leave"," - pathway changed"))))')
     f["chg"] = (f'=IF({A},"",IF({c("h_n")}<2,"",{seg(c("h_T1"), c("h_T2"), c("h_D2"), c("h_P1"), c("h_P2"))}'
                 f'&IF({c("h_n")}<3,"","; "&{seg(c("h_T2"), c("h_T3"), c("h_D3"), c("h_P2"), c("h_P3"))})))')
-    f["elig"] = (f'=IF({A},"",IF({Pc}="None",IF({c("days_due")}>0,"No longer accruing","Not eligible - "&IF(AND({isPT(v("type"))},${C["pthrs"]}{r}<>"",N(${C["pthrs"]}{r})<PT_MinHours),"under "&PT_MinHours&" hrs",IF({norm(v("type"))}="Unknown","type not recognised",${C["type"]}{r}))),'
+    f["elig"] = (f'=IF({A},"",IF({Pc}="None",IF({c("days_due")}>0,"No longer accruing","Not eligible - "&IF(AND({isPT(v("type"))},Apply2026="No"),"part-time (2017 scheme is full-time only)",IF(AND({isPT(v("type"))},${C["pthrs"]}{r}<>"",N(${C["pthrs"]}{r})<PT_MinHours),"under "&PT_MinHours&" hrs",IF({norm(v("type"))}="Unknown","type not recognised",${C["type"]}{r})))),'
                  f'IF({c("days_due")}>0,"Yes - Accrual Required","Not yet - from "&TEXT({c("next")},"dd/mm/yyyy"))))')
     f["next"] = f'=IF({A},"",IF({Pc}="None","",EDATE({S},{c("h_no")})))'
     load = f'SUMIFS(INDEX(LH_Data,0,LH_ColAcc),INDEX(LH_Data,0,LH_ColFirst),$A{r},INDEX(LH_Data,0,LH_ColSur),$B{r},INDEX(LH_Data,0,LH_ColCat),BonusCat,INDEX(LH_Data,0,LH_ColPeriod),LH_OpenLabel)'
@@ -343,6 +345,9 @@ setting(32, "Scheme start date", dt.date(2017, 11, 27), "SchemeStart", "CTS Addi
 setting(33, "2026 policy effective date", dt.date(2026, 9, 8), "PolicyDate", "Before this date the 5-year anniversary earned 1 day (2017 scheme); from this date it earns the days in row 24 (2026 policy p.5).", DATE)
 setting(34, "Does service before the scheme start count?", "Yes", "PreSchemeCounts", "Yes = tenure before 27/11/2017 counts, so staff already past 3 years accrued from the scheme start (2017 flowchart wording, and HR practice). No = everyone who started before 27/11/2017 is treated as commencing on that date.")
 dvp = DataValidation(type="list", formula1='"Yes,No"', allow_blank=True); st.add_data_validation(dvp); dvp.add("C34")
+setting(35, "Apply the 2026 accrual changes (5-yr anniversary = 2 days, part-time eligible)?", "No", "Apply2026", "No = 2017 scheme rules for accrual (full-time only, 5-yr anniversary 1 day); only the termination payout change applies. Yes = 2026 policy accrual rules from the 2026 policy date.")
+st["G35"] = '=IF(Apply2026="Yes",PolicyDate,DATE(9999,12,31))'; st["G35"].font = f_note; name("PolicyEff", "Settings!$G$35")
+dva = DataValidation(type="list", formula1='"Yes,No"', allow_blank=True); st.add_data_validation(dva); dva.add("C35")
 setting(31, "Does casual service count towards qualifying service?", "No", "CasualCounts", "No = service counts from the first full-time or part-time start date (CTS decision; policy p.3 defines commencement as the original start date). Yes = service counts from StartDate.")
 dvc = DataValidation(type="list", formula1='"Yes,No"', allow_blank=True); st.add_data_validation(dvc); dvc.add("C31")
 
@@ -365,10 +370,11 @@ notes = [
  "Part-time 24+ hrs: nothing until 5 years, then 1 day every 4 months (3 a year). Policy p.5-6.",
  "Casual, contractor, part-time under 24 hrs: not eligible (p.3-4). No pro-rata (p.7). Status on the accrual date decides the pathway (p.7-8). 1 day = 8 hours (p.3). By CTS decision, casual service does not count: qualifying service runs from the first full-time or part-time start date (Settings switch 'Does casual service count'). The policy itself defines commencement as the original start date (p.3), so keep HR's written decision on file.",
  "",
+ "AGREED RULES: as agreed, the only change between the 2017 scheme and the 2026 policy that applies is that Bonus Leave is no longer paid out on termination. Accrual therefore follows the 2017 scheme: full-time only, service from the full-time start date, 3 years then 1 day every 4 months, 5-year anniversary 1 day then 1 day every 3 months (2 on later anniversaries). Settings row 35 (Apply the 2026 accrual changes) is set to No for this.",
  "HISTORY: the scheme started 27/11/2017 (2017 flowchart v1.0). Under it only full-time staff were eligible, and the 5-year anniversary earned 1 day with 2 days from the 6-year anniversary onwards. The 2026 policy (effective 08/09/2026) added part-time eligibility and made the 5-year anniversary 2 days. The tracker applies both dates (Settings rows 32-33). Part-time days before 08/09/2026 are still credited because HR has credited them - change the PT first-accrual month on Settings if that decision changes.",
  "ASSUMPTIONS: PT Hrs/Week blank means 24+ (eligible). Staff are matched to EH on First Name + Surname, so spelling must match the export. Rows in the report are assumed to be in date order within each employee. Terminated staff forfeit the balance (p.8) - delete them from the Staff tab and zero the EH balance.",
 ]
-for i, t in enumerate(notes, 37):
+for i, t in enumerate(notes, 38):
     c = st.cell(row=i, column=2, value=t); c.font = f_bold if (t.isupper() or t.startswith("ASSUMPTIONS")) else f_norm
     st.merge_cells(start_row=i, start_column=2, end_row=i, end_column=6)
     c.alignment = Alignment(wrap_text=True, vertical="top")

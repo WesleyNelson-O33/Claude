@@ -51,7 +51,7 @@ for name in ('Settings','Leave History'):
     for k,dim in a.column_dimensions.items(): b.column_dimensions[k].width=dim.width
 for cell in ('C32','C33'): new['Settings'][cell].number_format='dd/mm/yyyy'
 # Settings values the HR team set
-for cell in ('C6','C7','C8','C9','C19','C31','C34'):
+for cell in ('C6','C7','C8','C9','C19','C31','C34','C35'):
     v=src['Settings'][cell].value
     if v is not None: new['Settings'][cell].value=v
 # READ ME
@@ -90,7 +90,8 @@ NOTES={
  ("Kyle","Krishnappa"):"Part-time 19/04/22 to 05/09/22 counted as service. If that part-time contract was under 24 hrs, treat as casual (move the date to Casual Start). Tracker is 1 day above the HR tally.",
  ("Carlo","Daru"):"HR tally has nothing accrued; tracker 4 days from 19/09/25 (3 yrs from full-time start). HR eligibility date agrees (19/09/2025).",
  ("Danielle","HURLEY"):"Matches HR tally (8). 5-yr anniversary Apr-26 = 1 day under the 2017 scheme.",
- ("Isaac","BUTTERWORTH"):"Matches HR tally (9). Part-time days credited from Sep-24 per HR practice; part-time eligibility is formally from the 2026 policy.",
+ ("Isaac","BUTTERWORTH"):"2017 scheme is full-time only: part-time service from 2019 does not count. Full-time from 19/01/2026, first day 19/01/2029. HR tally gave 9 part-time-based days - to be confirmed/reversed with Graham.",
+ ("Tyrell","SHORTT"):"Part-time: not eligible under the 2017 scheme (full-time only). HR tally shows 1 day - to be confirmed/reversed with Graham.",
  ("Blake","Crisford"):"Matches HR tally (2).",
 }
 if "Notes" in hn:
