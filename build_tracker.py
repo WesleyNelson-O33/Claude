@@ -116,7 +116,7 @@ def formulas(r):
                 f'+IF(AND({c("h_n")}>=3,{c("h_D3")}<={{D}}),{Fn(c("h_P3"), M, S)}-{Fn(c("h_P3"), B2, S)},0)')
     f = {}
     f["h_act"] = f'=IF(OR(LEN($A{r}&$B{r})=0,${C["start"]}{r}=""),0,1)'
-    f["h_S"] = f'=IF({A},"",IF(${C["anniv_in"]}{r}<>"",${C["anniv_in"]}{r},IF(OR(CasualCounts="Yes",COUNT(${C["cas"]}{r}:${C["fte"]}{r})=0,COUNT(${C["pte"]}{r}:${C["fte"]}{r})=0),${C["start"]}{r},MIN(${C["pte"]}{r}:${C["fte"]}{r}))))'
+    f["h_S"] = f'=IF({A},"",IF(PreSchemeCounts="No",MAX(SchemeStart,IF(${C["anniv_in"]}{r}<>"",${C["anniv_in"]}{r},IF(OR(CasualCounts="Yes",COUNT(${C["cas"]}{r}:${C["fte"]}{r})=0,COUNT(${C["pte"]}{r}:${C["fte"]}{r})=0),${C["start"]}{r},MIN(${C["pte"]}{r}:${C["fte"]}{r})))),IF(${C["anniv_in"]}{r}<>"",${C["anniv_in"]}{r},IF(OR(CasualCounts="Yes",COUNT(${C["cas"]}{r}:${C["fte"]}{r})=0,COUNT(${C["pte"]}{r}:${C["fte"]}{r})=0),${C["start"]}{r},MIN(${C["pte"]}{r}:${C["fte"]}{r})))))'
     f["h_n"] = f'=IF({A},"",COUNT({dates}))'
     for k, i in (("h_D1", 1), ("h_D2", 2), ("h_D3", 3)):
         f[k] = f'=IF({A},"",IFERROR(SMALL({dates},{i}),""))'
@@ -175,9 +175,9 @@ def formulas(r):
     f["acc"] = f'=IF({A},"",IF(NOT(LH_Ready),"",SUMIFS(INDEX(LH_Data,0,LH_ColAcc),INDEX(LH_Data,0,LH_ColFirst),$A{r},INDEX(LH_Data,0,LH_ColSur),$B{r},INDEX(LH_Data,0,LH_ColCat),BonusCat,{since})*UnitFactor))'
     f["taken"] = f'=IF({A},"",IF(NOT(LH_Ready),"",SUMIFS(INDEX(LH_Data,0,LH_ColTaken),INDEX(LH_Data,0,LH_ColFirst),$A{r},INDEX(LH_Data,0,LH_ColSur),$B{r},INDEX(LH_Data,0,LH_ColCat),BonusCat,{since})*UnitFactor))'
     f["close"] = f'=IF({A},"",IF(NOT(LH_Ready),"",IF({c("h_last")}=0,0,INDEX(INDEX(LH_Data,0,LH_ColClose),{c("h_last")}-1)*UnitFactor)))'
-    f["open"] = f'=IF({A},"",IF(NOT(LH_Ready),"",IF({S}>PFYDate,0,IF(LH_ColPeriod=0,{c("close")}-{c("acc")}+{c("taken")},{load}*UnitFactor))))'
+    f["open"] = f'=IF({A},"",IF(NOT(LH_Ready),"",IF(${C["start"]}{r}>PFYDate,0,IF(LH_ColPeriod=0,{c("close")}-{c("acc")}+{c("taken")},{load}*UnitFactor))))'
     f["due"] = f'=IF({A},"",(MAX(0,{c("h_dn")}-{c("h_ds")})-MAX(0,{c("h_dp")}-{c("h_ds")}))*HoursPerDay)'
-    f["toacc"] = f'=IF({A},"",IF(NOT(LH_Ready),"",IF({c("h_rows")}=0,{c("hrs_due")},IF(PFYDate<${C["start"]}{r},{c("hrs_due")}-N({c("open")})-N({c("acc")}),{c("due")}-N({c("acc")})))))'
+    f["toacc"] = f'=IF({A},"",IF(NOT(LH_Ready),"",IF({c("h_rows")}=0,{c("hrs_due")},IF(MAX(0,{c("h_dp")}-{c("h_ds")})=0,{c("hrs_due")}-N({c("open")})-N({c("acc")}),{c("due")}-N({c("acc")})))))'
     f["accq"] = f'=IF(OR({A},{c("toacc")}=""),"",IF({c("toacc")}>0,"Yes","No"))'
     f["gap"] = f'=IF(OR({A},{c("open")}=""),"",MAX(0,{c("h_dp")}-{c("h_ds")})*HoursPerDay-{c("open")})'
     f["rows"] = f'=IF({A},"",{c("h_rows")})'
@@ -341,6 +341,8 @@ setting(29, "Full-time days before 5-yr milestone (calc)", "=1+INT((FT_Y5-1-FT_F
 setting(30, "Full-time days per year from year 6 (calc)", "=FT_AnnivDays+INT(11/FT_Int2)", "FT_PerYear", "", None, True)
 setting(32, "Scheme start date", dt.date(2017, 11, 27), "SchemeStart", "CTS Additional Leave Bonus Scheme v1.0 announced 27/11/2017. No milestone before this date earns anything.", DATE)
 setting(33, "2026 policy effective date", dt.date(2026, 9, 8), "PolicyDate", "Before this date the 5-year anniversary earned 1 day (2017 scheme); from this date it earns the days in row 24 (2026 policy p.5).", DATE)
+setting(34, "Does service before the scheme start count?", "Yes", "PreSchemeCounts", "Yes = tenure before 27/11/2017 counts, so staff already past 3 years accrued from the scheme start (2017 flowchart wording, and HR practice). No = everyone who started before 27/11/2017 is treated as commencing on that date.")
+dvp = DataValidation(type="list", formula1='"Yes,No"', allow_blank=True); st.add_data_validation(dvp); dvp.add("C34")
 setting(31, "Does casual service count towards qualifying service?", "No", "CasualCounts", "No = service counts from the first full-time or part-time start date (CTS decision; policy p.3 defines commencement as the original start date). Yes = service counts from StartDate.")
 dvc = DataValidation(type="list", formula1='"Yes,No"', allow_blank=True); st.add_data_validation(dvc); dvc.add("C31")
 
@@ -366,7 +368,7 @@ notes = [
  "HISTORY: the scheme started 27/11/2017 (2017 flowchart v1.0). Under it only full-time staff were eligible, and the 5-year anniversary earned 1 day with 2 days from the 6-year anniversary onwards. The 2026 policy (effective 08/09/2026) added part-time eligibility and made the 5-year anniversary 2 days. The tracker applies both dates (Settings rows 32-33). Part-time days before 08/09/2026 are still credited because HR has credited them - change the PT first-accrual month on Settings if that decision changes.",
  "ASSUMPTIONS: PT Hrs/Week blank means 24+ (eligible). Staff are matched to EH on First Name + Surname, so spelling must match the export. Rows in the report are assumed to be in date order within each employee. Terminated staff forfeit the balance (p.8) - delete them from the Staff tab and zero the EH balance.",
 ]
-for i, t in enumerate(notes, 36):
+for i, t in enumerate(notes, 37):
     c = st.cell(row=i, column=2, value=t); c.font = f_bold if (t.isupper() or t.startswith("ASSUMPTIONS")) else f_norm
     st.merge_cells(start_row=i, start_column=2, end_row=i, end_column=6)
     c.alignment = Alignment(wrap_text=True, vertical="top")

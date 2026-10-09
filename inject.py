@@ -51,7 +51,7 @@ for name in ('Settings','Leave History'):
     for k,dim in a.column_dimensions.items(): b.column_dimensions[k].width=dim.width
 for cell in ('C32','C33'): new['Settings'][cell].number_format='dd/mm/yyyy'
 # Settings values the HR team set
-for cell in ('C6','C7','C8','C9','C19','C31'):
+for cell in ('C6','C7','C8','C9','C19','C31','C34'):
     v=src['Settings'][cell].value
     if v is not None: new['Settings'][cell].value=v
 # READ ME
