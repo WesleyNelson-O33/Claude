@@ -81,9 +81,9 @@ if tally_path:
         i+=1
 # notes next to names
 NOTES={
- ("Daniel","SOBKOWSKI"):"Employed 2013, so treated as commencing 27/11/2017 (no counting back). First day 27/11/2020, 5-yr point 27/11/2022. HR tally credited 44 days from 2017 on his original anniversary; EH holds more than this entitlement - decision needed with Graham on the excess.",
- ("Duncan","LUGSTEIN"):"Employed 2006, so treated as commencing 27/11/2017 (no counting back). First day 27/11/2020. HR tally credited 44.5 days from 2017; EH holds more than this entitlement - decision needed with Graham on the excess.",
- ("Jordan","SEXTY"):"Employed 2016, so treated as commencing 27/11/2017 (no counting back). First day 27/11/2020. HR tally credited 31 days from Apr-19; EH holds more than this entitlement - decision needed with Graham on the excess.",
+ ("Daniel","SOBKOWSKI"):"Employed 2013, so treated as commencing 27/11/2017 (no counting back). First day 27/11/2020, 5-yr point 27/11/2022. HR credited him from 2017 on his original anniversary, so EH holds 40 hrs more than this rule gives. EH balance accepted as is (Accept = Yes); accruing forward from 27/11/2026. Change to No if Graham says reverse the excess.",
+ ("Duncan","LUGSTEIN"):"Employed 2006, so treated as commencing 27/11/2017 (no counting back). First day 27/11/2020. HR credited him from 2017 on a Feb/May/Aug/Nov cycle, so EH holds 160 hrs more than this rule gives. EH balance accepted as is (Accept = Yes); accruing forward from 27/11/2026. Change to No if Graham says reverse the excess.",
+ ("Jordan","SEXTY"):"Employed 2016, so treated as commencing 27/11/2017 (no counting back). First day 27/11/2020. HR credited him from Apr-19 on his original anniversary, so EH holds 64 hrs more than this rule gives. EH balance accepted as is (Accept = Yes); accruing forward from 27/11/2026. Change to No if Graham says reverse the excess.",
  ("Tyler","WOOD"):"Employed Jul-2017, so treated as commencing 27/11/2017 (no counting back). First day 27/11/2020. HR tally ran from his Jul-20 anniversary.",
  ("Wade","TONNA"):"HR adjusted him to the 5-day rate in Jan-26; his 5-yr anniversary was Jun-23. Tracker is 1 day above the HR tally - owed.",
  ("Milo","RANKIN"):"HR tally cycle Feb/Jun/Oct implies a start around Feb-20; tracker start is 05/08/2019. Confirm start date with HR. Tracker is 3 days above the HR tally.",
@@ -94,6 +94,14 @@ NOTES={
  ("Tyrell","SHORTT"):"Part-time: not eligible under the 2017 scheme (full-time only). HR tally shows 1 day - to be confirmed/reversed with Graham.",
  ("Blake","Crisford"):"Matches HR tally (2).",
 }
+if "Accept EH balance to date?" in hn:
+    ac=hn["Accept EH balance to date?"]
+    for r in range(5,155):
+        if (ns[f'A{r}'].value, (ns[f'B{r}'].value or '').upper()) in (("Daniel","SOBKOWSKI"),("Duncan","LUGSTEIN"),("Jordan","SEXTY")): ns.cell(row=r,column=ac).value="Yes"
+    for r in range(3,155): copy_style(ss.cell(row=r,column=hs["Casual Start"]), ns.cell(row=r,column=ac))
+    ns.cell(row=4,column=ac).value="Accept EH balance to date?"; ns.cell(row=3,column=ac).value="Yes = keep what EH holds; accrue forward only"
+    from openpyxl.worksheet.datavalidation import DataValidation
+    dva=DataValidation(type="list", formula1='"Yes,No"', allow_blank=True); ns.add_data_validation(dva); dva.add(f"{L(ac)}5:{L(ac)}154")
 if "Notes" in hn:
     nc=hn["Notes"]
     for r in range(5,155):

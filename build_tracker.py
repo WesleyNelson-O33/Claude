@@ -49,6 +49,7 @@ spec = [
  ("check", "Data Check", 30, "out", ""),
  ("mdays", "Earned this month (days)", 10, "eh", "days whose milestone falls in the accrual month"), ("mdate", "Milestone this month", 11, "eh", "date of that milestone"),
  ("prescheme", "Days excluded (before scheme start)", 11, "eh", "milestones before 27/11/2017 - earn nothing"),
+ ("accept", "Accept EH balance to date?", 11, "in", "Yes = keep what EH holds; accrue forward only"),
  ("note", "Notes", 60, "in", "free text - reconciliation notes, HR decisions"),
  # helpers
  ("h_act", "h active", 6, "hp", ""), ("h_S", "h S", 10, "hp", ""), ("h_n", "h n dates", 6, "hp", ""),
@@ -179,7 +180,10 @@ def formulas(r):
     f["close"] = f'=IF({A},"",IF(NOT(LH_Ready),"",IF({c("h_last")}=0,0,INDEX(INDEX(LH_Data,0,LH_ColClose),{c("h_last")}-1)*UnitFactor)))'
     f["open"] = f'=IF({A},"",IF(NOT(LH_Ready),"",IF(${C["start"]}{r}>PFYDate,0,IF(LH_ColPeriod=0,{c("close")}-{c("acc")}+{c("taken")},{load}*UnitFactor))))'
     f["due"] = f'=IF({A},"",(MAX(0,{c("h_dn")}-{c("h_ds")})-MAX(0,{c("h_dp")}-{c("h_ds")}))*HoursPerDay)'
-    f["toacc"] = f'=IF({A},"",IF(NOT(LH_Ready),"",IF({c("h_rows")}=0,{c("hrs_due")},IF(MAX(0,{c("h_dp")}-{c("h_ds")})=0,{c("hrs_due")}-N({c("open")})-N({c("acc")}),{c("due")}-N({c("acc")})))))'
+    acc_month = (f'SUMIFS(INDEX(LH_Data,0,LH_ColAcc),INDEX(LH_Data,0,LH_ColFirst),$A{r},INDEX(LH_Data,0,LH_ColSur),$B{r},INDEX(LH_Data,0,LH_ColCat),BonusCat,'
+                 f'INDEX(LH_Data,0,LH_ColStart),">="&(EOMONTH(AsOfDate,-1)+1),INDEX(LH_Data,0,LH_ColStart),"<="&AsOfDate)*UnitFactor')
+    f["toacc"] = (f'=IF({A},"",IF(NOT(LH_Ready),"",IF(${C["accept"]}{r}="Yes",N({c("mdays")})*HoursPerDay-{acc_month},'
+                  f'IF({c("h_rows")}=0,{c("hrs_due")},IF(MAX(0,{c("h_dp")}-{c("h_ds")})=0,{c("hrs_due")}-N({c("open")})-N({c("acc")}),{c("due")}-N({c("acc")}))))))')
     f["accq"] = f'=IF(OR({A},{c("toacc")}=""),"",IF({c("toacc")}>0,"Yes","No"))'
     f["gap"] = f'=IF(OR({A},{c("open")}=""),"",MAX(0,{c("h_dp")}-{c("h_ds")})*HoursPerDay-{c("open")})'
     f["rows"] = f'=IF({A},"",{c("h_rows")})'
@@ -187,12 +191,13 @@ def formulas(r):
     f["action"] = (f'=IF({A},IF(LEN($A{r}&$B{r})=0,"","FIX INPUT - StartDate missing"),'
                    f'IF({c("check")}<>"","FIX INPUT - "&{c("check")},'
                    f'IF(NOT(LH_Ready),"Paste Leave History export (Settings must show YES)",'
+                   f'IF(AND(${C["accept"]}{r}="Yes",{X}<=0),"OK - EH balance accepted to date; next day "&TEXT({c("next")},"dd mmm yy")&IF(N({c("mdays")})>0," ("&{c("mdays")}&" day(s) for "&UPPER(TEXT(AsOfDate,"mmm yyyy"))&" already in EH)",""),'
                    f'IF({X}>0,"ACCRUE "&ROUND({X},2)&" hrs ("&ROUND({X}/HoursPerDay,2)&" days): "&IF(N({c("mdays")})>0,{c("mdays")}&" day(s) for "&UPPER(TEXT(AsOfDate,"mmm yyyy"))&" (milestone "&UPPER(TEXT({c("mdate")},"dd mmm yy"))&")"&IF({X}/HoursPerDay>{c("mdays")}+0.001," + "&ROUND({X}/HoursPerDay-{c("mdays")},2)&" day(s) catch-up from earlier months",""),"all catch-up from earlier months, nothing new this month")&IF({Rw}=0,"; no Bonus Leave in EH yet",""),'
                    f'IF({X}<0,"CHECK - EH accrued "&ROUND(-{X},2)&" hrs more than policy since commencement",'
                    f'IF(N({c("close")})>{N_}*HoursPerDay+0.01,"CHECK - EH balance "&ROUND({c("close")}-{N_}*HoursPerDay,2)&" hrs more than policy entitlement",'
                    f'IF({N_}>0,"OK - nothing to add"&IF(N({c("mdays")})>0," ("&{c("mdays")}&" day(s) for "&UPPER(TEXT(AsOfDate,"mmm yyyy"))&" already in EH)",""),'
                    f'IF({Pc}="None",{c("elig")},'
-                   f'"Not yet - first day on "&TEXT({c("next")},"dd/mm/yyyy")))))))))')
+                   f'"Not yet - first day on "&TEXT({c("next")},"dd/mm/yyyy"))))))))))')
     # data check
     latest_type = f'IF({c("h_n")}>=3,{c("h_T3")},IF({c("h_n")}=2,{c("h_T2")},{c("h_T1")}))'
     f["check"] = (f'=IF({A},"",TRIM('
@@ -361,6 +366,7 @@ notes = [
  "4. Bonus leave Accrued = HOURS the policy says the person should have received in total to date. Days = the same in days. Eligible? and Next Accrual show who is in the scheme and when the next day lands.",
  "5. Leave History tab: run the EH Leave History Report from the first day of business to today and paste it at A1 (headers in row 1). On this tab set the day BEFORE the report start date. A full-history report is what makes the reconciliation clean: leave taken is then fully accounted for.",
  "6. The red columns on Staff then read straight from the report: Opening Balance (a loaded balance, normally 0), Leave Accrued (everything EH has credited), Leave Taken, Closing Balance (balance now), Due per policy (policy accrual from the report start to today), Hours to Accrue (= policy entitlement - opening balance - EH accrued), Add to EH now? and an Action.",
+ "6b. Accept EH balance to date? (column after Notes block): type Yes for anyone whose EH balance has been agreed as correct even though it differs from the policy entitlement (e.g. long-serving staff credited from 2017 on their old anniversary). The sheet then stops comparing history and only checks that each new milestone is posted. Leave blank for everyone else.",
  "7. Filter the Action column: FIX INPUT = a problem with what was typed. ACCRUE = add those hours in EH now. CHECK = EH has credited more than the policy allows (an HR decision, not a formula problem). OK = nothing to add. Not eligible / Not yet = no accrual due and why. If a person has no Bonus Leave rows in EH at all, Hours to Accrue is their full policy entitlement.",
  "8b. Milestones tab: pick one person and see every milestone date, the type they were on that date and the days earned. All Staff Breakdown tab: the same for everyone, one line per person, so you can show how any number was reached.",
  "8. Opening gap vs policy only matters if you run a report that starts mid-way (e.g. from 1 July). It is then policy hours at the report start minus the opening balance, which mixes leave taken before the start with accruals never posted. With a full-history report it is 0.",
