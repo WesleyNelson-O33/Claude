@@ -48,6 +48,7 @@ spec = [
  ("gap", "Opening gap vs policy (hrs)", 10, "eh", "0 when the report covers full history"), ("rows", "Rows in EH report", 8, "eh", "Bonus Leave rows found"),
  ("check", "Data Check", 30, "out", ""),
  ("mdays", "Earned this month (days)", 10, "eh", "days whose milestone falls in the accrual month"), ("mdate", "Milestone this month", 11, "eh", "date of that milestone"),
+ ("prescheme", "Days excluded (before scheme start)", 11, "eh", "milestones before 27/11/2017 - earn nothing"),
  ("note", "Notes", 60, "in", "free text - reconciliation notes, HR decisions"),
  # helpers
  ("h_act", "h active", 6, "hp", ""), ("h_S", "h S", 10, "hp", ""), ("h_n", "h n dates", 6, "hp", ""),
@@ -146,6 +147,7 @@ def formulas(r):
     f["h_lastoff"] = (f'=IF({A},"",IF({c("h_Pc")}="FT",IF({c("h_M0")}<FT_First,"",IF({c("h_M0")}<FT_Y5,FT_First+FT_Int1*INT(({c("h_M0")}-FT_First)/FT_Int1),FT_Y5+FT_Int2*INT(({c("h_M0")}-FT_Y5)/FT_Int2))),'
                       f'IF({c("h_Pc")}="PT",IF({c("h_M0")}<PT_First,"",PT_First+PT_Int*INT(({c("h_M0")}-PT_First)/PT_Int)),"")))')
     f["mdays"] = f'=IF({A},"",{c("days_due")}-MAX(0,{c("h_dm")}-{c("h_ds")}))'
+    f["prescheme"] = f'=IF({A},"",MIN({c("h_dn")},{c("h_ds")}))'
     f["mdate"] = f'=IF(OR({A},{c("mdays")}="",N({c("mdays")})=0,{c("h_lastoff")}=""),"",EDATE({S},{c("h_lastoff")}))'
     Ds = '(SchemeStart-1)'
     f["h_MS"] = f'=IF({A},"",{months(S, Ds)})'
@@ -209,7 +211,7 @@ for r in range(R0, R1 + 1):
         else:
             cell.fill = fill_calc; cell.font = f_norm; cell.value = fr[k]
     for k in ("dob", "bday", "start", "pte", "fte", "cas", "anniv_in", "anniv", "next", "mdate", "h_S", "h_D1", "h_D2", "h_D3"): ws[f"{C[k]}{r}"].number_format = DATE
-    for k in ("hrs_due", "days_due", "pthrs", "open", "acc", "taken", "close", "due", "toacc", "gap", "mdays"): ws[f"{C[k]}{r}"].number_format = NUM
+    for k in ("hrs_due", "days_due", "pthrs", "open", "acc", "taken", "close", "due", "toacc", "gap", "mdays", "prescheme"): ws[f"{C[k]}{r}"].number_format = NUM
     ws[f"{C['ten']}{r}"].number_format = "0.0"
 
 dv = DataValidation(type="list", formula1='"Full-Time,Part-Time,Casual"', allow_blank=True); ws.add_data_validation(dv); dv.add(f"{C['type']}{R0}:{C['type']}{R1}")
@@ -346,6 +348,7 @@ notes = [
  "HOW TO USE",
  "1. Staff tab: type Name, Surname, EmploymentType (current type), DateOfBirth, StartDate.",
  "2. PTE Start / FTE Start / Casual Start: the date each employment type began. Always fill the one for the type they started on (same as StartDate). If they later changed type, fill the date the new type began as well. The latest date is the current type. Up to two changes are handled (e.g. Casual > Full-Time > Part-Time). Column Q writes the change out and says whether accrual stopped, started or changed pathway.",
+ "2a. Scheme start 27/11/2017: no milestone before that date earns anything, whoever the person is or when they started. The column 'Days excluded (before scheme start)' shows how many milestones each long-serving person had before the scheme that were NOT credited. The Milestones tab marks each one 'before scheme start'.",
  "2b. Accrual month: type the month-end date in the yellow cell D1 at the top of the Staff tab (e.g. 30/09/2026). Every tab calculates as at that date. Set it to the month you are posting, not today.",
  "3. AnniversaryDate: only if HR has pushed the qualifying-service start out for unpaid or parental leave (policy p.4-5). Otherwise leave blank and StartDate is used.",
  "4. Bonus leave Accrued = HOURS the policy says the person should have received in total to date. Days = the same in days. Eligible? and Next Accrual show who is in the scheme and when the next day lands.",

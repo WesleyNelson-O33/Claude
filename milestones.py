@@ -64,9 +64,10 @@ def add_milestones(wb, r0=5, r1=154):
         if fmt: c.number_format = fmt
 
     S, T1, D2, T2, D3, T3, N, TYPE, HRS = "$C$8", "$C$11", "$C$12", "$C$13", "$C$14", "$C$15", "$C$16", "$C$9", "$C$10"
-    heads = ["#", "Months", "Milestone", "Date", "Type on that date", "Pathway", "Days if pathway matches", "Days earned"]
-    ms.merge_cells("H18:O18"); ms["H18"] = "FULL-TIME milestones (earned only if full-time on that date)"
-    ms.merge_cells("Q18:X18"); ms["Q18"] = "PART-TIME 24+ hrs milestones (earned only if eligible part-time on that date)"
+    heads = ["#", "Months", "Milestone", "Date", "Type on that date", "Pathway", "Days if pathway matches", "Days earned", "Why not earned"]
+    ms.merge_cells("H18:P18"); ms["H18"] = "FULL-TIME milestones (earned only if full-time on that date)"
+    ms.merge_cells("Q18:Y18"); ms["Q18"] = "PART-TIME 24+ hrs milestones (earned only if eligible part-time on that date)"
+    ms.column_dimensions["P"].width = 18; ms.column_dimensions["Y"].width = 18
     for c in ("H18", "Q18"):
         ms[c].font = f_hdr; ms[c].fill = fill_hdr2; ms[c].alignment = center
     for j, h in enumerate(heads):
@@ -78,7 +79,7 @@ def add_milestones(wb, r0=5, r1=154):
     def isPT(t): return f'OR(ISNUMBER(SEARCH("part",{t})),UPPER(TRIM({t}))="PT",UPPER(TRIM({t}))="PTE")'
 
     for base, path in ((8, "FT"), (17, "PT")):
-        n, off, ml, dte, typ, pth, dy, earned = [get_column_letter(base + k) for k in range(8)]
+        n, off, ml, dte, typ, pth, dy, earned, why = [get_column_letter(base + k) for k in range(9)]
         for i in range(ROWS):
             r = 20 + i
             ms[f"{n}{r}"] = i + 1
@@ -94,11 +95,14 @@ def add_milestones(wb, r0=5, r1=154):
             ms[f"{pth}{r}"] = (f'=IF({dte}{r}="","",IF({isFT(typ + str(r))},"FT",IF(AND({isPT(typ + str(r))},OR({HRS}="",N({HRS})>=PT_MinHours)),"PT","None")))')
             dy_adj = f'IF(AND("{path}"="FT",{off}{r}=FT_Y5,{dte}{r}<PolicyDate),1,{dy}{r})'
             ms[f"{earned}{r}"] = f'=IF({dte}{r}="","",IF(AND({pth}{r}="{path}",{dte}{r}<=AsOfDate,{dte}{r}>=SchemeStart),{dy_adj},0))'
-            for L in (n, off, ml, dte, typ, pth, dy, earned):
+            ms[f"{why}{r}"] = (f'=IF({dte}{r}="","",IF(N({earned}{r})>0,"",IF({dte}{r}<SchemeStart,"before scheme start",IF({dte}{r}>AsOfDate,"future",'
+                               f'IF({pth}{r}<>"{path}","not " & IF("{path}"="FT","full-time","eligible part-time") & " on that date","")))))')
+            for L in (n, off, ml, dte, typ, pth, dy, earned, why):
                 c = ms[f"{L}{r}"]; c.font = f_norm; c.fill = fill_calc; c.border = border
             ms[f"{dte}{r}"].number_format = DATE
-        ms.conditional_formatting.add(f"{n}20:{earned}{19+ROWS}", FormulaRule(formula=[f'N(${earned}20)>0'], fill=PatternFill("solid", fgColor="C6EFCE")))
-        ms.conditional_formatting.add(f"{n}20:{earned}{19+ROWS}", FormulaRule(formula=[f'AND(${dte}20<>"",${dte}20>AsOfDate)'], font=Font(name=F, size=10, color="999999")))
+        ms.conditional_formatting.add(f"{n}20:{why}{19+ROWS}", FormulaRule(formula=[f'N(${earned}20)>0'], fill=PatternFill("solid", fgColor="C6EFCE")))
+        ms.conditional_formatting.add(f"{n}20:{why}{19+ROWS}", FormulaRule(formula=[f'${why}20="before scheme start"'], fill=PatternFill("solid", fgColor="FFC7CE")))
+        ms.conditional_formatting.add(f"{n}20:{why}{19+ROWS}", FormulaRule(formula=[f'AND(${dte}20<>"",${dte}20>AsOfDate)'], font=Font(name=F, size=10, color="999999")))
     ms.freeze_panes = "A20"
     return ms
 

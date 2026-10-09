@@ -26,7 +26,7 @@ for h,cs in hs.items():
         for r in range(3,155): copy_style(ss.cell(row=r,column=cs), ns.cell(row=r,column=cn))
         ns.column_dimensions[L(cn)].width=ss.column_dimensions[L(cs)].width
         ns.column_dimensions[L(cn)].hidden=ss.column_dimensions[L(cs)].hidden
-for h in ("Earned this month (days)","Milestone this month"):
+for h in ("Earned this month (days)","Milestone this month","Days excluded (before scheme start)"):
     if h in hn and h not in hs:
         for r in range(3,155): copy_style(ss.cell(row=r,column=hs["Hours to Accrue"]), ns.cell(row=r,column=hn[h]))
         ns.cell(row=4,column=hn[h]).value=h
