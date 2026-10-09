@@ -81,10 +81,10 @@ if tally_path:
         i+=1
 # notes next to names
 NOTES={
- ("Daniel","SOBKOWSKI"):"HR tally 44 vs tracker 43: HR back-dated 1 day to his Jul-17 anniversary, before the scheme started 27/11/17. 5-yr anniversary Jul-18 = 1 day under the 2017 scheme (tracker applies this).",
- ("Duncan","LUGSTEIN"):"HR tally runs a Feb/May/Aug/Nov cycle from 2017 (eligibility letter); tracker uses his 16/10 anniversary. 1.5 day variance = Aug-17 pre-scheme day + 0.5 in Nov-17 + cycle timing. Confirm cycle date with HR.",
- ("Jordan","SEXTY"):"HR moved him to the 5-day rate in Jan-23; his 5-yr anniversary was Apr-21. Tracker is 2 days above the HR tally - owed.",
- ("Tyler","WOOD"):"HR moved him to the 5-day rate in Jul-24; his 5-yr anniversary was Jul-22. Tracker is 2 days above the HR tally - owed.",
+ ("Daniel","SOBKOWSKI"):"Employed 2013, so treated as commencing 27/11/2017 (no counting back). First day 27/11/2020, 5-yr point 27/11/2022. HR tally credited 44 days from 2017 on his original anniversary; EH holds more than this entitlement - decision needed with Graham on the excess.",
+ ("Duncan","LUGSTEIN"):"Employed 2006, so treated as commencing 27/11/2017 (no counting back). First day 27/11/2020. HR tally credited 44.5 days from 2017; EH holds more than this entitlement - decision needed with Graham on the excess.",
+ ("Jordan","SEXTY"):"Employed 2016, so treated as commencing 27/11/2017 (no counting back). First day 27/11/2020. HR tally credited 31 days from Apr-19; EH holds more than this entitlement - decision needed with Graham on the excess.",
+ ("Tyler","WOOD"):"Employed Jul-2017, so treated as commencing 27/11/2017 (no counting back). First day 27/11/2020. HR tally ran from his Jul-20 anniversary.",
  ("Wade","TONNA"):"HR adjusted him to the 5-day rate in Jan-26; his 5-yr anniversary was Jun-23. Tracker is 1 day above the HR tally - owed.",
  ("Milo","RANKIN"):"HR tally cycle Feb/Jun/Oct implies a start around Feb-20; tracker start is 05/08/2019. Confirm start date with HR. Tracker is 3 days above the HR tally.",
  ("Kyle","Krishnappa"):"Part-time 19/04/22 to 05/09/22 counted as service. If that part-time contract was under 24 hrs, treat as casual (move the date to Casual Start). Tracker is 1 day above the HR tally.",
