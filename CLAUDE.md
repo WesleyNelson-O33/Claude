@@ -64,3 +64,16 @@ She is relying on this for payroll and statutory reporting. Say plainly when
 something is from a search rather than a source document, when a recording does
 not cover it, and when a figure cannot be verified. Never fill a gap with a
 guess that reads like fact.
+
+## Do the work exactly as shown. Never embellish.
+
+Everything for payroll and month end is done exactly the way the recordings
+show it, and exactly the way last month's workings did it. Nothing added,
+nothing improved, no method of my own.
+
+- The source is the recording, or last month's file. Nothing else.
+- Where neither covers something, say so and ask. Do not fill the gap, even
+  with something that looks sensible.
+- Do not pick dates, accounts, splits or wording that are not in the source.
+  Copy them from last month.
+- If I am unsure whether something came from the source, it did not. Ask.
