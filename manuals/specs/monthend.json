@@ -1,0 +1,445 @@
+{
+  "eyebrow": "MONTH END",
+  "title": "Month-End Journals: WIP",
+  "subtitle": "Corporate Technology Services  \u00b7  Xero  \u00b7  WIP file  \u00b7  Monthly",
+  "runningHead": "Month-End Journals: WIP",
+  "screenshotDir": "manuals/screenshots/monthend",
+  "output": "manuals/Month-End Journals - WIP.docx",
+  "toc": true,
+  "blocks": [
+    {
+      "type": "h1",
+      "text": "About this manual"
+    },
+    {
+      "type": "p",
+      "text": "This is the month-end WIP process: the WIP file, the reversals, and the WIP journal in Xero."
+    },
+    {
+      "type": "p",
+      "text": "It is written from the recording of Em and Danica closing August 2026, made on 9 September 2026."
+    },
+    {
+      "type": "callout",
+      "label": "Read this first.",
+      "text": "This recording is two people working it out together, not a demonstration. Most of the method is on the screen rather than in what is said. Where Em was not sure, this manual says so, and those points are listed at the end as questions to settle with Gi."
+    },
+    {
+      "type": "h2",
+      "text": "What you need open"
+    },
+    {
+      "type": "bullet",
+      "text": "The WIP file for the month, in SharePoint on the accounts backup site. It is named like 2026-08 WIP."
+    },
+    {
+      "type": "bullet",
+      "text": "Xero, Manual Journals."
+    },
+    {
+      "type": "bullet",
+      "text": "Xero invoices, bills and purchase orders, to check what has come in."
+    },
+    {
+      "type": "bullet",
+      "text": "The accounts mailbox, to find bills that have not been entered yet."
+    },
+    {
+      "type": "h1",
+      "text": "Part 1  The WIP file"
+    },
+    {
+      "type": "step",
+      "number": 1,
+      "title": "Open the month's WIP file"
+    },
+    {
+      "type": "p",
+      "text": "Work on the tab called Schedule Updated. The month tabs next to it, August 2026, July 2026 and so on, are the history."
+    },
+    {
+      "type": "p",
+      "text": "At the top it shows the WIP account, 11300, and the total WIP balance."
+    },
+    {
+      "type": "shot",
+      "file": "schedule_top.png",
+      "caption": "The Schedule Updated tab of the August 2026 WIP file"
+    },
+    {
+      "type": "h2",
+      "text": "What each column is"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Job No",
+          "column A, the job number"
+        ],
+        [
+          "Client",
+          "column B"
+        ],
+        [
+          "Department",
+          "column C, which becomes the cost centre"
+        ],
+        [
+          "Description",
+          "column D"
+        ],
+        [
+          "Invoice Amount",
+          "column E, the full amount of the invoice or bill"
+        ],
+        [
+          "This month",
+          "column BW, headed with the month, for example Aug-26. This is the amount that goes into the journal."
+        ],
+        [
+          "balance",
+          "column BX, what is left in WIP after this month"
+        ],
+        [
+          "Posted",
+          "column BY. Y once it is done, N if not."
+        ],
+        [
+          "Comments",
+          "column BZ, what to do with the line"
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "What the colours mean"
+    },
+    {
+      "type": "bullet",
+      "text": "Purple rows are repeating journals. These are things like licences, recognised a slice at a time each month."
+    },
+    {
+      "type": "bullet",
+      "text": "Orange rows are once-off items, accruals and reversals, that each need a decision."
+    },
+    {
+      "type": "bullet",
+      "text": "In the Posted column, pink is N and green is Y."
+    },
+    {
+      "type": "step",
+      "number": 2,
+      "title": "Read the comment on every line"
+    },
+    {
+      "type": "p",
+      "text": "The comment tells you what to do. These are the ones that came up."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "De-recognise from ... to ...",
+          "a repeating journal. A slice moves every month until the end date."
+        ],
+        [
+          "Reverse when invoiced",
+          "stays in WIP until the customer invoice is raised"
+        ],
+        [
+          "Reverse when bill is received",
+          "stays in WIP until the supplier bill comes in"
+        ],
+        [
+          "Bill received on ...",
+          "the bill is in. Release it this month."
+        ],
+        [
+          "Reverse in ...",
+          "release it in the month named"
+        ],
+        [
+          "Based on labour hours",
+          "revenue for hours worked that has not been invoiced yet"
+        ],
+        [
+          "Invoiced in advance",
+          "the invoice went out before the work. Hold the revenue back."
+        ]
+      ]
+    },
+    {
+      "type": "shot",
+      "file": "schedule_rows.png",
+      "caption": "Purple repeating lines and orange once-off lines, with the Posted and Comments columns"
+    },
+    {
+      "type": "h1",
+      "text": "Part 2  The order to work in"
+    },
+    {
+      "type": "step",
+      "number": 3,
+      "title": "Clear the repeating journals first"
+    },
+    {
+      "type": "p",
+      "text": "Start with the purple lines. In Xero, Manual Journals, check that this month's slice of each repeating journal has posted, and that it matches column BW."
+    },
+    {
+      "type": "p",
+      "text": "Mark each one Y as you go. Em's reason for doing these first was that it clears the sheet and leaves only the orange lines to think about."
+    },
+    {
+      "type": "callout",
+      "label": "An open question.",
+      "text": "Danica asked why these are posted a month at a time rather than all at once to the end date. Em did not know. It is a question for Gi, and it is listed at the end."
+    },
+    {
+      "type": "step",
+      "number": 4,
+      "title": "Work the orange lines"
+    },
+    {
+      "type": "p",
+      "text": "For each one, check Xero for the invoice or the bill. Check the purchase orders. Check the accounts mailbox for bills that have arrived but are not entered yet."
+    },
+    {
+      "type": "p",
+      "text": "Then decide whether it moves this month. If it does, put the amount in column BW. If it does not, leave it at N."
+    },
+    {
+      "type": "step",
+      "number": 5,
+      "title": "Do the reversals before the WIP journal"
+    },
+    {
+      "type": "p",
+      "text": "Em's order was reversals first, then the WIP journal last."
+    },
+    {
+      "type": "p",
+      "text": "The reversals are the items being invoiced next month. They go in as auto reversing journals."
+    },
+    {
+      "type": "callout",
+      "label": "When a reversal can happen.",
+      "text": "Em's rule: a reversal can sit anywhere from when you get the invoice to when the work is done. You can process an invoice in September and reverse it in January if that is when the work happens."
+    },
+    {
+      "type": "h1",
+      "text": "Part 3  The WIP journal"
+    },
+    {
+      "type": "step",
+      "number": 6,
+      "title": "Copy last month's WIP journal"
+    },
+    {
+      "type": "p",
+      "text": "In Xero, open last month's WIP journal and copy it. Clear out the lines that are finished and keep the ones still running."
+    },
+    {
+      "type": "p",
+      "text": "Change the narration to WIP Journal and the month, for example WIP Journal August 2026. Set the date to the last day of the month."
+    },
+    {
+      "type": "p",
+      "text": "On screen the auto reversing date was left blank, and Amounts are was set to No Tax."
+    },
+    {
+      "type": "shot",
+      "file": "clone_side_by_side.png",
+      "caption": "The copied journal on the left, the schedule on the right"
+    },
+    {
+      "type": "step",
+      "number": 7,
+      "title": "Two lines for every item"
+    },
+    {
+      "type": "p",
+      "text": "Every item on the schedule becomes two lines. One line goes to the profit and loss account. The other goes to 11300 Work in Progress."
+    },
+    {
+      "type": "p",
+      "text": "Both lines get the same description, the same cost centre and the same job number. The tax rate is BAS Excluded."
+    },
+    {
+      "type": "shot",
+      "file": "journal_start.png",
+      "caption": "The first pair: labour hours to 42100 Production Labour against 11300 Work in Progress"
+    },
+    {
+      "type": "h2",
+      "text": "The kinds of pair that came up"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Labour hours not yet invoiced",
+          "credit the revenue account, for example 42100 Production Labour. Debit 11300."
+        ],
+        [
+          "Invoiced in advance",
+          "debit the revenue account, for example 42800 Tech Consulting. Credit 11300."
+        ],
+        [
+          "Revenue held back, now released",
+          "credit each revenue line, for example 42500, 42100, 42700, 42900 and 45015. Debit 11300 for the total."
+        ],
+        [
+          "Supplier bill received",
+          "debit the cost account, for example 51100 Equipment Purchases or 51325 Sub-Contract Labour. Credit 11300."
+        ]
+      ]
+    },
+    {
+      "type": "shot",
+      "file": "journal_pairs.png",
+      "caption": "A run of pairs in the August WIP journal"
+    },
+    {
+      "type": "step",
+      "number": 8,
+      "title": "Debit or credit"
+    },
+    {
+      "type": "p",
+      "text": "Ask which side you want to make bigger."
+    },
+    {
+      "type": "bullet",
+      "text": "Revenue goes up with a credit."
+    },
+    {
+      "type": "bullet",
+      "text": "What you owe a supplier goes up with a credit."
+    },
+    {
+      "type": "bullet",
+      "text": "Work in progress, and anything you are owed, goes up with a debit."
+    },
+    {
+      "type": "bullet",
+      "text": "An expense goes up with a debit."
+    },
+    {
+      "type": "callout",
+      "label": "When the schedule's brackets look wrong.",
+      "text": "On a few lines the brackets on the schedule were the wrong way round, and the journal itself was right. If a sign on the sheet does not make sense, work it out from the rule above rather than copying the bracket."
+    },
+    {
+      "type": "step",
+      "number": 9,
+      "title": "Check it balances, then post"
+    },
+    {
+      "type": "p",
+      "text": "Debits must equal credits. The August journal came to 290,367.96 on each side."
+    },
+    {
+      "type": "p",
+      "text": "Em had it checked before posting. Then run the profit and loss as a sanity check. For August Em said a WIP balance of about 300 thousand looked about right."
+    },
+    {
+      "type": "step",
+      "number": 10,
+      "title": "Mark the lines Y"
+    },
+    {
+      "type": "p",
+      "text": "Go back to the schedule and mark every line you actioned as Y in the Posted column."
+    },
+    {
+      "type": "h1",
+      "text": "Part 4  Things that came up"
+    },
+    {
+      "type": "h2",
+      "text": "An accrual missed in an earlier month"
+    },
+    {
+      "type": "p",
+      "text": "A 20 thousand purchase order should have been accrued in July and was not. The invoice arrived in August."
+    },
+    {
+      "type": "p",
+      "text": "Em's answer: post the invoice in August. Say in the reference which month it relates to. You cannot go back into a month that is closed."
+    },
+    {
+      "type": "h2",
+      "text": "Two job numbers for the same event"
+    },
+    {
+      "type": "p",
+      "text": "A job was quoted in February and requoted in June, so it had two job numbers. Mitch's instruction was to put both amounts on one job number and delete the other."
+    },
+    {
+      "type": "h2",
+      "text": "Labour hours carried over"
+    },
+    {
+      "type": "p",
+      "text": "A labour hours line is cumulative. This month's hours are added on top of what was already accrued, not put in instead of it."
+    },
+    {
+      "type": "h2",
+      "text": "A job number is archived in Xero"
+    },
+    {
+      "type": "p",
+      "text": "If a journal needs a job number that has been archived, find it in the Job Numbers tracking category, under archived, search for the number, and restore it."
+    },
+    {
+      "type": "h1",
+      "text": "Questions to settle with Gi"
+    },
+    {
+      "type": "p",
+      "text": "These were left open in the recording. Do not guess at them."
+    },
+    {
+      "type": "bullet",
+      "text": "Why are repeating journals posted month by month, rather than all at once to the end date?"
+    },
+    {
+      "type": "bullet",
+      "text": "Jobs with labour hours but no invoice and no cost yet. Em leaned toward accruing the labour hours only, with no cost, but said she would check the handbook. She also suggested costing it with a markup."
+    },
+    {
+      "type": "bullet",
+      "text": "The instant asset write-off accrual. 5,000 is accrued ahead and reversed as purchases come in. How much reverses each month."
+    },
+    {
+      "type": "bullet",
+      "text": "Live View. Gi left a note about reversing it. It was not found in the session."
+    },
+    {
+      "type": "h1",
+      "text": "What this manual does not cover"
+    },
+    {
+      "type": "p",
+      "text": "Said plainly, so you know where the gaps are."
+    },
+    {
+      "type": "bullet",
+      "text": "The expense accruals, such as accounting fees and electricity, and prepayments. These were left for the next day and are not in the recording."
+    },
+    {
+      "type": "bullet",
+      "text": "The payroll accruals: annual leave, long service leave, super and time in lieu."
+    },
+    {
+      "type": "bullet",
+      "text": "The last 20 minutes or so of the recording, where the screen share is off."
+    },
+    {
+      "type": "bullet",
+      "text": "Figures in this manual are from August 2026 and are examples only."
+    }
+  ]
+}
