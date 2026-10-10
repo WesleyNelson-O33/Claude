@@ -8,3 +8,4 @@ ptaxvid/audio/
 ptaxvid/frames/
 ptax/out/
 leave/out/
+leave/*.json
