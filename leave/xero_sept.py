@@ -27,6 +27,19 @@ def job(e):
     assert e in jobs, "job %s not in Xero" % e
     return jobs[e]
 
+CC = {"[CTS]": "CTS", "[PRD]": "PRODUCTION", "[ONS]": "ONSITE", "[VID]": "VIDEO", "[INT]": "INTEGRATION",
+      "[CONS]": "CONSULTING"}
+
+DEPT_CC = {"9000": "CTS", "9100": "PRODUCTION", "9105": "ONSITE", "9125": "VIDEO", "9200": "INTEGRATION",
+           "9400": "CONSULTING"}
+
+def cost_centre(job_option):
+    num = job_option.split(" - ")[0]
+    if num in DEPT_CC: return DEPT_CC[num]
+    tag = job_option.rsplit(" ", 1)[-1]
+    assert tag in CC, "no cost centre for %s" % job_option
+    return CC[tag]
+
 def write(name, narration, lines):
     lines = [l for l in lines if round(l[2], 2) != 0]
     tot = round(sum(l[2] for l in lines), 2)
@@ -34,7 +47,9 @@ def write(name, narration, lines):
     with open(os.path.join(OUTD, name), "w", newline="") as fh:
         w = csv.writer(fh); w.writerow(HEAD)
         for desc, a, amt, e in lines:
-            w.writerow([narration, DATE, desc, acct(a), TAX, "%.2f" % amt, "Job Numbers", job(e), "", ""])
+            # every line carries the narration as its description, and both tracking categories
+            w.writerow([narration, DATE, narration, acct(a), TAX, "%.2f" % amt,
+                        "Cost Centres", cost_centre(job(e)), "Job Numbers", job(e)])
     return len(lines), round(sum(l[2] for l in lines if l[2] > 0), 2)
 
 out = {}
@@ -59,7 +74,7 @@ out["LSL"] = write("2026-09 LSL Provision Xero Journal.csv", nar, lines)
 
 # ---- Time in lieu: each location is three lines, salary and super debits, payable credit
 loc = rep["TIL"]["by_location"]
-nar = "Time in Lieu - Sep 2026"
+nar = "Time in Lieu - September 2026"
 d_by_row = {29: loc.get("PRODUCTION [PRD]", 0), 32: loc.get("VIDEO DEPT [VID]", 0), 35: loc.get("INTEGRATION [INT]", 0),
             38: 0, 41: 0, 44: loc.get("CBA Brisbane ONS [ONS]", 0), 47: loc.get("DTTL SYD FT Tech 2 [ONS]", 0),
             50: loc.get("DTTL Mel Tech FT 2 [ONS]", 0), 53: loc.get("DTTL SYD FT Tech 1 [ONS]", 0),
