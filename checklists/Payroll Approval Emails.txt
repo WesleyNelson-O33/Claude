@@ -1,0 +1,249 @@
+================================================================================================
+PAYROLL APPROVAL EMAILS  -  Corporate Technology Services
+Fortnightly cycle  -  copy straight into Outlook, replace anything in [square brackets]
+================================================================================================
+
+E1  Thursday 9am          Advance notice to all approvers
+E2  Friday 4pm            Period closed, outstanding approvals named
+E3  Monday 8am            Final call, two hours remaining
+E4  Monday 10:05am        Escalation, cut-off passed, hours deferred
+E5  As found              Query back to an approver
+E6  Monday after cut-off  Telling an employee their time moves to the next run
+E7  Once                  Announcing the change (sent by Duncan or Graham)
+
+RULE: any time not approved by 10am Monday is paid in the NEXT pay run.
+      It is not estimated, not entered manually, and the pay run is not held.
+
+Keep the wording identical every fortnight, send from the payroll mailbox, and file the
+sent emails in the fortnight folder. They are the evidence that notice was given.
+
+
+------------------------------------------------------------------------------------------------
+E1  Thursday, advance notice
+------------------------------------------------------------------------------------------------
+SEND:     Thursday, 9am, before the period closes
+TO:       All approving managers
+CC:       Graham, Duncan, accounts
+SUBJECT:  Action required: timesheet approvals due 10am Monday [DD Mon] - fortnight ending [DD Mon]
+
+Hi all,
+
+The current pay fortnight closes this Friday [DD Mon]. All timesheets for the period [DD Mon]
+to [DD Mon] must be approved in Employment Hero by 10am Monday [DD Mon].
+
+When you approve a timesheet you are confirming, for each person in your team:
+
+  - The hours recorded are the hours actually worked
+  - The actual times reconcile to the roster, or the difference is accounted for
+  - Any overtime was authorised in advance by you, and the approval is attached to the timesheet
+    showing the reason, whether it is chargeable to the client, and whether it is being taken as
+    pay or as time in lieu
+  - Any time in lieu accrued or taken is correct against the roster
+  - Meal breaks are recorded accurately, including where a break was not taken
+  - The cost centre on each shift is correct
+
+Payroll processes what has been approved. Payroll does not check hours against the roster and
+does not decide whether overtime was authorised; those checks sit with you as the approver.
+
+Any time that is not approved by 10am Monday will be paid in the next pay run. It will not be
+estimated or entered manually, and the pay run will not be held while approvals are chased.
+
+If you will be away on Monday morning, please either approve before you go or tell me now who
+is approving on your behalf.
+
+Thanks,
+
+[Name]
+
+
+------------------------------------------------------------------------------------------------
+E2  Friday, period closed
+------------------------------------------------------------------------------------------------
+SEND:     Friday, 4pm, the day the period closes
+TO:       All approving managers, or only those with items outstanding
+CC:       Graham, Duncan, accounts
+SUBJECT:  Pay period now closed - timesheet approvals due 10am Monday [DD Mon]
+
+Hi all,
+
+The pay fortnight [DD Mon] to [DD Mon] has now closed. Approvals are due in Employment Hero by
+10am Monday [DD Mon].
+
+Still outstanding as at 4pm today:
+
+  - [Manager name] - [n] timesheets
+  - [Manager name] - [n] timesheets
+  - [Manager name] - [n] timesheets
+
+Also outstanding, no timesheet submitted at all:
+
+  - [Employee name] - [cost centre] - please follow up with them directly
+
+Any time not approved by 10am Monday will be paid in the next pay run. The pay run will not be
+held.
+
+If anything here looks wrong, it is quicker to fix it today than on Monday morning.
+
+Thanks,
+
+[Name]
+
+
+------------------------------------------------------------------------------------------------
+E3  Monday, final call
+------------------------------------------------------------------------------------------------
+SEND:     Monday, 8am, two hours before the cut-off
+TO:       Approving managers with items outstanding
+CC:       Their department heads, Graham, Duncan, accounts
+SUBJECT:  Final call: timesheet approvals close at 10am today - fortnight ending [DD Mon]
+
+Hi [Name],
+
+Approvals for the fortnight ending [DD Mon] close at 10am this morning. The following are still
+unapproved in Employment Hero:
+
+  - [Employee name] - [n] shifts - [dates]
+  - [Employee name] - [n] shifts - [dates]
+
+After 10am these hours drop out of this fortnight's pay run and will be paid in the next one. I
+will not be able to add them in afterwards.
+
+If there is a reason you cannot approve by 10am, tell me now and I will note it, but the
+cut-off does not move.
+
+Thanks,
+
+[Name]
+
+
+------------------------------------------------------------------------------------------------
+E4  Monday, cut-off passed
+------------------------------------------------------------------------------------------------
+SEND:     Monday, 10:05am, immediately after the cut-off
+TO:       The approving manager
+CC:       Their department head, Graham, Duncan, accounts
+SUBJECT:  Cut-off passed: [n] timesheets unapproved, hours deferred to next pay run - fortnight ending [DD Mon]
+
+Hi [Name],
+
+The 10am cut-off for the fortnight ending [DD Mon] has now passed. The following timesheets
+were not approved and the hours have been excluded from this fortnight's pay run:
+
+  - [Employee name] - [n] hours - [dates] - [cost centre]
+  - [Employee name] - [n] hours - [dates] - [cost centre]
+
+These hours will be paid in the pay run for the fortnight ending [DD Mon], as a back pay.
+Nothing is lost; the payment is one fortnight later.
+
+Reminders were sent on [Thursday DD Mon], [Friday DD Mon] and at 8am this morning.
+
+Please approve the timesheets when you can so the hours are picked up next fortnight. If the
+approval is still outstanding at the next cut-off the same thing will happen again.
+
+[Department head name], flagging this for your visibility.
+
+Thanks,
+
+[Name]
+
+
+------------------------------------------------------------------------------------------------
+E5  Query back to an approver
+------------------------------------------------------------------------------------------------
+SEND:     As soon as it is found, during reconciliation
+TO:       The approving manager
+CC:       accounts
+SUBJECT:  Query on an approved timesheet: [Employee name] - fortnight ending [DD Mon]
+
+Hi [Name],
+
+While processing the pay run I have come across the following on a timesheet you have approved:
+
+  - [Employee name], [date]: [what the record shows] - [why it looks wrong, e.g. 14 hours recorded
+    with no overtime approval attached / time in lieu recorded against a day with no rostered shift
+    / no meal break recorded on a 9 hour shift]
+
+I am not able to resolve this one; it is a question about what was worked and whether it was
+authorised, which sits with you as the approver.
+
+Can you confirm either that the timesheet is correct as approved, or tell me what it should
+say, by [time] [today / tomorrow]. If I do not hear back before the pay run is finalised, I
+will process it exactly as approved, or exclude it and pay it next fortnight if it cannot be
+paid compliantly as it stands.
+
+Thanks,
+
+[Name]
+
+
+------------------------------------------------------------------------------------------------
+E6  Telling an employee their time moves to the next run
+------------------------------------------------------------------------------------------------
+SEND:     Monday, after the cut-off
+TO:       The affected employee
+CC:       Their approving manager, accounts
+SUBJECT:  Part of your hours for [DD Mon] to [DD Mon] will be paid in the next pay run
+
+Hi [Name],
+
+I am letting you know that the following hours were not approved in Employment Hero before this
+fortnight's cut-off, so they are not in Tuesday's pay:
+
+  - [date] - [n] hours
+  - [date] - [n] hours
+
+These hours will be paid in full in the next pay run, dated [DD Mon], as a back pay. Nothing
+has been lost and no further action is needed from you.
+
+The rest of your pay for the fortnight is unaffected and will be paid on [DD Mon] as normal.
+
+Approvals for the period are handled by [Manager name], who is copied here.
+
+Thanks,
+
+[Name]
+
+
+------------------------------------------------------------------------------------------------
+E7  Announcing the change, once
+------------------------------------------------------------------------------------------------
+SEND:     Once, at least one full fortnight before it takes effect
+TO:       All approving managers and department heads
+CC:       accounts
+SUBJECT:  Change to payroll timesheet approvals, effective fortnight ending [DD Mon]
+
+All,
+
+From the fortnight ending [DD Mon] we are formalising how timesheets are approved. The change
+is about who checks what; the deadlines and the systems are unchanged.
+
+Approving managers are responsible for confirming, before approving a timesheet:
+
+  - The hours recorded were actually worked
+  - The actual times reconcile to the roster, or the difference is understood and accepted
+  - Any overtime was authorised in advance, with the approval attached to the timesheet recording
+    the reason, whether it is chargeable to the client, and whether it is paid or taken as time in
+    lieu
+  - Any time in lieu accrued or taken is correct against the roster
+  - Meal breaks are recorded accurately
+  - The cost centre on each shift is correct
+
+Payroll is responsible for processing approved timesheets correctly: applying the award and the
+overtime matrix, verifying pay rates, balancing the pay run, and superannuation, PAYG and
+reporting. Payroll will not check hours against rosters and will not decide whether overtime or
+time in lieu was authorised. Those checks require knowledge of what was worked, which sits with
+the manager, not with payroll.
+
+Two practical consequences:
+
+  - Timesheets must be approved by 10am on the Monday of the processing week. Any time not approved
+    by then will be paid in the next pay run. It will not be entered manually and the pay run will
+    not be held.
+  - Where payroll finds something that looks wrong on an approved timesheet, it will come back to
+    the approving manager as a query rather than being corrected by payroll.
+
+Please make sure a delegate is set up in Employment Hero for any period you are away, so
+approvals are not held up by leave.
+
+[Duncan / Graham]
+

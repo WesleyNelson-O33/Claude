@@ -1,10 +1,11 @@
 {
   "eyebrow": "PAYROLL PROCESSING",
   "title": "Payroll Workflow: Start to Finish",
-  "subtitle": "Corporate Technology Services  ·  Employment Hero Payroll  ·  Fortnightly cycle",
+  "subtitle": "Corporate Technology Services  ·  Employment Hero Payroll  ·  Fortnightly cycle  ·  Including approver responsibilities and approval emails",
   "runningHead": "Payroll Workflow: Start to Finish",
   "screenshotDir": "manuals/screenshots/workflow",
   "output": "manuals/Payroll Workflow - Start to Finish.docx",
+  "toc": true,
   "blocks": [
     {
       "type": "h1",
@@ -12,18 +13,18 @@
     },
     {
       "type": "p",
-      "text": "This is the whole payroll cycle on a few pages: the order it runs in, when each stage happens, what must be true before you move on, and who has to act before anything else can proceed."
+      "text": "This is the whole payroll cycle: the order it runs in, when each stage happens, who is accountable for each check, what must be true before you move on, and what happens when something is not ready in time."
     },
     {
       "type": "p",
-      "text": "It does not repeat the instructions. The eight parts of the Payroll Processing Manual tell you how to do each step, and the checklist workbook is what you tick as you go. This document is the map: read it first, work from the manual and the checklist on the day."
+      "text": "It does not repeat the screen-by-screen instructions. The parts of the Payroll Processing Manual tell you how to do each step and the checklist workbook is what you tick as you go. This document is the map and the rules of engagement: read it first, work from the manual and the checklist on the day."
     },
     {
       "type": "table",
       "rows": [
         [
           "This workflow",
-          "Where each stage sits, what the timing is, and what stops you moving on"
+          "Where each stage sits, who owns each check, the timing, and what stops you moving on"
         ],
         [
           "The manual (Parts 1 to 7)",
@@ -31,18 +32,680 @@
         ],
         [
           "The checklist workbook",
-          "79 steps in order, ticked off as you work the fortnight"
+          "The steps in order, ticked off as you work the fortnight"
         ],
         [
           "The listening version",
           "The same walkthrough as spoken text, for revision away from the desk"
+        ],
+        [
+          "The handover document",
+          "The questions the training recordings never answered"
         ]
       ]
     },
     {
       "type": "callout",
-      "label": "Source.",
-      "text": "Everything here is drawn from the seven training recordings and the manual parts built from them. Where the recordings do not answer something, it is marked as a gap rather than filled in with a guess. The gaps are listed at the end."
+      "label": "Two kinds of content, marked throughout.",
+      "text": "Most of this document describes the process as it was recorded and written up in the manual. The responsibility model in the next section is different: it is a change to how payroll operates, setting out that approving managers carry the timesheet, roster, overtime and time in lieu checks and the liability that goes with them. Anything that is a change rather than a description is marked as such, and the sections it contradicts in the existing manual are listed at the end."
+    },
+    {
+      "type": "h1",
+      "text": "Who is responsible for what"
+    },
+    {
+      "type": "callout",
+      "label": "This section is a process change, not a description of current practice.",
+      "text": "It needs sign-off from Duncan and Graham before it takes effect, and it contradicts parts of the existing manual until those are updated. See What this changes elsewhere at the end of this document."
+    },
+    {
+      "type": "p",
+      "text": "Payroll processing and payroll authorisation are two different jobs, and they have been running together. Separating them is standard practice and it is the single biggest control improvement available here: the person who knows what was actually worked approves it, and the person who processes the pay applies what was approved."
+    },
+    {
+      "type": "h2",
+      "text": "The principle, in one line"
+    },
+    {
+      "type": "callout",
+      "label": "The approver owns what was worked. Payroll owns that what was approved is paid correctly.",
+      "text": "A manager approving a timesheet is certifying that the hours are true, that they were authorised, that any overtime and time in lieu are correct against the roster, and that the cost centre is right. Payroll takes that certification at face value and processes it. Payroll does not re-verify it, does not reconstruct it from the roster, and does not carry the consequences of an approval that turns out to be wrong."
+    },
+    {
+      "type": "h2",
+      "text": "The test: two questions"
+    },
+    {
+      "type": "p",
+      "text": "When a question arises mid pay run, sort it with these two questions. They settle almost everything."
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Is it a question about what happened?",
+          "The approver's. Did they work it, was it authorised, was it overtime, was it time in lieu, which cost centre. Query it back; do not answer it yourself."
+        ],
+        [
+          "Is it a question about how approved work is paid?",
+          "Payroll's. The award rate, the matrix rate, the multiplier, the superannuation treatment, what the system did with it. Answer it and apply it."
+        ]
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "The responsibility matrix"
+    },
+    {
+      "type": "p",
+      "text": "Accountable means the person who carries it if it is wrong. Payroll's column says what payroll does with the result, which in most rows is apply it, not check it."
+    },
+    {
+      "type": "grid",
+      "headers": [
+        "The check",
+        "Accountable",
+        "What payroll does"
+      ],
+      "rows": [
+        [
+          "Hours actually worked are true and complete",
+          "Approving manager",
+          "Processes the approved hours as they stand"
+        ],
+        [
+          "Timesheet approved by the 10am Monday cut-off",
+          "Approving manager",
+          "Sends the reminders, then escalates. Does not chase past the cut-off"
+        ],
+        [
+          "Actual times reconcile to the roster",
+          "Approving manager",
+          "Nothing. Payroll does not run the roster comparison"
+        ],
+        [
+          "Overtime was authorised in advance",
+          "Approving manager",
+          "Pays overtime only where the approval is on the timesheet"
+        ],
+        [
+          "Overtime is chargeable to the client or not",
+          "Approving manager",
+          "Reads the approval and rates it from the matrix accordingly"
+        ],
+        [
+          "Overtime versus time in lieu was elected correctly",
+          "Approving manager",
+          "Applies whichever the approval records"
+        ],
+        [
+          "Time in lieu accrued and taken is correct against the roster",
+          "Approving manager",
+          "Records what the approval states in the leave columns"
+        ],
+        [
+          "Meal breaks were taken, or recorded as not taken",
+          "Approving manager",
+          "Applies the award consequence to what the record shows"
+        ],
+        [
+          "Cost centre allocation on each shift",
+          "Approving manager",
+          "Accepts the allocation as approved"
+        ],
+        [
+          "Leave requests approved and in the system in time",
+          "Approving manager",
+          "Processes what has synced through"
+        ],
+        [
+          "The award or matrix rate applied to approved hours",
+          "Payroll",
+          "Applies it, and corrects the system where it gets it wrong"
+        ],
+        [
+          "The pay rate itself matches the contract or rate review",
+          "Payroll",
+          "Verifies and overrides a rate that did not sync"
+        ],
+        [
+          "The pay run balances to the timesheet spreadsheet",
+          "Payroll",
+          "Balances it to zero before finalising"
+        ],
+        [
+          "Superannuation, PAYG and salary sacrifice treatment",
+          "Payroll",
+          "Checks and processes"
+        ],
+        [
+          "Records filed and the pay run lodged with the ATO",
+          "Payroll",
+          "Files and lodges"
+        ],
+        [
+          "The finalised pay run is approved",
+          "Graham",
+          "Cannot finalise without it"
+        ],
+        [
+          "The payment is approved and released",
+          "Duncan",
+          "Cannot pay without it"
+        ]
+      ],
+      "widths": [
+        3100,
+        2000,
+        4260
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "What payroll no longer does"
+    },
+    {
+      "type": "p",
+      "text": "These stop, and stopping them is the point of the change. Each one is a check that payroll cannot perform reliably because payroll was not there when the work happened."
+    },
+    {
+      "type": "bullet",
+      "text": "Comparing actual times against the roster to decide whether hours are genuine"
+    },
+    {
+      "type": "bullet",
+      "text": "Working out whether a long day was authorised overtime or just a long day"
+    },
+    {
+      "type": "bullet",
+      "text": "Deciding whether hours should have been overtime or time in lieu"
+    },
+    {
+      "type": "bullet",
+      "text": "Reconstructing someone's fortnight from the shared calendar or the rostering view because the timesheet looks wrong"
+    },
+    {
+      "type": "bullet",
+      "text": "Chasing an approving manager repeatedly after the cut-off has passed"
+    },
+    {
+      "type": "bullet",
+      "text": "Estimating, accruing or manually entering hours that were never approved"
+    },
+    {
+      "type": "callout",
+      "label": "Payroll does not fix an approver's work.",
+      "text": "Where payroll notices something that looks wrong, it goes back to the approver as a query with a deadline, not into the pay run as a correction. A silent fix by payroll takes the liability back off the approver, which defeats the whole arrangement, and it means nobody learns that the approval was wrong."
+    },
+    {
+      "type": "h2",
+      "text": "What payroll still owns, and must keep doing"
+    },
+    {
+      "type": "p",
+      "text": "The change moves verification, not compliance. Payroll remains the control that stops a non-compliant payment going out, and these are not negotiable regardless of what a manager approved."
+    },
+    {
+      "type": "bullet",
+      "text": "Applying the Live Performance Award correctly to approved casual hours, including the 38-hour weekly and 8-hour daily overtime thresholds"
+    },
+    {
+      "type": "bullet",
+      "text": "Applying the CTS Overtime Matrix correctly to approved salaried overtime"
+    },
+    {
+      "type": "bullet",
+      "text": "Applying the award meal-break consequence where the record shows a break was not taken, including the penalty past five continuous hours"
+    },
+    {
+      "type": "bullet",
+      "text": "Stopping the system paying the same hours as both daily and weekly overtime, which overpays the employee"
+    },
+    {
+      "type": "bullet",
+      "text": "Handling the 8-hour rounding rule so a salaried employee is neither over nor under paid by it"
+    },
+    {
+      "type": "bullet",
+      "text": "Verifying every pay rate, and overriding a rate that failed to sync from HR"
+    },
+    {
+      "type": "bullet",
+      "text": "Balancing the pay run to zero before it is finalised"
+    },
+    {
+      "type": "bullet",
+      "text": "Superannuation, PAYG, salary sacrifice, record keeping and the ATO lodgement"
+    },
+    {
+      "type": "callout",
+      "label": "An approval does not override the award.",
+      "text": "If a manager approves something the award does not permit, payroll does not pay it. Payroll applies the award and raises the conflict with the approver and with Graham. Approver accountability covers what was worked; it does not authorise a non-compliant payment."
+    },
+    {
+      "type": "h2",
+      "text": "The limit of this arrangement"
+    },
+    {
+      "type": "p",
+      "text": "Be clear about what this does and does not achieve, because it is easy to overstate."
+    },
+    {
+      "type": "p",
+      "text": "Internally, it allocates accountability: an approving manager is answerable for an approval that was wrong, and payroll is answerable for processing an approval incorrectly. That is real, it is enforceable through the business, and it is the right way round."
+    },
+    {
+      "type": "callout",
+      "label": "It does not move the employer's legal obligation.",
+      "text": "CTS remains the employer, and the employer carries the statutory obligations: paying correctly under the award and the Fair Work Act, and keeping compliant time and wages records. No internal allocation of duties shifts that to an individual manager. This is an internal accountability model and an audit trail, not a transfer of legal liability away from the business. Have Duncan or Graham confirm the wording before it is circulated, and get it checked by whoever advises CTS on employment matters if it is going into a policy."
+    },
+    {
+      "type": "h1",
+      "text": "The 10am Monday cut-off, and what happens when it is missed"
+    },
+    {
+      "type": "p",
+      "text": "The cut-off only works if there is a consequence attached to it, and the consequence has to be the same every fortnight. Without one the cut-off is a suggestion, payroll absorbs the slippage, and the liability quietly comes back to payroll."
+    },
+    {
+      "type": "h2",
+      "text": "The consequence: missing time is paid in the next pay run"
+    },
+    {
+      "type": "callout",
+      "label": "Any time not approved by 10am Monday is paid in the following pay run.",
+      "text": "It is not estimated, not manually entered, and not held while someone is chased. It drops out of the current fortnight and is picked up as a back pay in the next one. This applies whether the timesheet was never submitted, was submitted and never approved, or was approved after the cut-off had passed."
+    },
+    {
+      "type": "p",
+      "text": "Three reasons this is the right answer, and they are worth being able to say out loud when someone pushes back:"
+    },
+    {
+      "type": "bullet",
+      "text": "It is already the established process for a related case. An expense submitted after the cut-off goes into the following pay run, and has done since 2024. There is no good reason for hours to work differently"
+    },
+    {
+      "type": "bullet",
+      "text": "The alternative is payroll entering unapproved hours, which is precisely the thing this change exists to stop"
+    },
+    {
+      "type": "bullet",
+      "text": "Nothing is lost. The employee is paid for every hour they worked; the payment is one fortnight later, with the delay attributable to the approval, not to payroll"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Never submitted by the employee",
+          "Drops out. Paid next fortnight once submitted and approved"
+        ],
+        [
+          "Submitted but not approved by 10am Monday",
+          "Drops out. Paid next fortnight once approved"
+        ],
+        [
+          "Approved after 10am Monday",
+          "Drops out. Paid next fortnight"
+        ],
+        [
+          "Approved in time but wrong, and queried back",
+          "Payroll holds it only until the pay run is finalised. If the approver has not responded by then, it drops out and is paid next fortnight"
+        ],
+        [
+          "Partially approved, some shifts missing",
+          "The approved shifts are paid this fortnight. The missing ones drop out"
+        ],
+        [
+          "A whole department's timesheets unapproved",
+          "Do not absorb this as a payroll problem. Escalate it and let the escalation decide whether the pay date moves"
+        ]
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "Say it in advance, every fortnight, in writing.",
+      "text": "The consequence is only defensible if the approvers were told before the cut-off, not after. That is what the reminder emails below are for, and it is why they all state the consequence in the same words. Keep the sent emails with the fortnight's records; they are the evidence that the approver was given notice."
+    },
+    {
+      "type": "h2",
+      "text": "The reminder and escalation timetable"
+    },
+    {
+      "type": "p",
+      "text": "Four emails per fortnight, on a fixed schedule. They are templates, not drafting exercises: send them as they are so that the wording is identical every fortnight and nobody can argue they were told something different this time."
+    },
+    {
+      "type": "grid",
+      "headers": [
+        "When",
+        "What goes out",
+        "Why"
+      ],
+      "rows": [
+        [
+          "Thursday, 9am",
+          "E1  Advance notice to all approvers",
+          "Gives two working days before the period even closes"
+        ],
+        [
+          "Friday, 4pm (period end)",
+          "E2  Period closed, approvals due Monday 10am",
+          "Names who is outstanding while there is still time"
+        ],
+        [
+          "Monday, 8am",
+          "E3  Final call, two hours remaining",
+          "Last chance, with the consequence stated plainly"
+        ],
+        [
+          "Monday, 10:05am",
+          "E4  Escalation, cut-off passed",
+          "Records what dropped out and who it belonged to"
+        ]
+      ],
+      "widths": [
+        1700,
+        3660,
+        4000
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "The escalation ladder"
+    },
+    {
+      "type": "p",
+      "text": "This ladder is proposed. The training recordings never covered escalation and the handover document lists it as an open question, so it needs Duncan and Graham to agree the steps and the names before the first fortnight it is used."
+    },
+    {
+      "type": "grid",
+      "headers": [
+        "Step",
+        "When",
+        "Who",
+        "Action"
+      ],
+      "rows": [
+        [
+          "1",
+          "Monday 10:05am",
+          "Payroll",
+          "E4 to the approving manager, copying their department head, Graham and Duncan. Lists exactly which employees and shifts have dropped out"
+        ],
+        [
+          "2",
+          "Monday 10:05am",
+          "Payroll",
+          "Proceeds with the pay run without the unapproved hours. Does not wait"
+        ],
+        [
+          "3",
+          "Monday, same day",
+          "Department head",
+          "Resolves it with the approver for next fortnight. Payroll is not involved"
+        ],
+        [
+          "4",
+          "Monday, same day",
+          "Payroll",
+          "Notifies the affected employees that part of their time moves to the next pay run, naming the approval as the reason"
+        ],
+        [
+          "5",
+          "Next fortnight",
+          "Payroll",
+          "Pays the back pay in the normal run. Nothing special is required"
+        ]
+      ],
+      "widths": [
+        700,
+        1700,
+        1900,
+        5060
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "Who tells the employee is a decision to make, not a detail.",
+      "text": "Step 4 as written has payroll notifying the employee. There is a reasonable argument that it should be the approving manager, since it was their approval that delayed the pay and payroll telling the employee puts payroll in the middle of it. Settle this before the first time it happens rather than during it. The template at E6 is written for payroll sending it; it is easily reworded if the decision goes the other way."
+    },
+    {
+      "type": "h1",
+      "text": "The emails: ready to send"
+    },
+    {
+      "type": "p",
+      "text": "Seven templates. The first four are the fortnightly cycle and go out every fortnight without exception. The last three are situational. Square brackets are the only things you change."
+    },
+    {
+      "type": "callout",
+      "label": "Do not soften them.",
+      "text": "The tone is deliberately flat and factual. These emails exist to create a record that notice was given, so they state the deadline, the consequence and who is responsible, and they do not apologise for it. An email that hedges the consequence is an email that cannot be relied on later."
+    },
+    {
+      "type": "h2",
+      "text": "E1  Thursday, advance notice"
+    },
+    {
+      "type": "email",
+      "when": "Thursday, 9am, before the period closes",
+      "to": "All approving managers",
+      "cc": "Graham, Duncan, accounts",
+      "subject": "Action required: timesheet approvals due 10am Monday [DD Mon] - fortnight ending [DD Mon]",
+      "body": [
+        "Hi all,",
+        "The current pay fortnight closes this Friday [DD Mon]. All timesheets for the period [DD Mon] to [DD Mon] must be approved in Employment Hero by 10am Monday [DD Mon].",
+        "When you approve a timesheet you are confirming, for each person in your team:",
+        [
+          "The hours recorded are the hours actually worked",
+          "The actual times reconcile to the roster, or the difference is accounted for",
+          "Any overtime was authorised in advance by you, and the approval is attached to the timesheet showing the reason, whether it is chargeable to the client, and whether it is being taken as pay or as time in lieu",
+          "Any time in lieu accrued or taken is correct against the roster",
+          "Meal breaks are recorded accurately, including where a break was not taken",
+          "The cost centre on each shift is correct"
+        ],
+        "Payroll processes what has been approved. Payroll does not check hours against the roster and does not decide whether overtime was authorised; those checks sit with you as the approver.",
+        "Any time that is not approved by 10am Monday will be paid in the next pay run. It will not be estimated or entered manually, and the pay run will not be held while approvals are chased.",
+        "If you will be away on Monday morning, please either approve before you go or tell me now who is approving on your behalf.",
+        "Thanks,",
+        "[Name]"
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "E2  Friday, period closed"
+    },
+    {
+      "type": "email",
+      "when": "Friday, 4pm, the day the period closes",
+      "to": "All approving managers, or only those with items outstanding",
+      "cc": "Graham, Duncan, accounts",
+      "subject": "Pay period now closed - timesheet approvals due 10am Monday [DD Mon]",
+      "body": [
+        "Hi all,",
+        "The pay fortnight [DD Mon] to [DD Mon] has now closed. Approvals are due in Employment Hero by 10am Monday [DD Mon].",
+        "Still outstanding as at 4pm today:",
+        [
+          "[Manager name] - [n] timesheets",
+          "[Manager name] - [n] timesheets",
+          "[Manager name] - [n] timesheets"
+        ],
+        "Also outstanding, no timesheet submitted at all:",
+        [
+          "[Employee name] - [cost centre] - please follow up with them directly"
+        ],
+        "Any time not approved by 10am Monday will be paid in the next pay run. The pay run will not be held.",
+        "If anything here looks wrong, it is quicker to fix it today than on Monday morning.",
+        "Thanks,",
+        "[Name]"
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "E3  Monday, final call"
+    },
+    {
+      "type": "email",
+      "when": "Monday, 8am, two hours before the cut-off",
+      "to": "Approving managers with items outstanding",
+      "cc": "Their department heads, Graham, Duncan, accounts",
+      "subject": "Final call: timesheet approvals close at 10am today - fortnight ending [DD Mon]",
+      "body": [
+        "Hi [Name],",
+        "Approvals for the fortnight ending [DD Mon] close at 10am this morning. The following are still unapproved in Employment Hero:",
+        [
+          "[Employee name] - [n] shifts - [dates]",
+          "[Employee name] - [n] shifts - [dates]"
+        ],
+        "After 10am these hours drop out of this fortnight's pay run and will be paid in the next one. I will not be able to add them in afterwards.",
+        "If there is a reason you cannot approve by 10am, tell me now and I will note it, but the cut-off does not move.",
+        "Thanks,",
+        "[Name]"
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "E4  Monday, cut-off passed"
+    },
+    {
+      "type": "email",
+      "when": "Monday, 10:05am, immediately after the cut-off",
+      "to": "The approving manager",
+      "cc": "Their department head, Graham, Duncan, accounts",
+      "subject": "Cut-off passed: [n] timesheets unapproved, hours deferred to next pay run - fortnight ending [DD Mon]",
+      "body": [
+        "Hi [Name],",
+        "The 10am cut-off for the fortnight ending [DD Mon] has now passed. The following timesheets were not approved and the hours have been excluded from this fortnight's pay run:",
+        [
+          "[Employee name] - [n] hours - [dates] - [cost centre]",
+          "[Employee name] - [n] hours - [dates] - [cost centre]"
+        ],
+        "These hours will be paid in the pay run for the fortnight ending [DD Mon], as a back pay. Nothing is lost; the payment is one fortnight later.",
+        "Reminders were sent on [Thursday DD Mon], [Friday DD Mon] and at 8am this morning.",
+        "Please approve the timesheets when you can so the hours are picked up next fortnight. If the approval is still outstanding at the next cut-off the same thing will happen again.",
+        "[Department head name], flagging this for your visibility.",
+        "Thanks,",
+        "[Name]"
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "E5  Query back to an approver"
+    },
+    {
+      "type": "p",
+      "text": "For use when payroll spots something that looks wrong in an approved timesheet. It goes back to the approver with a deadline; it is not corrected in the pay run."
+    },
+    {
+      "type": "email",
+      "when": "As soon as it is found, during reconciliation",
+      "to": "The approving manager",
+      "cc": "accounts",
+      "subject": "Query on an approved timesheet: [Employee name] - fortnight ending [DD Mon]",
+      "body": [
+        "Hi [Name],",
+        "While processing the pay run I have come across the following on a timesheet you have approved:",
+        [
+          "[Employee name], [date]: [what the record shows] - [why it looks wrong, e.g. 14 hours recorded with no overtime approval attached / time in lieu recorded against a day with no rostered shift / no meal break recorded on a 9 hour shift]"
+        ],
+        "I am not able to resolve this one; it is a question about what was worked and whether it was authorised, which sits with you as the approver.",
+        "Can you confirm either that the timesheet is correct as approved, or tell me what it should say, by [time] [today / tomorrow]. If I do not hear back before the pay run is finalised, I will process it exactly as approved, or exclude it and pay it next fortnight if it cannot be paid compliantly as it stands.",
+        "Thanks,",
+        "[Name]"
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "E6  Telling an employee their time moves to the next run"
+    },
+    {
+      "type": "p",
+      "text": "Send this only once the cut-off has passed and E4 has gone out. Keep it factual and do not editorialise about the manager."
+    },
+    {
+      "type": "email",
+      "when": "Monday, after the cut-off",
+      "to": "The affected employee",
+      "cc": "Their approving manager, accounts",
+      "subject": "Part of your hours for [DD Mon] to [DD Mon] will be paid in the next pay run",
+      "body": [
+        "Hi [Name],",
+        "I am letting you know that the following hours were not approved in Employment Hero before this fortnight's cut-off, so they are not in Tuesday's pay:",
+        [
+          "[date] - [n] hours",
+          "[date] - [n] hours"
+        ],
+        "These hours will be paid in full in the next pay run, dated [DD Mon], as a back pay. Nothing has been lost and no further action is needed from you.",
+        "The rest of your pay for the fortnight is unaffected and will be paid on [DD Mon] as normal.",
+        "Approvals for the period are handled by [Manager name], who is copied here.",
+        "Thanks,",
+        "[Name]"
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "E7  Announcing the change, once"
+    },
+    {
+      "type": "p",
+      "text": "The one-off email that puts the new arrangement in place. Send it over Duncan's or Graham's name rather than payroll's: a process change that reassigns accountability does not land coming from the person it benefits."
+    },
+    {
+      "type": "email",
+      "when": "Once, at least one full fortnight before it takes effect",
+      "to": "All approving managers and department heads",
+      "cc": "accounts",
+      "subject": "Change to payroll timesheet approvals, effective fortnight ending [DD Mon]",
+      "body": [
+        "All,",
+        "From the fortnight ending [DD Mon] we are formalising how timesheets are approved. The change is about who checks what; the deadlines and the systems are unchanged.",
+        "Approving managers are responsible for confirming, before approving a timesheet:",
+        [
+          "The hours recorded were actually worked",
+          "The actual times reconcile to the roster, or the difference is understood and accepted",
+          "Any overtime was authorised in advance, with the approval attached to the timesheet recording the reason, whether it is chargeable to the client, and whether it is paid or taken as time in lieu",
+          "Any time in lieu accrued or taken is correct against the roster",
+          "Meal breaks are recorded accurately",
+          "The cost centre on each shift is correct"
+        ],
+        "Payroll is responsible for processing approved timesheets correctly: applying the award and the overtime matrix, verifying pay rates, balancing the pay run, and superannuation, PAYG and reporting. Payroll will not check hours against rosters and will not decide whether overtime or time in lieu was authorised. Those checks require knowledge of what was worked, which sits with the manager, not with payroll.",
+        "Two practical consequences:",
+        [
+          "Timesheets must be approved by 10am on the Monday of the processing week. Any time not approved by then will be paid in the next pay run. It will not be entered manually and the pay run will not be held.",
+          "Where payroll finds something that looks wrong on an approved timesheet, it will come back to the approving manager as a query rather than being corrected by payroll."
+        ],
+        "Please make sure a delegate is set up in Employment Hero for any period you are away, so approvals are not held up by leave.",
+        "[Duncan / Graham]"
+      ]
+    },
+    {
+      "type": "h2",
+      "text": "Using the templates"
+    },
+    {
+      "type": "table",
+      "rows": [
+        [
+          "Keep the wording identical",
+          "The value is in being able to show the same notice went out every fortnight. Rewriting them each time undermines that"
+        ],
+        [
+          "Send from the payroll mailbox",
+          "So the record sits with the role, not with whoever happened to be processing"
+        ],
+        [
+          "File the sent emails",
+          "Into the fortnight folder with the rest of the records, as described in Part 6. They are the evidence of notice"
+        ],
+        [
+          "Keep E7 separate",
+          "It is a one-off from Duncan or Graham. The fortnightly four come from payroll"
+        ],
+        [
+          "Do not add the names of people who are up to date",
+          "E2, E3 and E4 go only to approvers with something outstanding. Copying everyone on an escalation that is not theirs is how people start ignoring the emails"
+        ]
+      ]
     },
     {
       "type": "h1",
@@ -50,51 +713,96 @@
     },
     {
       "type": "p",
-      "text": "Payroll runs fortnightly. The pay period ends on a Friday, prep starts the Friday before the processing week, the run is processed on the Monday, and the money moves on the Tuesday."
+      "text": "Payroll runs fortnightly. The pay period ends on a Friday, prep starts the same day, the run is processed on the Monday, and the money moves on the Tuesday."
     },
     {
-      "type": "table",
+      "type": "grid",
+      "headers": [
+        "When",
+        "What happens",
+        "Whose"
+      ],
       "rows": [
         [
           "Across the fortnight",
-          "Payroll notes arrive in your inbox and the CTS Accounts inbox, and are collated into a single draft email as they come  (Part 1)"
+          "Payroll notes arrive in your inbox and the CTS Accounts inbox, collated into a single draft email as they come  (Part 1)",
+          "Payroll"
+        ],
+        [
+          "Thursday, 9am",
+          "E1 advance notice to all approvers",
+          "Payroll"
         ],
         [
           "Friday, period end",
-          "The pay period closes. This is the same day prep starts: the period runs Saturday to Friday, and the Friday it ends on is the Friday before the processing Monday"
+          "The pay period closes. Prep starts the same day: the period runs Saturday to Friday, so the Friday it ends on is the Friday before the processing Monday",
+          "Payroll"
         ],
         [
           "Friday, period end",
-          "Payroll prep: timesheet template copied into the fortnight folder and populated, notes recorded, approvals chased  (Part 1)"
+          "Timesheet template copied into the fortnight folder and populated, notes recorded  (Part 1)",
+          "Payroll"
+        ],
+        [
+          "Friday, 4pm",
+          "E2 period closed, outstanding approvals named",
+          "Payroll"
+        ],
+        [
+          "Friday to Monday",
+          "Managers check hours against rosters, check overtime and time in lieu, and approve",
+          "Approvers"
+        ],
+        [
+          "Monday, 8am",
+          "E3 final call to anyone still outstanding",
+          "Payroll"
         ],
         [
           "Monday, 10am",
-          "Cut-off. Staff timesheets must be in by this point"
+          "Cut-off. Approvals close",
+          "Approvers"
+        ],
+        [
+          "Monday, 10:05am",
+          "E4 escalation. Unapproved hours excluded and deferred to the next run",
+          "Payroll"
         ],
         [
           "Monday morning",
-          "Gate: nothing under Submitted. Then create the pay run  (Part 2)"
+          "Gate: nothing under Submitted. Create the pay run  (Part 2)",
+          "Payroll"
         ],
         [
           "Monday",
-          "Reconcile the pay run employee by employee, in alphabetical order  (Parts 3a, 3b, 3c)"
+          "Process the pay run employee by employee, applying the award and the matrix to approved hours  (Parts 3a, 3b, 3c)",
+          "Payroll"
         ],
         [
           "Monday",
-          "Apply the payroll notes, accrue bonus leave if it is the last run of the month, verify rates, balance to zero  (Part 5)"
+          "Apply the payroll notes, accrue bonus leave if it is the last run of the month, verify rates, balance to zero  (Part 5)",
+          "Payroll"
         ],
         [
           "Monday",
-          "Finalise, Graham approves, ABA file to CommBiz, funds transferred, Duncan notified, super created, five reports filed  (Part 6)"
+          "Finalise, Graham approves, ABA file to CommBiz, funds transferred, Duncan notified, super created, five reports filed  (Part 6)",
+          "Payroll, Graham"
         ],
         [
           "Tuesday",
-          "Pay date. Duncan approves the payment in CommBiz and it processes"
+          "Pay date. Duncan approves the payment in CommBiz and it processes",
+          "Duncan"
         ],
         [
           "The day after approval",
-          "Publish pay slips. Complete super and the ATO lodgement if either was deferred  (Part 6)"
+          "Publish pay slips. Complete super and the ATO lodgement if either was deferred  (Part 6)",
+          "Payroll"
         ]
+      ],
+      "widths": [
+        1800,
+        5960,
+        1600
       ]
     },
     {
@@ -112,7 +820,7 @@
     },
     {
       "type": "h2",
-      "text": "Stage 1  Prep"
+      "text": "Stage 1  Prep and the approval window"
     },
     {
       "type": "table",
@@ -122,26 +830,31 @@
           "The pay period closes on the Friday. Note collection has been running all fortnight"
         ],
         [
-          "You do",
-          "Collate the notes into one email for approval, copy the timesheet template into the fortnight folder, record every note, populate columns E to S only where the dollar value changes"
+          "Payroll does",
+          "Collates the notes into one email for approval, copies the timesheet template into the fortnight folder, records every note, populates columns E to S only where the dollar value changes, and sends E1, E2 and E3 on schedule"
+        ],
+        [
+          "Approvers do",
+          "Check hours against the roster, check that overtime and time in lieu are correct and authorised, and approve in Employment Hero by 10am Monday"
         ],
         [
           "Systems",
           "Outlook, Y drive, Employment Hero"
         ],
         [
-          "Someone else acts",
-          "Duncan or Graham approve the collated notes. Managers approve outstanding timesheets"
-        ],
-        [
           "Gate",
-          "Nothing listed under Submitted in Timesheet Approval, and any missing timesheets followed up"
+          "10am Monday. Nothing under Submitted. Anything still unapproved is excluded and paid in the next run; E4 goes out at 10:05am"
         ],
         [
           "Detail in",
-          "Part 1: Payroll Prep"
+          "Part 1: Payroll Prep, and the emails above"
         ]
       ]
+    },
+    {
+      "type": "callout",
+      "label": "Payroll no longer owns this gate's outcome.",
+      "text": "Payroll owns sending the reminders on time and escalating at 10:05am. It does not own getting the approvals in, and it does not hold the pay run open waiting for them. That is the difference between the old process and this one."
     },
     {
       "type": "h2",
@@ -152,11 +865,11 @@
       "rows": [
         [
           "Starts when",
-          "The approvals gate is clear"
+          "The cut-off has passed and the approvals gate is resolved, one way or the other"
         ],
         [
-          "You do",
-          "Set cell B1 to the fortnight period, re-check Submitted is empty, create the pay run on CTS - Fortnight with the pay date set to the Tuesday"
+          "Payroll does",
+          "Sets cell B1 to the fortnight period, re-checks Submitted is empty, creates the pay run on CTS - Fortnight with the pay date set to the Tuesday"
         ],
         [
           "Systems",
@@ -183,7 +896,11 @@
     },
     {
       "type": "h2",
-      "text": "Stage 3  Reconcile, employee by employee"
+      "text": "Stage 3  Process the approved hours"
+    },
+    {
+      "type": "p",
+      "text": "This stage used to be reconciliation. Under the responsibility model it is not: the hours arrive certified by the approver, and payroll's job is to see that they are paid correctly under the award and the matrix, not to re-establish what was worked."
     },
     {
       "type": "table",
@@ -193,20 +910,24 @@
           "The pay run exists and the payee count is right"
         ],
         [
-          "You do",
-          "Work the pay run in alphabetical order. Check each person's employment type, then apply the guide that covers them"
+          "Payroll does",
+          "Works the pay run in alphabetical order. Checks each person's employment type, then applies the correct award or matrix treatment to the hours as approved"
+        ],
+        [
+          "Payroll does not",
+          "Run the roster comparison, decide whether a long day was authorised, or decide whether hours should have been overtime or time in lieu. Those are queried back under E5"
         ],
         [
           "Systems",
-          "Employment Hero, Employment Hero HR, the roster, the Live Performance Award, the CTS Overtime Matrix, the Excel timesheet"
+          "Employment Hero, the Live Performance Award, the CTS Overtime Matrix, the Excel timesheet"
         ],
         [
           "Watch",
-          "This is the longest stage of the fortnight and the one where wrong payments are made"
+          "This is still the longest stage of the fortnight, and still where a non-compliant payment would originate"
         ],
         [
           "Gate",
-          "Every payee reconciled, hours transferred to the spreadsheet, verified rates marked green"
+          "Every payee processed, hours transferred to the spreadsheet, verified rates marked green, queries sent on anything that cannot be paid as approved"
         ],
         [
           "Detail in",
@@ -223,19 +944,23 @@
       "rows": [
         [
           "Starts when",
-          "Everyone in the pay run has been reconciled"
+          "Everyone in the pay run has been processed"
         ],
         [
-          "You do",
-          "Add anyone still missing, then apply every payroll note: back pays, leave never captured, time in lieu adjustments, per diem at $75 a night"
+          "Payroll does",
+          "Adds anyone still missing, then applies every payroll note: back pays, leave never captured, time in lieu adjustments, per diem at $75 a night"
         ],
         [
           "Also",
-          "If this is the last pay run of the month, accrue bonus leave from the tracker, a month ahead"
+          "Back pays for hours that dropped out of the previous fortnight for want of an approval. These arrive here as a routine item, not an exception"
+        ],
+        [
+          "Also",
+          "If this is the last pay run of the month, accrues bonus leave from the tracker, a month ahead"
         ],
         [
           "Then",
-          "Verify every pay rate against the rate increase spreadsheet, and override any rate that failed to sync from HR"
+          "Verifies every pay rate against the rate increase spreadsheet, and overrides any rate that failed to sync from HR"
         ],
         [
           "Gate",
@@ -259,12 +984,12 @@
           "Every adjustment is in and every rate is verified"
         ],
         [
-          "You do",
-          "Enter the Employment Hero totals against the per EH Payroll row and read the two checksums"
+          "Payroll does",
+          "Enters the Employment Hero totals against the per EH Payroll row and reads the two checksums"
         ],
         [
           "Read it as",
-          "Hours checksum at zero means the reconciliation is complete. Dollars out with hours agreeing means a rate or multiplier is wrong, usually an overtime rate on a stale base rate"
+          "Hours checksum at zero means the processing is complete. Dollars out with hours agreeing means a rate or multiplier is wrong, usually an overtime rate on a stale base rate"
         ],
         [
           "Gate",
@@ -293,16 +1018,16 @@
           "Both checksums read zero"
         ],
         [
-          "You do",
-          "Check the pay period and paid date, finalise with Graham as approver, then wait"
+          "Payroll does",
+          "Checks the pay period and paid date, finalises with Graham as approver, then waits"
         ],
         [
-          "Someone else acts",
-          "Graham logs in, reviews the total and approves. Nothing proceeds until he does"
+          "Graham does",
+          "Logs in, reviews the total and approves. Nothing proceeds until he does"
         ],
         [
-          "Then you",
-          "Refresh, download the ABA file, import it to CommBiz as Direct Entry with Set File as Modifiable ticked, submit and confirm"
+          "Then payroll",
+          "Refreshes, downloads the ABA file, imports it to CommBiz as Direct Entry with Set File as Modifiable ticked, submits and confirms"
         ],
         [
           "Then funds",
@@ -318,7 +1043,7 @@
         ],
         [
           "Then file",
-          "Five files into the fortnight folder: pay slips, pay run audit, ABA file, leave balances, leave liability. Both leave reports run to the period end date, not today"
+          "Five files into the fortnight folder: pay slips, pay run audit, ABA file, leave balances, leave liability. Both leave reports run to the period end date, not today. The four approval emails go in the same folder"
         ],
         [
           "Gate",
@@ -333,7 +1058,7 @@
     {
       "type": "callout",
       "label": "This is the least reversible stage.",
-      "text": "Once super payments have been made against a pay run, Employment Hero will not let you unlock it. Be confident the reconciliation is complete before you finalise, not hopeful."
+      "text": "Once super payments have been made against a pay run, Employment Hero will not let you unlock it. Be confident the processing is complete before you finalise, not hopeful."
     },
     {
       "type": "h2",
@@ -347,16 +1072,20 @@
           "You have confirmed Duncan approved the payment"
         ],
         [
-          "You do",
-          "Publish pay slips. This is what notifies employees, which is why it waits for the approval"
+          "Payroll does",
+          "Publishes pay slips. This is what notifies employees, which is why it waits for the approval"
         ],
         [
           "Also",
-          "Complete the super batch and the ATO lodgement if either was deferred"
+          "Completes the super batch and the ATO lodgement if either was deferred"
+        ],
+        [
+          "Also",
+          "Sends E6 to anyone whose hours were deferred, if that has not already gone out"
         ],
         [
           "Gate",
-          "The fortnight is closed. The next one has already started collecting notes"
+          "The fortnight is closed. The next one has already started collecting notes, and carries the deferred hours as back pay"
         ],
         [
           "Detail in",
@@ -370,41 +1099,65 @@
     },
     {
       "type": "p",
-      "text": "These are the points where you cannot proceed until something is true. Four are yours to clear and two belong to somebody else."
+      "text": "These are the points where you cannot proceed until something is true. Three are payroll's to clear and three belong to somebody else."
     },
     {
-      "type": "table",
+      "type": "grid",
+      "headers": [
+        "Gate",
+        "What has to be true",
+        "Whose",
+        "If it is not"
+      ],
       "rows": [
         [
-          "1. Timesheet approvals",
-          "Nothing under Submitted, or the pay run has to be scrapped and rebuilt. Yours to chase"
+          "1. Approvals",
+          "Nothing under Submitted at 10am Monday",
+          "Approvers",
+          "Payroll does not wait. The hours are excluded and paid next fortnight, and E4 goes out"
         ],
         [
           "2. Payee count",
-          "The count at the top of the pay run looks right for the fortnight. If not, stop and investigate"
+          "The count at the top of the pay run looks right",
+          "Payroll",
+          "Stop and investigate before working through the run"
         ],
         [
           "3. Hours checksum",
-          "Reads zero before you look at dollars at all"
+          "Reads zero before dollars are looked at",
+          "Payroll",
+          "Keep working. Do not start on dollars"
         ],
         [
           "4. Dollar checksum",
-          "Reads zero, or within a couple of cents of rounding, before you finalise"
+          "Zero, or within a couple of cents of rounding",
+          "Payroll",
+          "Do not finalise. Read gross earnings employee by employee"
         ],
         [
           "5. Graham",
-          "Approves the finalised pay run in Employment Hero. Nothing proceeds until he does"
+          "Approves the finalised pay run",
+          "Graham",
+          "Nothing proceeds. No documented backup"
         ],
         [
           "6. Duncan",
-          "Approves the payment in CommBiz. No pay slips published until he has"
+          "Approves the payment in CommBiz",
+          "Duncan",
+          "The payment sits. No pay slips published. No documented backup"
         ]
+      ],
+      "widths": [
+        1500,
+        2700,
+        1300,
+        3860
       ]
     },
     {
       "type": "callout",
-      "label": "Two of the gates are not yours.",
-      "text": "Gates 5 and 6 depend on two named people, and neither has a documented backup. If either is unavailable on the day, the process has no written answer. That is the single largest hole in this workflow."
+      "label": "Gate 1 has changed; gates 5 and 6 have not.",
+      "text": "Gate 1 used to be open-ended: payroll chased until the approvals came in. It now closes at 10am with a defined consequence. Gates 5 and 6 still depend on two named people with no documented backup, which remains the largest hole in this workflow."
     },
     {
       "type": "h1",
@@ -415,36 +1168,62 @@
       "text": "Stage 3 is not one procedure, it is three. Which applies depends on employment type and on whether the person's hours reach the pay run on their own. Check the type before applying any rule: the same hours are treated differently for a casual and a salaried employee."
     },
     {
-      "type": "table",
+      "type": "grid",
+      "headers": [
+        "Who",
+        "Path",
+        "What payroll applies",
+        "What the approver certified"
+      ],
       "rows": [
         [
           "Casual, rostered",
-          "Part 3a. Live Performance Award. Compare with roster, 38-hour weekly and 8-hour daily overtime, meal breaks"
+          "Part 3a",
+          "Live Performance Award: 1.75 above 38 hours in a week, overtime above 8 hours in a day, the meal-break rules, and no double-dipping between daily and weekly",
+          "That the hours are true and reconcile to the roster, and that any overtime was authorised"
         ],
         [
           "Casual, ad hoc contract",
-          "Part 3a, but there is no roster. PwC Australia and payment networks among others. The timesheets are the only source and the approving manager verifies the hours"
+          "Part 3a",
+          "The same award treatment",
+          "The hours, verified against the manager's own knowledge. PwC Australia and payment networks among others run no roster, so the approval is the only control"
         ],
         [
           "Salaried or full-time",
-          "Part 3b. CTS Overtime Matrix, not the award. Anchor to 80 hours a fortnight and watch the 8-hour rounding rule"
+          "Part 3b",
+          "CTS Overtime Matrix, not the award. The 80-hour fortnight anchor and the 8-hour rounding rule",
+          "That the hours are true and that any overtime was pre-approved, with the basis recorded"
         ],
         [
           "Part-time, does not clock in",
-          "Part 3c. Will not be in the pay run at all. Add manually and check the rate, which often comes through wrong"
+          "Part 3c",
+          "Fixed hours from the rule on their login. Check the rate, which often comes through wrong",
+          "Nothing to approve; there are no timesheets. Confirm the arrangement is current"
         ],
         [
           "New starter",
-          "Part 3c. Will be in the pay run but not in the spreadsheet. Add at the rate excluding casual loading"
+          "Part 3c",
+          "In the pay run but not the spreadsheet. Add at the rate excluding casual loading",
+          "The timesheet as for anyone else"
         ],
         [
           "Anyone on leave without pay",
-          "Part 3c. Created in Employment Hero HR first, then synced. Look for the aeroplane icon"
+          "Part 3c",
+          "Created in HR first, then synced. Watch the rounding rule pushing a short day back to eight hours",
+          "That the leave is approved and the dates are right"
         ],
         [
           "A missed shift from an earlier fortnight",
-          "Part 3c. The one case where you import unpaid timesheets instead of this pay period"
+          "Part 3c",
+          "The one case where you import unpaid timesheets instead of this pay period",
+          "The shift, retrospectively, before payroll will pay it"
         ]
+      ],
+      "widths": [
+        1500,
+        900,
+        3480,
+        3480
       ]
     },
     {
@@ -462,6 +1241,22 @@
     },
     {
       "type": "h2",
+      "text": "Hours that dropped out for want of an approval"
+    },
+    {
+      "type": "p",
+      "text": "The routine case now, rather than an exception. The hours were excluded at the cut-off, E4 and E6 have gone out, and the approval has since come through. Pay it in the current run as a back pay under Part 5, selecting only the affected dates. Nothing special is required and no separate authorisation is needed: the hours were worked and are now approved."
+    },
+    {
+      "type": "h2",
+      "text": "A timesheet approved with overtime or time in lieu that looks wrong"
+    },
+    {
+      "type": "p",
+      "text": "Query it back under E5 with a deadline. Do not correct it and do not pay it on your own reading. If the approver does not respond before the pay run is finalised, pay it exactly as approved where that is compliant, or exclude it and pay it next fortnight where it is not. Either way the record shows that payroll raised it and who did not answer."
+    },
+    {
+      "type": "h2",
       "text": "A termination or final pay"
     },
     {
@@ -469,12 +1264,17 @@
       "text": "Not part of the cycle. A resignation is paid through a small ad hoc pay run created for that person, usually because the final pay cannot wait for the next fortnight. The mechanics are the same as a normal run, but you strip the pay run back to the people you actually need, terminate inside it, and check the unused leave payout against the balances held in Employment Hero HR before finalising. Annual leave and time in lieu are paid out; personal and carer's leave and family and domestic violence leave are not. See Part 7."
     },
     {
+      "type": "callout",
+      "label": "A termination is the one case where deferring to the next run is not available.",
+      "text": "There is no next pay run for someone who has left. Unapproved hours on a final pay have to be resolved before it is finalised, which means the approval has to be chased, and chased hard. Treat an outstanding approval on a termination as an immediate escalation to the department head, not a cut-off matter."
+    },
+    {
       "type": "h2",
       "text": "An expense submitted after the cut-off"
     },
     {
       "type": "p",
-      "text": "It goes into the following pay run. Expenses only import if they were submitted before the cut-off, and there is no way to force a late one in. Entering it by hand risks the same expense importing again next fortnight and being paid twice. This has been the process since 2024; say so plainly to whoever submitted it rather than part-processing it."
+      "text": "It goes into the following pay run. Expenses only import if they were submitted before the cut-off, and there is no way to force a late one in. Entering it by hand risks the same expense importing again next fortnight and being paid twice. This has been the process since 2024, and it is the precedent the same rule for unapproved hours is built on."
     },
     {
       "type": "h2",
@@ -490,7 +1290,7 @@
     },
     {
       "type": "p",
-      "text": "A known Employment Hero fault leaves the old rate in payroll, often with a warning icon against the employee. Override the rate manually for the current run, then check whether earlier fortnights were paid at the stale rate and add a back pay if they were."
+      "text": "A known Employment Hero fault leaves the old rate in payroll, often with a warning icon against the employee. This is payroll's, not the approver's: override the rate manually for the current run, then check whether earlier fortnights were paid at the stale rate and add a back pay if they were."
     },
     {
       "type": "h2",
@@ -505,10 +1305,6 @@
       "text": "What happens only sometimes"
     },
     {
-      "type": "p",
-      "text": "Four things run on a different rhythm to the fortnight. Nothing in the system prompts you for the first of them."
-    },
-    {
       "type": "table",
       "rows": [
         [
@@ -517,7 +1313,7 @@
         ],
         [
           "Every fortnight, after finalising",
-          "Five reports filed into the fortnight folder, with the related emails"
+          "Five reports filed into the fortnight folder, with the related emails and the four approval emails"
         ],
         [
           "Every fortnight",
@@ -530,6 +1326,10 @@
         [
           "Whenever rates change",
           "Verify every rate against the rate increase spreadsheet before balancing. Anyone absent from it has had no change"
+        ],
+        [
+          "Whenever an approver goes on leave",
+          "Confirm a delegate is set up in Employment Hero before they go. E1 asks for this every fortnight"
         ]
       ]
     },
@@ -538,32 +1338,58 @@
       "text": "Who has to act, and when"
     },
     {
-      "type": "table",
+      "type": "grid",
+      "headers": [
+        "Who",
+        "What",
+        "By when"
+      ],
       "rows": [
         [
-          "Managers",
-          "Approve timesheets before the Monday, and attach the reason for any approved overtime"
+          "Approving managers",
+          "Check hours against the roster, check overtime and time in lieu are correct and authorised, attach the overtime approval, approve in Employment Hero",
+          "10am Monday of the processing week"
+        ],
+        [
+          "Approving managers",
+          "Nominate a delegate before any period of leave",
+          "Before they go"
+        ],
+        [
+          "Department heads",
+          "Resolve a repeated failure to approve on time with their manager",
+          "Same day as the escalation"
         ],
         [
           "Duncan or Graham",
-          "Approve the collated payroll notes at the end of prep"
+          "Approve the collated payroll notes at the end of prep",
+          "Before the pay run is finalised"
         ],
         [
-          "You",
-          "Everything from creating the pay run to filing the reports"
+          "Payroll",
+          "Everything from creating the pay run to filing the reports, plus the four reminder emails",
+          "Monday of the processing week"
         ],
         [
           "Graham",
-          "Approves the finalised pay run in Employment Hero"
+          "Approve the finalised pay run in Employment Hero",
+          "Monday"
         ],
         [
           "Duncan",
-          "Approves the payment in CommBiz, on the pay date"
+          "Approve the payment in CommBiz",
+          "Tuesday, the pay date"
         ],
         [
-          "You, the next day",
-          "Publish pay slips once the payment is approved"
+          "Payroll",
+          "Publish pay slips once the payment is approved",
+          "The day after approval"
         ]
+      ],
+      "widths": [
+        1900,
+        5460,
+        2000
       ]
     },
     {
@@ -572,48 +1398,118 @@
     },
     {
       "type": "p",
-      "text": "The left column is the symptom. The right is the first move as the recordings have it. Where the recordings stop, it says so; those are the ones to get answers for before your first run rather than on the day."
+      "text": "The left column is the symptom. The right is the first move. Where the recordings stop, it says so; those are the ones to get answers for before your first run rather than on the day."
     },
     {
-      "type": "table",
+      "type": "grid",
+      "headers": [
+        "Symptom",
+        "First move",
+        "Whose"
+      ],
       "rows": [
         [
-          "Timesheets still unapproved on the Monday",
-          "Chase the approvals. You cannot create the pay run. How long to wait and who to escalate to is not documented"
+          "Timesheets unapproved at 10am Monday",
+          "Send E4, exclude the hours, proceed. The hours are paid next fortnight. Do not wait and do not enter them manually",
+          "Payroll sends, approver owns"
+        ],
+        [
+          "A whole department unapproved",
+          "Same answer, but escalate to the department head and to Graham before you proceed. The volume may justify a decision to move the pay date, and that decision is not payroll's to make",
+          "Escalation"
+        ],
+        [
+          "An approved timesheet looks wrong",
+          "Send E5 with a deadline. Do not correct it",
+          "Payroll raises, approver resolves"
+        ],
+        [
+          "A manager asks you to add unapproved hours",
+          "Decline and point at the rule: it is paid next fortnight. If they push, refer them to Graham. Do not make the exception yourself",
+          "Payroll"
+        ],
+        [
+          "Unapproved hours on a termination",
+          "Escalate immediately. There is no next pay run to defer to",
+          "Escalation"
         ],
         [
           "The pay run will not balance",
-          "Hours first, then dollars. Read gross earnings employee by employee and check overtime rates before ordinary rates. No documented threshold for asking for help"
+          "Hours first, then dollars. Read gross earnings employee by employee and check overtime rates before ordinary rates. No documented threshold for asking for help",
+          "Payroll"
         ],
         [
           "Total hours look wrong for someone on leave without pay",
-          "Known spreadsheet fault: the leave without pay column is excluded from total hours but needed for the dollar value. Verify that person's total by hand"
+          "Known spreadsheet fault: the leave without pay column is excluded from total hours but needed for the dollar value. Verify that person's total by hand",
+          "Payroll"
         ],
         [
           "Not enough in the account",
-          "Transfer from savings, covering net payroll plus super plus anything else scheduled, leaving a $20,000 buffer. How much notice the transfer needs to clear is not documented"
+          "Transfer from savings, covering net payroll plus super plus anything else scheduled, leaving a $20,000 buffer. How much notice the transfer needs to clear is not documented",
+          "Payroll"
         ],
         [
           "Employment Hero is unavailable",
-          "Super and the ATO lodgement can slip to the next day; this happened during the Part 6 recording without consequence. What to do if the outage lands on the ABA upload is not documented"
+          "Super and the ATO lodgement can slip to the next day; this happened during the Part 6 recording without consequence. What to do if the outage lands on the ABA upload is not documented",
+          "Payroll"
         ],
         [
           "Duncan has not approved by the pay date",
-          "Not documented. The payment simply sits in CommBiz until approved"
+          "Not documented. The payment sits in CommBiz until approved",
+          "Escalation"
         ],
         [
           "An error surfaces after finalising",
-          "Back pay in the following fortnight. Whether an underpayment has to be fixed sooner is not documented"
+          "Back pay in the following fortnight. Whether an underpayment has to be fixed sooner is not documented",
+          "Payroll, then escalation"
         ]
+      ],
+      "widths": [
+        2500,
+        5460,
+        1400
       ]
     },
     {
+      "type": "callout",
+      "label": "The one answer payroll must not give.",
+      "text": "There is no version of this where payroll enters hours that nobody approved. Not as a favour, not because the employee is upset, not because the manager promises to approve it later. That single exception, made once, re-establishes that payroll will absorb the problem and the cut-off stops working from that fortnight on."
+    },
+    {
       "type": "h1",
-      "text": "Known gaps in this workflow"
+      "text": "Known gaps"
     },
     {
       "type": "p",
-      "text": "These are not oversights in the writing. They are things the seven recordings never covered, so there is no source to write them from. Each one has a question waiting in the handover document."
+      "text": "These are not oversights in the writing. They are things the training recordings never covered, or decisions this change raises that have not been made. Each needs an answer from Duncan or Graham."
+    },
+    {
+      "type": "h2",
+      "text": "Raised by this change"
+    },
+    {
+      "type": "bullet",
+      "text": "Sign-off on the responsibility model and the liability wording, and whether it goes into a policy document or an employment-related instruction"
+    },
+    {
+      "type": "bullet",
+      "text": "Whether the escalation ladder as proposed is agreed, and the named department head for each approving manager"
+    },
+    {
+      "type": "bullet",
+      "text": "Whether payroll or the approving manager tells an employee their hours have been deferred (template E6 assumes payroll)"
+    },
+    {
+      "type": "bullet",
+      "text": "What happens on a repeated failure by the same approver: how many fortnights before it becomes a performance matter, and whose"
+    },
+    {
+      "type": "bullet",
+      "text": "Whether a hard deadline applies to an E5 query, or it simply expires when the pay run is finalised"
+    },
+    {
+      "type": "h2",
+      "text": "Open from the original recordings"
     },
     {
       "type": "bullet",
@@ -650,11 +1546,93 @@
     },
     {
       "type": "h1",
+      "text": "What this changes elsewhere"
+    },
+    {
+      "type": "p",
+      "text": "The responsibility model contradicts parts of the existing manual and checklist, which were written from the recordings and describe payroll doing the checks that now sit with approvers. Until those are updated the documents disagree with each other, and in a dispute the older ones will be quoted back at you. These are the specific places to fix."
+    },
+    {
+      "type": "grid",
+      "headers": [
+        "Document",
+        "What it says now",
+        "What it needs to say"
+      ],
+      "rows": [
+        [
+          "Part 1, Step 5",
+          "Payroll confirms approvals and chases what is outstanding, with no deadline or consequence",
+          "Payroll sends the reminders and escalates at 10am. Unapproved hours are deferred to the next run"
+        ],
+        [
+          "Part 1, prep checklist",
+          "Any missing timesheets have been followed up",
+          "Missing timesheets have been notified to the approver; follow-up is theirs"
+        ],
+        [
+          "Part 3a, Step 1",
+          "Payroll compares the timesheet against the roster using Compare with roster",
+          "Remove. The roster comparison is the approver's check, made before approving"
+        ],
+        [
+          "Part 3a, Steps 2 and 3",
+          "Payroll checks for weekly and daily overtime",
+          "Keep, but reframed: payroll applies the award to approved hours. Whether the overtime was authorised is the approver's"
+        ],
+        [
+          "Part 3a, Step 5",
+          "Payroll checks meal breaks",
+          "Keep. Payroll applies the award consequence to what the record shows. Whether the break was taken is the approver's"
+        ],
+        [
+          "Part 3b, Step 2",
+          "Payroll checks the week-ending view before chasing an apparent shortfall",
+          "Reframe as a query back to the manager under E5 rather than payroll investigating"
+        ],
+        [
+          "Part 3b, Step 3",
+          "Payroll applies the CTS Overtime Matrix",
+          "Keep. Reading the matrix is payroll's; the authorisation and the chargeable basis are the approver's, from the attachment"
+        ],
+        [
+          "Checklist, steps 6 to 8",
+          "Payroll confirms and chases approvals",
+          "Replace with the reminder and escalation timetable and the four emails"
+        ],
+        [
+          "Checklist, steps 17, 19 and 20",
+          "Payroll compares with roster, checks days over 8 hours, reads the overtime attachment",
+          "Steps 17 and 19 move to the approver. Step 20 stays: payroll reads the attachment to rate it, not to verify it"
+        ],
+        [
+          "Listening version",
+          "Follows the old split throughout",
+          "Rebuild once the parts above are settled"
+        ]
+      ],
+      "widths": [
+        1800,
+        3780,
+        3780
+      ]
+    },
+    {
+      "type": "callout",
+      "label": "Do not circulate this document on its own.",
+      "text": "Sending it out while the manual still says payroll does the roster check gives every approver a written basis for pushing the work back. Either update the parts listed above at the same time, or circulate E7 and this document's responsibility section as the governing instruction and say plainly that the manual is being updated to match."
+    },
+    {
+      "type": "h1",
       "text": "Where the detail lives"
     },
     {
       "type": "table",
       "rows": [
+        [
+          "Responsibility and the emails",
+          "This document, sections Who is responsible for what and The emails"
+        ],
         [
           "Stage 1",
           "Payroll Processing - Part 1 - Payroll Prep"
@@ -693,7 +1671,7 @@
         ],
         [
           "Tick as you go",
-          "Payroll Processing Checklist  (79 steps, in order)"
+          "Payroll Processing Checklist"
         ],
         [
           "Revision away from the desk",
