@@ -191,7 +191,9 @@ def build():
     # ------------------------------------------------------------ 2  annual leave
     al = S["al"]
     bh_f = {n: al.formula("BH%d" % n) for n in range(3, 98)}
-    bi_f = {n: al.formula("BI%d" % n) for n in range(3, 13)}
+    # openpyxl spells out shared formulas cell by cell; the raw XML only has them on the first cell
+    _ox = openpyxl.load_workbook(AUG)["Annual Leave"]
+    bi_f = {n: str(_ox["BI%d" % n].value).lstrip("=") for n in range(3, 13)}
     aug_vals = {n: (al.value("BH%d" % n) or 0) for n in range(3, 98)}
     for n in range(13, 98): al.hardcode("BH%d" % n)
     al.hardcode("BH98")
@@ -205,7 +207,7 @@ def build():
     al.set("BI98", "f", "SUM(BI3:BI97)", style_from="BH98", cached=round(sum(sepv.values()), 2))
     al.set("BJ2", "s", "Difference", style_from="BI2")
     for n in range(3, 13):
-        f = re.sub(r"([A-Z]{2})(\d+)", lambda m: colname(colnum(m.group(1)) + 1) + m.group(2), bi_f[n] or "+BI%d-BH%d" % (n, n))
+        f = re.sub(r"([A-Z]{2})(\d+)", lambda m: colname(colnum(m.group(1)) + 1) + m.group(2), bi_f[n])
         al.set("BJ%d" % n, "f", f, style_from="BI%d" % n, cached=0)
     for n in range(13, 98):
         diff[n] = round(sepv[n] - aug_vals[n], 2)
