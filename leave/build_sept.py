@@ -312,6 +312,24 @@ def build():
     for n, code in ((2, "CONS"), (3, "HR"), (4, "INT"), (5, "OFF"), (6, "ONS"), (7, "PRD"), (8, "VID")):
         c = til.cell("Q%d" % n, create=False)
         if c is not None and c.find(q("v")) is not None: c.find(q("v")).text = repr(round(tdept.get(code, 0.0), 2))
+    # Job labels typed beside the pivot (AD) follow the pivot's row order once
+    # the (blank) row is filtered out and the refresh drops locations with no TIL.
+    order = ["Bank West Contract [ONS]", "CBA Brisbane ONS [ONS]", "CBA Team Leader [ONS]", "CBA Tech TN [ONS]",
+             "DTTL ADL Onsite [ONS]", "DTTL BNE Onsite [ONS]", "DTTL Mel Tech FT 1 [ONS]", "DTTL Mel Tech FT 2 [ONS]",
+             "OFFICE / ADMIN [CTS]", "PRODUCTION [PRD]", "Ricoh - QANTAS [ONS]", "VIDEO DEPT [VID]",
+             "DTTL SYD Internal [ONS]", "DTTL SYD FT Tech 1 [ONS]", "DTTL SYD NTSL [ONS]", "DTTL SYD FT Tech 2 [ONS]",
+             "INTEGRATION [INT]"]
+    labels = {}
+    for n in range(9, 27):
+        v = til.value("AD%d" % n)
+        if v: labels[v.split(" - ", 1)[1]] = v
+    labels["DTTL Mel Tech FT 1 [ONS]"] = "725 - DTTL Mel Tech FT 1 [ONS]"
+    shown = [loc for loc in order if tloc.get(loc)]
+    assert set(shown) == {k for k, v in tloc.items() if v}, "new TIL location not in the pivot order"
+    for n in range(9, 27):
+        i = n - 9
+        if i < len(shown): til.set("AD%d" % n, "s", labels[shown[i]])
+        else: til.set("AD%d" % n, "blank")
     rep["TIL"] = {"by_dept": {k: round(v, 2) for k, v in tdept.items()},
                   "by_location": {k: round(v, 2) for k, v in tloc.items()},
                   "total": round(sum(tloc.values()), 2)}
@@ -361,6 +379,14 @@ def build():
         if "refreshOnLoad=" not in s:
             s = s.replace("<pivotCacheDefinition ", '<pivotCacheDefinition refreshOnLoad="1" ', 1)
         parts[p] = s.encode("utf8")
+    # Time in Lieu pivot: filter out the (blank) row the empty source rows create
+    p = "xl/pivotTables/pivotTable2.xml"
+    s = parts[p].decode("utf8")
+    assert s.count('<item x="16"/>') == 1 and s.count('<i><x v="18"/></i>') == 1
+    s = s.replace('<item x="16"/>', '<item h="1" x="16"/>')
+    s = s.replace('<i><x v="18"/></i>', "").replace('<rowItems count="18">', '<rowItems count="17">')
+    s = s.replace('<location ref="W7:AC26"', '<location ref="W7:AC25"')
+    parts[p] = s.encode("utf8")
     w = parts["xl/workbook.xml"].decode("utf8")
     w = re.sub(r"<calcPr([^>]*)/>", lambda m: "<calcPr%s fullCalcOnLoad=\"1\"/>" % m.group(1).replace(' fullCalcOnLoad="1"', ""), w)
     parts["xl/workbook.xml"] = w.encode("utf8")
