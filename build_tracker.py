@@ -43,7 +43,7 @@ spec = [
  ("chg", "Status Change", 40, "out", "from the three start dates"), ("elig", "Eligible?", 24, "out", ""), ("next", "Next Accrual", 11, "out", "date of next day"),
  ("open", "Opening Balance (hrs)", 10, "eh", "EH go-live load (only if commenced before the report start)"), ("acc", "Leave Accrued (hrs)", 10, "eh", "accrued in EH since commencement"),
  ("taken", "Leave Taken (hrs)", 10, "eh", "taken since commencement"), ("close", "Closing Balance (hrs)", 10, "eh", "EH balance now"),
- ("due", "Due per policy (hrs)", 10, "eh", "policy accrual from report start to as-of"), ("toacc", "Hours to Accrue", 10, "eh", "due - accrued in EH"),
+ ("due", "Due per policy (hrs)", 10, "eh", "policy accrual from report start to as-of"), ("toacc", "Hours to Accrue", 10, "eh", "scheme hours to date - credited in EH (opening + accrued)"),
  ("accq", "Add to EH now?", 9, "eh", "Yes = hours owed"), ("action", "Action", 36, "eh", ""),
  ("gap", "Opening gap vs policy (hrs)", 10, "eh", "0 when the report covers full history"), ("rows", "Rows in EH report", 8, "eh", "Bonus Leave rows found"),
  ("check", "Data Check", 30, "out", ""),
@@ -191,10 +191,10 @@ def formulas(r):
     acc_month = (f'SUMIFS(INDEX(LH_Data,0,LH_ColAcc),INDEX(LH_Data,0,LH_ColFirst),$A{r},INDEX(LH_Data,0,LH_ColSur),$B{r},INDEX(LH_Data,0,LH_ColCat),BonusCat,'
                  f'INDEX(LH_Data,0,LH_ColStart),">="&(EOMONTH(AsOfDate,-1)+1),INDEX(LH_Data,0,LH_ColStart),"<="&AsOfDate)*UnitFactor')
     f["toacc"] = (f'=IF({A},"",IF(NOT(LH_Ready),"",IF(${C["accept"]}{r}="Yes",N({c("mdays")})*HoursPerDay-{acc_month},'
-                  f'IF({c("h_rows")}=0,{c("hrs_due")},IF(MAX(0,{c("h_dp")}-{c("h_ds")})=0,{c("hrs_due")}-N({c("open")})-N({c("acc")}),{c("due")}-N({c("acc")}))))))')
+                  f'IF({c("h_rows")}=0,{c("hrs_due")},{c("hrs_due")}-N({c("open")})-N({c("acc")})))))')
     f["accq"] = f'=IF(OR({A},{c("toacc")}=""),"",IF({c("toacc")}>0,"Yes","No"))'
     f["gap"] = f'=IF(OR({A},{c("open")}=""),"",MAX(0,{c("h_dp")}-{c("h_ds")})*HoursPerDay-{c("open")})'
-    f["over"] = (f'=IF({A},"",IF(NOT(LH_Ready),"",IF({c("h_rows")}=0,0,MAX(0,ROUND(IF(MAX(0,{c("h_dp")}-{c("h_ds")})=0,N({c("open")})+N({c("acc")})-{c("hrs_due")},N({c("acc")})-{c("due")}),2)))))')
+    f["over"] = (f'=IF({A},"",IF(NOT(LH_Ready),"",IF({c("h_rows")}=0,0,MAX(0,ROUND(N({c("open")})+N({c("acc")})-{c("hrs_due")},2)))))')
     f["rows"] = f'=IF({A},"",{c("h_rows")})'
     X = c("toacc"); N_ = c("days_due"); Rw = c("h_rows"); Mh = c("hrs_due")
     f["action"] = (f'=IF({A},IF(LEN($A{r}&$B{r})=0,"","FIX INPUT - StartDate missing"),'
