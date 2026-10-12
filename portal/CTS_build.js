@@ -21,7 +21,7 @@
     { key: "pnl",      file: "01 Xero P&L.xlsx",                  sheet: "P&L",      out: "CTS_fin_data.js",      need: true },
     { key: "gl",       file: "02 Xero GL Transactions.xlsx",      sheet: "GL",       out: "CTS_gl_data.js",       need: true },
     { key: "earnings", file: "03 Employment Hero Earnings.xlsx",  sheet: "Earnings", out: "CTS_util_data.js",     need: false },
-    { key: "deals",    file: "04 Zoho Deals.xlsx",                sheet: "Deals",    out: "CTS_pipeline_data.js", need: false, placeholder: true },
+    { key: "deals",    file: "04 Zoho Deals.xlsx",                sheet: "Deals",    out: "CTS_pipeline_data.js", need: false },
     { key: "orders",   file: "05 OnRent Orders.xlsx",             sheet: "Orders",   out: "CTS_pipeline_data.js", need: false, placeholder: true },
     { key: "quotes",   file: "06 Qwilr Quotes.xlsx",              sheet: "Quotes",   out: "CTS_pipeline_data.js", need: false, placeholder: true },
     { key: "budget",   file: "07 Budget.xlsx",                    sheet: "Budget",   out: "CTS_fin_data.js",      need: true },
@@ -40,7 +40,8 @@
    *  fewer than two filled cells (a title such as "Earnings Details") are
    *  skipped, and a repeated header row inside the data (one pay run pasted
    *  under another) is dropped. */
-  B.table = function (wb, sheetName) {
+  B.table = function (wb, sheetName, opts) {
+    opts = opts || {};
     var ws = wb.Sheets[sheetName];
     if (!ws) return null;
     var aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "" });
@@ -66,7 +67,7 @@
       if (!r.some(function (x) { return x !== "" && x != null; })) return false;
       if (r.map(function (x) { return String(x).trim(); }).join("\u0001") === headKey) return false;
       var filled = r.filter(function (x) { return x !== "" && x != null; }).length;
-      return filled >= 2;
+      return filled >= (opts.minFilled || 2);
     });
     return { head: head, rows: body };
   };
@@ -326,29 +327,48 @@
     var d = E().resolveDept(s, s);
     return d;
   }
-  C.deals = function (t) {
+  /** Zoho's "All Deals by Stage" report, pasted whole. The stage is a group
+   *  heading with a count after it ("Closed Won ( 483 )") on a row of its
+   *  own, and the deals sit under it with the stage cell blank, so the stage
+   *  is carried down. CTS DEPARTMENT is Zoho's own field, mapped to the
+   *  portal's departments on the template's Departments tab. Opportunity
+   *  Number is the job number, which is what OnRent, Qwilr and the Xero job
+   *  tracking category also carry, and what stops a deal being counted twice. */
+  var ZOHO_DEPT = { "event production": "PRODUCTION", "production": "PRODUCTION", "support": "ONSITE", "onsite": "ONSITE",
+                    "video production": "VIDEO", "video": "VIDEO", "integration": "INTEGRATION", "consulting": "CONSULTING",
+                    "multi-service": "UNALLOCATED", "multi service": "UNALLOCATED", "admin": "ADMIN", "cts": "ADMIN" };
+  C.deals = function (t, deptRows) {
     var h = t.head, p = P();
-    var ci = { name: colIndex(h, ["dealname"]), account: colIndex(h, ["accountname"]),
-               stage: colIndex(h, ["stage"]), amount: colIndex(h, ["amount"]),
-               close: colIndex(h, ["closingdate", "closedate"]), owner: colIndex(h, ["dealowner", "owner"]),
-               prob: colIndex(h, ["probability"]), expected: colIndex(h, ["expectedrevenue"]),
-               type: colIndex(h, ["type"]), source: colIndex(h, ["leadsource"]),
-               created: colIndex(h, ["createdtime", "created"]), dept: colIndex(h, ["department"]) };
-    if (ci.name < 0 || ci.stage < 0) throw new Error("Deals: need Deal Name and Stage.");
-    return t.rows.map(function (r) {
+    var ci = { stage: colIndex(h, ["stage"]), name: colIndex(h, ["dealname"]), account: colIndex(h, ["accountname"]),
+               amount: colIndex(h, ["amountrecordcurrency", "amount"]), dept: colIndex(h, ["ctsdepartment", "department"]),
+               close: colIndex(h, ["closingdate", "closedate"]), job: colIndex(h, ["opportunitynumber", "jobnumber"]),
+               owner: colIndex(h, ["dealowner", "owner"]), prob: colIndex(h, ["probability"]), expected: colIndex(h, ["expectedrevenue"]),
+               type: colIndex(h, ["type"]), source: colIndex(h, ["leadsource"]), created: colIndex(h, ["createdtime", "created"]) };
+    if (ci.name < 0 || ci.stage < 0) throw new Error("Deals: need Stage and Deal Name.");
+    var map = Object.assign({}, ZOHO_DEPT);
+    (deptRows || []).forEach(function (r) { if (r[0]) map[String(r[0]).trim().toLowerCase()] = String(r[1] || "").trim().toUpperCase(); });
+    var codes = {}; (E().depts || []).forEach(function (d) { codes[d.code] = 1; });
+    var stage = "", unmapped = {}, out = [], groups = 0;
+    t.rows.forEach(function (r) {
+      var st = String(r[ci.stage] || "").trim(), name = String(r[ci.name] || "").trim();
+      if (st) { stage = st.replace(/\s*\(\s*\d+\s*\)\s*$/, "").trim(); groups++; }
+      if (!name) return;
       var amt = p.money(r[ci.amount]), prob = ci.prob >= 0 ? p.num(r[ci.prob]) : null;
-      return { name: String(r[ci.name] || ""), account: ci.account >= 0 ? String(r[ci.account] || "") : "",
-               stage: String(r[ci.stage] || ""), amount: Math.round(amt * 100),
-               close: ci.close >= 0 ? p.isoDate(r[ci.close]) : null,
-               owner: ci.owner >= 0 ? String(r[ci.owner] || "") : "",
-               prob: prob == null ? null : (prob > 1 ? prob / 100 : prob),
-               expected: ci.expected >= 0 ? Math.round(p.money(r[ci.expected]) * 100)
-                         : (prob != null ? Math.round(amt * (prob > 1 ? prob / 100 : prob) * 100) : null),
-               type: ci.type >= 0 ? String(r[ci.type] || "") : "",
-               source: ci.source >= 0 ? String(r[ci.source] || "") : "",
-               created: ci.created >= 0 ? p.isoDate(r[ci.created]) : null,
-               dept: ci.dept >= 0 ? deptOf(r[ci.dept]) : "UNALLOCATED" };
-    }).filter(function (d) { return d.name; });
+      var zd = ci.dept >= 0 ? String(r[ci.dept] || "").trim() : "";
+      var code = map[zd.toLowerCase()];
+      if (!code || !codes[code]) { if (zd) unmapped[zd] = (unmapped[zd] || 0) + 1; code = (zd && map[zd.toLowerCase()] === undefined) ? deptOf(zd) : "UNALLOCATED"; }
+      out.push({ name: name, account: ci.account >= 0 ? String(r[ci.account] || "").trim() : "",
+                 stage: stage || st, amount: Math.round(amt * 100),
+                 close: ci.close >= 0 ? p.isoDate(r[ci.close]) : null,
+                 job: ci.job >= 0 ? String(r[ci.job] || "").trim() : "",
+                 owner: ci.owner >= 0 ? String(r[ci.owner] || "") : "",
+                 prob: prob == null ? null : (prob > 1 ? prob / 100 : prob),
+                 expected: ci.expected >= 0 ? Math.round(p.money(r[ci.expected]) * 100) : (prob != null ? Math.round(amt * (prob > 1 ? prob / 100 : prob) * 100) : null),
+                 type: ci.type >= 0 ? String(r[ci.type] || "") : "", source: ci.source >= 0 ? String(r[ci.source] || "") : "",
+                 created: ci.created >= 0 ? p.isoDate(r[ci.created]) : null, zohoDept: zd, dept: code });
+    });
+    out.unmapped = unmapped; out.groups = groups;
+    return out;
   };
   C.orders = function (t) {
     var h = t.head, p = P();
@@ -808,12 +828,26 @@
       var wb = wbOf(x[0]);
       if (!wb) return;
       try {
+        if (x[0] === "deals") {
+          var td = B.table(wb, "Deals", { minFilled: 1 });
+          var dm = (B.table(wb, "Departments") || { rows: [] }).rows;
+          var deals = C.deals(td, dm);
+          pipe.deals = deals; any = true;
+          var won = 0, lost = 0, open = 0; deals.forEach(function (d) { if (/won/i.test(d.stage)) won++; else if (/lost/i.test(d.stage)) lost++; else open++; });
+          check("ok", "Pipeline", deals.length + " deals read from the Zoho report: " + won + " won, " + lost + " lost, " + open + " open across " + deals.groups + " stage groups.");
+          var um = Object.keys(deals.unmapped);
+          if (um.length) check("warn", "Pipeline", "Zoho departments with no portal department, left unallocated: " + um.map(function (k) { return k + " (" + deals.unmapped[k] + ")"; }).join(", ") + ". Set them on the Departments tab of 04 Zoho Deals.xlsx.");
+          var noJob = deals.filter(function (d) { return !d.job; }).length; if (noJob) check("info", "Pipeline", noJob + " deals carry no Opportunity Number, so they cannot be matched to an order or quote.");
+          return;
+        }
         var tt = B.table(wb, x[1]);
         pipe[x[0]] = x[2](tt);
         any = true;
         check("ok", "Pipeline", pipe[x[0]].length + " " + x[0] + " read from the placeholder template.");
       } catch (e) { check("warn", "Pipeline", x[1] + ": " + e.message); }
     });
+    pipe.meta.placeholder = !(pipe.deals.length && !pipe.orders.length && !pipe.quotes.length) && !!(pipe.orders.length || pipe.quotes.length);
+    pipe.meta.note = pipe.meta.placeholder ? pipe.meta.note : "Deals from the Zoho All Deals by Stage report. Orders and quotes templates are still placeholder shapes until a real export from each is matched.";
     if (any) { outputs["CTS_pipeline_data.js"] = "window.CTS_PIPELINE = " + JSON.stringify(pipe) + ";\n"; results.pipeline = pipe; }
 
     // Forecast settings

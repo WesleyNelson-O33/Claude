@@ -13,7 +13,7 @@ a straight paste; the Read me tab in each file says exactly what to run.
 | 01 Xero P&L | Xero, Profit and Loss, year to date, one column per month | The account rows, whole year to date each time |
 | 02 Xero GL Transactions | Xero, the saved custom report Account transactions for P&L analysis, from 1 July, sorted by account code | All thirteen columns, whole year to date |
 | 03 Employment Hero Earnings | Employment Hero, Earnings Details, each pay run | Whole export including its title row, one pay run under the last |
-| 04 Zoho Deals | Zoho CRM, Deals, export | Placeholder shape until a real export is matched |
+| 04 Zoho Deals | Zoho CRM, Reports, All Deals by Stage (FY26-FY27), export to Excel | The whole sheet pasted from A1, title rows and all. Matched to the real report |
 | 05 OnRent Orders | OnRent, orders list | Placeholder shape until a real export is matched |
 | 06 Qwilr Quotes | Qwilr, quotes list | Placeholder shape until a real export is matched |
 | 07 Budget | Once a year and when the forecast moves | Same layout as the P&L |

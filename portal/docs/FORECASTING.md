@@ -11,7 +11,7 @@ its own. Step 1 is built; the rest is the plan.
 |---|---|
 | 1. P&L forecast on run rate and seasonality, with overrides | Built. Forecast page, forecast column across the portal, 09 Forecast template, full year outlook in the tier one email |
 | 2. Twelve month cash, indirect | Built. Cash Flow page, 10 Cash and Commitments template with bank balances, credit cards, commitments and settings; cash tile on the Dashboard and a cash line in the tier one email |
-| 3. Pipeline driven revenue | Built on the placeholder templates. Revenue Forecast page, Pipeline tab on 09 Forecast. Reads the real book once the Zoho, OnRent and Qwilr exports are matched |
+| 3. Pipeline driven revenue | Built. Zoho matched to the real All Deals by Stage report (won, lost and open, with Zoho's department field and the job number). OnRent and Qwilr remain placeholder shapes until an export of each is matched |
 | 4. Thirteen week cash, direct | Designed. The 11 and 12 aged report templates exist, in the layout confirmed against the live Xero organisation |
 | 5. Forecast accuracy | Designed, needs three months of archive |
 
@@ -45,8 +45,12 @@ accepted with a delivery date. These are revenue in the month the work lands.
 Counted in full, less the historical cancellation rate once there is history
 to measure it.
 
-**2. Weighted pipeline.** Open deals in Zoho, at the deal's amount times its
-probability, landing in the month of its expected close. The probability by
+**2. Weighted pipeline.** Open deals in Zoho, at the deal's amount times the
+weight for its stage (Zoho's report carries no probability, so the Pipeline
+tab lists Building Value Proposition, Proposal Sent, Negotiation/Review and
+Verbal Approval with a weight each), landing in the month of its closing
+date plus the department's lead time. A won deal counts as confirmed in its
+closing month unless an order or quote carries the same job number. The probability by
 stage is Zoho's until there are twelve months of won and lost history in the
 portal, then it is measured: what share of deals at each stage actually
 closed, and how long after the stated close date. The Pipeline page becomes

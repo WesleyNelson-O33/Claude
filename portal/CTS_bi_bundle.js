@@ -1228,8 +1228,12 @@
       never: never, lead: Object.assign({ "default": 0 }, p.leadMonths || {}),
       orderStatuses: p.orderStatuses || "Confirmed, Booked, In progress, Completed",
       quoteStatuses: p.quoteStatuses || "Accepted",
-      probability: p.probability || {},
-      countWon: !!p.countWon,
+      // Zoho's report carries no probability, so each stage needs a weight;
+      // the template's Pipeline tab overrides these
+      probability: Object.assign({ "Building Value Proposition": 0.1, "Qualification": 0.2, "Proposal Sent": 0.4, "Proposal/Price Quote": 0.5,
+                                   "Negotiation/Review": 0.6, "Verbal Approval": 0.8 }, p.probability || {}),
+      defaultProbability: p.defaultProbability != null ? +p.defaultProbability : 0.3,
+      countWon: p.countWon == null ? true : !!p.countWon,
     };
   }
   E.pipelineSettings = pipelineSettings;
@@ -1246,11 +1250,13 @@
     var okOrder = listRe(S.orderStatuses), okQuote = listRe(S.quoteStatuses);
     var won = /closed won|^won$/i, lost = /closed lost|^lost$/i;
     function leadFor(dept) { return S.lead[dept] != null ? +S.lead[dept] : +S.lead["default"] || 0; }
+    var jobs = {};
+    function jobKey(v) { var j = norm(v); return j ? "job:" + j : null; }
     pl.orders.forEach(function (o) {
       if (!okOrder.test(String(o.status || "").trim())) return;
       var m = String(o.start || "").slice(0, 7); if (!set[m]) return;
       var dept = o.dept || "UNALLOCATED", key = dept + "|" + norm(o.client) + "|" + norm(o.title);
-      seen[key] = 1; counted.orders++;
+      seen[key] = 1; counted.orders++; if (jobKey(o.no)) jobs[jobKey(o.no)] = 1;
       var s = slot(dept, m); s.confirmed += o.value || 0;
       s.items.push({ kind: "order", ref: o.no, client: o.client, title: o.title, month: m, value: o.value || 0, status: o.status });
     });
@@ -1259,8 +1265,8 @@
       var dept = q.dept || "UNALLOCATED", base = String(q.accepted || q.sent || "").slice(0, 7);
       var m = shift(base, leadFor(dept)); if (!m || !set[m]) return;
       var key = dept + "|" + norm(q.client) + "|" + norm(q.title);
-      if (seen[key]) { counted.dupQuotes++; return; }
-      seen[key] = 1; counted.quotes++;
+      if (seen[key] || (jobKey(q.ref) && jobs[jobKey(q.ref)])) { counted.dupQuotes++; return; }
+      seen[key] = 1; counted.quotes++; if (jobKey(q.ref)) jobs[jobKey(q.ref)] = 1;
       var s = slot(dept, m); s.confirmed += q.value || 0;
       s.items.push({ kind: "quote", ref: q.ref, client: q.client, title: q.title, month: m, value: q.value || 0, status: q.status });
     });
@@ -1269,13 +1275,13 @@
       if (!m || !set[m]) return;
       var key = dept + "|" + norm(d.account) + "|" + norm(d.name);
       if (won.test(d.stage || "")) {
-        if (seen[key]) return;
+        if (seen[key] || (jobKey(d.job) && jobs[jobKey(d.job)])) { counted.dupWon = (counted.dupWon || 0) + 1; return; }
         if (S.countWon) { seen[key] = 1; var sw = slot(dept, m); sw.confirmed += d.amount || 0; sw.items.push({ kind: "deal won", ref: "", client: d.account, title: d.name, month: m, value: d.amount || 0, status: d.stage }); }
         else wonUncounted.push({ client: d.account, title: d.name, month: m, value: d.amount || 0 });
         return;
       }
       if (lost.test(d.stage || "")) return;
-      var prob = S.probability[d.stage] != null ? +S.probability[d.stage] : (d.prob != null ? +d.prob : (d.amount ? (d.expected || 0) / d.amount : 0));
+      var prob = S.probability[d.stage] != null ? +S.probability[d.stage] : (d.prob != null ? +d.prob : (d.expected != null && d.amount ? d.expected / d.amount : S.defaultProbability));
       prob = Math.max(0, Math.min(1, prob || 0));
       var s = slot(dept, m); var w = Math.round((d.amount || 0) * prob); s.weighted += w; counted.deals++;
       s.deals.push({ client: d.account, title: d.name, stage: d.stage, month: m, amount: d.amount || 0, prob: prob, weighted: w });
@@ -3848,7 +3854,7 @@
       var pl = L.pipeline;
       var wonNote = pl && pl.wonUncounted.length ? h("div.banner.banner-warn", [
         h("strong", pl.wonUncounted.length + " won deal" + (pl.wonUncounted.length > 1 ? "s" : "") + " not counted, " + F.dollars(pl.wonUncounted.reduce(function (a, w) { return a + w.value; }, 0)) + ". "),
-        "A won deal in Zoho counts only once it has an OnRent order or an accepted Qwilr quote, which is where the date and the final value live. Set Count won deals to Yes on the Pipeline tab to count them anyway.",
+        "Count won deals is set to No on the Pipeline tab of 09 Forecast, so a won deal counts only once an OnRent order or an accepted Qwilr quote carries its job number. Set it to Yes to count won deals as confirmed in their closing month.",
       ]) : null;
       var never = codes.map(function (c) { return E.deptOf[c].short + " " + F.pct(PS.never[c] != null ? +PS.never[c] : +PS.never["default"], 0); }).join(", ");
       var meta = (E.pipeline && E.pipeline.meta) || {};
@@ -3872,6 +3878,7 @@
         ], [
           { l: "Orders counted as confirmed", v: pl.counted.orders }, { l: "Quotes counted as confirmed", v: pl.counted.quotes },
           { l: "Quotes skipped because an order already carries them", v: pl.counted.dupQuotes },
+          { l: "Won deals skipped because an order or quote carries the job number", v: pl.counted.dupWon || 0 },
           { l: "Open deals weighted", v: pl.counted.deals }, { l: "Won deals not counted", v: pl.wonUncounted.length },
         ], { dense: true }), "Order statuses counted: " + PS.orderStatuses + ". Quote statuses: " + PS.quoteStatuses + ". Cancellation rate " + F.pct(PS.cancel, 0) + ".") : null,
       ];
