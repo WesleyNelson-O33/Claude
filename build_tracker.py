@@ -72,6 +72,13 @@ ws["A1"] = "CTS BONUS LEAVE TRACKER"; ws["A1"].font = f_title
 ws["A2"] = (f'="ACCRUING FOR "&UPPER(TEXT(AsOfDate,"mmmm yyyy"))&"  |  As at "&TEXT(AsOfDate,"dd/mm/yyyy")&" (change in D1)"&"  |  Report from "&TEXT(PFYDate+1,"dd/mm/yyyy")&"  |  Staff: "&COUNTIF(${C["h_act"]}$5:${C["h_act"]}${R1},1)'
             f'&"  |  Accruing: "&COUNTIF(${C["elig"]}$5:${C["elig"]}${R1},"Yes*")&"  |  To accrue now: "&ROUND(SUMIF(${C["toacc"]}$5:${C["toacc"]}${R1},">0"),2)&""'
             f'&" hrs for "&COUNTIF(${C["accq"]}$5:${C["accq"]}${R1},"Yes")&" people  |  Earned this month: "&ROUND(SUM(${C["mdays"]}$5:${C["mdays"]}${R1}),2)&" days  |  Over-accrued in EH: "&COUNTIF(${C["over"]}$5:${C["over"]}${R1},">0")&" people, "&ROUND(SUMIF(${C["over"]}$5:${C["over"]}${R1},">0"),2)&" hrs"')
+FOOT = ['HOW "OVER-ACCRUED IN EH (hrs)" IS WORKED OUT',
+ 'This column shows how many hours EH has credited to a person above what the scheme allows. It compares what was put in, not what is left.',
+ 'Leave taken does not change this figure. When someone takes Bonus Leave, the hours come off their EH balance and off their scheme entitlement at the same time, so the two cancel out. Taking it off again would count it twice.',
+ 'Example: a person has earned 200 hrs under the scheme and taken 12, so they should have 188 left. EH credited them 360 and shows 348 left. 348 less 188 is 160 hrs over. If only 148 were reversed they would sit on 200 hrs, as if they had never taken a day.',
+ 'To fix an over-accrual, reverse the figure in this column. The balance then lands where the scheme says it should be.']
+for i, t in enumerate(FOOT):
+    ws[f"A{R1+3+i}"] = t; ws[f"A{R1+3+i}"].font = f_bold if i == 0 else f_note
 ws["C1"] = "ACCRUAL MONTH (type the month-end date):"; ws["C1"].font = f_bold; ws["C1"].alignment = Alignment(horizontal="right")
 ws["D1"] = dt.date(2026, 9, 30); ws["D1"].number_format = DATE; ws["D1"].font = Font(name=F, size=11, bold=True, color="0000FF"); ws["D1"].fill = PatternFill("solid", fgColor="FFFF00"); ws["D1"].border = border
 ws["E1"] = "Everything in the workbook is calculated as at this date: EARNED THIS MONTH = days whose milestone falls in that month. HOURS TO ACCRUE = everything still missing in EH (this month + any earlier months not yet posted). To see who you accrued for in a month, set the month here and filter Earned this month > 0."
