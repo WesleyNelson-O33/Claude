@@ -43,13 +43,15 @@ spec = [
  ("chg", "Status Change", 40, "out", "from the three start dates"), ("elig", "Eligible?", 24, "out", ""), ("next", "Next Accrual", 11, "out", "date of next day"),
  ("open", "Opening Balance (hrs)", 10, "eh", "EH go-live load (only if commenced before the report start)"), ("acc", "Leave Accrued (hrs)", 10, "eh", "accrued in EH since commencement"),
  ("taken", "Leave Taken (hrs)", 10, "eh", "taken since commencement"), ("close", "Closing Balance (hrs)", 10, "eh", "EH balance now"),
- ("due", "Due since report start (hrs)", 10, "eh", "hours earned from the report start date to the as-of date only (excludes days before the report)"), ("toacc", "Hours to Accrue", 10, "eh", "scheme hours to date - credited in EH (opening + accrued)"),
+ ("due", "Due since report start (hrs)", 10, "eh", "hours earned from the report start date to the as-of date only (excludes days before the report)"), ("toacc", "Hours to Accrue", 10, "eh", "should have left - EH closing balance"),
  ("accq", "Add to EH now?", 9, "eh", "Yes = hours owed"), ("action", "Action", 36, "eh", ""),
  ("gap", "Opening gap vs policy (hrs)", 10, "eh", "0 when the report covers full history"), ("rows", "Rows in EH report", 8, "eh", "Bonus Leave rows found"),
  ("check", "Data Check", 30, "out", ""),
  ("mdays", "Earned this month (days)", 10, "eh", "days whose milestone falls in the accrual month"), ("mdate", "Milestone this month", 11, "eh", "date of that milestone"),
  ("prescheme", "Days excluded (before scheme start)", 11, "eh", "milestones before 27/11/2017 - earn nothing"),
  ("over", "Over-accrued in EH (hrs)", 11, "eh", "hours EH has credited above the scheme entitlement (0 = none)"),
+ ("given", "Should have left (hrs)", 11, "eh", "earned - leave taken"),
+ ("working", "Working in plain English", 60, "eh", "earned - taken = should have left; minus EH closing balance = to add"),
  ("accept", "Accept EH balance to date?", 11, "in", "Yes = keep what EH holds; accrue forward only"),
  ("note", "Notes", 60, "in", "free text - reconciliation notes, HR decisions"),
  # helpers
@@ -72,11 +74,12 @@ ws["A1"] = "CTS BONUS LEAVE TRACKER"; ws["A1"].font = f_title
 ws["A2"] = (f'="ACCRUING FOR "&UPPER(TEXT(AsOfDate,"mmmm yyyy"))&"  |  As at "&TEXT(AsOfDate,"dd/mm/yyyy")&" (change in D1)"&"  |  Report from "&TEXT(PFYDate+1,"dd/mm/yyyy")&"  |  Staff: "&COUNTIF(${C["h_act"]}$5:${C["h_act"]}${R1},1)'
             f'&"  |  Accruing: "&COUNTIF(${C["elig"]}$5:${C["elig"]}${R1},"Yes*")&"  |  To accrue now: "&ROUND(SUMIF(${C["toacc"]}$5:${C["toacc"]}${R1},">0"),2)&""'
             f'&" hrs for "&COUNTIF(${C["accq"]}$5:${C["accq"]}${R1},"Yes")&" people  |  Earned this month: "&ROUND(SUM(${C["mdays"]}$5:${C["mdays"]}${R1}),2)&" days  |  Over-accrued in EH: "&COUNTIF(${C["over"]}$5:${C["over"]}${R1},">0")&" people, "&ROUND(SUMIF(${C["over"]}$5:${C["over"]}${R1},">0"),2)&" hrs"')
-FOOT = ['HOW "OVER-ACCRUED IN EH (hrs)" IS WORKED OUT',
- 'This column shows how many hours EH has credited to a person above what the scheme allows. It compares what was put in, not what is left.',
- 'Leave taken does not change this figure. When someone takes Bonus Leave, the hours come off their EH balance and off their scheme entitlement at the same time, so the two cancel out. Taking it off again would count it twice.',
- 'Example: a person has earned 200 hrs under the scheme and taken 12, so they should have 188 left. EH credited them 360 and shows 348 left. 348 less 188 is 160 hrs over. If only 148 were reversed they would sit on 200 hrs, as if they had never taken a day.',
- 'To fix an over-accrual, reverse the figure in this column. The balance then lands where the scheme says it should be.']
+FOOT = ['HOW THE HOURS TO ACCRUE ARE WORKED OUT - THREE STEPS',
+ 'Step 1 - EARNED. Bonus leave Accrued (hrs) = everything the person has earned under the scheme (from their milestone dates, see the Milestones tab).',
+ 'Step 2 - SHOULD HAVE LEFT. Earned minus Leave Taken. This is the balance EH should be showing.',
+ 'Step 3 - ADD. Should have left minus Closing Balance (what EH actually shows). Positive = post that many hours in EH. Negative = EH has too many (shown in Over-accrued in EH).',
+ 'Example: earned 344, taken 32, so should have 312 left. EH shows 208 left. 312 - 208 = 104 hrs to add. After posting, EH shows 312, which is exactly what it should.',
+ 'The Working in plain English column writes these three steps out for every person. Opening Balance and Leave Accrued are only there to show where the Closing Balance came from.']
 for i, t in enumerate(FOOT):
     ws[f"A{R1+3+i}"] = t; ws[f"A{R1+3+i}"].font = f_bold if i == 0 else f_note
 ws["C1"] = "ACCRUAL MONTH (type the month-end date):"; ws["C1"].font = f_bold; ws["C1"].alignment = Alignment(horizontal="right")
@@ -191,10 +194,13 @@ def formulas(r):
     acc_month = (f'SUMIFS(INDEX(LH_Data,0,LH_ColAcc),INDEX(LH_Data,0,LH_ColFirst),$A{r},INDEX(LH_Data,0,LH_ColSur),$B{r},INDEX(LH_Data,0,LH_ColCat),BonusCat,'
                  f'INDEX(LH_Data,0,LH_ColStart),">="&(EOMONTH(AsOfDate,-1)+1),INDEX(LH_Data,0,LH_ColStart),"<="&AsOfDate)*UnitFactor')
     f["toacc"] = (f'=IF({A},"",IF(NOT(LH_Ready),"",IF(${C["accept"]}{r}="Yes",N({c("mdays")})*HoursPerDay-{acc_month},'
-                  f'IF({c("h_rows")}=0,{c("hrs_due")},{c("hrs_due")}-N({c("open")})-N({c("acc")})))))')
+                  f'IF({c("h_rows")}=0,{c("hrs_due")},{c("hrs_due")}-N({c("taken")})-N({c("close")})))))')
     f["accq"] = f'=IF(OR({A},{c("toacc")}=""),"",IF({c("toacc")}>0,"Yes","No"))'
     f["gap"] = f'=IF(OR({A},{c("open")}=""),"",MAX(0,{c("h_dp")}-{c("h_ds")})*HoursPerDay-{c("open")})'
-    f["over"] = (f'=IF({A},"",IF(NOT(LH_Ready),"",IF({c("h_rows")}=0,0,MAX(0,ROUND(N({c("open")})+N({c("acc")})-{c("hrs_due")},2)))))')
+    f["over"] = (f'=IF({A},"",IF(NOT(LH_Ready),"",IF({c("h_rows")}=0,0,MAX(0,ROUND(N({c("close")})+N({c("taken")})-{c("hrs_due")},2)))))')
+    f["given"] = f'=IF({A},"",IF(NOT(LH_Ready),"",{c("hrs_due")}-N({c("taken")})))'
+    f["working"] = (f'=IF({A},"",IF(NOT(LH_Ready),"",IF({c("check")}<>"","Fix the input first",IF(N({c("days_due")})=0,"Nothing earned yet"&IF(N({c("close")})>0," but EH shows "&{c("close")}&" hrs - check",""),'
+                    f'"Earned "&{c("hrs_due")}&" - taken "&N({c("taken")})&" = should have "&{c("given")}&" left. EH shows "&N({c("close")})&" left. "&IF({c("given")}-N({c("close")})>0,"Add "&{c("given")}-N({c("close")})&" hrs.",IF({c("given")}-N({c("close")})<0,"EH has "&N({c("close")})-{c("given")}&" hrs too many.","Nothing to add."))))))')
     f["rows"] = f'=IF({A},"",{c("h_rows")})'
     X = c("toacc"); N_ = c("days_due"); Rw = c("h_rows"); Mh = c("hrs_due")
     f["action"] = (f'=IF({A},IF(LEN($A{r}&$B{r})=0,"","FIX INPUT - StartDate missing"),'
@@ -227,7 +233,7 @@ for r in range(R0, R1 + 1):
         else:
             cell.fill = fill_calc; cell.font = f_norm; cell.value = fr[k]
     for k in ("dob", "bday", "start", "pte", "fte", "cas", "anniv_in", "anniv", "next", "mdate", "h_S", "h_D1", "h_D2", "h_D3"): ws[f"{C[k]}{r}"].number_format = DATE
-    for k in ("hrs_due", "days_due", "pthrs", "open", "acc", "taken", "close", "due", "toacc", "gap", "mdays", "prescheme", "over"): ws[f"{C[k]}{r}"].number_format = NUM
+    for k in ("hrs_due", "days_due", "pthrs", "open", "acc", "taken", "close", "due", "toacc", "gap", "mdays", "prescheme", "over", "given"): ws[f"{C[k]}{r}"].number_format = NUM
     ws[f"{C['ten']}{r}"].number_format = "0.0"
 
 dv = DataValidation(type="list", formula1='"Full-Time,Part-Time,Casual"', allow_blank=True); ws.add_data_validation(dv); dv.add(f"{C['type']}{R0}:{C['type']}{R1}")
@@ -375,7 +381,7 @@ notes = [
  "3. AnniversaryDate: only if HR has pushed the qualifying-service start out for unpaid or parental leave (policy p.4-5). Otherwise leave blank and StartDate is used.",
  "4. Bonus leave Accrued = HOURS the policy says the person should have received in total to date. Days = the same in days. Eligible? and Next Accrual show who is in the scheme and when the next day lands.",
  "5. Leave History tab: run the EH Leave History Report from the first day of business to today and paste it at A1 (headers in row 1). On this tab set the day BEFORE the report start date. A full-history report is what makes the reconciliation clean: leave taken is then fully accounted for.",
- "6. The red columns on Staff then read straight from the report: Opening Balance (what EH held when the report starts - covers everything before that date), Leave Accrued (credited since the report start), Leave Taken, Closing Balance (balance now), Due since report start (hours earned from the report start to the as-of date only), Hours to Accrue (= total scheme hours to date - opening balance - EH accrued; leave taken is not deducted because it comes off the balance, not the entitlement), Add to EH now? and an Action.",
+ "6. The red columns on Staff then read straight from the report: Opening Balance (what EH held when the report starts - covers everything before that date), Leave Accrued (credited since the report start), Leave Taken, Closing Balance (balance now), Due since report start (hours earned from the report start to the as-of date only), Should have left (= earned - leave taken), Hours to Accrue (= should have left - closing balance), Add to EH now? and an Action.",
  "6b. Accept EH balance to date? (column after Notes block): type Yes for anyone whose EH balance has been agreed as correct even though it differs from the policy entitlement (e.g. long-serving staff credited from 2017 on their old anniversary). The sheet then stops comparing history and only checks that each new milestone is posted. Leave blank for everyone else.",
  "7. OVER-ACCRUED IN EH (hrs) shows, for everyone, how many hours EH has credited above the scheme entitlement to date (0 = none). It stays visible even when Accept EH balance = Yes, so filter it > 0 to list the over-accruals. Filter the Action column: FIX INPUT = a problem with what was typed. ACCRUE = add those hours in EH now. CHECK = EH has credited more than the policy allows (an HR decision, not a formula problem). OK = nothing to add. Not eligible / Not yet = no accrual due and why. If a person has no Bonus Leave rows in EH at all, Hours to Accrue is their full policy entitlement.",
  "8b. Milestones tab: pick one person and see every milestone date, the type they were on that date and the days earned. All Staff Breakdown tab: the same for everyone, one line per person, so you can show how any number was reached.",
