@@ -152,6 +152,14 @@
       (E.subsOf[a.cat][a.sub] = E.subsOf[a.cat][a.sub] || []).push(a.name);
     });
 
+    E.clients = window.CTS_CLIENTS || { clients: [], schedule: [] };
+    E.clientMeta = {};
+    E.aliasOf = {};
+    (E.clients.clients || []).forEach(function (c) {
+      E.clientMeta[c.contact] = c;
+      (c.aliases || []).forEach(function (a) { var k = String(a || "").trim().toLowerCase(); if (k) E.aliasOf[k] = c.contact; });
+      if (c.display && c.display !== c.contact) E.aliasOf[String(c.display).trim().toLowerCase()] = c.contact;
+    });
     E.loadGL(window.CTS_GL);
     E.loadFin(window.CTS_FIN);
     E.loadUtil(window.CTS_UTIL);
@@ -161,10 +169,6 @@
     E.loadCash(window.CTS_CASH);
     E.loadCommentary(window.CTS_COMMENTARY);
     E.loadUsers(window.CTS_USERS);
-    E.clients = window.CTS_CLIENTS || { clients: [], schedule: [] };
-    E.clientMeta = {};
-    (E.clients.clients || []).forEach(function (c) { E.clientMeta[c.contact] = c; });
-
     E.seed = !!(window.CTS_GL.meta && window.CTS_GL.meta.seed);
     E.restoreSnapshots();
     E.ready = true;
@@ -222,6 +226,9 @@
       var cat = a ? a.cat : "unknown";
       var sub = a ? a.sub : "UNKNOWN";
       var contact = (r[ci.contact] || "").trim();
+      // one client, one spelling: the Clients tab's aliases fold the variants
+      var canon = E.aliasOf && E.aliasOf[contact.toLowerCase()];
+      if (canon && canon !== contact) { contact = canon; q.aliased = (q.aliased || 0) + 1; }
 
       gl[i] = { date: date, month: month, account: name, contact: contact,
                 dept: dept, cat: cat, sub: sub, amount: amount,
@@ -257,6 +264,8 @@
     E.fin = data || { actual: {}, budget: {} };
     E.finActual = E.fin.actual || {};
     E.finBudget = E.fin.budget || {};
+    E.budgetDept = Array.isArray(E.fin.budgetDept) ? E.fin.budgetDept : [];
+    E._bdCache = null;
     E.control = (E.fin.meta && E.fin.meta.control) || {};
     // months that carry a posted actual, in order
     var seen = {};
@@ -704,7 +713,24 @@
   };
   E.withoutView = function (fn) { var was = E._noView; E._noView = true; try { return fn(); } finally { E._noView = was; } };
   function deptActual(d) { return function (n, m) { return (((E.idx.deptAcctMonth[d] || {})[n] || {})[m]) || 0; }; }
-  function deptBudget(d) { return function (n, m) { var b = (E.finBudget[n] || {})[m] || 0; return b ? Math.round(b * (E.deptShareOfAccount(n)[d] || 0)) : 0; }; }
+  function deptBudget(d) {
+    return function (n, m) {
+      var b = (E.finBudget[n] || {})[m] || 0; if (!b) return 0;
+      var v = b * (E.deptShareOfAccount(n)[d] || 0);
+      if (E.budgetDept && E.budgetDept.length) {
+        // scale the derived account split so the category total is the workbook's
+        var cat = (E.acct[n] || {}).cat, key = d + "|" + cat + "|" + m;
+        E._bdCache = E._bdCache || {};
+        if (E._bdCache[key] == null) {
+          var target = E.budgetByDept([m], cat)[d] || 0, derived = 0;
+          Object.keys(E.finBudget).forEach(function (a) { if ((E.acct[a] || {}).cat !== cat) return; derived += ((E.finBudget[a] || {})[m] || 0) * (E.deptShareOfAccount(a)[d] || 0); });
+          E._bdCache[key] = derived ? target / derived : 1;
+        }
+        v *= E._bdCache[key];
+      }
+      return Math.round(v);
+    };
+  }
   function deptForecast(d) { return function (n, m) { var f = E.forecast ? E.forecast() : null; return f ? ((((f.byDeptAcct[d] || {})[n] || {})[m]) || 0) : 0; }; }
   E.pnlActual = function (keys) {
     var d = E.viewDept();
@@ -839,6 +865,7 @@
     });
 
     var pool = workings.reduce(function (a, w) { return a + w.amount; }, 0);
+    var STAFF = /salar|wage|superann|workers|leave expense|payroll tax/i;
     var rows = E.depts.map(function (d) {
       var r = raw[d.code];
       var own = r.expenses;
@@ -846,12 +873,20 @@
       var expenses = own + share;
       var gp = r.grossProfit;
       var np = gp + r.other_income + expenses + r.other_expenses;
+      // the graphs file's split: the department's own employment cost against
+      // the office staff pushed in through the overhead split
+      var subs = E.idx.deptSubMonth[d.code] || {}, staffOwn = 0;
+      Object.keys(subs).forEach(function (sub) { if (STAFF.test(sub) && (E.subsOf.expenses || {})[sub]) staffOwn += E.sumMonths(subs[sub], monthKeys); });
+      var staffOffice = 0;
+      workings.forEach(function (w) { if (STAFF.test(w.sub)) staffOffice += d.code === "ADMIN" ? -w.amount : (w.split[d.code] || 0); });
       return {
         code: d.code, dept: d, income: r.income, cos: r.cos, grossProfit: gp,
         ownExpenses: own, allocated: share, expenses: expenses,
         otherIncome: r.other_income, otherExpenses: r.other_expenses, netProfit: np,
+        netProfitExOI: gp + expenses, staffOwn: staffOwn, staffOffice: staffOffice,
         gmPct: r.income ? gp / r.income : null,
         npPct: r.income ? np / r.income : null,
+        npExOIPct: r.income ? (gp + expenses) / r.income : null,
       };
     });
     return { rows: rows, byCode: rows.reduce(function (m, r) { m[r.code] = r; return m; }, {}),
@@ -891,9 +926,36 @@
     return (cached[name] = out);
   };
 
+  /** The budget workbook sets income and direct costs per department group
+   *  (Consulting with Integration, Production with Video, Support) and the
+   *  overheads for Admin. Where the Departments tab of 07 Budget carries
+   *  them, those rows win; a group is split across its departments on the
+   *  prior year's ledger share of that category. */
+  function budgetGroups(monthKeys, cat) {
+    if (!E.budgetDept || !E.budgetDept.length) return null;
+    var rows = E.budgetDept.filter(function (r) { return r.cat === cat; });
+    if (!rows.length) return null;
+    var fy = (E.monthIdx[monthKeys[0]] || {}).fy || E.currentFY(), priorKeys = E.monthsOfFY(fy - 1);
+    var out = {};
+    rows.forEach(function (r) {
+      var amt = E.sumMonths(r.months, monthKeys), depts = (r.depts || []).filter(function (d) { return E.deptOf[d]; });
+      if (!depts.length) return;
+      var hist = depts.map(function (d) { return Math.abs(E.sumMonths((E.idx.deptCatMonth[d] || {})[cat], priorKeys)); });
+      var tot = hist.reduce(function (a, b) { return a + b; }, 0);
+      var parts = E.splitExact(amt, depts.map(function (d, i) { return tot ? hist[i] / tot : 1 / depts.length; }));
+      depts.forEach(function (d, i) { out[d] = (out[d] || 0) + parts[i]; });
+    });
+    return out;
+  }
   E.budgetByDept = function (monthKeys, cat) {
     var out = {};
     E.depts.forEach(function (d) { out[d.code] = 0; });
+    var grp = cat ? budgetGroups(monthKeys, cat) : null;
+    if (grp) { Object.keys(grp).forEach(function (d) { out[d] = grp[d]; }); return out; }
+    if (!cat && E.budgetDept && E.budgetDept.length) {
+      E.CAT_KEYS.forEach(function (k) { var g = budgetGroups(monthKeys, k); if (g) Object.keys(g).forEach(function (d) { out[d] = (out[d] || 0) + g[d]; }); });
+      return out;
+    }
     Object.keys(E.finBudget).forEach(function (name) {
       var a = E.acct[name];
       if (!a || (cat && a.cat !== cat)) return;
@@ -1062,11 +1124,12 @@
     // the new business line carries what the named lines do not
     var NEWBIZ = 0.08;
 
+    var typed = lines.some(function (l) { return l.budget && Object.keys(l.budget).length; });
     var listed = [];
     lines.forEach(function (l, i) {
       var share = priorSum ? (priors[i] / priorSum) * (1 - NEWBIZ) : 0;
       if (l.kind === "newbiz") share = NEWBIZ;
-      var budget = Math.round(budgetTotal * share);
+      var budget = typed ? E.sumMonths(l.budget || {}, monthKeys) : Math.round(budgetTotal * share);
       var actual;
       if (l.kind === "newbiz") actual = null;      // filled after the named lines
       else {
@@ -1074,13 +1137,21 @@
         actual = E.sumMonths(d[dept], monthKeys);
         if (l.kind === "role") actual = Math.round(actual / (roleCount[l.client] || 1));
       }
+      var ly = 0;
+      if (l.kind !== "newbiz") {
+        var lyKeys = E.priorYearMonths(monthKeys), dl = E.idx.clientDeptMonth[l.client] || {};
+        ly = E.sumMonths(dl[dept], lyKeys);
+        if (l.kind === "role") ly = Math.round(ly / (roleCount[l.client] || 1));
+      }
       listed.push({ kind: l.kind, line: l.line, client: l.client,
-                    budget: budget, actual: actual, prior: Math.round(priors[i]) });
+                    budget: budget, actual: actual, prior: Math.round(priors[i]), lastYear: ly });
     });
 
     var deptActual = E.sumMonths((E.idx.deptCatMonth[dept] || {}).income, monthKeys);
     var named = listed.reduce(function (a, r) { return a + (r.actual || 0); }, 0);
-    listed.forEach(function (r) { if (r.kind === "newbiz") r.actual = deptActual - named; });
+    var deptLY = E.sumMonths((E.idx.deptCatMonth[dept] || {}).income, E.priorYearMonths(monthKeys));
+    var namedLY = listed.reduce(function (a, r) { return a + (r.lastYear || 0); }, 0);
+    listed.forEach(function (r) { if (r.kind === "newbiz") { r.actual = deptActual - named; r.lastYear = deptLY - namedLY; } });
 
     listed.forEach(function (r) {
       r.variance = r.actual - r.budget;
@@ -1090,9 +1161,47 @@
     return {
       dept: dept, lines: listed, budgetTotal: budgetTotal, actualTotal: deptActual,
       variance: deptActual - budgetTotal,
-      priorMonths: priorKeys,
-      note: "Budget per line is derived: the department's budgeted income for the period, spread on each line's share of the whole prior financial year, with 8 per cent held back for new business. The real schedule is set per role for onsite and per client elsewhere, and is maintained by hand.",
+      priorMonths: priorKeys, typed: typed, lastYearTotal: deptLY,
+      note: typed
+        ? "Budget per line is the sales forecast typed on the Schedule tab of 13 Revenue Schedule.xlsx, per role for onsite and per client elsewhere, the way the budget workbook's sales forecast tabs set it. Actual per line comes off the ledger by contact."
+        : "Budget per line is derived: the department's budgeted income for the period, spread on each line's share of the whole prior financial year, with 8 per cent held back for new business. Type the sales forecast on 13 Revenue Schedule.xlsx to replace the derivation.",
     };
+  };
+
+  /* ---- revenue mix: labour, equipment, recurring -------------------------
+   * The graphs file's labour against equipment pie, with the darker slice for
+   * recurring revenue: fixed fee support contracts and repeating licences. */
+  E.mixOf = function (name) {
+    var s = String(name || "").toLowerCase();
+    if (/maintenance|help desk|licen|subscri|mobile phone/.test(s)) return "recurring";
+    if (/equipment|hire|sales/.test(s)) return "equipment";
+    if (/labour|consult|event management|support staff|installation/.test(s)) return "labour";
+    return "other";
+  };
+  E.MIX = [["labour", "Labour"], ["equipment", "Equipment"], ["recurring", "Recurring"], ["other", "Other"]];
+  E.revenueMix = function (monthKeys, dept) {
+    var out = { labour: 0, equipment: 0, recurring: 0, other: 0 };
+    var depts = dept ? [dept] : E.depts.map(function (d) { return d.code; });
+    depts.forEach(function (d) {
+      var accts = E.idx.deptAcctMonth[d] || {};
+      Object.keys(accts).forEach(function (n) { var a = E.acct[n]; if (!a || a.cat !== "income") return; out[E.mixOf(n)] += E.sumMonths(accts[n], monthKeys); });
+    });
+    return out;
+  };
+  /** The gross margin scenario: departmental employment cost treated as cost of sales. */
+  E.gmScenario = function (monthKeys) {
+    var pnl = E.pnlActual(monthKeys), emp = 0, STAFF = /salar|wage|superann|workers|leave expense|payroll tax/i;
+    pnl.cats.forEach(function (c) { if (c.key !== "expenses") return; (c.children || []).forEach(function (sub) { if (STAFF.test(sub.sub)) emp += sub.total; }); });
+    return { income: pnl.totals.income, grossProfit: pnl.totals.grossProfit, employment: emp,
+             gm: pnl.totals.income ? pnl.totals.grossProfit / pnl.totals.income : null,
+             gmIfLabour: pnl.totals.income ? (pnl.totals.grossProfit + emp) / pnl.totals.income : null };
+  };
+  /** Legal fees by contact: one GL code, two lines in the report. */
+  E.subByContact = function (subName, monthKeys) {
+    var set = {}; monthKeys.forEach(function (k) { set[k] = 1; });
+    var by = {};
+    (E.gl || []).forEach(function (r) { if (r.sub === subName && set[r.month]) by[r.contact || "(no contact)"] = (by[r.contact || "(no contact)"] || 0) + r.amount; });
+    return Object.keys(by).map(function (c) { return { contact: c, amount: by[c] }; }).sort(function (a, b) { return a.amount - b.amount; });
   };
 
   /* ---- the P&L control ------------------------------------------------ */
@@ -1910,7 +2019,8 @@
     "rev-schedule": function (rm, p) {
       var dept = CTS.store.get("schedDept", "PRODUCTION"), s = E.schedule(dept, p.keys);
       var misses = s.lines.filter(function (l) { return l.risk === "High"; }).slice(0, 5);
-      return (E.deptOf[dept] || {}).short + " schedule " + d(s.actualTotal) + " against " + d(s.budgetTotal) + " budgeted. " + (misses.length ? "High variances: " + misses.map(function (l) { return (l.client || l.line) + " " + F.money(l.variance); }).join(", ") + "." : "No line is flagged High.") + " [For each miss: lost, or moved to a later month?]";
+      var none = s.lines.filter(function (l) { return l.kind !== "newbiz" && l.budget > 0 && !l.actual; }).slice(0, 5);
+      return (E.deptOf[dept] || {}).short + " schedule " + d(s.actualTotal) + " against " + d(s.budgetTotal) + " budgeted and " + d(s.lastYearTotal) + " last year. " + (misses.length ? "High variances: " + misses.map(function (l) { return (l.client || l.line) + " " + F.money(l.variance); }).join(", ") + "." : "No line is flagged High.") + (none.length ? " Budgeted with nothing invoiced: " + none.map(function (l) { return l.client || l.line; }).join(", ") + "." : "") + (dept === "CONSULTING" ? " [For each: lost, or moved to a later month? Ask Jordan before the revenue meeting.]" : " [For each miss: timing, lost, or grouped under new business?]");
     },
     forecast: function (rm, p) {
       if (!E.forecastEnabled()) return "The forecast is not loaded.";
@@ -2860,6 +2970,14 @@
         U.section("The year at a glance", summary),
         U.section("Full profit and loss", pnlTable(pnl),
           "Click the plus beside any line to open it. Category opens to subcategory, subcategory opens to the individual Xero accounts."),
+        (function () {
+          var ml = (E.cfg.MANUAL_LINES || [])[0]; if (!ml) return null;
+          var rows = E.subByContact(ml.sub, p.keys); if (!rows.length) return null;
+          return U.section(ml.sub + " by contact, " + p.label, U.table([
+            { key: "contact", label: "Contact", align: "left" }, { key: "amount", label: "Amount", fmt: F.money, cell: U.moneyCell },
+            { key: "note", label: "", align: "left", value: function (r) { var f = (ml.fixed || {})[r.contact]; return f ? h("span.chip.chip-muted", "retainer " + F.dollars(f * 100) + " a month") : ""; } },
+          ], rows, { dense: true }), ml.note + " Here it is read straight off the ledger by contact, so nothing is typed and the cumulative trap does not exist.");
+        })(),
       ];
     },
   };
@@ -2872,6 +2990,8 @@
       var p = CTS.period();
       var alloc = E.allocate(p.keys);
       var showAlloc = CTS.store.get("showAlloc", true);
+      var exOI = CTS.store.get("pnlDeptExOI", true);
+      var showStaff = CTS.store.get("pnlDeptStaff", false);
       var scoped = E.visibleDepts();
       var rows = alloc.rows.filter(function (r) {
         return (r.income || r.cos || r.ownExpenses || r.allocated) &&
@@ -2895,15 +3015,18 @@
       ];
       if (showAlloc) cols.push({ key: "allocated", label: "Share of Admin", fmt: F.money, cell: U.moneyCell });
       cols.push({ key: "expenses", label: "Total overhead", fmt: F.money, cell: U.moneyCell });
-      cols.push({ key: "netProfit", label: "Net profit", fmt: F.money, cell: U.moneyCell });
+      if (showStaff) {
+        cols.push({ key: "staffOwn", label: "Departmental staff", fmt: F.money, cell: U.moneyCell });
+        if (showAlloc) cols.push({ key: "staffOffice", label: "Office staff", fmt: F.money, cell: U.moneyCell });
+      }
+      if (!exOI) { cols.push({ key: "otherIncome", label: "Other income", fmt: F.money, cell: U.moneyCell }); cols.push({ key: "otherExpenses", label: "Other expenses", fmt: F.money, cell: U.moneyCell }); }
+      cols.push({ key: "netProfit", label: exOI ? "Net profit, ex other income" : "Net profit", fmt: F.money, cell: U.moneyCell });
       cols.push({ key: "npPct", label: "NP %", fmt: function (v) { return F.pct(v); } });
 
       var table = U.table(cols, rows.map(function (r) {
-        if (!showAlloc) {
-          return Object.assign({}, r, { expenses: r.ownExpenses,
-            netProfit: r.grossProfit + r.otherIncome + r.ownExpenses + r.otherExpenses });
-        }
-        return r;
+        var expenses = showAlloc ? r.expenses : r.ownExpenses;
+        var np = r.grossProfit + expenses + (exOI ? 0 : r.otherIncome + r.otherExpenses);
+        return Object.assign({}, r, { expenses: expenses, netProfit: np, npPct: r.income ? np / r.income : null });
       }));
 
       var totals = rows.reduce(function (a, r) {
@@ -2929,10 +3052,22 @@
               onchange: function (e) { CTS.store.set("showAlloc", e.target.checked); CTS.router.reload(); } }),
             " Push the Admin overhead pool out across the departments",
           ]),
+          h("label.checkbox", [
+            h("input", { type: "checkbox", checked: exOI,
+              onchange: function (e) { CTS.store.set("pnlDeptExOI", e.target.checked); CTS.router.reload(); } }),
+            " Exclude other income and other expenses (the reporting view)",
+          ]),
+          h("label.checkbox", [
+            h("input", { type: "checkbox", checked: showStaff,
+              onchange: function (e) { CTS.store.set("pnlDeptStaff", e.target.checked); CTS.router.reload(); } }),
+            " Show the employment split: departmental staff against office staff",
+          ]),
         ]),
-        U.note(showAlloc
+        U.note((showAlloc
           ? "Own overhead is what is coded straight to the department. Share of Admin is its slice of the pool. They are kept as two numbers on purpose: the documented way this goes wrong is a departmental tab picking up its own overhead twice, and two separate columns make that impossible to do quietly."
-          : "Showing raw departmental result, nothing pushed out. Admin still carries the whole overhead pool."),
+          : "Showing raw departmental result, nothing pushed out. Admin still carries the whole overhead pool.") +
+          (exOI ? " Other income and other expenses are left out, which is the version the graphs file and the report read (tabs 5, 7 and 8 of the analysis file)." : "") +
+          (showStaff ? " Departmental staff is the employment cost coded to the department. Office staff is Admin's employment cost pushed in through the split: what the department costs to run without admin loaded on top is the point of separating them." : "")),
         U.section("Departmental result, " + p.label, table),
         U.section("Where the revenue sits",
           U.figure("Revenue by department, " + p.label, mix,
@@ -3922,12 +4057,17 @@
           { key: "actual", label: "Actual", fmt: F.money },
           { key: "variance", label: "Variance", fmt: F.money, cell: U.moneyCell },
           { key: "pct", label: "%", fmt: function (v) { return F.pct(v); } },
+          { key: "lastYear", label: "Last year, same months", fmt: F.money },
           { key: "risk", label: "Risk", align: "left",
             value: function (r) { return h("span.risk.risk-" + U.RISK_CLASS[r.risk], r.risk); } },
+          { key: "status", label: "", align: "left",
+            value: function (r) { return r.kind !== "newbiz" && r.budget > 0 && !r.actual ? h("span.chip.chip-warning", dept === "CONSULTING" ? "lost or deferred?" : "no revenue") : ""; } },
         ], s.lines.concat([{ line: "Total", kind: "", budget: s.budgetTotal,
                              actual: s.actualTotal, variance: s.variance,
                              pct: s.budgetTotal ? s.variance / Math.abs(s.budgetTotal) : null,
-                             risk: E.risk(s.actualTotal, s.budgetTotal), _cls: "totalrow" }]))),
+                             lastYear: s.lastYearTotal,
+                             risk: E.risk(s.actualTotal, s.budgetTotal), _cls: "totalrow" }])),
+          "Budget, actual and last year side by side, which is what management asked for instead of hiding the budget column once the actual is in. Last year is the same months a year earlier, in dollars."),
         U.note(s.note),
         U.note("Close is good enough. Work in progress revenue forms part of the P&L but is not invoiced to a client, so an exact tie back is not possible; being close is the standard here.", "muted"),
       ];
@@ -6034,6 +6174,32 @@
                        }) };
             }),
           }), null)),
+        U.section("Gross margin if employment were cost of sales",
+          U.figure("The scenario the graphs file asks", (function () {
+            var ks = fyKeys.filter(function (k) { return E.blendSource(k) === "actual"; });
+            var sc = ks.map(function (k) { return E.gmScenario([k]); });
+            return U.lines({ labels: ks.map(function (k) { return E.monthIdx[k].label; }), width: 780, height: 240,
+              yfmt: function (v) { return F.pct(v, 0); }, tipfmt: function (v) { return F.pct(v); },
+              series: [{ label: "Gross margin as reported", colour: "var(--measure-2)", values: sc.map(function (x) { return x.gm; }) },
+                       { label: "If departmental employment were cost of sales", colour: "var(--measure-3)", values: sc.map(function (x) { return x.gmIfLabour; }) }] });
+          })(), (function () {
+            var sc = E.gmScenario(p.keys);
+            return U.table([{ key: "l", label: "", align: "left" }, { key: "v", label: p.label, fmt: F.money, cell: U.moneyCell }], [
+              { l: "Gross profit as reported", v: sc.grossProfit }, { l: "Departmental employment in overheads", v: sc.employment },
+              { l: "Gross profit if that were cost of sales", v: sc.grossProfit + sc.employment, _cls: "totalrow" } ], { dense: true });
+          })(),
+            "The hypothetical the graphs file asks: the non chargeable employment cost sitting in overheads is moved up into labour, and the margin drops. " + (function () { var sc = E.gmScenario(p.keys); return "As reported " + F.pct(sc.gm) + ", on that basis " + F.pct(sc.gmIfLabour) + "."; })())),
+        U.section("Revenue mix: labour, equipment, recurring",
+          U.figure("Year to date, by department", (function () {
+            var ds = E.visibleDepts().filter(function (d) { return d.isRevenue && d.code !== "ADMIN"; });
+            return U.columns({ labels: ds.map(function (d) { return d.short; }), width: 620, height: 240, stacked: true,
+              series: E.MIX.map(function (m, i) { return { label: m[1], colour: "var(--series-" + [4, 2, 5, 7][i] + ")", values: ds.map(function (d) { return E.revenueMix(E.ytd(), d.code)[m[0]]; }) }; }) });
+          })(), (function () {
+            var mix = E.revenueMix(E.ytd(), E.viewDept()), tot = E.MIX.reduce(function (a, m) { return a + mix[m[0]]; }, 0);
+            return U.table([{ key: "l", label: "", align: "left" }, { key: "v", label: "Year to date", fmt: F.money }, { key: "s", label: "Share", fmt: function (v) { return F.pct(v); } }],
+              E.MIX.map(function (m) { return { l: m[1], v: mix[m[0]], s: tot ? mix[m[0]] / tot : null }; }), { dense: true });
+          })(),
+            "Recurring is fixed fee support contracts, maintenance and repeating licences, the darker slice on the graphs file's pie. The mix barely moves, which is why the year to date version is the one to use.")),
         U.section("Top ten clients, year on year",
           U.figure("This period against the same period last year", U.bars({
             rows: rows.map(function (r) {

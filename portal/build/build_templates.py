@@ -21,6 +21,7 @@ from openpyxl.worksheet.datavalidation import DataValidation
 
 ROOT = Path("/home/user/Claude")
 OUT = ROOT / "portal/templates"
+HERE = Path(__file__).resolve().parent
 ACCOUNTS = json.loads((ROOT / "reporting/data/accounts.json").read_text())
 
 ARIAL = "Arial"
@@ -459,6 +460,30 @@ for r in range(2, 262):
         ws.cell(row=r, column=c).number_format = MONEY
 for i, a in enumerate(ACCOUNTS):
     ws.cell(row=2 + i, column=1, value=a["account"])
+# Departments tab: the budget workbook sets income and direct costs per
+# department group and the overheads for Admin. Typed here, the portal's
+# departmental budget columns read these rather than deriving a split.
+GROUPS = json.loads((HERE / "budget_groups.json").read_text())["groups"]
+DEPT_GROUPS = [
+    ("Consulting", "CONSULTING, INTEGRATION", "Income", "Consulting"),
+    ("Production", "PRODUCTION, VIDEO", "Income", "Production"),
+    ("Support", "ONSITE", "Income", "Support"),
+    ("Consulting", "CONSULTING, INTEGRATION", "Direct costs", "Consulting Direct Costs"),
+    ("Production", "PRODUCTION, VIDEO", "Direct costs", "Production Direct Costs"),
+    ("Support", "ONSITE", "Direct costs", "Support Direct Costs"),
+    ("CTS Overheads", "ADMIN", "Overheads", "CTS Overheads"),
+]
+rows = []
+for grp, depts, cat, src in DEPT_GROUPS:
+    g = GROUPS.get(src, {})
+    rows.append([grp, depts, cat] + [round(g.get(d.strftime("%Y-%m"), 0.0), 2) or None for d in MONTHS_ALL])
+ws = list_tab(wb, "Departments", ["Group", "Departments", "Category"] + [mlabel(d) for d in MONTHS_ALL], rows,
+              [16, 26, 14] + [11] * NCOLS,
+              note="One row per department group and category, the way the budget workbook sets it. Departments are the portal codes, comma separated; a group is split across them on last year's ledger share. Costs positive. FY27 is prefilled from the budget workbook; type FY28 when it is set.")
+for r in range(2, 2 + len(rows)):
+    for c in range(4, 4 + NCOLS):
+        ws.cell(row=r, column=c).number_format = MONEY
+ws.freeze_panes = "D2"
 save(wb, "07 Budget.xlsx")
 
 # ---------------------------------------------------------------- 08 Config
@@ -857,6 +882,75 @@ for r in range(6, 302):
     for c in (6, 7):
         wb["Commitments"].cell(row=r, column=c).number_format = "dd/mm/yyyy"
 save(wb, "10 Cash and Commitments.xlsx")
+
+# ------------------------------------------------- 13 Revenue Schedule
+# The management report's sales forecast against actual: per role for
+# onsite, per client elsewhere. Lines are prefilled from the budget
+# workbook's sales forecast tabs; the monthly budget is typed here and
+# actual comes off the ledger by contact, so nothing is typed twice.
+SCHED = json.loads((HERE / "schedule_lines.json").read_text())["lines"]
+wb = Workbook()
+readme(wb, "13 Revenue Schedule", [
+    ("h", "What this is"),
+    ("p", "The sales forecast each department set as its budget, line by line: per role for onsite, "
+          "per client for consulting, integration and production. The portal reads the budget from "
+          "here and the actual from the ledger by contact, so the monthly step of typing achieved "
+          "figures client by client goes away. The Revenue Schedule page shows budget, actual and "
+          "last year side by side, which is the layout management asked for."),
+    ("h", "Once a year"),
+    ("p", "Type the sales forecast on the Schedule tab, one line per role or client, in the year's "
+          "twelve columns. Costs are not here, only revenue. Leave a month blank where nothing is "
+          "forecast. Income positive."),
+    ("p", "One New business line per department carries whatever is not separately listed: any "
+          "client with revenue who is not on the schedule lands there, rather than getting a row."),
+    ("h", "When a client name does not match"),
+    ("p", "Actual is matched on the Xero contact name. Where Xero carries two spellings of one "
+          "client, or the invoice contact differs from the name you budget under, list the other "
+          "spellings in the Aliases column of the Clients tab, separated by semicolons. The ledger "
+          "is folded to the one name before anything is charted."),
+    ("h", "Each month"),
+    ("p", "Usually nothing. Where a consulting line missed its month, say on the page whether the "
+          "deal was lost or moved to a later month; the commentary proposes the question for you."),
+    ("h", "Where the lines come from"),
+    ("p", "Prefilled from the CONS, ONS and PRD Sales Forecast tabs of the FY27 budget workbook: "
+          "the names, kinds and industries. The monthly amounts are left for you to type, because "
+          "the workbook's columns could not be read reliably enough to trust."),
+])
+sched_rows = []
+for l in SCHED:
+    sched_rows.append([l["dept"], {"client": "Client", "role": "Role", "newbiz": "New business"}[l["kind"]],
+                       l["client"], l["line"], l.get("industry", "")] + [None] * NCOLS)
+for dcode in ("CONSULTING", "INTEGRATION", "PRODUCTION", "VIDEO"):
+    sched_rows.append([dcode, "New business", "", "New business, not separately listed", ""] + [None] * NCOLS)
+ws = list_tab(wb, "Schedule", ["Department", "Kind", "Client or role", "Line", "Industry"] + [mlabel(d) for d in MONTHS_ALL],
+              sched_rows, [14, 13, 30, 44, 26] + [11] * NCOLS,
+              note="One row per role (onsite) or client (elsewhere). Kind is Client, Role or New business. Client or role is the Xero contact the actual is matched on; Line is the label shown.")
+for r in range(2, 2 + len(sched_rows) + 200):
+    for c in range(6, 6 + NCOLS):
+        cell = ws.cell(row=r, column=c)
+        cell.number_format = MONEY
+        cell.fill = PASTE
+        cell.font = INPUT_FONT
+    for c in range(1, 6):
+        ws.cell(row=r, column=c).fill = PASTE
+        ws.cell(row=r, column=c).font = INPUT_FONT
+dvk = DataValidation(type="list", formula1='"Client,Role,New business"', allow_blank=True)
+ws.add_data_validation(dvk); dvk.add("B2:B400")
+dvd = DataValidation(type="list", formula1='"CONSULTING,INTEGRATION,PRODUCTION,VIDEO,ONSITE"', allow_blank=True)
+ws.add_data_validation(dvd); dvd.add("A2:A400")
+ws.freeze_panes = "F2"
+seen, client_rows = {}, []
+for l in SCHED:
+    if not l["client"] or l["client"] in seen:
+        continue
+    seen[l["client"]] = 1
+    client_rows.append([l["client"], l["client"], l.get("industry", ""),
+                        {"ONSITE": "Contracted support", "CONSULTING": "Consulting engagement", "INTEGRATION": "Project integration",
+                         "PRODUCTION": "Event production", "VIDEO": "Video production"}.get(l["dept"], ""), l["dept"], ""])
+ws = list_tab(wb, "Clients", ["Xero contact", "Display name", "Industry", "Engagement", "Primary department", "Aliases"],
+              client_rows + [[None] * 6] * 200, [34, 34, 30, 24, 18, 44],
+              note="Display name is what the charts show. Aliases: other Xero contact spellings for the same client, separated by semicolons; the ledger is folded to the Xero contact in column A.")
+save(wb, "13 Revenue Schedule.xlsx")
 
 # ------------------------------------------- 11 and 12 Xero aged reports
 # Column shapes confirmed against the live Xero organisation on 25 Sep 2026:

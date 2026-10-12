@@ -16,16 +16,33 @@ a straight paste; the Read me tab in each file says exactly what to run.
 | 04 Zoho Deals | Zoho CRM, Reports, All Deals by Stage (FY26-FY27), export to Excel | The whole sheet pasted from A1, title rows and all. Matched to the real report |
 | 05 OnRent Orders | OnRent, orders list | Placeholder shape until a real export is matched |
 | 06 Qwilr Quotes | Qwilr, quotes list | Placeholder shape until a real export is matched |
-| 07 Budget | Once a year and when the forecast moves | Same layout as the P&L |
+| 07 Budget | Once a year and when the forecast moves | Same layout as the P&L. The Departments tab carries income, direct costs and overheads per department group, the way the budget workbook sets them; FY27 is prefilled |
 | 08 Config | Change the reporting month on the Reporting tab | The one setting that moves every month |
 | 09 Forecast | Usually nothing | A growth rate, a method, or a typed override when you know something the history does not |
 | 10 Cash and Commitments | Bank and card statements at month end | One row per bank account and per credit card with the month end balance; keep every month. Commitments only when one changes |
 | 11 Xero Aged Receivables | Xero, Aged Receivables Detail as at month end | One row per unpaid invoice. Read by the cash flow build; safe to fill now |
 | 12 Xero Aged Payables | Xero, Aged Payables Detail as at month end | One row per unpaid bill. Same |
+| 13 Revenue Schedule | Once a year, then only when a line is added | The sales forecast per role (onsite) or per client (elsewhere) by month, and the Clients tab with display names and aliases. Lines are prefilled from the FY27 budget workbook; type the amounts |
 
-Before you paste the ledger: set Stripe fee rows to `9000 - OFFICE / ADMIN [CTS]`
-and fill in the contact on revenue rows from manual journals, one spelling per
-client. Convert the values to number.
+Before you paste the ledger: fill in the contact on revenue rows from manual
+journals, one spelling per client, and convert the values to number. Stripe fee
+rows with no cost centre are coded to `9000 - OFFICE / ADMIN [CTS]` by the
+build, so they no longer need fixing by hand; the build log says how many it
+coded. Where Xero carries two spellings of one client, list the second as an
+alias on the Clients tab of 13 Revenue Schedule rather than editing the ledger.
+
+What the build now does that the Monthly Reporting manual lists as manual:
+
+- Stripe fee rows coded to Admin (Part 1, step 2).
+- The legal fees split: the P&L page reads Legal fees by contact off the ledger,
+  so Employsure and other legal spend are two lines without typing (Part 1).
+- Employment expenses split between departmental staff and office staff, a
+  toggle on P&L by Department (Part 2).
+- The gross margin scenario and the labour, equipment and recurring mix on the
+  Trends page (Part 2).
+- Sales forecast against actual: the Revenue Schedule page shows budget, actual
+  and last year side by side, in dollars, and flags consulting lines with budget
+  and no revenue as lost or deferred for you to confirm (Part 3, steps 1 and 4).
 
 ## 2. Build
 

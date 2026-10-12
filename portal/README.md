@@ -74,12 +74,16 @@ paste is header for header. Built by `portal/build/build_templates.py`.
 | 04 Zoho Deals | Zoho CRM, Deals | Placeholder on Zoho's standard export until a real one is matched |
 | 05 OnRent Orders | OnRent Events | Placeholder until a real export is matched |
 | 06 Qwilr Quotes | Qwilr | Placeholder until a real export is matched |
-| 07 Budget | Once a year | Same layout as the P&L |
+| 07 Budget | Once a year | Same layout as the P&L, plus a Departments tab with the budget by department group |
 | 08 Config | Monthly reporting month; otherwise rarely | Departments, split bases, holidays, who sees what, who gets the email |
+| 09 Forecast | Rarely | Methods, growth, pipeline weights, typed overrides |
+| 10 Cash and Commitments | Monthly balances | Bank and card balances, commitments, timing settings |
+| 11 and 12 Xero Aged reports | Monthly | Aged receivables and payables, matched to the live Xero layout |
+| 13 Revenue Schedule | Once a year | The sales forecast per role or client, and the client list with display names and aliases |
 
 The Build page (`CTS_build.js`, SheetJS vendored in `vendor`) reads them with
 the File System Access API, which Edge and Chrome have, checks them, and writes
-`data`. Data Loaders keeps the paste boxes as the ad hoc path.
+`data`.
 
 ## The monthly email
 

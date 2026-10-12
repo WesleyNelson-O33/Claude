@@ -28,6 +28,7 @@
     { key: "config",   file: "08 Config.xlsx",                    sheet: null,       out: "CTS_config_data.js",   need: true },
     { key: "forecast", file: "09 Forecast.xlsx",                  sheet: "Methods",  out: "CTS_forecast_data.js", need: false },
     { key: "cash",     file: "10 Cash and Commitments.xlsx",      sheet: "Bank balances", out: "CTS_cash_data.js", need: false },
+    { key: "schedule", file: "13 Revenue Schedule.xlsx",          sheet: "Schedule", out: "CTS_clients_data.js",  need: false },
   ];
   B.TEMPLATES = TEMPLATES;
 
@@ -178,6 +179,62 @@
   C.pnl = function (t) { return accountGrid(t, "P&L"); };
   C.budget = function (t) { return accountGrid(t, "Budget"); };
 
+  /** The Departments tab of 07 Budget: one row per department group and
+   *  category, months across, the way the budget workbook sets income and
+   *  direct costs per group and the overheads for Admin. Costs are stored
+   *  negative, as the account grid stores them. */
+  C.budgetDept = function (t) {
+    var months = t.head.slice(3).map(monthOfLabel), rows = [], bad = [];
+    var CAT = { income: "income", "direct costs": "cos", "cost of sales": "cos", cos: "cos", overheads: "expenses", expenses: "expenses", "other income": "other_income", "other expenses": "other_expenses" };
+    t.rows.forEach(function (r) {
+      var grp = String(r[0] || "").trim(); if (!grp) return;
+      var depts = String(r[1] || "").split(/[,;]/).map(function (x) { return x.trim().toUpperCase(); }).filter(Boolean);
+      var cat = CAT[String(r[2] || "").trim().toLowerCase()];
+      if (!depts.length || !cat) { bad.push(grp); return; }
+      var sign = (cat === "cos" || cat === "expenses" || cat === "other_expenses") ? -1 : 1, grid = {};
+      months.forEach(function (mk, i) { if (!mk) return; var v = P().num(r[i + 3]); if (v) grid[mk] = Math.round(v * 100) * sign; });
+      rows.push({ group: grp, depts: depts, cat: cat, months: grid });
+    });
+    return { rows: rows, bad: bad };
+  };
+
+  /** 13 Revenue Schedule: the Schedule tab (one line per role or client,
+   *  budget months across) and the Clients tab (display name, industry,
+   *  engagement, primary department, aliases). */
+  C.schedule = function (t, clientRows) {
+    var months = t.head.slice(5).map(monthOfLabel), lines = [], bad = 0;
+    var KIND = { client: "client", role: "role", "new business": "newbiz", newbiz: "newbiz", new: "newbiz" };
+    t.rows.forEach(function (r) {
+      var dept = String(r[0] || "").trim().toUpperCase(); if (!dept) return;
+      var kind = KIND[String(r[1] || "").trim().toLowerCase()] || "client";
+      var client = String(r[2] || "").trim(), line = String(r[3] || "").trim() || client;
+      if (kind !== "newbiz" && !client) { bad++; return; }
+      var grid = {};
+      months.forEach(function (mk, i) { if (!mk) return; var v = P().num(r[i + 5]); if (v) grid[mk] = Math.round(v * 100); });
+      var l = { dept: dept, kind: kind, client: client, line: line };
+      if (String(r[4] || "").trim()) l.industry = String(r[4]).trim();
+      if (Object.keys(grid).length) l.budget = grid;
+      lines.push(l);
+    });
+    var clients = [], seen = {};
+    (clientRows || []).forEach(function (r) {
+      var contact = String(r[0] || "").trim(); if (!contact || seen[contact]) return; seen[contact] = 1;
+      var c = { contact: contact, display: String(r[1] || "").trim() || contact, industry: String(r[2] || "").trim(),
+                engagement: String(r[3] || "").trim(), primaryDept: String(r[4] || "").trim().toUpperCase() || null };
+      var al = String(r[5] || "").split(";").map(function (x) { return x.trim(); }).filter(Boolean);
+      if (al.length) c.aliases = al;
+      clients.push(c);
+    });
+    // every scheduled client is a client, even if the Clients tab misses it
+    lines.forEach(function (l) {
+      if (!l.client || seen[l.client]) return; seen[l.client] = 1;
+      clients.push({ contact: l.client, display: l.client, industry: l.industry || "", engagement: "", primaryDept: l.dept });
+    });
+    return { payload: { meta: { seed: false, built: today(), note: "Built from 13 Revenue Schedule.xlsx. Budget per line in cents by month; actual is read off the ledger by contact." },
+                        clients: clients, schedule: lines },
+             bad: bad, typed: lines.filter(function (l) { return l.budget; }).length };
+  };
+
   /** The thirteen column Xero transactions report. */
   C.gl = function (t) {
     var h = t.head;
@@ -190,24 +247,33 @@
       cc: colIndex(h, ["costcentres", "costcentre"]),
     };
     if (ci.name < 0 || ci.date < 0) throw new Error("GL: could not find Account Name and Date columns.");
-    var rows = [], bad = 0, unknown = {};
+    var rows = [], bad = 0, unknown = {}, autoCoded = 0, noContact = 0;
     t.rows.forEach(function (r) {
       var iso = P().isoDate(r[ci.date]);
       var name = String(r[ci.name] || "").trim();
       if (!iso || !name) { bad++; return; }
       if (!E().acct[name]) unknown[name] = (unknown[name] || 0) + 1;
-      rows.push([iso, name, ci.contact >= 0 ? String(r[ci.contact] || "").trim() : "",
+      var cc = ci.cc >= 0 ? String(r[ci.cc] || "") : "";
+      var contact = ci.contact >= 0 ? String(r[ci.contact] || "").trim() : "";
+      // Stripe fee lines come across with no cost centre; the analysis file
+      // codes them to Admin by hand every month, so the build does it here
+      if (!cc.trim() && !(ci.job >= 0 && /\[/.test(String(r[ci.job] || ""))) && /stripe/i.test(contact + " " + (ci.desc >= 0 ? String(r[ci.desc] || "") : ""))) {
+        cc = "9000 - OFFICE / ADMIN [CTS]"; autoCoded++;
+      }
+      rows.push([iso, name, contact,
                  P().num(r[ci.debit]), P().num(r[ci.credit]),
                  ci.source >= 0 ? String(r[ci.source] || "") : "",
                  ci.job >= 0 ? String(r[ci.job] || "") : "",
                  ci.inv >= 0 ? String(r[ci.inv] || "") : "",
-                 ci.cc >= 0 ? String(r[ci.cc] || "") : "",
+                 cc,
                  ci.desc >= 0 ? String(r[ci.desc] || "") : ""]);
+      var a = E().acct[name];
+      if (a && a.cat === "income" && !contact && (P().num(r[ci.credit]) || P().num(r[ci.debit]))) noContact++;
     });
     return { payload: { meta: { seed: false, built: today(), rows: rows.length, note: "Built from 02 Xero GL Transactions.xlsx" },
                         cols: ["date", "account", "contact", "debit", "credit", "source", "jobNo", "invoiceNo", "costCentre", "description"],
                         rows: rows },
-             bad: bad, unknown: unknown };
+             bad: bad, unknown: unknown, autoCoded: autoCoded, noContact: noContact };
   };
 
   /** The Earnings Details report, with the Locations, Pay categories and
@@ -696,7 +762,7 @@
     var reportingMonth = cfgOut ? cfgOut.config.ORG.reportingMonth : E().reportingMonth();
 
     // P&L and budget
-    var finActual = null, finBudget = null;
+    var finActual = null, finBudget = null, budgetDept = null;
     var pnlWb = wbOf("pnl");
     if (pnlWb) {
       try {
@@ -714,6 +780,24 @@
         var gb = C.budget(tb);
         finBudget = gb.grid;
         check(gb.matched ? "ok" : "warn", "Budget", gb.matched + " accounts budgeted across " + gb.months.length + " months.");
+        var td = B.table(budWb, "Departments");
+        if (td && td.rows.length) {
+          var bd = C.budgetDept(td);
+          budgetDept = bd.rows;
+          var bdMonths = {}; bd.rows.forEach(function (r) { Object.keys(r.months).forEach(function (mk) { bdMonths[mk] = 1; }); });
+          check(bd.rows.length ? "ok" : "warn", "Budget", bd.rows.length + " department group rows across " + Object.keys(bdMonths).length + " months on the Departments tab" + (bd.bad.length ? "; skipped " + bd.bad.join(", ") + " (no departments or category)" : "") + ".");
+          // the groups should add to the account budget by category
+          var diffs = [];
+          ["income", "cos", "expenses"].forEach(function (cat) {
+            Object.keys(bdMonths).forEach(function (mk) {
+              var g = 0, a = 0;
+              bd.rows.forEach(function (r) { if (r.cat === cat) g += r.months[mk] || 0; });
+              Object.keys(gb.grid).forEach(function (n) { if ((E().acct[n] || {}).cat === cat) a += gb.grid[n][mk] || 0; });
+              if (a && Math.abs(g - a) >= 100) diffs.push(mk + " " + cat + " " + ((g - a) / 100).toFixed(0));
+            });
+          });
+          if (diffs.length) check("warn", "Budget", "Departments tab and account budget disagree by category: " + diffs.slice(0, 4).join("; ") + (diffs.length > 4 ? " and more" : "") + ". The departmental pages read the Departments tab; the P&L reads the accounts.");
+        } else check("info", "Budget", "No Departments tab rows; departmental budgets are derived from last year's ledger share.");
       } catch (e) { check("fail", "Budget", e.message); }
     } else check("warn", "Budget", "07 Budget.xlsx not found; keeping the current budget.");
     // Calendar: the span of months the templates carry, padded to whole
@@ -751,6 +835,7 @@
       var cur = E().fin || {};
       var fin = { meta: { seed: false, built: today(), basis: "accrual", currency: "AUD", source: "01 Xero P&L.xlsx and 07 Budget.xlsx" },
                   actual: finActual || cur.actual || {}, budget: finBudget || cur.budget || {},
+                  budgetDept: budgetDept || cur.budgetDept || [],
                   months: (cal ? cal.months : E().months).map(function (m) { return m.key; }) };
       outputs["CTS_fin_data.js"] = "window.CTS_FIN = " + JSON.stringify(fin) + ";\n";
       results.fin = fin;
@@ -793,8 +878,11 @@
           if (bad.length) check("warn", "Control", "Ledger and P&L disagree: " + bad.slice(0, 4).join("; ") + (bad.length > 4 ? " and more" : "") + ".");
           else check("ok", "Control", "Ledger agrees with the P&L in every month both cover.");
         }
+        if (gl.autoCoded) check("info", "Ledger", gl.autoCoded + " Stripe fee lines with no cost centre coded to Admin, the way the analysis file does it by hand.");
+        if (gl.noContact) check("warn", "Ledger", gl.noContact + " revenue lines carry no contact, so they cannot reach a client on the schedule or the top clients list. They count in the department's new business line.");
         var noDept = gl.payload.rows.filter(function (r) { return E().resolveDept(r[8], r[6]) === "UNALLOCATED"; }).length;
-        if (noDept) check("warn", "Ledger", noDept + " lines carry no department. Set the cost centre in Xero; Stripe fees go to 9000 - OFFICE / ADMIN [CTS].");
+        if (noDept) check("warn", "Ledger", noDept + " lines carry no department. Set the cost centre in Xero.");
+        results.glRows = gl.payload.rows;
       } catch (e) { check("fail", "Ledger", e.message); }
     } else check("fail", "Ledger", "02 Xero GL Transactions.xlsx not found.");
 
@@ -884,6 +972,36 @@
         if (cr.badCom.length) check("warn", "Cash", "Commitments without a next due date were skipped: " + cr.badCom.slice(0, 4).join("; ") + ".");
       } catch (e) { check("fail", "Cash", e.message); }
     } else check("info", "Cash", "10 Cash and Commitments.xlsx not found; keeping the current cash settings.");
+
+    // Revenue schedule and the client list
+    var schWb = wbOf("schedule");
+    if (schWb) {
+      try {
+        var ts = B.table(schWb, "Schedule"), tc = B.table(schWb, "Clients");
+        var sr = C.schedule(ts, tc ? tc.rows : []);
+        outputs["CTS_clients_data.js"] = "window.CTS_CLIENTS = " + JSON.stringify(sr.payload) + ";\n";
+        results.clients = sr.payload;
+        var byDept = {}; sr.payload.schedule.forEach(function (l) { byDept[l.dept] = (byDept[l.dept] || 0) + 1; });
+        check(sr.payload.schedule.length ? "ok" : "warn", "Schedule", sr.payload.schedule.length + " schedule lines (" + Object.keys(byDept).map(function (d) { return d + " " + byDept[d]; }).join(", ") + "), " + sr.typed + " with a typed budget, " + sr.payload.clients.length + " clients" + (sr.bad ? "; " + sr.bad + " rows skipped for no client or role" : "") + ".");
+        if (!sr.typed) check("info", "Schedule", "No monthly amounts typed yet, so the line budgets are derived from the department budget on last year's share. Type the sales forecast to replace that.");
+        var noNew = ["CONSULTING", "INTEGRATION", "PRODUCTION", "VIDEO"].filter(function (d) { return byDept[d] && !sr.payload.schedule.some(function (l) { return l.dept === d && l.kind === "newbiz"; }); });
+        if (noNew.length) check("warn", "Schedule", "No New business line for " + noNew.join(", ") + ": revenue from unlisted clients has nowhere to land.");
+        // ledger contacts with revenue who are not on the schedule, and the reverse
+        if (results.glRows) {
+          var alias = {}; sr.payload.clients.forEach(function (c) { (c.aliases || []).forEach(function (a) { alias[a.toLowerCase()] = c.contact; }); });
+          var onSched = {}; sr.payload.schedule.forEach(function (l) { if (l.client) onSched[l.client.toLowerCase()] = 1; });
+          var seenRev = {}, unlisted = {}, matched = 0;
+          results.glRows.forEach(function (r) {
+            var a = E().acct[r[1]]; if (!a || a.cat !== "income" || !r[2]) return;
+            var k = (alias[r[2].toLowerCase()] || r[2]).toLowerCase();
+            if (onSched[k]) { seenRev[k] = 1; matched++; } else unlisted[r[2]] = (unlisted[r[2]] || 0) + Math.round(r[4] * 100) - Math.round(r[3] * 100);
+          });
+          var ul = Object.keys(unlisted).sort(function (a, b) { return unlisted[b] - unlisted[a]; });
+          var unseen = Object.keys(onSched).filter(function (k) { return !seenRev[k]; }).length;
+          check("info", "Schedule", matched + " revenue lines matched to a scheduled client; " + ul.length + " contacts with revenue are not on the schedule and count as new business" + (ul.length ? ": " + ul.slice(0, 5).join(", ") + (ul.length > 5 ? " and others" : "") : "") + ". " + unseen + " scheduled clients have no ledger revenue in the file; check the spelling or add an alias on the Clients tab.");
+        }
+      } catch (e) { check("fail", "Schedule", e.message); }
+    } else check("info", "Schedule", "13 Revenue Schedule.xlsx not found; keeping the current schedule.");
 
     var log = { built: new Date().toISOString(), reportingMonth: reportingMonth, checks: checks,
                 files: Object.keys(outputs), version: (cfgOut && cfgOut.config.VERSION) || (E().cfg && E().cfg.VERSION) };

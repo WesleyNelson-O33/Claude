@@ -1,0 +1,1006 @@
+{
+ "note": "Derived from pack/CTS Budget FY27 Final - 3 Way fixed.xlsx, the CONS, ONS and PRD Sales Forecast tabs. Names, kinds and industries only; the monthly amounts are typed on the template.",
+ "lines": [
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "Beetroot Music",
+   "line": "Beetroot Music The Art Wall Bar - LED Video Wall Design (AKA)",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "Blacktown Council",
+   "line": "Blacktown Council Showground Memorial Stage",
+   "industry": "Other Sectors (Schools, Hospitals, etc)"
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "DAWE",
+   "line": "DAWE Bunker Theatrette",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "DAWE",
+   "line": "DAWE Regional Upgrades to meet standards",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "DAWE",
+   "line": "DAWE Sound Masking",
+   "industry": ""
+  },
+  {
+   "dept": "INTEGRATION",
+   "kind": "client",
+   "client": "DESE",
+   "line": "DESE Maintenance Extension",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "DFA",
+   "line": "DFA Meeting Room Upgrades Consulting Services",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "DFA",
+   "line": "DFA Forum",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "DTTL",
+   "line": "DTTL Adhoc Consulting Hours",
+   "industry": ""
+  },
+  {
+   "dept": "INTEGRATION",
+   "kind": "client",
+   "client": "DTTL",
+   "line": "DTTL XiO Cloud Licensing",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "DTTL",
+   "line": "DTTL XiO Cloud / Service Now Integration",
+   "industry": ""
+  },
+  {
+   "dept": "INTEGRATION",
+   "kind": "client",
+   "client": "DTTL",
+   "line": "DTTL Service Calls",
+   "industry": ""
+  },
+  {
+   "dept": "INTEGRATION",
+   "kind": "client",
+   "client": "DTTL",
+   "line": "DTTL Box Sales",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "DTTL",
+   "line": "DTTL National Rollout",
+   "industry": ""
+  },
+  {
+   "dept": "INTEGRATION",
+   "kind": "client",
+   "client": "FY22-23",
+   "line": "FY22-23 Service Calls",
+   "industry": ""
+  },
+  {
+   "dept": "INTEGRATION",
+   "kind": "client",
+   "client": "FY22-23",
+   "line": "FY22-23 Box Sales",
+   "industry": ""
+  },
+  {
+   "dept": "INTEGRATION",
+   "kind": "client",
+   "client": "KPMG",
+   "line": "KPMG Box Sales",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "Law Society",
+   "line": "Law Society AV Upgrade",
+   "industry": ""
+  },
+  {
+   "dept": "INTEGRATION",
+   "kind": "client",
+   "client": "NSW Property",
+   "line": "NSW Property 6PSQ Condeco",
+   "industry": ""
+  },
+  {
+   "dept": "INTEGRATION",
+   "kind": "client",
+   "client": "NSW Property",
+   "line": "NSW Property 231 Elizabeth St Proxyclick",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "INVESTA",
+   "line": "INVESTA 420 George Signage",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "NSW Property",
+   "line": "NSW Property Proxyclick / Condeco Licenses",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "PMG",
+   "line": "PMG Consulting Opportunity",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "PwC",
+   "line": "PwC Sydney Mobile Kit Relocation",
+   "industry": ""
+  },
+  {
+   "dept": "INTEGRATION",
+   "kind": "client",
+   "client": "PwC",
+   "line": "PwC SYD & Melb Additional Lapels",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "RWC",
+   "line": "RWC Whitlam Room Refurbishment",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "SOH",
+   "line": "SOH Recording and Broadcast Studios Tender",
+   "industry": ""
+  },
+  {
+   "dept": "INTEGRATION",
+   "kind": "client",
+   "client": "St Lukes",
+   "line": "St Lukes Cartwright Room",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "Tank Stream Labs",
+   "line": "Tank Stream Labs Live Event Space",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "TBC",
+   "line": "TBC North Head Quarantine Station (AKA)",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "UNSW",
+   "line": "UNSW GUI Design Development",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "UNSW",
+   "line": "UNSW Consulting Services",
+   "industry": ""
+  },
+  {
+   "dept": "INTEGRATION",
+   "kind": "client",
+   "client": "Westpac",
+   "line": "Westpac Box Sales",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "Westpac",
+   "line": "Westpac Unique Space Consulting",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "New Business MISC",
+   "line": "New Business MISC",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "Lendlease",
+   "line": "Lendlease TBD",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "Deutsche Bank",
+   "line": "Deutsche Bank TBD",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "Macquarie",
+   "line": "Macquarie TBD",
+   "industry": ""
+  },
+  {
+   "dept": "INTEGRATION",
+   "kind": "client",
+   "client": "NSW Property",
+   "line": "NSW Property 4PSQ Proxyclick Visitor Management System",
+   "industry": ""
+  },
+  {
+   "dept": "INTEGRATION",
+   "kind": "client",
+   "client": "NSW Gov",
+   "line": "NSW Gov NSW Gov Newcastle Visitor Management Solution",
+   "industry": ""
+  },
+  {
+   "dept": "INTEGRATION",
+   "kind": "client",
+   "client": "PWC",
+   "line": "PWC PwC Sydney Shure ULXD  - Mobile Studio",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "WIN",
+   "line": "WIN WIN TV Broadcast",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "WIN",
+   "line": "WIN C91 Radio project",
+   "industry": ""
+  },
+  {
+   "dept": "INTEGRATION",
+   "kind": "client",
+   "client": "HP",
+   "line": "HP HP Melb 21 rooms",
+   "industry": ""
+  },
+  {
+   "dept": "INTEGRATION",
+   "kind": "client",
+   "client": "HP",
+   "line": "HP HP SYD 10 rooms",
+   "industry": ""
+  },
+  {
+   "dept": "INTEGRATION",
+   "kind": "client",
+   "client": "HP",
+   "line": "HP HP TAS 6 rooms",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "APA",
+   "line": "APA Proxyclick Visitor Management Implementation",
+   "industry": ""
+  },
+  {
+   "dept": "CONSULTING",
+   "kind": "client",
+   "client": "GRAND TOTAL",
+   "line": "GRAND TOTAL",
+   "industry": "Labour"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "Bank West Contract",
+   "line": "Bank West Contract",
+   "industry": "Finance"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "Bankwest Additional Tech [ONS]",
+   "line": "Bankwest Additional Tech [ONS]",
+   "industry": "Finance"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "Bankwest Half Tech [ONS]",
+   "line": "Bankwest Half Tech [ONS]",
+   "industry": "Finance"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "Bankwest Spotify",
+   "line": "Bankwest Spotify",
+   "industry": "Finance"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "CBA Afterhours VC [ONS]",
+   "line": "CBA Afterhours VC [ONS]",
+   "industry": "Finance"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "CBA Brisbane Onsite (1280)",
+   "line": "CBA Brisbane Onsite (1280)",
+   "industry": "Finance"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "CBA Spotify",
+   "line": "CBA Spotify",
+   "industry": "Finance"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "CBP South Tech [ONS]",
+   "line": "CBP South Tech [ONS]",
+   "industry": "Finance"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "CBP Team Leader",
+   "line": "CBP Team Leader",
+   "industry": "Finance"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "CBP DP1 Tech [ONS]",
+   "line": "CBP DP1 Tech [ONS]",
+   "industry": "Finance"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "Danebank AV Tech [ONS]",
+   "line": "Danebank AV Tech [ONS]",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "Dentons AV 2023 [ONS]",
+   "line": "Dentons AV 2023 [ONS]",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "DTTL 1300 Number",
+   "line": "DTTL 1300 Number",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "DTTL WA Tech",
+   "line": "DTTL WA Tech",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "DTTL ADL Onsite ONS",
+   "line": "DTTL ADL Onsite ONS",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "DTTL BNE Onsite",
+   "line": "DTTL BNE Onsite",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "DTTL Dedicated Technician[ONS]",
+   "line": "DTTL Dedicated Technician[ONS]",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "DTTL SYD 2nd Level [ONS]",
+   "line": "DTTL SYD 2nd Level [ONS]",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "DTTL MEL Tech (part-time)",
+   "line": "DTTL MEL Tech (part-time)",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "DTTL Melb Tech 2 [ONS]",
+   "line": "DTTL Melb Tech 2 [ONS]",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "DTTL MEL Tech [ONS]",
+   "line": "DTTL MEL Tech [ONS]",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "DTTL SYD Internal [JR]",
+   "line": "DTTL SYD Internal [JR]",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "DTTL SYD Technician [DH]",
+   "line": "DTTL SYD Technician [DH]",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "DTTL MEL Site Team Leader [ONS",
+   "line": "DTTL MEL Site Team Leader [ONS",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "DTTL WA (part-time)",
+   "line": "DTTL WA (part-time)",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "DTTL Additional Role CBR (Forecast)",
+   "line": "DTTL Additional Role CBR (Forecast)",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "DTTL Additional Role SYD (Forecast)",
+   "line": "DTTL Additional Role SYD (Forecast)",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "PWC CBR Technician [ONS]",
+   "line": "PWC CBR Technician [ONS]",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "DTTL QQT Additional Role",
+   "line": "DTTL QQT Additional Role",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "DTTL QQT Additional Role",
+   "line": "DTTL QQT Additional Role",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "EY BNE",
+   "line": "EY BNE",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "EY MELB Tech",
+   "line": "EY MELB Tech",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "PWC \u2013 MEL Technician",
+   "line": "PWC \u2013 MEL Technician",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "EY QLD",
+   "line": "EY QLD",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "KPMG SYD Tech [ONS]",
+   "line": "KPMG SYD Tech [ONS]",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "EY SYD Tech Support",
+   "line": "EY SYD Tech Support",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "PWC - PER Tech",
+   "line": "PWC - PER Tech",
+   "industry": "Business Services"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "PWC - Webcast Tech",
+   "line": "PWC - Webcast Tech",
+   "industry": "IT & Media"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "PWC Onsite Event - MEL",
+   "line": "PWC Onsite Event - MEL",
+   "industry": "IT & Media"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "KPMG SYD Tech",
+   "line": "KPMG SYD Tech",
+   "industry": "Energy, Utilities, Infrastructure"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "Westpac 2nd Tech [ONS]",
+   "line": "Westpac 2nd Tech [ONS]",
+   "industry": "Other Sectors (Schools, Hospitals, etc)"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "PWC - SYD Tech",
+   "line": "PWC - SYD Tech",
+   "industry": "Finance"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "PWC BNE ONSITE",
+   "line": "PWC BNE ONSITE",
+   "industry": "Finance"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "Westpac 1st Tech (AC) [ONS]",
+   "line": "Westpac 1st Tech (AC) [ONS]",
+   "industry": "IT & Media"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "PWC Webcast Technician STD",
+   "line": "PWC Webcast Technician STD",
+   "industry": "IT & Media"
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "Additional /New Business",
+   "line": "Additional /New Business",
+   "industry": ""
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "Grand Total",
+   "line": "Grand Total",
+   "industry": ""
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "Grand Total",
+   "line": "Grand Total",
+   "industry": ""
+  },
+  {
+   "dept": "ONSITE",
+   "kind": "role",
+   "client": "Variance",
+   "line": "Variance",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Additional (Existing/New)",
+   "line": "Additional (Existing/New)",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Additional (New/New)",
+   "line": "Additional (New/New)",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "AGL Energy Limited",
+   "line": "AGL Energy Limited",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "ALL",
+   "line": "ALL",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Arup",
+   "line": "Arup",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Lander & Rogers",
+   "line": "Lander & Rogers",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "APA",
+   "line": "APA",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Australian Securities Exchange",
+   "line": "Australian Securities Exchange",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "CEO Institute",
+   "line": "CEO Institute",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Chorus Call",
+   "line": "Chorus Call",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Cochlear",
+   "line": "Cochlear",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Commonwealth Bank of Australia",
+   "line": "Commonwealth Bank of Australia",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Deloitte Services P/L for Deloitte Services Trust",
+   "line": "Deloitte Services P/L for Deloitte Services Trust",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Diversified",
+   "line": "Diversified",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Downer",
+   "line": "Downer",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "GPT Group",
+   "line": "GPT Group",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "ICC",
+   "line": "ICC",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Link Market Services Limited",
+   "line": "Link Market Services Limited",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Notified",
+   "line": "Notified",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "NSWDCS",
+   "line": "NSWDCS",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "ON24",
+   "line": "ON24",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Orient Capital Pty Ltd",
+   "line": "Orient Capital Pty Ltd",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Parliament of NSW",
+   "line": "Parliament of NSW",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "PricewaterhouseCoopers",
+   "line": "PricewaterhouseCoopers",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Royal Society of New South Wales",
+   "line": "Royal Society of New South Wales",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "TLC",
+   "line": "TLC",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Trinity Grammar",
+   "line": "Trinity Grammar",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Ventia",
+   "line": "Ventia",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Westpac Group",
+   "line": "Westpac Group",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Stone & Chalk",
+   "line": "Stone & Chalk",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Woolworths Group",
+   "line": "Woolworths Group",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "University of Wollongong",
+   "line": "University of Wollongong",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Sydney Catholic Schools",
+   "line": "Sydney Catholic Schools",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Year",
+   "line": "Year",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "FY23",
+   "line": "FY23",
+   "industry": "Other Expenses"
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "FY24",
+   "line": "FY24",
+   "industry": "Cost of Sales"
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "FY25",
+   "line": "FY25",
+   "industry": "Labour"
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Difference",
+   "line": "Difference",
+   "industry": "Equipment & Misc & Service"
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "FYQ1",
+   "line": "FYQ1",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Gross Revenue",
+   "line": "Gross Revenue",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "FYQ2",
+   "line": "FYQ2",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Gross Revenue",
+   "line": "Gross Revenue",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "FYQ3",
+   "line": "FYQ3",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Gross Revenue",
+   "line": "Gross Revenue",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "FYQ4",
+   "line": "FYQ4",
+   "industry": ""
+  },
+  {
+   "dept": "PRODUCTION",
+   "kind": "client",
+   "client": "Gross Revenue",
+   "line": "Gross Revenue",
+   "industry": ""
+  }
+ ]
+}

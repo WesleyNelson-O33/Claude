@@ -139,6 +139,7 @@ what to run, a data tab that is a straight paste.
 | 10 Cash and Commitments | Typed, standing, balances added monthly | Bank balances and credit card balances at month end, the commitments list, days to pay, BAS and super timing, the PAYG instalment, any facility. Built |
 | 11 Xero Aged Receivables | Xero, Aged Receivables Detail, as at month end | Debtor receipts, days to pay. Template built on the confirmed layout |
 | 12 Xero Aged Payables | Xero, Aged Payables Detail, as at month end | Creditor payments. Template built on the confirmed layout |
+| 13 Revenue Schedule | Typed once a year, per role or client | Line budgets for the Revenue Schedule page, the client list and aliases. Built |
 
 The aged report layouts were confirmed against the live Xero organisation on
 25 September 2026: one row per invoice or bill with contact, date, due date,
