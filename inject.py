@@ -70,6 +70,9 @@ if tally_path:
     names=["Christopher Lehmann","Daniel Sobkowski","Danielle Hurley","Duncan Lugstein","Jordan Sexty","Kyle Krishnappa","Milo Rankin","Patrick Lee","Simon Gruenefeld","Tyler Wood","Wade Tonna","Isaac Butterworth","Blake Crisford","Carlo Daru"]
     t=new['HR Tally Check']
     for p,nm in enumerate(names): t.cell(row=7,column=2+p).value=nm
+    STATUS={"Christopher Lehmann":"Terminated - not on Staff tab","Patrick Lee":"Casual - not eligible, not on Staff tab","Simon Gruenefeld":"Casual - not eligible, not on Staff tab"}
+    for p,nm in enumerate(names):
+        if nm in STATUS: t.cell(row=6,column=2+p).value=STATUS[nm]
     i=0
     for line in open(tally_path):
         parts=line.rstrip('\n').split('\t')
@@ -86,11 +89,11 @@ NOTES={
  ("Jordan","SEXTY"):"Employed 2016, so treated as commencing 27/11/2017 (no counting back). First day 27/11/2020. HR credited him from Apr-19 on his original anniversary, so EH holds 64 hrs more than this rule gives. EH balance accepted as is (Accept = Yes); accruing forward from 27/11/2026. Change to No if Graham says reverse the excess.",
  ("Tyler","WOOD"):"Employed Jul-2017, so treated as commencing 27/11/2017 (no counting back). First day 27/11/2020. HR tally ran from his Jul-20 anniversary.",
  ("Wade","TONNA"):"HR adjusted him to the 5-day rate in Jan-26; his 5-yr anniversary was Jun-23. Tracker is 1 day above the HR tally - owed.",
- ("Milo","RANKIN"):"HR tally cycle Feb/Jun/Oct implies a start around Feb-20; tracker start is 05/08/2019. Confirm start date with HR. Tracker is 3 days above the HR tally.",
+ ("Milo","RANKIN"):"Start date 05/08/2019 confirmed. HR tally ran on a Feb/Jun/Oct cycle (wrong start date) and is 3 days short; EH holds 14 days, scheme gives 17. Accrue the 3-day catch-up (24 hrs).",
  ("Carlo","Daru"):"HR tally has nothing accrued; tracker 4 days from 19/09/25 (3 yrs from full-time start). HR eligibility date agrees (19/09/2025).",
  ("Danielle","HURLEY"):"Matches HR tally (8). 5-yr anniversary Apr-26 = 1 day (flowchart v2.0).",
- ("Isaac","BUTTERWORTH"):"Flowchart v2.0 is full-time only: part-time service from 17/09/2019 does not count. Full-time from 19/01/2026, first day 19/01/2029. HR tally shows 9 days on a part-time basis - to be reversed or confirmed with Graham.",
- ("Tyrell","SHORTT"):"Part-time: not eligible under flowchart v2.0 (full-time only). HR tally shows 1 day - to be reversed or confirmed with Graham.",
+ ("Isaac","BUTTERWORTH"):"Flowchart v2.0 is full-time only: part-time service from 17/09/2019 (confirmed) does not count. Full-time from 19/01/2026, first day 19/01/2029. HR tally shows 9 days on a part-time basis - to be reversed or confirmed with Graham.",
+ ("Tyrell","SHORTT"):"Part-time from 31/08/2021 (confirmed): not eligible under flowchart v2.0 (full-time only). HR tally shows 1 day - to be reversed or confirmed with Graham.",
  ("Kyle","Krishnappa"):"Service counts from full-time start 05/09/2022 (part-time stint before that does not count under flowchart v2.0). Matches HR tally (4).",
  ("Blake","Crisford"):"Matches HR tally (2).",
 }
