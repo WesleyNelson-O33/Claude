@@ -10,6 +10,8 @@ def copy_style(a,b):
     b.font=copy(a.font); b.fill=copy(a.fill); b.border=copy(a.border); b.alignment=copy(a.alignment); b.number_format=a.number_format
 ss=src['Staff']; ns=new['Staff']
 hs={ss.cell(row=4,column=c).value:c for c in range(1,ss.max_column+1) if ss.cell(row=4,column=c).value}
+RENAMED={"Due per policy (hrs)":"Due since report start (hrs)"}
+hs={RENAMED.get(h,h):c for h,c in hs.items()}
 hn={ns.cell(row=4,column=c).value:c for c in range(1,ns.max_column+1) if ns.cell(row=4,column=c).value}
 inputs=["Name","Surname","EmploymentType","DateOfBirth","StartDate","Casual Start","PTE Start","FTE Start","AnniversaryDate","PT Hrs/Week"]
 for r in range(5,155):
