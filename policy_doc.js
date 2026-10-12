@@ -7,7 +7,7 @@ const P = (t, o = {}) => new Paragraph({ spacing: { after: 120, line: 276 }, ...
 const H1 = (t) => new Paragraph({ heading: HeadingLevel.HEADING_1, spacing: { before: 280, after: 120 }, children: [new TextRun({ text: t, font: F, size: 28, bold: true, color: '1F3864' })] });
 const H2 = (t) => new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { before: 200, after: 80 }, children: [new TextRun({ text: t, font: F, size: 22, bold: true, color: '1F3864' })] });
 const B = (t) => new Paragraph({ numbering: { reference: 'bul', level: 0 }, spacing: { after: 60, line: 276 }, children: typeof t === 'string' ? [R(t)] : t });
-const NEW = (t) => R(t, { highlight: 'yellow' });
+const NEW = (t) => R(t, { shading: { type: ShadingType.CLEAR, fill: 'CFE2F3', color: 'auto' } });
 const cell = (t, w, hdr = false) => new TableCell({ width: { size: w, type: WidthType.DXA }, margins: { top: 60, bottom: 60, left: 100, right: 100 },
   shading: hdr ? { type: ShadingType.CLEAR, fill: 'D9E2F3', color: 'auto' } : undefined,
   children: (Array.isArray(t) ? t : [t]).map(x => typeof x === 'string' ? new Paragraph({ spacing: { after: 40 }, children: [R(x, { bold: hdr })] }) : x) });
@@ -29,7 +29,7 @@ const children = [
     ['Policy Owners:', ['CTS Human Resources', 'CTS Senior Leadership Team']],
     ['Review Cycle:', 'Annually, and earlier if triggered by changes in law or business operations'],
     ['Related Documents:', ['CTS Employee Handbook', np('CTS Additional Leave Bonus Scheme flowchart v2.0 (04/09/25)')]]]),
-  P('Text highlighted in yellow is new or changed in V1.1.', { run: { italics: true, size: 18 } }),
+  P('Text shaded light blue is new or changed in V1.1.', { run: { italics: true, size: 18 } }),
   new Paragraph({ children: [new PageBreak()] }),
   H1('Contents'),
   new TableOfContents('Contents', { hyperlink: true, headingStyleRange: '1-2' }),
