@@ -84,10 +84,10 @@ if tally_path:
         i+=1
 # notes next to names
 NOTES={
- ("Daniel","SOBKOWSKI"):"Employed 2013, so treated as commencing 27/11/2017 (no counting back). First day 27/11/2020, 5-yr point 27/11/2022. HR credited him from 2017 on his original anniversary, so EH holds 40 hrs more than this rule gives. EH balance accepted as is (Accept = Yes); accruing forward from 27/11/2026. Change to No if Graham says reverse the excess.",
- ("Duncan","LUGSTEIN"):"Employed 2006, so treated as commencing 27/11/2017 (no counting back). First day 27/11/2020. HR credited him from 2017 on a Feb/May/Aug/Nov cycle, so EH holds 160 hrs more than this rule gives. EH balance accepted as is (Accept = Yes); accruing forward from 27/11/2026. Change to No if Graham says reverse the excess.",
- ("Jordan","SEXTY"):"Employed 2016, so treated as commencing 27/11/2017 (no counting back). First day 27/11/2020. HR credited him from Apr-19 on his original anniversary, so EH holds 64 hrs more than this rule gives. EH balance accepted as is (Accept = Yes); accruing forward from 27/11/2026. Change to No if Graham says reverse the excess.",
- ("Tyler","WOOD"):"Employed Jul-2017, so treated as commencing 27/11/2017 (no counting back). First day 27/11/2020. HR tally ran from his Jul-20 anniversary.",
+ ("Daniel","SOBKOWSKI"):"Full-time from 29/07/2013; service before the scheme start counts, but the 4 milestones before 27/11/2017 earn nothing. 5-yr point 29/07/2018. HR tally 44 days vs scheme 43; EH only holds 30 days (240 hrs), so 104 hrs are owed in EH.",
+ ("Duncan","LUGSTEIN"):"Full-time from 16/10/2006; service before the scheme start counts, but the 37 milestones before 27/11/2017 earn nothing. Scheme gives 43 days from 27/11/2017 on his Oct/Jan/Apr/Jul cycle; HR ran a Feb/May/Aug/Nov cycle and EH holds 45 days, so 16 hrs over.",
+ ("Jordan","SEXTY"):"Full-time from 21/04/2016; service before the scheme start counts. First day 21/04/2019, 5-yr point 21/04/2021. EH matches the scheme exactly (33 days). HR tally is 2 days short.",
+ ("Tyler","WOOD"):"Full-time from 03/07/2017; service before the scheme start counts. First day 03/07/2020, 5-yr point 03/07/2022. 2 days owed in EH (HR tally 2 short).",
  ("Wade","TONNA"):"HR adjusted him to the 5-day rate in Jan-26; his 5-yr anniversary was Jun-23. Tracker is 1 day above the HR tally - owed.",
  ("Milo","RANKIN"):"Start date 05/08/2019 confirmed. HR tally ran on a Feb/Jun/Oct cycle (wrong start date) and is 3 days short; EH holds 14 days, scheme gives 17. Accrue the 3-day catch-up (24 hrs).",
  ("Carlo","Daru"):"HR tally has nothing accrued; tracker 4 days from 19/09/25 (3 yrs from full-time start). HR eligibility date agrees (19/09/2025).",
@@ -99,8 +99,6 @@ NOTES={
 }
 if "Accept EH balance to date?" in hn:
     ac=hn["Accept EH balance to date?"]
-    for r in range(5,155):
-        if (ns[f'A{r}'].value, (ns[f'B{r}'].value or '').upper()) in (("Daniel","SOBKOWSKI"),("Duncan","LUGSTEIN"),("Jordan","SEXTY")): ns.cell(row=r,column=ac).value="Yes"
     for r in range(3,155): copy_style(ss.cell(row=r,column=hs["Casual Start"]), ns.cell(row=r,column=ac))
     ns.cell(row=4,column=ac).value="Accept EH balance to date?"; ns.cell(row=3,column=ac).value="Yes = keep what EH holds; accrue forward only"
     from openpyxl.worksheet.datavalidation import DataValidation
