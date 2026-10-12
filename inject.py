@@ -91,10 +91,10 @@ NOTES={
  ("Wade","TONNA"):"HR adjusted him to the 5-day rate in Jan-26; his 5-yr anniversary was Jun-23. Tracker is 1 day above the HR tally - owed.",
  ("Milo","RANKIN"):"Start date 05/08/2019 confirmed. HR tally ran on a Feb/Jun/Oct cycle (wrong start date) and is 3 days short; EH holds 14 days, scheme gives 17. Accrue the 3-day catch-up (24 hrs).",
  ("Carlo","Daru"):"HR tally has nothing accrued; tracker 4 days from 19/09/25 (3 yrs from full-time start). HR eligibility date agrees (19/09/2025).",
- ("Danielle","HURLEY"):"Matches HR tally (8). 5-yr anniversary Apr-26 = 1 day (flowchart v2.0).",
- ("Isaac","BUTTERWORTH"):"Flowchart v2.0 is full-time only: part-time service from 17/09/2019 (confirmed) does not count. Full-time from 19/01/2026, first day 19/01/2029. HR tally shows 9 days on a part-time basis - to be reversed or confirmed with Graham.",
- ("Tyrell","SHORTT"):"Part-time from 31/08/2021 (confirmed): not eligible under flowchart v2.0 (full-time only). HR tally shows 1 day - to be reversed or confirmed with Graham.",
- ("Kyle","Krishnappa"):"Service counts from full-time start 05/09/2022 (part-time stint before that does not count under flowchart v2.0). Matches HR tally (4).",
+ ("Danielle","HURLEY"):"Matches HR tally (8). 5-yr anniversary Apr-26 fell before the 2026 policy date, so 1 day.",
+ ("Isaac","BUTTERWORTH"):"Part-time 38 hrs from 17/09/2019 (confirmed) counts under the 2026 policy; full-time from 19/01/2026. 9 days, matches HR tally.",
+ ("Tyrell","SHORTT"):"Part-time 38 hrs from 31/08/2021 (confirmed): eligible under the 2026 policy from 5 years, first day 31/08/2026. Matches HR tally (1).",
+ ("Kyle","Krishnappa"):"Part-time 19/04/22 to 05/09/22 counts as service under the 2026 policy (if that contract was under 24 hrs, move the date to Casual Start and he drops to 4). Tracker 5 days, HR tally 4.",
  ("Blake","Crisford"):"Matches HR tally (2).",
 }
 if "Accept EH balance to date?" in hn:
