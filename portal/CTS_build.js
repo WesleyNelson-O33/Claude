@@ -60,7 +60,15 @@
       return v;
     }
     var rows = aoa.map(function (r) { return r.map(cell); });
-    while (rows.length && rows[0].filter(function (x) { return x !== "" && x != null; }).length < 2) rows.shift();
+    if (opts.findHead) {
+      // scan the first rows for the one the caller recognises as the header
+      var at = -1;
+      for (var i = 0; i < Math.min(rows.length, 40); i++) { if (opts.findHead(rows[i].map(function (x) { return String(x).trim(); }))) { at = i; break; } }
+      if (at < 0) return null;
+      rows = rows.slice(at);
+    } else {
+      while (rows.length && rows[0].filter(function (x) { return x !== "" && x != null; }).length < 2) rows.shift();
+    }
     if (!rows.length) return { head: [], rows: [] };
     var head = rows[0].map(function (x) { return String(x).trim(); });
     var headKey = head.join("\u0001");
@@ -276,8 +284,67 @@
              bad: bad, unknown: unknown, autoCoded: autoCoded, noContact: noContact };
   };
 
+  /** Xero's standard General Ledger Detail report, as a fallback for the
+   *  custom Account transactions report. It is grouped by account, with the
+   *  account name on its own row above its lines and a Total row below, and
+   *  it carries no cost centre, job number or contact column: the contact is
+   *  what the Description holds on invoice and bill lines. Departments cannot
+   *  be coded from it, which the build says plainly. */
+  C.glDetail = function (t) {
+    var h = t.head;
+    var ci = { date: colIndex(h, ["date"]), source: colIndex(h, ["source"]), desc: colIndex(h, ["description"]),
+               ref: colIndex(h, ["reference"]), debit: colIndex(h, ["debit"]), credit: colIndex(h, ["credit"]) };
+    if (ci.date < 0 || ci.debit < 0 || ci.credit < 0) throw new Error("GL Detail: could not find Date, Debit and Credit columns.");
+    var rows = [], bad = 0, account = null, skipped = {}, inChart = 0, noContact = 0;
+    var NOT_CONTACT = /^(manual journal|bank transfer|adjustment|spend money|receive money)$/i;
+    t.rows.forEach(function (r) {
+      var first = String(r[0] || "").trim();
+      var iso = P().isoDate(r[ci.date]);
+      if (!iso) {
+        // a heading row names the account; a Total row closes it
+        if (first && !/^total /i.test(first) && !/^(opening|closing) balance/i.test(first)) account = first;
+        return;
+      }
+      if (!account) { bad++; return; }
+      if (!E().acct[account]) { skipped[account] = (skipped[account] || 0) + 1; return; }
+      inChart++;
+      var src = ci.source >= 0 ? String(r[ci.source] || "") : "";
+      var desc = ci.desc >= 0 ? String(r[ci.desc] || "").trim() : "";
+      var contact = NOT_CONTACT.test(src) ? "" : desc;
+      var a = E().acct[account];
+      if (a.cat === "income" && !contact) noContact++;
+      rows.push([iso, account, contact, P().num(r[ci.debit]), P().num(r[ci.credit]), src, "", "",
+                 "", ci.ref >= 0 ? String(r[ci.ref] || "") : ""]);
+    });
+    return { payload: { meta: { seed: false, built: today(), rows: rows.length, layout: "General Ledger Detail",
+                                note: "Built from Xero's General Ledger Detail report. No cost centres or job numbers: departments are not coded." },
+                        cols: ["date", "account", "contact", "debit", "credit", "source", "jobNo", "invoiceNo", "costCentre", "description"],
+                        rows: rows },
+             bad: bad, unknown: {}, autoCoded: 0, noContact: noContact, skipped: skipped, detail: true };
+  };
+
   /** The Earnings Details report, with the Locations, Pay categories and
    *  Adjustments tabs from the same workbook. Same rules as the paste loader. */
+  /** A location not on the Locations tab: the department from the bracket
+   *  tag, or failing that a department tag anywhere in the name ("ONS DTTL
+   *  (non-chargeable)", "PRODUCTION"), and chargeable unless the name says
+   *  otherwise or the department is Admin. */
+  function guessLocation(name) {
+    var g = E().resolveDept("", name);
+    if (g === "UNALLOCATED") {
+      var up = String(name || "").toUpperCase();
+      var best = null;
+      (E().cfg.DEPARTMENTS || E().depts || []).forEach(function (d) {
+        (d.tags || []).forEach(function (tag) {
+          var re = new RegExp("(^|[^A-Z])" + tag + "([^A-Z]|$)");
+          if (re.test(up) && (!best || tag.length > best.tag.length)) best = { code: d.code, tag: tag };
+        });
+      });
+      if (best) g = best.code;
+    }
+    return { dept: g, chargeable: g !== "ADMIN" && g !== "UNALLOCATED" && !/non[- ]?ch/i.test(String(name || "")), guessed: true };
+  }
+  C.guessLocation = guessLocation;
   C.earnings = function (t, locs, cats, adjs, fallbackMonth) {
     var h = t.head, p = P();
     var ci = {
@@ -310,27 +377,68 @@
     });
 
     var bucket = {}, staff = {}, labour = {}, newLocs = {}, newCats = {}, usedFallback = 0;
-    var reallocated = 0, payOnly = 0, lines = 0;
+    var reallocated = 0, payOnly = 0, lines = 0, spread = 0;
+    // Pay runs pasted one under the other: each starts with its title row.
+    // A line whose note carries no date (salaried staff, allowances) is
+    // spread over the months its pay run covers, on weekdays, rather than
+    // dropped whole into the reporting month.
+    var blocks = [], cur = null;
+    function isTitle(r) { return /^earnings details$/i.test(String(r[0] || "").trim()) && r.slice(1).every(function (x) { return x === "" || x == null; }); }
     t.rows.forEach(function (r) {
+      if (isTitle(r) || !cur) { cur = { rows: [], dates: {}, min: null, max: null }; blocks.push(cur); if (isTitle(r)) return; }
+      cur.rows.push(r);
+      var iso = ci.notes >= 0 ? p.noteDate(r[ci.notes]) : null;
+      if (iso) cur.dates[iso] = (cur.dates[iso] || 0) + 1;
+    });
+    // the pay period is the fortnight holding most of the block's dated lines;
+    // a back-dated correction or leave booked ahead does not stretch it
+    blocks.forEach(function (bk) {
+      var ds = Object.keys(bk.dates).sort(); if (!ds.length) return;
+      var best = null;
+      ds.forEach(function (end) {
+        var start = new Date(new Date(end + "T12:00:00Z").getTime() - 13 * 86400000).toISOString().slice(0, 10), n = 0;
+        ds.forEach(function (d) { if (d >= start && d <= end) n += bk.dates[d]; });
+        if (!best || n > best.n) best = { n: n, start: start, end: end };
+      });
+      bk.min = best.start; bk.max = best.end;
+    });
+    function weekdayShare(from, to) {
+      var out = {}, total = 0, d = new Date(from + "T12:00:00Z"), end = new Date(to + "T12:00:00Z");
+      while (d <= end) {
+        var dow = d.getUTCDay();
+        if (dow !== 0 && dow !== 6) { var mk = d.toISOString().slice(0, 7); out[mk] = (out[mk] || 0) + 1; total++; }
+        d = new Date(d.getTime() + 86400000);
+      }
+      Object.keys(out).forEach(function (mk) { out[mk] = out[mk] / total; });
+      return out;
+    }
+    var share = null;
+    blocks.forEach(function (bk) {
+      share = null;
+      if (bk.min && bk.max) share = weekdayShare(bk.min, bk.max);
+      bk.rows.forEach(function (r) {
+        var iso = ci.notes >= 0 ? p.noteDate(r[ci.notes]) : null;
+        if (iso) addLine(r, iso.slice(0, 7), 1);
+        else if (share) { usedFallback++; spread++; Object.keys(share).forEach(function (mk) { addLine(r, mk, share[mk]); }); }
+        else { usedFallback++; addLine(r, fallbackMonth, 1); }
+      });
+    });
+    function addLine(r, mk, frac) {
       var locName = String(r[ci.locName] || "").trim() || "(blank)";
       var loc = locMap[locName];
       if (!loc) {
-        var g = E().resolveDept("", locName);
-        loc = { dept: g, chargeable: g !== "ADMIN" && g !== "UNALLOCATED" };
+        loc = guessLocation(locName);
         newLocs[locName] = loc;
       }
       if (!loc.dept) loc.dept = "UNALLOCATED";
       var catName = String(r[ci.catName] || "").trim() || "(blank)";
       var kind = catMap[catName];
       if (!kind) { kind = p.guessCategory(catName); newCats[catName] = kind; }
-      var iso = ci.notes >= 0 ? p.noteDate(r[ci.notes]) : null;
-      var mk = iso ? iso.slice(0, 7) : fallbackMonth;
-      if (!iso) usedFallback++;
       if (!monthIdx()[mk]) return;
       var isHours = ci.unitType < 0 || /hour/i.test(String(r[ci.unitType]));
-      var units = isHours ? p.num(r[ci.units]) : 0;
-      var gross = ci.gross >= 0 ? p.money(r[ci.gross]) : 0;
-      var sup = ci.sup >= 0 ? p.money(r[ci.sup]) : 0;
+      var units = (isHours ? p.num(r[ci.units]) : 0) * frac;
+      var gross = (ci.gross >= 0 ? p.money(r[ci.gross]) : 0) * frac;
+      var sup = (ci.sup >= 0 ? p.money(r[ci.sup]) : 0) * frac;
       var who = ci.empName >= 0 ? String(r[ci.empName] || "").trim() : "";
       var note = ci.notes >= 0 ? String(r[ci.notes] || "").toLowerCase() : "";
 
@@ -341,11 +449,11 @@
                  (!x.note || note.indexOf(x.note) >= 0);
         })[0];
         if (a && a.hours > 0) {
-          units = a.hours; kind = a.kind; reallocated++;
+          units = a.hours * frac; kind = a.kind; reallocated++;
           if (a.loc && locMap[a.loc]) { locName = a.loc; loc = locMap[a.loc]; }
         }
       }
-      lines++;
+      if (frac === 1 || mk === Object.keys(share || {})[0]) lines++;
       var key = mk + "|" + loc.dept;
       var b = bucket[key] || (bucket[key] = { month: mk, dept: loc.dept, chargeable: 0, nonChargeable: 0, leave: 0, publicHoliday: 0 });
       if (kind === "work") b[loc.chargeable ? "chargeable" : "nonChargeable"] += units;
@@ -364,7 +472,7 @@
       s.gross += gross; s.sup += sup;
       var emp = p.guessEmployment(catName);
       if (emp) s.employment = emp;
-    });
+    }
     function r2(v) { return Math.round(v * 100) / 100; }
     var utilRows = Object.keys(bucket).sort().map(function (k) {
       var b = bucket[k];
@@ -380,7 +488,8 @@
               cols: ["month", "dept", "chargeable", "nonChargeable", "leave", "publicHoliday", "fte"], rows: utilRows },
       staff: { meta: { seed: false, built: today(), source: "03 Employment Hero Earnings.xlsx" },
                cols: ["month", "empId", "name", "dept", "chargeable", "nonChargeable", "leave", "publicHoliday", "grossCents", "superCents", "employment"], rows: staffRows },
-      lines: lines, newLocations: newLocs, newCategories: newCats, usedFallback: usedFallback,
+      lines: lines, newLocations: newLocs, newCategories: newCats, usedFallback: usedFallback, spread: spread,
+      blocks: blocks.map(function (b) { return { from: b.min, to: b.max, lines: b.rows.length }; }),
       reallocated: reallocated, payOnly: payOnly,
     };
   };
@@ -845,8 +954,15 @@
     var glWb = wbOf("gl");
     if (glWb) {
       try {
-        var tg = B.table(glWb, "GL");
-        var gl = C.gl(tg);
+        var gl;
+        function detailHead(h) { return colIndex(h, ["runningbalance"]) >= 0 && colIndex(h, ["date"]) >= 0 && colIndex(h, ["debit"]) >= 0; }
+        var td = B.table(glWb, "GL", { minFilled: 1, findHead: detailHead });
+        var tg = td ? null : B.table(glWb, "GL");
+        if (td) {
+          gl = C.glDetail(td);
+          var bs = Object.keys(gl.skipped);
+          check("warn", "Ledger", "This is Xero's General Ledger Detail report, not the Account transactions for P&L analysis report. It carries no cost centres or job numbers, so nothing can be coded to a department: every departmental page reads as unallocated until the custom report is pasted instead. " + bs.length + " balance sheet accounts skipped.");
+        } else gl = C.gl(tg);
         outputs["CTS_gl_data.js"] = "window.CTS_GL = " + JSON.stringify(gl.payload) + ";\n";
         results.gl = gl.payload;
         check(gl.payload.rows.length ? "ok" : "fail", "Ledger", gl.payload.rows.length + " lines read" + (gl.bad ? ", " + gl.bad + " skipped for no date or account" : "") + ".");
@@ -881,7 +997,7 @@
         if (gl.autoCoded) check("info", "Ledger", gl.autoCoded + " Stripe fee lines with no cost centre coded to Admin, the way the analysis file does it by hand.");
         if (gl.noContact) check("warn", "Ledger", gl.noContact + " revenue lines carry no contact, so they cannot reach a client on the schedule or the top clients list. They count in the department's new business line.");
         var noDept = gl.payload.rows.filter(function (r) { return E().resolveDept(r[8], r[6]) === "UNALLOCATED"; }).length;
-        if (noDept) check("warn", "Ledger", noDept + " lines carry no department. Set the cost centre in Xero.");
+        if (noDept && !gl.detail) check("warn", "Ledger", noDept + " lines carry no department. Set the cost centre in Xero.");
         results.glRows = gl.payload.rows;
       } catch (e) { check("fail", "Ledger", e.message); }
     } else check("fail", "Ledger", "02 Xero GL Transactions.xlsx not found.");
@@ -890,7 +1006,7 @@
     var ehWb = wbOf("earnings");
     if (ehWb) {
       try {
-        var te = B.table(ehWb, "Earnings");
+        var te = B.table(ehWb, "Earnings", { minFilled: 1 });
         var locs = (B.table(ehWb, "Locations") || { rows: [] }).rows;
         var cats = (B.table(ehWb, "Pay categories") || { rows: [] }).rows;
         var adjs = (B.table(ehWb, "Adjustments") || { rows: [] }).rows;
@@ -903,7 +1019,9 @@
         if (nl.length) check("warn", "Earnings", nl.length + " locations not on the Locations tab, guessed from the bracket tag: " + nl.slice(0, 4).join("; ") + (nl.length > 4 ? " and others" : "") + ". Add them to the tab to make the guess stick.");
         var nc = Object.keys(eh.newCategories);
         if (nc.length) check("warn", "Earnings", nc.length + " pay categories not on the Pay categories tab, guessed from the name: " + nc.slice(0, 4).join("; ") + ".");
-        if (eh.usedFallback) check("info", "Earnings", eh.usedFallback + " lines had no date in their note and were put in " + reportingMonth + ".");
+        if (eh.blocks.length) check("info", "Earnings", eh.blocks.length + " pay run" + (eh.blocks.length > 1 ? "s" : "") + ": " + eh.blocks.map(function (b) { return (b.from || "?") + " to " + (b.to || "?"); }).join(", ") + ".");
+        if (eh.spread) check("info", "Earnings", eh.spread + " lines had no date in their note (salaried hours, allowances) and were spread over their pay run's weekdays by month.");
+        if (eh.usedFallback > eh.spread) check("warn", "Earnings", (eh.usedFallback - eh.spread) + " undated lines in a pay run with no dated lines at all were put in " + reportingMonth + ".");
       } catch (e) { check("fail", "Earnings", e.message); }
     } else check("info", "Earnings", "03 Employment Hero Earnings.xlsx not found; keeping the current hours.");
 

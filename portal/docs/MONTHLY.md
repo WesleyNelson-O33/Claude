@@ -11,8 +11,8 @@ a straight paste; the Read me tab in each file says exactly what to run.
 | Template | Run in | Paste |
 |---|---|---|
 | 01 Xero P&L | Xero, Profit and Loss, year to date, one column per month | The account rows, whole year to date each time |
-| 02 Xero GL Transactions | Xero, the saved custom report Account transactions for P&L analysis, from 1 July, sorted by account code | All thirteen columns, whole year to date |
-| 03 Employment Hero Earnings | Employment Hero, Earnings Details, each pay run | Whole export including its title row, one pay run under the last |
+| 02 Xero GL Transactions | Xero, the saved custom report Account transactions for P&L analysis, from 1 July, sorted by account code | All thirteen columns, whole year to date. Xero's standard General Ledger Detail report is accepted as a fallback, pasted whole from A1, but it carries no cost centres or job numbers so nothing is coded to a department |
+| 03 Employment Hero Earnings | Employment Hero, Earnings Details, each pay run, or the Earnings Details tab of each Pay Run Audit report (same columns) | Whole export including its title row, one pay run under the last. Lines with no date in the note are spread over their pay run's weekdays by month |
 | 04 Zoho Deals | Zoho CRM, Reports, All Deals by Stage (FY26-FY27), export to Excel | The whole sheet pasted from A1, title rows and all. Matched to the real report |
 | 05 OnRent Orders | OnRent, orders list | Placeholder shape until a real export is matched |
 | 06 Qwilr Quotes | Qwilr, quotes list | Placeholder shape until a real export is matched |
