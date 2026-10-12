@@ -6,7 +6,7 @@ apply(wb) adds to a tracker workbook:
   * 'Won Overrides' - the few things Zoho cannot tell us, keyed by Opportunity Number so they survive every
                       new dump: cost centre (Multi-Service deals), expected invoice month, notes.
   * Work Won        - every column is a formula off the two sheets above. Nothing is typed there any more.
-  * Lists AD:AE     - Zoho department -> cost centre.
+  * Lists AG:AH     - Zoho department -> cost centre.
 
 Used by build_tracker.py (new builds) and patch_zoho_feed.py (existing filled trackers).
 """
@@ -79,24 +79,24 @@ def _title(ws, title, sub, width_cols):
 # ------------------------------------------------------------------ Lists
 def _lists(wb):
     ws = wb["Lists"]
-    ws["AD4"], ws["AE4"] = "Zoho CTS Department", "Cost Centre"
-    for c in ("AD4", "AE4"):
+    ws["AG4"], ws["AH4"] = "Zoho CTS Department", "Cost Centre"
+    for c in ("AG4", "AH4"):
         ws[c].font = Font(name=FONT, size=10, bold=True, color="FFFFFF")
         ws[c].fill = FILL_TITLE
     for i in range(8):
         dept, cc = ZOHO_DEPT_CC[i] if i < len(ZOHO_DEPT_CC) else (None, None)
-        for col, v in ((30, dept), (31, cc)):
+        for col, v in ((33, dept), (34, cc)):
             c = ws.cell(5 + i, col, v)
             c.font = Font(name=FONT, size=10)
             c.fill = FILL_FIN
             c.protection = Protection(locked=False)
-    ws["AD14"] = ("Maps Zoho's CTS DEPARTMENT to a tracker cost centre for Work Won. Multi-Service has no single "
+    ws["AG14"] = ("Maps Zoho's CTS DEPARTMENT to a tracker cost centre for Work Won. Multi-Service has no single "
                   "cost centre - set it per deal on Won Overrides. Add a row if Zoho gets a new department.")
-    ws["AD14"].font = Font(name=FONT, size=9, italic=True, color="595959")
-    ws.column_dimensions["AD"].width = 22
-    ws.column_dimensions["AE"].width = 14
-    _name(wb, "lst_ZohoDept", "Lists!$AD$5:$AD$12")
-    _name(wb, "lst_ZohoCC", "Lists!$AE$5:$AE$12")
+    ws["AG14"].font = Font(name=FONT, size=9, italic=True, color="595959")
+    ws.column_dimensions["AG"].width = 22
+    ws.column_dimensions["AH"].width = 14
+    _name(wb, "lst_ZohoDept", "Lists!$AG$5:$AG$12")
+    _name(wb, "lst_ZohoCC", "Lists!$AH$5:$AH$12")
 
 
 # ------------------------------------------------------------ Zoho Paste
