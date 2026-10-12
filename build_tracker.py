@@ -49,6 +49,7 @@ spec = [
  ("check", "Data Check", 30, "out", ""),
  ("mdays", "Earned this month (days)", 10, "eh", "days whose milestone falls in the accrual month"), ("mdate", "Milestone this month", 11, "eh", "date of that milestone"),
  ("prescheme", "Days excluded (before scheme start)", 11, "eh", "milestones before 27/11/2017 - earn nothing"),
+ ("over", "Over-accrued in EH (hrs)", 11, "eh", "hours EH has credited above the scheme entitlement (0 = none)"),
  ("accept", "Accept EH balance to date?", 11, "in", "Yes = keep what EH holds; accrue forward only"),
  ("note", "Notes", 60, "in", "free text - reconciliation notes, HR decisions"),
  # helpers
@@ -70,7 +71,7 @@ first_help = C["h_act"]; last_help = C["h_ds"]
 ws["A1"] = "CTS BONUS LEAVE TRACKER"; ws["A1"].font = f_title
 ws["A2"] = (f'="ACCRUING FOR "&UPPER(TEXT(AsOfDate,"mmmm yyyy"))&"  |  As at "&TEXT(AsOfDate,"dd/mm/yyyy")&" (change in D1)"&"  |  Report from "&TEXT(PFYDate+1,"dd/mm/yyyy")&"  |  Staff: "&COUNTIF(${C["h_act"]}$5:${C["h_act"]}${R1},1)'
             f'&"  |  Accruing: "&COUNTIF(${C["elig"]}$5:${C["elig"]}${R1},"Yes*")&"  |  To accrue now: "&ROUND(SUMIF(${C["toacc"]}$5:${C["toacc"]}${R1},">0"),2)&""'
-            f'&" hrs for "&COUNTIF(${C["accq"]}$5:${C["accq"]}${R1},"Yes")&" people  |  Earned this month: "&ROUND(SUM(${C["mdays"]}$5:${C["mdays"]}${R1}),2)&" days"')
+            f'&" hrs for "&COUNTIF(${C["accq"]}$5:${C["accq"]}${R1},"Yes")&" people  |  Earned this month: "&ROUND(SUM(${C["mdays"]}$5:${C["mdays"]}${R1}),2)&" days  |  Over-accrued in EH: "&COUNTIF(${C["over"]}$5:${C["over"]}${R1},">0")&" people, "&ROUND(SUMIF(${C["over"]}$5:${C["over"]}${R1},">0"),2)&" hrs"')
 ws["C1"] = "ACCRUAL MONTH (type the month-end date):"; ws["C1"].font = f_bold; ws["C1"].alignment = Alignment(horizontal="right")
 ws["D1"] = dt.date(2026, 9, 30); ws["D1"].number_format = DATE; ws["D1"].font = Font(name=F, size=11, bold=True, color="0000FF"); ws["D1"].fill = PatternFill("solid", fgColor="FFFF00"); ws["D1"].border = border
 ws["E1"] = "Everything in the workbook is calculated as at this date: EARNED THIS MONTH = days whose milestone falls in that month. HOURS TO ACCRUE = everything still missing in EH (this month + any earlier months not yet posted). To see who you accrued for in a month, set the month here and filter Earned this month > 0."
@@ -186,12 +187,13 @@ def formulas(r):
                   f'IF({c("h_rows")}=0,{c("hrs_due")},IF(MAX(0,{c("h_dp")}-{c("h_ds")})=0,{c("hrs_due")}-N({c("open")})-N({c("acc")}),{c("due")}-N({c("acc")}))))))')
     f["accq"] = f'=IF(OR({A},{c("toacc")}=""),"",IF({c("toacc")}>0,"Yes","No"))'
     f["gap"] = f'=IF(OR({A},{c("open")}=""),"",MAX(0,{c("h_dp")}-{c("h_ds")})*HoursPerDay-{c("open")})'
+    f["over"] = (f'=IF({A},"",IF(NOT(LH_Ready),"",IF({c("h_rows")}=0,0,MAX(0,ROUND(IF(MAX(0,{c("h_dp")}-{c("h_ds")})=0,N({c("open")})+N({c("acc")})-{c("hrs_due")},N({c("acc")})-{c("due")}),2)))))')
     f["rows"] = f'=IF({A},"",{c("h_rows")})'
     X = c("toacc"); N_ = c("days_due"); Rw = c("h_rows"); Mh = c("hrs_due")
     f["action"] = (f'=IF({A},IF(LEN($A{r}&$B{r})=0,"","FIX INPUT - StartDate missing"),'
                    f'IF({c("check")}<>"","FIX INPUT - "&{c("check")},'
                    f'IF(NOT(LH_Ready),"Paste Leave History export (Settings must show YES)",'
-                   f'IF(AND(${C["accept"]}{r}="Yes",{X}<=0),"OK - EH balance accepted to date; next day "&TEXT({c("next")},"dd mmm yy")&IF(N({c("mdays")})>0," ("&{c("mdays")}&" day(s) for "&UPPER(TEXT(AsOfDate,"mmm yyyy"))&" already in EH)",""),'
+                   f'IF(AND(${C["accept"]}{r}="Yes",{X}<=0),"OK - EH balance accepted to date"&IF(N({c("over")})>0," (EH holds "&{c("over")}&" hrs over the scheme)","")&"; next day "&TEXT({c("next")},"dd mmm yy")&IF(N({c("mdays")})>0," ("&{c("mdays")}&" day(s) for "&UPPER(TEXT(AsOfDate,"mmm yyyy"))&" already in EH)",""),'
                    f'IF({X}>0,"ACCRUE "&ROUND({X},2)&" hrs ("&ROUND({X}/HoursPerDay,2)&" days): "&IF(N({c("mdays")})>0,{c("mdays")}&" day(s) for "&UPPER(TEXT(AsOfDate,"mmm yyyy"))&" (milestone "&UPPER(TEXT({c("mdate")},"dd mmm yy"))&")"&IF({X}/HoursPerDay>{c("mdays")}+0.001," + "&ROUND({X}/HoursPerDay-{c("mdays")},2)&" day(s) catch-up from earlier months",""),"all catch-up from earlier months, nothing new this month")&IF({Rw}=0,"; no Bonus Leave in EH yet",""),'
                    f'IF({X}<0,"CHECK - EH accrued "&ROUND(-{X},2)&" hrs more than policy since commencement",'
                    f'IF(N({c("close")})>{N_}*HoursPerDay+0.01,"CHECK - EH balance "&ROUND({c("close")}-{N_}*HoursPerDay,2)&" hrs more than policy entitlement",'
@@ -218,7 +220,7 @@ for r in range(R0, R1 + 1):
         else:
             cell.fill = fill_calc; cell.font = f_norm; cell.value = fr[k]
     for k in ("dob", "bday", "start", "pte", "fte", "cas", "anniv_in", "anniv", "next", "mdate", "h_S", "h_D1", "h_D2", "h_D3"): ws[f"{C[k]}{r}"].number_format = DATE
-    for k in ("hrs_due", "days_due", "pthrs", "open", "acc", "taken", "close", "due", "toacc", "gap", "mdays", "prescheme"): ws[f"{C[k]}{r}"].number_format = NUM
+    for k in ("hrs_due", "days_due", "pthrs", "open", "acc", "taken", "close", "due", "toacc", "gap", "mdays", "prescheme", "over"): ws[f"{C[k]}{r}"].number_format = NUM
     ws[f"{C['ten']}{r}"].number_format = "0.0"
 
 dv = DataValidation(type="list", formula1='"Full-Time,Part-Time,Casual"', allow_blank=True); ws.add_data_validation(dv); dv.add(f"{C['type']}{R0}:{C['type']}{R1}")
@@ -228,6 +230,7 @@ ws.auto_filter.ref = f"A4:{C['check']}{R1}"
 ac = C["action"]
 ws.conditional_formatting.add(f"{ac}{R0}:{ac}{R1}", FormulaRule(formula=[f'LEFT({ac}{R0},6)="ACCRUE"'], fill=PatternFill("solid", fgColor="FCE4D6"), font=Font(name=F, size=10, bold=True, color="C00000")))
 ws.conditional_formatting.add(f"{ac}{R0}:{ac}{R1}", FormulaRule(formula=[f'LEFT({ac}{R0},5)="CHECK"'], fill=PatternFill("solid", fgColor="FFC7CE"), font=Font(name=F, size=10, bold=True, color="9C0006")))
+ov = C["over"]; ws.conditional_formatting.add(f"{ov}{R0}:{ov}{R1}", FormulaRule(formula=[f'N({ov}{R0})>0'], fill=PatternFill("solid", fgColor="FFC7CE"), font=Font(name=F, size=10, bold=True, color="9C0006")))
 ws.conditional_formatting.add(f"{ac}{R0}:{ac}{R1}", FormulaRule(formula=[f'LEFT({ac}{R0},3)="FIX"'], fill=PatternFill("solid", fgColor="FFC7CE"), font=Font(name=F, size=10, bold=True, color="9C0006")))
 ws.conditional_formatting.add(f"{ac}{R0}:{ac}{R1}", FormulaRule(formula=[f'LEFT({ac}{R0},2)="OK"'], fill=PatternFill("solid", fgColor="C6EFCE"), font=Font(name=F, size=10, color="006100")))
 for k, test, color in (("accq", '="Yes"', "FCE4D6"), ("mdays", '>0', "FCE4D6"), ("elig", 'LEFT(X,3)="Yes"', "C6EFCE"), ("chg", '<>""', "FFEB9C"), ("check", '<>""', "FFC7CE")):
@@ -367,7 +370,7 @@ notes = [
  "5. Leave History tab: run the EH Leave History Report from the first day of business to today and paste it at A1 (headers in row 1). On this tab set the day BEFORE the report start date. A full-history report is what makes the reconciliation clean: leave taken is then fully accounted for.",
  "6. The red columns on Staff then read straight from the report: Opening Balance (a loaded balance, normally 0), Leave Accrued (everything EH has credited), Leave Taken, Closing Balance (balance now), Due per policy (policy accrual from the report start to today), Hours to Accrue (= policy entitlement - opening balance - EH accrued), Add to EH now? and an Action.",
  "6b. Accept EH balance to date? (column after Notes block): type Yes for anyone whose EH balance has been agreed as correct even though it differs from the policy entitlement (e.g. long-serving staff credited from 2017 on their old anniversary). The sheet then stops comparing history and only checks that each new milestone is posted. Leave blank for everyone else.",
- "7. Filter the Action column: FIX INPUT = a problem with what was typed. ACCRUE = add those hours in EH now. CHECK = EH has credited more than the policy allows (an HR decision, not a formula problem). OK = nothing to add. Not eligible / Not yet = no accrual due and why. If a person has no Bonus Leave rows in EH at all, Hours to Accrue is their full policy entitlement.",
+ "7. OVER-ACCRUED IN EH (hrs) shows, for everyone, how many hours EH has credited above the scheme entitlement to date (0 = none). It stays visible even when Accept EH balance = Yes, so filter it > 0 to list the over-accruals. Filter the Action column: FIX INPUT = a problem with what was typed. ACCRUE = add those hours in EH now. CHECK = EH has credited more than the policy allows (an HR decision, not a formula problem). OK = nothing to add. Not eligible / Not yet = no accrual due and why. If a person has no Bonus Leave rows in EH at all, Hours to Accrue is their full policy entitlement.",
  "8b. Milestones tab: pick one person and see every milestone date, the type they were on that date and the days earned. All Staff Breakdown tab: the same for everyone, one line per person, so you can show how any number was reached.",
  "8. Opening gap vs policy only matters if you run a report that starts mid-way (e.g. from 1 July). It is then policy hours at the report start minus the opening balance, which mixes leave taken before the start with accruals never posted. With a full-history report it is 0.",
  "",
