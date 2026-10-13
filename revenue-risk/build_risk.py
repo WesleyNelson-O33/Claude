@@ -100,7 +100,7 @@ title(st, "Settings", "Yellow cells are inputs. Change these when the month or t
 S = {}
 rows = [
     ("Financial year starts", dt.date(2026, 7, 1), "dd/mm/yyyy", "Australian financial year, 1 July."),
-    ("Last month of P&L actuals (month end)", dt.date(2026, 9, 30), "dd/mm/yyyy",
+    ("Last month of P&L actuals (month end)", dt.date(2026, 8, 31), "dd/mm/yyyy",
      "Update each month after the P&L is final. Zoho deals closing after this date count as future revenue."),
     ("Financial year ends", "=EDATE(B4,12)-1", "dd/mm/yyyy", "Formula."),
     ("First forecast month", "=EOMONTH(B5,0)+1", "dd/mm/yyyy", "Formula."),
@@ -182,13 +182,14 @@ head(st, 53, 1, ["Risk rating test", "Medium from", "High from"])
 note(st, 52, "Thresholds are placeholders. Management should set them.", bold=True, color="C00000")
 thr = [("Forecast short of budget by", 0.0, 0.10),
        ("Largest customer share of forward revenue", 0.25, 0.40),
-       ("Share of forward revenue that is pipeline, not contracted", 0.30, 0.50)]
+       ("Share of forward revenue that is pipeline, not contracted", 0.30, 0.50),
+       ("Share of revenue to date that is non-contract", 0.50, 0.75)]
 for i, (lab, m, h) in enumerate(thr):
     r = 54 + i
     put(st, r, 1, lab)
     put(st, r, 2, m, PCT, fill=INPUT, color="0000FF")
     put(st, r, 3, h, PCT, fill=INPUT, color="0000FF")
-note(st, 58, "Forecast short of budget: medium if the forecast is below budget at all, high if it is more than 10% below.")
+note(st, 59, "Forecast short of budget: medium if the forecast is below budget at all, high if it is more than 10% below.")
 widths(st, {"A": 44, "B": 18, "C": 70, "D": 14, "E": 3, "F": 20, "G": 16})
 
 # ---------------------------------------------------------------- Zoho Dump
@@ -300,12 +301,12 @@ for r_i, row in enumerate(gl.iter_rows(values_only=True), start=1):
 GL_LOADED = nrow
 for col, w in zip("ABCDEFGHIJKLM", [8, 9, 26, 16, 11, 30, 10, 10, 30, 12, 16, 30, 13]):
     pd_.column_dimensions[col].width = w
-PH = dict(code="P", amt="Q", month="R", cat="S", dept="T")
+PH = dict(code="P", amt="Q", month="R", cat="S", dept="T", sub="U")
 pfind = dict(code="Account Code", amt=None, month="Date", cat=None, dept="Cost Centres")
 pd_["AC1"] = "Columns P to T and V to AA are formulas. Do not type there. V1 to AA1 find Account Code, Date, Debit, Credit, Job Numbers and Cost Centres in row 1."
 pd_["AC1"].font = Font(name=ARIAL, size=9, bold=True, color="C00000")
 for k, lab in (("code", "Account code"), ("amt", "Income amount (credit less debit)"),
-               ("month", "Month"), ("cat", "Category"), ("dept", "P&L department")):
+               ("month", "Month"), ("cat", "Category"), ("dept", "P&L department"), ("sub", "Income subcategory")):
     c = pd_[f"{PH[k]}1"]
     c.value = lab
     c.font = Font(name=ARIAL, size=9, bold=True, color="FFFFFF")
@@ -330,6 +331,7 @@ for r in range(PF, PL + 1):
         "Q": f'=IF(S{r}="Income",N({g("Y")})-N({g("X")}),0)',
         "R": f'=IF(OR(P{r}="",NOT(ISNUMBER({g("W")}))),"",DATE(YEAR({g("W")}),MONTH({g("W")}),1))',
         "T": f'=IF(P{r}="","",IFERROR(INDEX({TAG_D},MATCH(IF({cc}<>"",{cc},{tag}),{TAG_N},0))&"","Unallocated"))',
+        "U": f'=IF(S{r}="Income",IFERROR(INDEX(\'Account Map\'!$D:$D,MATCH(P{r},\'Account Map\'!$A:$A,0))&"",""),"")',
     }
     for col, v in fm.items():
         c = pd_[f"{col}{r}"]
@@ -343,21 +345,22 @@ P = lambda k: f"'P&L Dump'!${PH[k]}${PF}:${PH[k]}${PL}"
 am = wb.create_sheet("Account Map")
 title(am, "Account Map", "Copied from the account master on the Lists sheet of the CTS Financial Controller Pack. Only Income accounts count as revenue.")
 note(am, 3, "If a new Xero account appears, add it here with its category or its lines are ignored.", color="C00000", bold=True)
-head(am, 4, 1, ["Account code", "Account name", "Category"])
+head(am, 4, 1, ["Account code", "Account name", "Category", "Subcategory"])
 lst = load_workbook(PACK, read_only=True)["Lists"]
 n_acc = 0
-for row in lst.iter_rows(min_row=6, max_col=3, values_only=True):
+for row in lst.iter_rows(min_row=6, max_col=4, values_only=True):
     if row[0] is None:
         continue
     r = 5 + n_acc
     put(am, r, 1, str(row[0]))
     put(am, r, 2, row[1])
     put(am, r, 3, row[2], fill=INPUT, color="0000FF")
+    put(am, r, 4, row[3], fill=INPUT, color="0000FF")
     n_acc += 1
 for r in range(5 + n_acc, 5 + n_acc + 30):
-    for c in range(1, 4):
+    for c in range(1, 5):
         put(am, r, c, None, fill=INPUT, color="0000FF")
-widths(am, {"A": 14, "B": 40, "C": 16})
+widths(am, {"A": 14, "B": 40, "C": 16, "D": 26})
 am.freeze_panes = "A5"
 
 # ---------------------------------------------------------------- Adjustments
@@ -626,7 +629,7 @@ dcols = ["Department", "Actual to date (P&L)", "Backlog, signed", "Pipeline, ful
          "Pipeline share of forward revenue", "If pipeline falls through", "Revenue at risk from pipeline",
          "Lost if selected customers withdraw", "Forecast after withdrawals", "Worst case: both",
          "Largest customer", "Largest customer share", "Overdue Zoho deals, full value",
-         "Won to date in Zoho (reference)", "Risk rating"]
+         "Won to date in Zoho (reference)", "Risk rating", "Contract share of actual to date"]
 head(db, T0 - 1, 1, dcols)
 db.row_dimensions[T0 - 1].height = 58
 MO = "'Monthly Outlook'"
@@ -656,7 +659,10 @@ for i, d in enumerate(DEPTS):
         17: f"=IF(SUM({CR(ccol)})=0,0,MAX({CR(ccol)})/SUM({CR(ccol)}))",
         18: "=" + both("amt", ("dept", dref), ("cat", '"Overdue"')),
         19: f'=SUMIFS({Z("amt")},{Z("dept")},{dref},{Z("cat")},"Delivered",{Z("close")},">="&{FYSTART})',
-        20: f'=IF(AND(B{r}=0,F{r}=0),"-",CHOOSE(MAX(V{r}:X{r})+1,"Low","Medium","High"))',
+        20: f'=IF(AND(B{r}=0,F{r}=0),"-",CHOOSE(MAX(V{r}:Y{r})+1,"Low","Medium","High"))',
+        21: f'=IF(B{r}=0,0,SUMIFS({P("amt")},{P("dept")},$A{r},{P("sub")},"Contract Income",{P("month")},"<="&{ASAT})/B{r})',
+        25: f"=IF(B{r}=0,0,IF(1-U{r}>=Settings!$C$57,2,IF(1-U{r}>=Settings!$B$57,1,0)))",
+        26: f'=IF(T{r}="-",-1,MAX(V{r}:Y{r}))',
         22: (f'=IFERROR(IF(INDEX($J$10:$J$12,MATCH(G{r},$E$10:$E$12,0))=0,0,'
              f'IF(INDEX($I$10:$I$12,MATCH(G{r},$E$10:$E$12,0))<INDEX($J$10:$J$12,MATCH(G{r},$E$10:$E$12,0))*(1-Settings!$C$54),2,'
              f'IF(INDEX($I$10:$I$12,MATCH(G{r},$E$10:$E$12,0))<INDEX($J$10:$J$12,MATCH(G{r},$E$10:$E$12,0))*(1-Settings!$B$54),1,0))),0)'),
@@ -664,12 +670,12 @@ for i, d in enumerate(DEPTS):
         24: f"=IF(J{r}>=Settings!$C$56,2,IF(J{r}>=Settings!$B$56,1,0))",
     }
     for c, v in fm.items():
-        fmt = PCT if c in (9, 10, 17) else (None if c in (1, 7, 16, 20) else MONEY)
+        fmt = PCT if c in (9, 10, 17, 21) else (None if c in (1, 7, 16, 20) else MONEY)
         cell = put(db, r, c, v, fmt, bold=(c in (1, 20)))
         if c >= 22:
             cell.font = Font(name=ARIAL, size=8, color=MUTED)
 put(db, TT, 1, "Total", bold=True, fill=TOTAL)
-for c in range(2, 21):
+for c in range(2, 22):
     L_ = CL(c)
     if c in (2, 3, 4, 5, 6, 11, 12, 13, 14, 15, 18, 19):
         v = f"=SUM({L_}{T0}:{L_}{T1})"
@@ -679,14 +685,17 @@ for c in range(2, 21):
         v = "=L13"
     elif c == 10:
         v = f"=IF(C{TT}+E{TT}=0,0,E{TT}/(C{TT}+E{TT}))"
+    elif c == 21:
+        v = f"=IF(B{TT}=0,0,SUMPRODUCT(B{T0}:B{T1},U{T0}:U{T1})/B{TT})"
     elif c == 16:
         v = "=B37"
     elif c == 17:
         v = "=F37"
     else:
         v = None
-    put(db, TT, c, v, PCT if c in (9, 10, 17) else MONEY, bold=True, fill=TOTAL)
-for col, txt in (("V", "Budget score"), ("W", "Concentration score"), ("X", "Pipeline score")):
+    put(db, TT, c, v, PCT if c in (9, 10, 17, 21) else MONEY, bold=True, fill=TOTAL)
+for col, txt in (("V", "Budget score"), ("W", "Concentration score"), ("X", "Pipeline score"),
+                 ("Y", "Non-contract score"), ("Z", "Overall score")):
     db[f"{col}{T0-1}"] = txt
     db[f"{col}{T0-1}"].font = Font(name=ARIAL, size=8, color=MUTED)
 rng = f"T{T0}:T{T1}"
@@ -739,9 +748,214 @@ for i, (lab, v, s_) in enumerate(checks):
 db.conditional_formatting.add("C51:C62", FormulaRule(formula=['LEFT($C51,2)<>"OK"'], font=Font(name=ARIAL, bold=True, color="C00000")))
 widths(db, {"A": 30, "B": 24, **{CL(c): 13 for c in range(3, 21)}, "P": 26, "T": 11})
 db.column_dimensions["B"].width = 26
-for col in ("V", "W", "X"):
+for col in ("V", "W", "X", "Y", "Z"):
     db.column_dimensions[col].hidden = True
+db.column_dimensions["U"].width = 13
 db.freeze_panes = "B1"
+
+# ---------------------------------------------------------------- Risk Summary
+# One page for management, in the style of the mock-up: tiles, contract split
+# chart, budget table, rest of year table and the key risks in plain words.
+from openpyxl.chart import BarChart, Reference
+from openpyxl.chart.label import DataLabelList
+from openpyxl.chart.shapes import GraphicalProperties
+
+TEAL, RED, INK, GREY_TXT, TILE = "0B5553", "E63946", "1A1A1A", "595959", "F2F2F2"
+rs = wb.create_sheet("Risk Summary")
+rs.sheet_view.showGridLines = False
+for c in range(1, 17):
+    rs.column_dimensions[CL(c)].width = 10.5
+rs.column_dimensions["A"].width = 2
+rs["B1"] = "Revenue risk profile"
+rs["B1"].font = Font(name=ARIAL, size=26, bold=True, color=INK)
+rs["B2"] = f'="FY27. P&L actuals to "&TEXT({ASAT},"dd/mm/yyyy")&". Zoho pipeline as exported "&MID(\'Zoho Dump\'!$A$3,FIND(" on ",\'Zoho Dump\'!$A$3)+4,10)&". A$ thousands unless shown."'
+rs["B2"].font = Font(name=ARIAL, size=10, color=GREY_TXT)
+DB = "Dashboard"
+DT = f"{DB}!$A${T0}:$A${T1}"
+
+
+def tile(col0, value, fmt, color, label):
+    c1, c2 = CL(col0), CL(col0 + 2)
+    rs.merge_cells(f"{c1}4:{c2}5")
+    rs.merge_cells(f"{c1}6:{c2}7")
+    for r in range(4, 8):
+        for c in range(col0, col0 + 3):
+            rs.cell(row=r, column=c).fill = PatternFill("solid", fgColor=TILE)
+    v = rs[f"{c1}4"]
+    v.value = value
+    v.number_format = fmt
+    v.font = Font(name=ARIAL, size=26, bold=True, color=color)
+    v.alignment = Alignment(horizontal="left", vertical="bottom", indent=1)
+    l_ = rs[f"{c1}6"]
+    l_.value = label
+    l_.font = Font(name=ARIAL, size=10, color=GREY_TXT)
+    l_.alignment = Alignment(horizontal="left", vertical="top", wrap_text=True, indent=1)
+
+
+tile(2, f"={DB}!$U${TT}", "0%", TEAL, "Contracted revenue to date. Recurring and secured.")
+tile(6, f"=IF({DB}!$B${TT}=0,0,1-{DB}!$U${TT})", "0%", RED, "Non-contract revenue to date. Has to be won again every month.")
+tile(10, f"={DB}!$Q${TT}", "0%", RED, f'="Of forward revenue sits with one customer: "&{DB}!$P${TT}')
+tile(14, f'=COUNTIF({DB}!$T${T0}:$T${T1},"High")+COUNTIF({DB}!$T${T0}:$T${T1},"Medium")', "0", INK,
+     "Departments flagged Medium or High risk")
+for r in (4, 5, 6, 7):
+    rs.row_dimensions[r].height = 22
+
+# Chart data, out of sight to the right
+CHART_DEPTS = ["Onsite", "Production", "Video", "Integration", "Consulting"]
+rs["T9"], rs["U9"], rs["V9"] = "Department", "Contract", "Non-contract"
+for i, d in enumerate(CHART_DEPTS):
+    r = 10 + i
+    k = DEPTS.index(d)
+    rs[f"T{r}"] = d
+    rs[f"U{r}"] = f"=ROUND({DB}!$B${T0+k}*{DB}!$U${T0+k}/1000,0)"
+    rs[f"V{r}"] = f"=ROUND({DB}!$B${T0+k}*(1-{DB}!$U${T0+k})/1000,0)"
+for c in ("T", "U", "V"):
+    rs.column_dimensions[c].hidden = True
+ch = BarChart()
+ch.type = "bar"
+ch.grouping = "stacked"
+ch.overlap = 100
+ch.gapWidth = 40
+ch.title = "Revenue to date by department, contract and non-contract, A$ thousands"
+ch.add_data(Reference(rs, min_col=21, max_col=22, min_row=9, max_row=9 + len(CHART_DEPTS)), titles_from_data=True)
+ch.set_categories(Reference(rs, min_col=20, min_row=10, max_row=9 + len(CHART_DEPTS)))
+for ser, colr in zip(ch.series, (TEAL, RED)):
+    ser.graphicalProperties = GraphicalProperties(solidFill=colr)
+    ser.graphicalProperties.line.solidFill = colr
+    ser.dLbls = DataLabelList()
+    ser.dLbls.showVal = True
+    ser.dLbls.showSerName = False
+    ser.dLbls.showCatName = False
+    ser.dLbls.showLegendKey = False
+    ser.dLbls.numFmt = '#,##0;;'
+    from openpyxl.chart.text import RichText
+    from openpyxl.drawing.text import Paragraph, ParagraphProperties, CharacterProperties
+    ser.dLbls.txPr = RichText(p=[Paragraph(pPr=ParagraphProperties(defRPr=CharacterProperties(sz=1000, b=True, solidFill="FFFFFF")), endParaRPr=CharacterProperties())])
+ch.legend.position = "r"
+ch.y_axis.majorGridlines = None
+ch.y_axis.delete = False
+ch.x_axis.delete = False
+ch.visible_cells_only = False
+ch.height = 7.5
+ch.width = 30
+rs.add_chart(ch, "B9")
+
+# Budget table
+TB = 26
+heads_ = ["Revenue line against budget to date, A$ thousands", None, None, None, "Actual", "Budget", "Variance",
+          "Variance %", "Contract share", "Risk"]
+for j, h in enumerate(heads_):
+    c = rs.cell(row=TB, column=2 + j, value=h)
+    c.font = Font(name=ARIAL, size=10, bold=True, color="FFFFFF")
+    c.fill = PatternFill("solid", fgColor=INK)
+    c.alignment = Alignment(horizontal="left" if j == 0 else "right", vertical="center", wrap_text=True)
+rs.row_dimensions[TB].height = 32
+rs.merge_cells(start_row=TB, start_column=2, end_row=TB, end_column=5)
+LINE_DESC = {"Onsite": "Onsite", "Production": "Production, including Video", "Consulting": "Consulting, including Integration"}
+thinb = Border(bottom=Side(style="thin", color="D9D9D9"))
+for i, line in enumerate(BUD_LINES):
+    r = TB + 1 + i
+    dr = 10 + i
+    vals = {2: LINE_DESC[line],
+            6: f"={DB}!$F${dr}/1000",
+            7: f"={DB}!$G${dr}/1000",
+            8: f"=F{r}-G{r}",
+            9: f"=IF(G{r}=0,0,H{r}/G{r})",
+            10: (f"=IF({DB}!$F${dr}=0,0,SUMPRODUCT(({DB}!$G${T0}:$G${T1}=\"{line}\")*{DB}!$B${T0}:$B${T1}*{DB}!$U${T0}:$U${T1})/{DB}!$F${dr})"),
+            11: f'=CHOOSE(_xlfn.MAXIFS({DB}!$Z${T0}:$Z${T1},{DB}!$G${T0}:$G${T1},"{line}")+1,"Low","Medium","High")'}
+    for c in range(2, 12):
+        cell = rs.cell(row=r, column=c, value=vals.get(c))
+        cell.font = Font(name=ARIAL, size=11, bold=(c == 11))
+        cell.border = thinb
+        cell.alignment = Alignment(horizontal="left" if c == 2 else "right")
+        cell.number_format = {6: "#,##0", 7: "#,##0", 8: "+#,##0;-#,##0;0", 9: "+0.0%;-0.0%;0.0%", 10: "0%"}.get(c, "General")
+    rs.row_dimensions[r].height = 20
+    rs.merge_cells(start_row=r, start_column=2, end_row=r, end_column=5)
+tr_ = TB + 1 + len(BUD_LINES)
+for c in range(2, 12):
+    cell = rs.cell(row=tr_, column=c)
+    cell.font = Font(name=ARIAL, size=11, bold=True)
+    cell.border = Border(top=Side(style="thin", color=INK))
+    cell.alignment = Alignment(horizontal="left" if c == 2 else "right")
+rs.cell(row=tr_, column=2, value="Total")
+rs.cell(row=tr_, column=6, value=f"=SUM(F{TB+1}:F{tr_-1})").number_format = "#,##0"
+rs.cell(row=tr_, column=7, value=f"=SUM(G{TB+1}:G{tr_-1})").number_format = "#,##0"
+rs.cell(row=tr_, column=8, value=f"=F{tr_}-G{tr_}").number_format = "+#,##0;-#,##0;0"
+rs.cell(row=tr_, column=9, value=f"=IF(G{tr_}=0,0,H{tr_}/G{tr_})").number_format = "+0.0%;-0.0%;0.0%"
+rs.cell(row=tr_, column=10, value=f"={DB}!$U${TT}").number_format = "0%"
+note(rs, tr_ + 1, "Budget to date runs to the last P&L month on Settings. Contract share is Contract Income accounts in the account master.", col=2)
+
+# Rest of year table
+TY = tr_ + 3
+heads2 = ["Rest of the year by department, A$ thousands", None, None, "Signed so far", "Forecast for FY",
+          "Lost if no pipeline lands", "Lost if chosen customers go", "Largest customer", None, None, "Share", "Risk"]
+for j, h in enumerate(heads2):
+    c = rs.cell(row=TY, column=2 + j, value=h)
+    c.font = Font(name=ARIAL, size=10, bold=True, color="FFFFFF")
+    c.fill = PatternFill("solid", fgColor=INK)
+    c.alignment = Alignment(horizontal="left" if j in (0, 7) else "right", vertical="center", wrap_text=True)
+rs.row_dimensions[TY].height = 44
+for c_ in ("I", "J", "K"):
+    rs.column_dimensions[c_].width = 13
+rs.merge_cells(start_row=TY, start_column=2, end_row=TY, end_column=4)
+rs.merge_cells(start_row=TY, start_column=9, end_row=TY, end_column=11)
+for i, d in enumerate(DEPTS[:5]):
+    r = TY + 1 + i
+    k = DEPTS.index(d)
+    dr = T0 + k
+    vals = {2: d,
+            5: f"=({DB}!$B${dr}+{DB}!$C${dr})/1000",
+            6: f"={DB}!$F${dr}/1000",
+            7: f"={DB}!$L${dr}/1000",
+            8: f"={DB}!$M${dr}/1000",
+            9: f"={DB}!$P${dr}",
+            12: f"={DB}!$Q${dr}",
+            13: f"={DB}!$T${dr}"}
+    for c in range(2, 14):
+        cell = rs.cell(row=r, column=c, value=vals.get(c))
+        cell.font = Font(name=ARIAL, size=11, bold=(c == 13))
+        cell.border = thinb
+        cell.alignment = Alignment(horizontal="left" if c in (2, 9) else "right")
+        cell.number_format = {5: "#,##0", 6: "#,##0", 7: '#,##0;-#,##0;"-"', 8: '#,##0;-#,##0;"-"', 12: "0%"}.get(c, "General")
+    rs.row_dimensions[r].height = 20
+    rs.merge_cells(start_row=r, start_column=2, end_row=r, end_column=4)
+    rs.merge_cells(start_row=r, start_column=9, end_row=r, end_column=11)
+note(rs, TY + 6, "Signed so far is actuals plus Zoho Closed Won still to be delivered. Forecast adds open Zoho deals at their stage probability. "
+     "Customers to remove and the pipeline stress rate are set on the Dashboard.", col=2)
+
+# Key risks in plain words
+TK = TY + 8
+rs.cell(row=TK, column=2, value="What this means").font = Font(name=ARIAL, size=14, bold=True, color=INK)
+k_lines = [
+    f'="Revenue to date is "&TEXT({DB}!$F$13/1000,"#,##0")&" thousand against a budget of "&TEXT({DB}!$G$13/1000,"#,##0")&" thousand, "&IF({DB}!$H$13<0,"short by ","ahead by ")&TEXT(ABS({DB}!$H$13)/1000,"#,##0")&" thousand."',
+    f'=TEXT(1-{DB}!$U${TT},"0%")&" of revenue to date is non-contract. That work has to be won again every month, so it is the first to fall if the market slows."',
+    f'="Earned or signed so far is "&TEXT(({DB}!$B${TT}+{DB}!$C${TT})/1000,"#,##0")&" thousand. Open pipeline adds "&TEXT({DB}!$E${TT}/1000,"#,##0")&" thousand at stage probability. If none of it lands, the year falls by that amount."',
+    f'={DB}!$P${TT}&" alone is "&TEXT({DB}!$Q${TT},"0%")&" of forward revenue. The top 10 customers are "&TEXT({DB}!$G$46,"0%")&". Losing one large customer moves the whole year."',
+    f'=TEXT(COUNTIF({Z("cat")},"Overdue"),"0")&" open deals worth "&TEXT(SUMIFS({Z("amt")},{Z("cat")},"Overdue")/1000,"#,##0")&" thousand are past their closing date in Zoho. Treat them as doubtful until sales confirm."',
+    f'="Recurring Onsite contracts are not in Zoho as future deals. Until they are added on the Adjustments sheet, the Onsite forecast understates the year."',
+]
+for i, f_ in enumerate(k_lines):
+    r = TK + 1 + i
+    rs.merge_cells(f"B{r}:P{r}")
+    c = rs[f"B{r}"]
+    c.value = f_
+    c.font = Font(name=ARIAL, size=11, color=INK)
+    c.alignment = Alignment(wrap_text=True, vertical="top")
+    rs.row_dimensions[r].height = 30
+
+# Colour rules: risk words and variances
+for rng in (f"K{TB+1}:K{tr_-1}", f"M{TY+1}:M{TY+5}"):
+    first = rng.split(":")[0]
+    rs.conditional_formatting.add(rng, FormulaRule(formula=[f'{first}="High"'], font=Font(name=ARIAL, bold=True, color="C00000")))
+    rs.conditional_formatting.add(rng, FormulaRule(formula=[f'{first}="Medium"'], font=Font(name=ARIAL, bold=True, color="1F3864")))
+    rs.conditional_formatting.add(rng, FormulaRule(formula=[f'{first}="Low"'], font=Font(name=ARIAL, bold=True, color="7F7F7F")))
+rs.conditional_formatting.add(f"H{TB+1}:I{tr_}", FormulaRule(formula=[f"H{TB+1}<0"], font=Font(name=ARIAL, color="C00000")))
+rs.conditional_formatting.add(f"H{TB+1}:I{tr_}", FormulaRule(formula=[f"H{TB+1}>0"], font=Font(name=ARIAL, color="0B5553")))
+rs.page_setup.orientation = "landscape"
+rs.page_setup.fitToWidth = 1
+rs.page_setup.fitToHeight = 1
+rs.sheet_properties.pageSetUpPr.fitToPage = True
+rs.print_area = f"A1:Q{TK + len(k_lines)}"
 
 # ---------------------------------------------------------------- Read Me
 rm = wb.create_sheet("Read Me")
@@ -770,7 +984,8 @@ lines = [
     ("Base forecast: actuals for past months, then backlog plus weighted pipeline for future months.", False),
     ("If pipeline falls through: actuals plus backlog, plus pipeline at the stress case rate. At 0 percent, no open deal lands.", False),
     ("Customer withdrawal: removes that customer's backlog and weighted pipeline for the rest of the year.", False),
-    ("Risk rating: the worst of three tests on Settings. Forecast against budget, largest customer share, and how much of forward revenue is still pipeline.", False),
+    ("Risk rating: the worst of four tests on Settings. Forecast against budget, largest customer share, how much of forward revenue is still pipeline, and how much of revenue to date is non-contract.", False),
+    ("Contract revenue: accounts with subcategory Contract Income in the account master. Everything else in Income is non-contract.", False),
     ("", False),
     ("Things to confirm", True),
     ("Budget is loaded from CTS Budget FY27 Final DN at three lines: Onsite, Production with Video, and Consulting with Integration. Each month update it only if the budget is re-forecast.", False),
@@ -785,7 +1000,7 @@ for i, (t, bold) in enumerate(lines):
     c.alignment = Alignment(wrap_text=True, vertical="top")
 rm.column_dimensions["A"].width = 120
 
-order = ["Read Me", "Dashboard", "Monthly Outlook", "Customer Risk", "Zoho Dump", "P&L Dump",
+order = ["Read Me", "Risk Summary", "Dashboard", "Monthly Outlook", "Customer Risk", "Zoho Dump", "P&L Dump",
          "Adjustments", "Budget", "Account Map", "Settings"]
 wb._sheets = [wb[n] for n in order]
 for n in ("Zoho Dump", "P&L Dump", "Adjustments", "Budget"):
