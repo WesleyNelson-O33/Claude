@@ -9,13 +9,13 @@ from decimal import Decimal, ROUND_HALF_UP
 import openpyxl
 
 UP = "/root/.claude/uploads/a91f56e6-b7da-5dad-8e0b-6d5f516f9360/"
+# (pay run audit, EH pay run number, journal date) as Danica set them
 RUNS = [
-    "07fe6af9-PayRunAudit-CTS_-_Fortnight-20260904.xlsx",
-    "f91e975d-PayRunAudit-CTS_-_Fortnight-20260918.xlsx",
-    "c9578b8f-PayRunAudit-CTS_-_Fortnight-20261002.xlsx",
+    ("07fe6af9-PayRunAudit-CTS_-_Fortnight-20260904.xlsx", "37005", "30/09/2026"),
+    ("f91e975d-PayRunAudit-CTS_-_Fortnight-20260918.xlsx", "37006", "30/09/2026"),
+    ("c9578b8f-PayRunAudit-CTS_-_Fortnight-20261002.xlsx", "37007", "02/10/2026"),
 ]
 TRACKING = sys.argv[1]  # saved Xero tracking categories JSON
-DATE = "30/09/2026"
 HEAD = ["*Narration", "*Date", "Description", "*AccountCode", "*TaxRate", "*Amount",
         "TrackingName1", "TrackingOption1", "TrackingName2", "TrackingOption2"]
 
@@ -35,11 +35,11 @@ for c in json.load(open(TRACKING))["tracking_categories"]:
         for o in c["options"]:
             jobs.setdefault(o["name"].split(" - ", 1)[1], o["name"])
 
-for f in RUNS:
+for f, run_no, DATE in RUNS:
     wb = openpyxl.load_workbook(UP + f, read_only=True)
     s = {r[0]: r[1] for r in wb["Summary"].iter_rows(values_only=True)}
     a, b = s["Report Period"].split(" - ")
-    narr = "EH Expense Reimbursement (%s-%s)" % (a.replace("/", "."), b.replace("/", "."))
+    narr = "EH Expense Reimbursement %s (%s-%s)" % (run_no, a.replace("/", "."), b.replace("/", "."))
     rows, total = [], Decimal("0")
     for r in list(wb["Expenses"].iter_rows(values_only=True))[1:]:
         if r[0] == "Total Expenses":
@@ -51,7 +51,7 @@ for f in RUNS:
         acct = accts if isinstance(accts, str) else accts[tag]
         # GST-inclusive, as claimed: August's 60.00 split 54.55 + 5.45 is the
         # tax-inclusive split, so the draft is set to Tax Inclusive after import.
-        rows.append([narr, DATE, narr, acct, tax, str(amt),
+        rows.append([narr, DATE, loc, acct, tax, str(amt),
                      "Cost Centres", CC[tag], "Job Numbers", jobs[loc]])
         total += amt
     rows.append([narr, DATE, narr, "21410", "BAS Excluded", str(-total),
