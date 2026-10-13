@@ -104,6 +104,8 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
 [hidden] { display: none !important; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
 html { font-size: var(--fs); }
 body {
   background: var(--surface-0); color: var(--ink);
@@ -493,7 +495,7 @@ kbd { font: 11px var(--mono); background: var(--surface-2); border: 1px solid va
   var MANDATORY = ["CTS_config_data", "CTS_cal_data", "CTS_accounts_data",
                    "CTS_gl_data", "CTS_fin_data"];
   var OPTIONAL = ["CTS_util_data", "CTS_clients_data", "CTS_users_data", "CTS_staff_data",
-                  "CTS_brand_data", "CTS_pipeline_data", "CTS_forecast_data", "CTS_cash_data", "CTS_commentary_data", "CTS_distribution_data"];
+                  "CTS_brand_data", "CTS_pipeline_data", "CTS_forecast_data", "CTS_cash_data", "CTS_commentary_data", "CTS_distribution_data", "CTS_aged_data"];
   var queue = MANDATORY.concat(OPTIONAL);
   var failed = [];
   var i = 0;

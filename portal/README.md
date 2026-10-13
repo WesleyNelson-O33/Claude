@@ -81,6 +81,8 @@ paste is header for header. Built by `portal/build/build_templates.py`.
 | 11 and 12 Xero Aged reports | Monthly | Aged receivables and payables, matched to the live Xero layout |
 | 13 Revenue Schedule | Once a year | The sales forecast per role or client, and the client list with display names and aliases |
 
+The Revenue Risk page reads the aged receivables, the pipeline, the schedule and the client history together: how much of the rest of the year is recurring or confirmed, concentration in the top clients, clients lost or declining against last year, open deals past their closing date, and what is past due.
+
 The Build page (`CTS_build.js`, SheetJS vendored in `vendor`) reads them with
 the File System Access API, which Edge and Chrome have, checks them, and writes
 `data`.

@@ -20,8 +20,8 @@ a straight paste; the Read me tab in each file says exactly what to run.
 | 08 Config | Change the reporting month on the Reporting tab | The one setting that moves every month |
 | 09 Forecast | Usually nothing | A growth rate, a method, or a typed override when you know something the history does not |
 | 10 Cash and Commitments | Bank and card statements at month end | One row per bank account and per credit card with the month end balance; keep every month. Commitments only when one changes |
-| 11 Xero Aged Receivables | Xero, Aged Receivables Detail as at month end | One row per unpaid invoice. Read by the cash flow build; safe to fill now |
-| 12 Xero Aged Payables | Xero, Aged Payables Detail as at month end | One row per unpaid bill. Same |
+| 11 Xero Aged Receivables | Xero, Aged Receivables Detail as at month end | One row per unpaid invoice. Feeds the Revenue Risk page (past due by client) and the cash flow build |
+| 12 Xero Aged Payables | Xero, Aged Payables Detail as at month end | One row per unpaid bill. Read into the same aged data file |
 | 13 Revenue Schedule | Once a year, then only when a line is added | The sales forecast per role (onsite) or per client (elsewhere) by month, and the Clients tab with display names and aliases. Lines are prefilled from the FY27 budget workbook; type the amounts |
 
 Before you paste the ledger: fill in the contact on revenue rows from manual

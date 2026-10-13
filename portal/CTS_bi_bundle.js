@@ -160,6 +160,7 @@
       (c.aliases || []).forEach(function (a) { var k = String(a || "").trim().toLowerCase(); if (k) E.aliasOf[k] = c.contact; });
       if (c.display && c.display !== c.contact) E.aliasOf[String(c.display).trim().toLowerCase()] = c.contact;
     });
+    E.aged = window.CTS_AGED || null;
     E.loadGL(window.CTS_GL);
     E.loadFin(window.CTS_FIN);
     E.loadUtil(window.CTS_UTIL);
@@ -1093,6 +1094,111 @@
     return rows;
   };
 
+  /* ---- revenue risk ---------------------------------------------------
+   * Where the revenue could fall short: how much of the year is secured,
+   * how much sits with a few clients, which clients are slipping, what is
+   * owed and overdue, and how the open pipeline is ageing. Flags, not a
+   * score, so each one can be argued with. */
+  var WON_RE = /closed won|^won$/i, LOST_RE = /closed lost|^lost$/i;
+  E.arByContact = function () {
+    var out = {};
+    if (!E.aged) return out;
+    (E.aged.receivables || []).forEach(function (r) {
+      var k = (E.aliasOf && E.aliasOf[String(r.contact).toLowerCase()]) || r.contact;
+      var o = out[k] || (out[k] = { total: 0, overdue: 0, oldest: null, invoices: 0 });
+      o.total += r.total; o.overdue += r.total - r.current; o.invoices++;
+      if (r.total - r.current > 0 && r.due && (!o.oldest || r.due < o.oldest)) o.oldest = r.due;
+    });
+    return out;
+  };
+  E.revenueRisk = function (monthKeys) {
+    var dept = E.viewDept();
+    var prior = E.priorYearMonths(monthKeys);
+    var rows = E.clientRows(monthKeys, prior).map(function (r) {
+      if (!dept) return r;
+      var a = r.byDept[dept] || 0, pd = E.idx.clientDeptMonth[r.contact] || {}, pr = E.sumMonths(pd[dept], prior);
+      return Object.assign({}, r, { amount: a, prior: pr, delta: a - pr, pct: pr ? (a - pr) / Math.abs(pr) : null });
+    }).filter(function (r) { return r.amount || r.prior; });
+    rows.sort(function (a, b) { return b.amount - a.amount; });
+    var total = rows.reduce(function (a, r) { return a + Math.max(0, r.amount); }, 0);
+    var ar = E.arByContact();
+    var cum = 0;
+    rows.forEach(function (r, i) {
+      r.rank = i + 1; r.share = total ? Math.max(0, r.amount) / total : 0; cum += r.share; r.cumShare = cum;
+      var o = ar[r.contact]; r.arTotal = o ? o.total : 0; r.arOverdue = o ? o.overdue : 0; r.arOldest = o ? o.oldest : null;
+      r.flags = [];
+      if (r.share >= 0.1) r.flags.push("concentration");
+      if (r.prior > 0 && r.amount <= 0) r.flags.push("lost");
+      else if (r.prior > 0 && r.delta < 0 && -r.delta >= Math.max(total * 0.01, 500000)) r.flags.push("declining");
+      if (!r.prior && r.amount > 0) r.flags.push("new");
+      if (r.arOverdue >= 500000) r.flags.push("overdue");
+      if (/project|event|video|integration/i.test(r.engagement) && r.share >= 0.05) r.flags.push("project based");
+    });
+    function shareTop(n) { return rows.slice(0, n).reduce(function (a, r) { return a + r.share; }, 0); }
+    var down = rows.filter(function (r) { return r.flags.indexOf("lost") >= 0 || r.flags.indexOf("declining") >= 0; });
+    var atRisk = down.reduce(function (a, r) { return a + -r.delta; }, 0);
+
+    // schedule lines budgeted with nothing invoiced
+    var misses = [];
+    E.visibleDepts().filter(function (d) { return d.isRevenue && d.code !== "ADMIN" && (!dept || d.code === dept); }).forEach(function (d) {
+      E.schedule(d.code, monthKeys).lines.forEach(function (l) { if (l.kind !== "newbiz" && l.budget > 0 && !l.actual) misses.push({ dept: d.code, client: l.client || l.line, line: l.line, budget: l.budget }); });
+    });
+
+    // the rest of the financial year: recurring run rate, confirmed, weighted pipeline, unidentified
+    var rm = E.reportingMonth(), fy = (E.monthIdx[rm] || {}).fy || E.currentFY();
+    var rest = E.monthsOfFY(fy).filter(function (k) { return k > rm; });
+    var last3 = E.actualMonths.slice(-3);
+    var recurringRate = last3.length ? E.revenueMix(last3, dept).recurring / last3.length : 0;
+    var L = E.forecastEnabled() ? E.forecastLayers() : null;
+    var depts = dept ? [dept] : E.depts.map(function (d) { return d.code; });
+    var months = rest.map(function (m) {
+      var budget = E.pnlBudget([m]).totals.income, conf = 0, wgt = 0;
+      if (L) depts.forEach(function (d) { var x = (L.layers[d] || {})[m]; if (x) { conf += x.confirmed || 0; wgt += x.weighted || 0; } });
+      var forecast = E.hasForecast(m) ? E.pnlForecast([m]).totals.income : 0;
+      var secured = recurringRate + conf, gap = Math.max(0, budget - secured - wgt);
+      return { month: m, label: E.monthIdx[m].label, budget: budget, recurring: recurringRate, confirmed: conf, weighted: wgt, forecast: forecast, secured: secured, gap: gap };
+    });
+    var restTot = months.reduce(function (a, x) { a.budget += x.budget; a.recurring += x.recurring; a.confirmed += x.confirmed; a.weighted += x.weighted; a.forecast += x.forecast; a.gap += x.gap; return a; }, { budget: 0, recurring: 0, confirmed: 0, weighted: 0, forecast: 0, gap: 0 });
+    restTot.secured = restTot.recurring + restTot.confirmed;
+    restTot.securedPct = restTot.budget ? restTot.secured / restTot.budget : null;
+    restTot.coveredPct = restTot.budget ? (restTot.secured + restTot.weighted) / restTot.budget : null;
+
+    // pipeline quality: open deals past their closing date, and single deals that carry a month
+    var endOfRm = rm + "-31";
+    var open = (E.pipeline.deals || []).filter(function (d) { return !WON_RE.test(d.stage) && !LOST_RE.test(d.stage) && (!dept || d.dept === dept); });
+    var stale = open.filter(function (d) { return d.close && d.close <= endOfRm; });
+    var staleValue = stale.reduce(function (a, d) { return a + (d.amount || 0); }, 0);
+    var openValue = open.reduce(function (a, d) { return a + (d.amount || 0); }, 0);
+    var byMonth = {};
+    open.forEach(function (d) { if (!d.close) return; var k = d.close.slice(0, 7); (byMonth[k] = byMonth[k] || []).push(d); });
+    var swing = [];
+    rest.forEach(function (m) {
+      var ds = (byMonth[m] || []).slice().sort(function (a, b) { return (b.amount || 0) - (a.amount || 0); });
+      var budget = months.filter(function (x) { return x.month === m; })[0].budget;
+      ds.slice(0, 2).forEach(function (d) { if (budget && (d.amount || 0) >= budget * 0.15) swing.push({ month: m, label: E.monthIdx[m].label, client: d.account, title: d.name, stage: d.stage, amount: d.amount || 0, share: (d.amount || 0) / budget }); });
+    });
+    var ageing = { "0-30": 0, "31-90": 0, "91-180": 0, "180+": 0 };
+    var today = new Date(E.snapshotDate ? E.snapshotDate() : rm + "-28");
+    open.forEach(function (d) { if (!d.created) return; var days = (today - new Date(d.created)) / 86400000; var k = days <= 30 ? "0-30" : days <= 90 ? "31-90" : days <= 180 ? "91-180" : "180+"; ageing[k] += d.amount || 0; });
+
+    // seasonality: last financial year's revenue by quarter per department
+    var lastFY = E.monthsOfFY(fy - 1), seasons = [];
+    E.depts.filter(function (d) { return d.isRevenue && d.code !== "ADMIN" && (!dept || d.code === dept); }).forEach(function (d) {
+      var inc = (E.idx.deptCatMonth[d.code] || {}).income || {}, q = [0, 0, 0, 0], tot = 0;
+      lastFY.forEach(function (k, i) { var v = inc[k] || 0; q[Math.floor(i / 3)] += v; tot += v; });
+      seasons.push({ dept: d, q: q, total: tot, shares: q.map(function (v) { return tot ? v / tot : 0; }), peak: tot ? q.indexOf(Math.max.apply(null, q)) : null });
+    });
+
+    // AR summary
+    var arRows = E.aged ? (E.aged.receivables || []) : [], arTotal = 0, arOverdue = 0;
+    arRows.forEach(function (r) { arTotal += r.total; arOverdue += r.total - r.current; });
+
+    return { rows: rows, total: total, top1: shareTop(1), top3: shareTop(3), top5: shareTop(5), top10: shareTop(10),
+             down: down, atRisk: atRisk, misses: misses, months: months, rest: restTot, recurringRate: recurringRate, last3: last3,
+             open: open, openValue: openValue, stale: stale, staleValue: staleValue, swing: swing, ageing: ageing,
+             seasons: seasons, arTotal: arTotal, arOverdue: arOverdue, hasAged: !!E.aged, hasForecast: !!L, dept: dept };
+  };
+
   /* ---- the revenue schedule ------------------------------------------- */
   /** Part 3: onsite is budgeted per role, the rest per client, with anything
    *  unlisted grouped into one new business line. The budget per line is
@@ -2021,6 +2127,16 @@
       var misses = s.lines.filter(function (l) { return l.risk === "High"; }).slice(0, 5);
       var none = s.lines.filter(function (l) { return l.kind !== "newbiz" && l.budget > 0 && !l.actual; }).slice(0, 5);
       return (E.deptOf[dept] || {}).short + " schedule " + d(s.actualTotal) + " against " + d(s.budgetTotal) + " budgeted and " + d(s.lastYearTotal) + " last year. " + (misses.length ? "High variances: " + misses.map(function (l) { return (l.client || l.line) + " " + F.money(l.variance); }).join(", ") + "." : "No line is flagged High.") + (none.length ? " Budgeted with nothing invoiced: " + none.map(function (l) { return l.client || l.line; }).join(", ") + "." : "") + (dept === "CONSULTING" ? " [For each: lost, or moved to a later month? Ask Jordan before the revenue meeting.]" : " [For each miss: timing, lost, or grouped under new business?]");
+    },
+    "rev-risk": function (rm, p) {
+      var r = E.revenueRisk(p.keys);
+      var parts = ["Top five clients are " + F.pct(r.top5) + " of revenue for " + p.label + (r.rows[0] ? ", " + r.rows[0].display + " alone " + F.pct(r.top1) : "") + "."];
+      if (r.rest.budget) parts.push("Of the " + d(r.rest.budget) + " budgeted for the rest of the year, " + d(r.rest.secured) + " (" + F.pct(r.rest.securedPct) + ") is recurring or confirmed, " + d(r.rest.weighted) + " is weighted pipeline and " + d(r.rest.gap) + " is not yet identified.");
+      if (r.down.length) parts.push(r.down.length + " clients are down on last year by " + d(r.atRisk) + " in total: " + r.down.slice(0, 4).map(function (x) { return x.display + " " + F.money(x.delta); }).join(", ") + ".");
+      if (r.misses.length) parts.push("Budgeted with nothing invoiced: " + r.misses.slice(0, 4).map(function (m) { return m.client; }).join(", ") + ".");
+      if (r.stale.length) parts.push(r.stale.length + " open deals worth " + d(r.staleValue) + " are past their closing date.");
+      if (r.hasAged) parts.push("Receivables " + d(r.arTotal) + ", " + d(r.arOverdue) + " past due.");
+      return parts.join(" ") + " [Which of these is timing and which is a real loss.]";
     },
     forecast: function (rm, p) {
       if (!E.forecastEnabled()) return "The forecast is not loaded.";
@@ -4070,6 +4186,103 @@
           "Budget, actual and last year side by side, which is what management asked for instead of hiding the budget column once the actual is in. Last year is the same months a year earlier, in dollars."),
         U.note(s.note),
         U.note("Close is good enough. Work in progress revenue forms part of the P&L but is not invoiced to a client, so an exact tie back is not possible; being close is the standard here.", "muted"),
+      ];
+    },
+  };
+
+  P["rev-risk"] = {
+    section: "Revenue", title: "Revenue Risk",
+    sub: "Where the year could fall short, and by how much.",
+    render: function () {
+      var p = CTS.period();
+      var r = E.revenueRisk(p.keys);
+      var d = F.dollars;
+      var FLAG = { concentration: "warn", lost: "bad", declining: "warn", "new": "good", overdue: "bad", "project based": "muted" };
+      function flags(fs) { return h("span", fs.map(function (f) { return h("span.chip.chip-" + (FLAG[f] === "bad" ? "warning" : FLAG[f] === "warn" ? "warning" : FLAG[f] === "good" ? "good" : "muted"), f); })); }
+      var tiles = h("div.tiles", [
+        U.tile({ label: "Secured for the rest of FY" + p.fy, value: r.rest.budget ? F.pct(r.rest.securedPct) : "n/a",
+                 sub: d(r.rest.secured) + " recurring or confirmed of " + d(r.rest.budget) + " budgeted", note: r.hasForecast ? "Weighted pipeline takes it to " + F.pct(r.rest.coveredPct) : "Turn the forecast on to see the pipeline layer", href: "#/rev-forecast", tone: r.rest.securedPct != null && r.rest.securedPct < 0.5 ? "warn" : null }),
+        U.tile({ label: "Top five clients", value: F.pct(r.top5), sub: "of revenue for " + p.label + (r.rows[0] ? ", " + r.rows[0].display + " " + F.pct(r.top1) : ""), href: "#/clients", tone: r.top5 >= 0.6 ? "warn" : null }),
+        U.tile({ label: "Down on last year", value: F.money(-r.atRisk), sub: r.down.length + " client" + (r.down.length === 1 ? "" : "s") + " lost or declining, same months last year", href: "#/clients", tone: r.atRisk > 0 ? "warn" : null }),
+        r.hasAged
+          ? U.tile({ label: "Receivables past due", value: d(r.arOverdue), sub: "of " + d(r.arTotal) + " owed at " + E.monthIdx[E.reportingMonth()].label, tone: r.arTotal && r.arOverdue / r.arTotal > 0.3 ? "warn" : null })
+          : U.tile({ label: "Receivables past due", value: "not loaded", sub: "Fill 11 Xero Aged Receivables and build" }),
+      ]);
+
+      var restChart = r.months.length ? U.columns({ labels: r.months.map(function (m) { return m.label; }), width: 780, height: 260, stacked: true,
+        series: [{ label: "Recurring run rate", colour: "var(--series-2)", values: r.months.map(function (m) { return m.recurring; }) },
+                 { label: "Confirmed orders and quotes", colour: "var(--series-4)", values: r.months.map(function (m) { return m.confirmed; }) },
+                 { label: "Weighted open pipeline", colour: "var(--series-3)", values: r.months.map(function (m) { return m.weighted; }) },
+                 { label: "Not yet identified", colour: "var(--series-7)", values: r.months.map(function (m) { return m.gap; }) }] }) : null;
+      var restTable = U.table([
+        { key: "label", label: "Month", align: "left" }, { key: "budget", label: "Budget", fmt: F.money },
+        { key: "recurring", label: "Recurring", fmt: F.money }, { key: "confirmed", label: "Confirmed", fmt: F.money },
+        { key: "weighted", label: "Weighted pipeline", fmt: F.money }, { key: "gap", label: "Not identified", fmt: F.money, cell: U.moneyCell },
+        { key: "securedPct", label: "Secured", fmt: function (v) { return F.pct(v); }, value: function (m) { return m.budget ? F.pct((m.recurring + m.confirmed) / m.budget) : ""; } },
+      ], r.months.concat([Object.assign({ label: "Rest of year", _cls: "totalrow" }, r.rest)]), { dense: true });
+
+      var top = r.rows.slice(0, 10);
+      var concChart = U.bars({ rows: top.map(function (x) { return { label: x.display, value: x.amount, value2: x.prior, colour: U.colourOf(x.primaryDept) }; }), width: 640, labelWidth: 200 });
+      var concTable = U.table([
+        { key: "rank", label: "#" }, { key: "display", label: "Client", align: "left" },
+        { key: "primaryDept", label: "Dept", align: "left", value: function (x) { return x.primaryDept ? E.deptOf[x.primaryDept].short : ""; } },
+        { key: "engagement", label: "Engagement", align: "left" },
+        { key: "amount", label: p.label, fmt: F.money }, { key: "share", label: "Share", fmt: function (v) { return F.pct(v); } },
+        { key: "cumShare", label: "Cumulative", fmt: function (v) { return F.pct(v); } },
+        { key: "delta", label: "vs last year", fmt: F.money, cell: U.moneyCell },
+        { key: "arOverdue", label: "Past due", fmt: function (v) { return v ? F.money(v) : ""; } },
+        { key: "flags", label: "Flags", align: "left", value: function (x) { return flags(x.flags); } },
+      ], top, { dense: true });
+
+      var riskRows = [];
+      r.down.forEach(function (x) { riskRows.push({ client: x.display, dept: x.primaryDept, why: x.flags.indexOf("lost") >= 0 ? "No revenue this period, " + F.money(x.prior) + " same months last year" : "Down " + F.money(-x.delta) + " on the same months last year", amount: -x.delta, kind: x.flags.indexOf("lost") >= 0 ? "lost" : "declining" }); });
+      r.misses.forEach(function (m) { riskRows.push({ client: m.client, dept: m.dept, why: "Budgeted " + F.money(m.budget) + " on the schedule, nothing invoiced", amount: m.budget, kind: "budgeted, nothing invoiced" }); });
+      r.rows.filter(function (x) { return x.flags.indexOf("overdue") >= 0; }).forEach(function (x) { riskRows.push({ client: x.display, dept: x.primaryDept, why: F.money(x.arOverdue) + " past due" + (x.arOldest ? ", oldest due " + x.arOldest : ""), amount: x.arOverdue, kind: "overdue" }); });
+      riskRows.sort(function (a, b) { return b.amount - a.amount; });
+      var riskTable = U.table([
+        { key: "client", label: "Client", align: "left" }, { key: "dept", label: "Dept", align: "left", value: function (x) { return x.dept && E.deptOf[x.dept] ? E.deptOf[x.dept].short : ""; } },
+        { key: "kind", label: "", align: "left", value: function (x) { return h("span.chip.chip-" + (x.kind === "lost" || x.kind === "overdue" ? "warning" : "muted"), x.kind); } },
+        { key: "why", label: "Why it is on the list", align: "left" }, { key: "amount", label: "Amount", fmt: F.money },
+      ], riskRows.slice(0, 25), { dense: true });
+
+      var stageCount = {}; r.open.forEach(function (x) { var k = x.stage || "(no stage)"; stageCount[k] = stageCount[k] || { n: 0, v: 0 }; stageCount[k].n++; stageCount[k].v += x.amount || 0; });
+      var pipeTable = U.table([
+        { key: "l", label: "", align: "left" }, { key: "n", label: "Deals" }, { key: "v", label: "Value", fmt: F.money },
+      ], Object.keys(stageCount).sort(function (a, b) { return stageCount[b].v - stageCount[a].v; }).map(function (k) { return { l: k, n: stageCount[k].n, v: stageCount[k].v }; })
+        .concat([{ l: "Open deals past their closing date", n: r.stale.length, v: r.staleValue, _cls: "totalrow" }]), { dense: true });
+      var ageTable = U.table([{ key: "l", label: "Days since created", align: "left" }, { key: "v", label: "Open value", fmt: F.money }],
+        Object.keys(r.ageing).map(function (k) { return { l: k, v: r.ageing[k] }; }), { dense: true });
+      var swingTable = r.swing.length ? U.table([
+        { key: "label", label: "Month", align: "left" }, { key: "client", label: "Client", align: "left" }, { key: "title", label: "Deal", align: "left" },
+        { key: "stage", label: "Stage", align: "left" }, { key: "amount", label: "Value", fmt: F.money }, { key: "share", label: "Of month's budget", fmt: function (v) { return F.pct(v); } },
+      ], r.swing, { dense: true }) : U.note("No single open deal is 15 per cent or more of a remaining month's budget.", "muted");
+
+      var seasonTable = U.table([
+        { key: "dept", label: "Department", align: "left", value: function (x) { return x.dept.short; } },
+        { key: "q1", label: "Q1 Jul-Sep", fmt: function (v) { return F.pct(v); }, value: function (x) { return F.pct(x.shares[0]); } },
+        { key: "q2", label: "Q2 Oct-Dec", fmt: function (v) { return F.pct(v); }, value: function (x) { return F.pct(x.shares[1]); } },
+        { key: "q3", label: "Q3 Jan-Mar", fmt: function (v) { return F.pct(v); }, value: function (x) { return F.pct(x.shares[2]); } },
+        { key: "q4", label: "Q4 Apr-Jun", fmt: function (v) { return F.pct(v); }, value: function (x) { return F.pct(x.shares[3]); } },
+        { key: "peak", label: "Peak", align: "left", value: function (x) { return x.peak == null ? "" : ["Q1", "Q2", "Q3", "Q4"][x.peak] + " " + F.pct(x.shares[x.peak]); } },
+      ], r.seasons, { dense: true });
+
+      return [
+        seedBanner(), CTS.periodBar(), U.h1("Revenue Risk", (r.dept ? E.deptOf[r.dept].short + ", " : "") + p.label),
+        tiles,
+        U.section("Where the rest of the year has to come from", U.figure("Months after " + E.monthIdx[E.reportingMonth()].label + ", stacked against budget", restChart, restTable,
+          "Recurring is the last three months' average of fixed fee support, maintenance and licence income" + (r.last3.length ? " (" + r.last3.map(function (k) { return E.monthIdx[k].label; }).join(", ") + ")" : "") + ". Confirmed is orders with an event date, accepted quotes and won deals not yet carried by either. Weighted pipeline is open deals at their stage probability. Not identified is what is left to find to reach budget: the higher that bar, the more the month depends on work that does not exist yet."),
+          null, { collapsed: false }),
+        U.section("Concentration", U.figure("Top ten clients, this period against the same months last year", concChart, concTable,
+          "A client at ten per cent or more of revenue is flagged. The manual's rule for the commentary applies here too: compare dollars, not percentages, and always against last year."),
+          null),
+        U.section("Clients at risk", riskRows.length ? riskTable : U.note("No client is lost, declining past the threshold, budgeted with nothing invoiced, or materially overdue for " + p.label + ".", "good"),
+          "Lost means revenue in the same months last year and none this period. Declining means down by more than one per cent of period revenue, or $5,000, whichever is larger. For consulting lines, say whether the deal was lost or moved: ask Jordan before the revenue meeting."),
+        U.section("Pipeline quality", h("div.grid2", [U.figure("Open deals by stage", null, pipeTable), U.figure("Age of the open pipeline", null, ageTable)]),
+          r.stale.length ? r.stale.length + " deals are still open past their closing date, worth " + d(r.staleValue) + ". They inflate the weighted layer until Zoho is cleaned; ask the owners to close or move them." : "Nothing is open past its closing date."),
+        U.section("Months that hang on one deal", swingTable,
+          "Any open deal that is fifteen per cent or more of a remaining month's budget. If it slips, the month slips with it."),
+        U.section("Seasonality, last financial year", seasonTable,
+          "The production calendar from the manual: results season in August and September, the AGM peak in October to December, quiet in December and January, and the integration and consulting peak in May and June as the financial year closes. A department whose peak quarter is still ahead has more of its year at risk than one whose peak has passed."),
       ];
     },
   };

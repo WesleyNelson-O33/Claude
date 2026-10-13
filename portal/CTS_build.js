@@ -28,6 +28,8 @@
     { key: "config",   file: "08 Config.xlsx",                    sheet: null,       out: "CTS_config_data.js",   need: true },
     { key: "forecast", file: "09 Forecast.xlsx",                  sheet: "Methods",  out: "CTS_forecast_data.js", need: false },
     { key: "cash",     file: "10 Cash and Commitments.xlsx",      sheet: "Bank balances", out: "CTS_cash_data.js", need: false },
+    { key: "ar",       file: "11 Xero Aged Receivables.xlsx",     sheet: "Receivables", out: "CTS_aged_data.js", need: false },
+    { key: "ap",       file: "12 Xero Aged Payables.xlsx",        sheet: "Payables", out: "CTS_aged_data.js",   need: false },
     { key: "schedule", file: "13 Revenue Schedule.xlsx",          sheet: "Schedule", out: "CTS_clients_data.js",  need: false },
   ];
   B.TEMPLATES = TEMPLATES;
@@ -321,6 +323,35 @@
                         cols: ["date", "account", "contact", "debit", "credit", "source", "jobNo", "invoiceNo", "costCentre", "description"],
                         rows: rows },
              bad: bad, unknown: {}, autoCoded: 0, noContact: noContact, skipped: skipped, detail: true };
+  };
+
+  /** The Xero Aged Receivables and Aged Payables Detail reports: one row per
+   *  open invoice or bill with its ageing buckets. Contact grouping and total
+   *  rows that come with a paste are skipped on having no date and no total. */
+  C.aged = function (t) {
+    var h = t.head, p = P();
+    var ci = { contact: colIndex(h, ["contact", "contactname", "name"]), date: colIndex(h, ["date", "invoicedate", "billdate"]),
+               due: colIndex(h, ["duedate", "due"]), no: colIndex(h, ["number", "invoicenumber", "reference"]), ref: colIndex(h, ["reference", "description"]),
+               cur: colIndex(h, ["current"]), b1: colIndex(h, ["1month", "lessthan1month", "1monthold"]), b2: colIndex(h, ["1month", "1monthold"]),
+               b3: colIndex(h, ["2months", "2monthsold"]), b4: colIndex(h, ["3months", "3monthsold"]), older: colIndex(h, ["older", "olderthan3months"]), total: colIndex(h, ["total"]) };
+    // "< 1 Month" and "1 Month" both normalise to 1month: take them by position
+    var lt = -1, one = -1;
+    h.forEach(function (x, i) { var k = String(x).toLowerCase().replace(/\s+/g, ""); if (k === "<1month") lt = i; else if (k === "1month") one = i; });
+    if (lt >= 0) ci.b1 = lt; if (one >= 0) ci.b2 = one;
+    if (ci.contact < 0 || ci.total < 0) throw new Error("Aged: need Contact and Total columns.");
+    var rows = [], skipped = 0, carried = "";
+    t.rows.forEach(function (r) {
+      var contact = String(r[ci.contact] || "").trim();
+      var iso = ci.date >= 0 ? p.isoDate(r[ci.date]) : null, total = p.money(r[ci.total]);
+      if (!iso && !total) { if (contact && !/^total/i.test(contact)) carried = contact; skipped++; return; }
+      if (!contact) contact = carried;
+      if (/^total/i.test(contact)) { skipped++; return; }
+      function c(i) { return i >= 0 ? Math.round(p.money(r[i]) * 100) : 0; }
+      rows.push({ contact: contact, date: iso, due: ci.due >= 0 ? p.isoDate(r[ci.due]) : null,
+                  number: ci.no >= 0 ? String(r[ci.no] || "") : "", ref: ci.ref >= 0 ? String(r[ci.ref] || "") : "",
+                  current: c(ci.cur), lt1: c(ci.b1), m1: c(ci.b2), m2: c(ci.b3), m3: c(ci.b4), older: c(ci.older), total: Math.round(total * 100) });
+    });
+    return { rows: rows, skipped: skipped };
   };
 
   /** The Earnings Details report, with the Locations, Pay categories and
@@ -1090,6 +1121,23 @@
         if (cr.badCom.length) check("warn", "Cash", "Commitments without a next due date were skipped: " + cr.badCom.slice(0, 4).join("; ") + ".");
       } catch (e) { check("fail", "Cash", e.message); }
     } else check("info", "Cash", "10 Cash and Commitments.xlsx not found; keeping the current cash settings.");
+
+    // Aged receivables and payables
+    var arWb = wbOf("ar"), apWb = wbOf("ap");
+    if (arWb || apWb) {
+      try {
+        var aged = { meta: { seed: false, built: today(), asAt: reportingMonth, note: "Built from 11 Xero Aged Receivables.xlsx and 12 Xero Aged Payables.xlsx, as at the reporting month end." }, receivables: [], payables: [] };
+        var cur = E().aged || {};
+        if (arWb) { var ta = B.table(arWb, "Receivables"); var ar = C.aged(ta); aged.receivables = ar.rows; } else aged.receivables = cur.receivables || [];
+        if (apWb) { var tp = B.table(apWb, "Payables"); var ap = C.aged(tp); aged.payables = ap.rows; } else aged.payables = cur.payables || [];
+        outputs["CTS_aged_data.js"] = "window.CTS_AGED = " + JSON.stringify(aged) + ";\n";
+        results.aged = aged;
+        function sum(rows, k) { return rows.reduce(function (a, r) { return a + (r[k] || 0); }, 0) / 100; }
+        var arTot = sum(aged.receivables, "total"), arOver = arTot - sum(aged.receivables, "current");
+        var apTot = sum(aged.payables, "total"), apOver = apTot - sum(aged.payables, "current");
+        check("ok", "Aged", aged.receivables.length + " open invoices totalling " + arTot.toFixed(2) + " (" + arOver.toFixed(2) + " past due); " + aged.payables.length + " open bills totalling " + apTot.toFixed(2) + " (" + apOver.toFixed(2) + " past due).");
+      } catch (e) { check("fail", "Aged", e.message); }
+    } else check("info", "Aged", "No aged receivables or payables template found; the revenue risk page has no collection view.");
 
     // Revenue schedule and the client list
     var schWb = wbOf("schedule");
