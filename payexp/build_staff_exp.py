@@ -27,6 +27,10 @@ ACCT = {
 }
 CC = {"[CTS]": "CTS", "[PRD]": "PRODUCTION", "[ONS]": "ONSITE", "[VID]": "VIDEO",
       "[INT]": "INTEGRATION", "[CONS]": "CONSULTING"}
+# 37007, as Danica set it: no GST on any line, and the ASX confetti claims
+# left out because they go in as bills paid from 21410.
+NO_GST = {"37007"}
+SKIP = {"37007": {"ASX - Lighting and Confetti Test - 29.9.26 [PRD]"}}
 D = lambda x: Decimal(str(x)).quantize(Decimal("0.01"), ROUND_HALF_UP)
 
 jobs = {}
@@ -43,11 +47,15 @@ for f, run_no, DATE in RUNS:
     rows, total = [], Decimal("0")
     for r in list(wb["Expenses"].iter_rows(values_only=True))[1:]:
         if r[0] == "Total Expenses":
-            assert D(r[7]) == total, (f, r[7], total)
+            assert run_no in SKIP or D(r[7]) == total, (f, r[7], total)
             continue
         cat, loc, amt = r[4], r[5], D(r[7])
+        if loc in SKIP.get(run_no, ()):
+            continue
         tag = loc[loc.rindex("["):]
         accts, tax = ACCT[cat]
+        if run_no in NO_GST:
+            tax = "BAS Excluded"
         acct = accts if isinstance(accts, str) else accts[tag]
         # GST-inclusive, as claimed: August's 60.00 split 54.55 + 5.45 is the
         # tax-inclusive split, so the draft is set to Tax Inclusive after import.
