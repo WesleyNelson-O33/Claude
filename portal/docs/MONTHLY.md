@@ -87,11 +87,17 @@ Commentary page does it for the main pages at once. Edit, then publish.
 
 On Distribution:
 
-- **Download the deck** builds the month end P&L pack as PowerPoint in the
-  CTS livery: cover, headline, P&L, departments after the split, revenue,
-  top clients, utilisation, the full year landing, cash and what is worth a
-  comment, with each page's commentary on its slide. Build and publish the
-  commentary first; the deck carries what is there when it is made.
+- **Download the deck** builds the Monthly Business Review as PowerPoint in
+  the CTS livery, in the September 2026 layout: cover, agenda, then four
+  sections. Financial performance (P&L summary with EBITDA and the last six
+  months, P&L per department, revenue and contribution, risk revenue
+  profile), Customers and cash (top 10 customers, receivables and DSO, top
+  customers year on year), People and utilisation (utilisation by
+  department, profit based on utilisation), Summary and actions. Every slide
+  has a commentary panel that carries what was typed on the matching pages
+  for the month; where nothing was typed, the portal's proposed commentary
+  stands in, marked as proposed. Type and publish the commentary first; the
+  deck carries what is there when it is made.
 - **Send to the distribution list** writes the deck into `outbox/YYYY-MM`
   with a covering note per tier one and tier three recipient, the deck named
   as the attachment. The flow attaches it; until the flow is on, attach it in
