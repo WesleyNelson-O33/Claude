@@ -16,8 +16,8 @@ from openpyxl.formatting.rule import FormulaRule
 
 ROOT = Path("/home/user/Claude/revenue-risk")
 ZOHO_SRC = ROOT / "source/All Deals by Stage FY26-FY27 (12-10-2026).xlsx"
-ACCOUNTS = json.loads(Path("/home/user/Claude/reporting/data/accounts.json").read_text())
 OUT = ROOT / "CTS Revenue Risk Profile.xlsx"
+PACK = Path("/home/user/Claude/pack/CTS Financial Controller Pack.xlsx")
 
 NAVY, MUTED = "1F4E79", "595959"
 HEAD = PatternFill("solid", fgColor=NAVY)
@@ -35,8 +35,8 @@ MON = 'mmm-yy'
 DEPTS = ["Onsite", "Production", "Video", "Consulting", "Integration", "Admin", "Unallocated"]
 ZOHO_ROWS = 3000            # helper formulas cover Zoho Dump rows 8 to 3007
 ZF, ZL = 8, 8 + ZOHO_ROWS - 1
-PL_ROWS = 1000              # P&L Dump paste rows 7 to 1006
-PF, PL = 7, 7 + PL_ROWS - 1
+PL_ROWS = 25000             # P&L Dump rows 2 to 25001, about a year of GL lines
+PF, PL = 2, 2 + PL_ROWS - 1
 ADJ_ROWS = 200
 AF, AL = 8, 8 + ADJ_ROWS - 1
 CUST_ROWS = 400
@@ -125,6 +125,14 @@ head(st, 11, 4, ["Months in this FY"])
 for i in range(12):
     put(st, 12 + i, 4, f"=EDATE($B$4,{i})", MON)
 MONTH_RNG = "Settings!$D$12:$D$23"
+head(st, 11, 6, ["Xero cost centre tag", "P&L department"])
+tags = [("ONSITE", "Onsite"), ("PRODUCTION", "Production"), ("VIDEO", "Video"), ("INTEGRATION", "Integration"),
+        ("CONSULTING", "Consulting"), ("CTS", "Admin"), ("ONS", "Onsite"), ("PRD", "Production"),
+        ("VID", "Video"), ("INT", "Integration"), ("CONS", "Consulting"), ("ADMIN", "Admin")]
+for i, (t, d) in enumerate(tags):
+    put(st, 12 + i, 6, t)
+    put(st, 12 + i, 7, d)
+note(st, 24, "Tags copied from the CTS Financial Controller Pack. Cost Centres column first, then the bracket tag on Job Numbers.", col=6)
 
 # Stage table
 head(st, 26, 1, ["Zoho stage", "Type", "Probability"])
@@ -175,7 +183,7 @@ for i, (lab, m, h) in enumerate(thr):
     put(st, r, 2, m, PCT, fill=INPUT, color="0000FF")
     put(st, r, 3, h, PCT, fill=INPUT, color="0000FF")
 note(st, 58, "Forecast short of budget: medium if the forecast is below budget at all, high if it is more than 10% below.")
-widths(st, {"A": 44, "B": 18, "C": 70, "D": 14})
+widths(st, {"A": 44, "B": 18, "C": 70, "D": 14, "E": 3, "F": 20, "G": 16})
 
 # ---------------------------------------------------------------- Zoho Dump
 zd = wb.create_sheet("Zoho Dump")
@@ -264,49 +272,86 @@ zd.freeze_panes = "A8"
 Z = lambda k: f"'Zoho Dump'!${H[k]}${ZF}:${H[k]}${ZL}"
 
 # ---------------------------------------------------------------- P&L Dump
+# Same Xero Account Transactions export that goes into GL_Paste in the
+# Financial Controller Pack. Department comes from the Cost Centres column,
+# falling back to the bracket tag on Job Numbers, exactly as the pack does it.
 pd_ = wb.create_sheet("P&L Dump")
-title(pd_, "P&L Dump: paste the Xero Profit and Loss here",
-      "Paste the Xero P&L with account names in column A and months across. Start at cell A7. "
-      "Then pick the month for each column in row 5. Only Income accounts are used.")
-note(pd_, 3, "Clear A7:Z1006 before each paste so old rows do not stay behind. Months can be in any order.", color="C00000", bold=True)
-put(pd_, 5, 1, "Month in this column", bold=True)
-for c in range(2, 27):
-    put(pd_, 5, c, None, MON, fill=INPUT, color="0000FF")
-dv = DataValidation(type="list", formula1=MONTH_RNG, allow_blank=True)
-pd_.add_data_validation(dv)
-dv.add("B5:Z5")
-head(pd_, 6, 1, ["Paste starts below (A7)"])
-head(pd_, 6, 28, ["Account", "Group", "Department", "Not in Account Map"])
+gl = load_workbook(PACK, read_only=True)["GL_Paste"]
+nrow = 0
+for r_i, row in enumerate(gl.iter_rows(values_only=True), start=1):
+    if all(v is None for v in row[:13]):
+        continue
+    nrow = r_i
+    for c_i, v in enumerate(row[:13], start=1):
+        if v is None:
+            continue
+        c = pd_.cell(row=r_i, column=c_i, value=v)
+        c.font = Font(name=ARIAL, size=9, bold=(r_i == 1))
+        if c_i == 5 and r_i > 1:
+            c.number_format = "dd/mm/yyyy"
+        elif c_i in (7, 8) and r_i > 1:
+            c.number_format = "#,##0.00"
+GL_LOADED = nrow
+for col, w in zip("ABCDEFGHIJKLM", [8, 9, 26, 16, 11, 30, 10, 10, 30, 12, 16, 30, 13]):
+    pd_.column_dimensions[col].width = w
+PH = dict(code="P", amt="Q", month="R", cat="S", dept="T")
+pfind = dict(code="Account Code", amt=None, month="Date", cat=None, dept="Cost Centres")
+pd_["AC1"] = "Columns P to T and V to AA are formulas. Do not type there. V1 to AA1 find Account Code, Date, Debit, Credit, Job Numbers and Cost Centres in row 1."
+pd_["AC1"].font = Font(name=ARIAL, size=9, bold=True, color="C00000")
+for k, lab in (("code", "Account code"), ("amt", "Income amount (credit less debit)"),
+               ("month", "Month"), ("cat", "Category"), ("dept", "P&L department")):
+    c = pd_[f"{PH[k]}1"]
+    c.value = lab
+    c.font = Font(name=ARIAL, size=9, bold=True, color="FFFFFF")
+    c.fill = HEAD
+    c.alignment = Alignment(wrap_text=True, vertical="center")
+    pd_.column_dimensions[PH[k]].width = 13
+pd_.row_dimensions[1].height = 40
+# Column finders sit in row 1 to the right, so a re-ordered export still works.
+finds = {"V": "Account Code", "W": "Date", "X": "Debit", "Y": "Credit", "Z": "Job Numbers", "AA": "Cost Centres"}
+for col, h in finds.items():
+    pd_[f"{col}1"] = f'=IFERROR(MATCH("{h}",$A$1:$O$1,0),0)'
+    pd_[f"{col}1"].font = Font(name=ARIAL, size=8, color=MUTED)
+TAG_N, TAG_D = "Settings!$F$12:$F$23", "Settings!$G$12:$G$23"
 for r in range(PF, PL + 1):
-    pd_[f"AB{r}"] = f'=TRIM($A{r}&"")'
-    pd_[f"AC{r}"] = f'=IF(AB{r}="","",IFERROR(INDEX(\'Account Map\'!$B:$B,MATCH(AB{r},\'Account Map\'!$A:$A,0)),""))'
-    pd_[f"AD{r}"] = f'=IF(AB{r}="","",IFERROR(INDEX(\'Account Map\'!$C:$C,MATCH(AB{r},\'Account Map\'!$A:$A,0)),""))'
-    pd_[f"AE{r}"] = (f'=IF(AND(AB{r}<>"",AC{r}="",COUNT($B{r}:$Z{r})>0,LEFT(AB{r},5)<>"Total",'
-                     f'AB{r}<>"Gross Profit",AB{r}<>"Net Profit",AB{r}<>"Operating Profit"),1,0)')
-    for col in ("AB", "AC", "AD", "AE"):
-        pd_[f"{col}{r}"].font = Font(name=ARIAL, size=9)
-    for c in range(2, 27):
-        pd_.cell(row=r, column=c).number_format = MONEY
-widths(pd_, {"A": 38, "AB": 34, "AC": 12, "AD": 13, "AE": 12})
-for c in range(2, 27):
-    pd_.column_dimensions[CL(c)].width = 12
-pd_.freeze_panes = "B7"
+    g = lambda col: f"INDEX($A{r}:$O{r},${col}$1)"
+    blank = f'{g("V")}&""=""'
+    tag = (f'IFERROR(MID({g("Z")},FIND("[",{g("Z")})+1,FIND("]",{g("Z")})-FIND("[",{g("Z")})-1),"")')
+    cc = f'TRIM({g("AA")}&"")'
+    fm = {
+        "P": f'=IF({blank},"",TRIM({g("V")}&""))',
+        "S": f'=IF(P{r}="","",IFERROR(INDEX(\'Account Map\'!$C:$C,MATCH(P{r},\'Account Map\'!$A:$A,0)),"UNKNOWN"))',
+        "Q": f'=IF(S{r}="Income",N({g("Y")})-N({g("X")}),0)',
+        "R": f'=IF(OR(P{r}="",NOT(ISNUMBER({g("W")}))),"",DATE(YEAR({g("W")}),MONTH({g("W")}),1))',
+        "T": f'=IF(P{r}="","",IFERROR(INDEX({TAG_D},MATCH(IF({cc}<>"",{cc},{tag}),{TAG_N},0))&"","Unallocated"))',
+    }
+    for col, v in fm.items():
+        c = pd_[f"{col}{r}"]
+        c.value = v
+        c.font = Font(name=ARIAL, size=9)
+        c.number_format = MONEY if col == "Q" else (MON if col == "R" else "General")
+pd_.freeze_panes = "A2"
+P = lambda k: f"'P&L Dump'!${PH[k]}${PF}:${PH[k]}${PL}"
 
 # ---------------------------------------------------------------- Account Map
 am = wb.create_sheet("Account Map")
-title(am, "Account Map", "Copied from the account list in CTS P&L Reporting. Department is taken from the account suffix (ONS, PRD, VID, CONS, INTEGRATION, ADMIN).")
-note(am, 3, "Most income accounts carry no suffix, so they sit in Unallocated. Change the department in column C if they belong to one team.", color="C00000", bold=True)
-head(am, 4, 1, ["Account", "Group", "Department"])
-for i, a in enumerate(ACCOUNTS):
-    r = 5 + i
-    put(am, r, 1, a["account"])
-    put(am, r, 2, a["group"])
-    put(am, r, 3, a["division"], fill=INPUT if a["group"] == "Income" else None,
-        color="0000FF" if a["group"] == "Income" else "000000")
-dv = DataValidation(type="list", formula1=DEPT_RNG, allow_blank=True)
-am.add_data_validation(dv)
-dv.add(f"C5:C{5 + len(ACCOUNTS) + 50}")
-widths(am, {"A": 40, "B": 16, "C": 16})
+title(am, "Account Map", "Copied from the account master on the Lists sheet of the CTS Financial Controller Pack. Only Income accounts count as revenue.")
+note(am, 3, "If a new Xero account appears, add it here with its category or its lines are ignored.", color="C00000", bold=True)
+head(am, 4, 1, ["Account code", "Account name", "Category"])
+lst = load_workbook(PACK, read_only=True)["Lists"]
+n_acc = 0
+for row in lst.iter_rows(min_row=6, max_col=3, values_only=True):
+    if row[0] is None:
+        continue
+    r = 5 + n_acc
+    put(am, r, 1, str(row[0]))
+    put(am, r, 2, row[1])
+    put(am, r, 3, row[2], fill=INPUT, color="0000FF")
+    n_acc += 1
+for r in range(5 + n_acc, 5 + n_acc + 30):
+    for c in range(1, 4):
+        put(am, r, c, None, fill=INPUT, color="0000FF")
+widths(am, {"A": 14, "B": 40, "C": 16})
 am.freeze_panes = "A5"
 
 # ---------------------------------------------------------------- Adjustments
@@ -403,9 +448,8 @@ def block(name, sub, cell_formula):
 
 
 PLD = "'P&L Dump'"
-block("Actual revenue", "From P&L Dump, Income accounts",
-      lambda d, m, col, i: (f"=IFERROR(SUMIFS(INDEX({PLD}!$B${PF}:$Z${PL},0,MATCH({m},{PLD}!$B$5:$Z$5,0)),"
-                            f"{PLD}!$AC${PF}:$AC${PL},\"Income\",{PLD}!$AD${PF}:$AD${PL},{d}),0)"))
+block("Actual revenue", "From P&L Dump, Income accounts, by cost centre",
+      lambda d, m, col, i: f"=SUMIFS({P('amt')},{P('dept')},{d},{P('month')},{m})")
 block("Backlog", "Signed. Zoho Closed Won after the last P&L month, plus Adjustments",
       lambda d, m, col, i: (f"=SUMIFS({Z('fwd')},{Z('dept')},{d},{Z('land')},{m},{Z('cat')},\"Backlog\")"
                             f"+SUMIFS({AR('fwd')},{AR('dept')},{d},{AR('land')},{m},{AR('cat')},\"Backlog\")"))
@@ -615,17 +659,18 @@ checks = [
     ("Deals with no closing date", f'=COUNTIF({Z("cat")},"NO DATE")', '=IF(B{r}=0,"OK","Ask sales to fix in Zoho")'),
     ("Open deals with zero or blank amount", f'=COUNTIFS({Z("stype")},"Open",{Z("amt")},0)', '=IF(B{r}=0,"OK","Pipeline is understated")'),
     ("Open deals past their closing date", f'=COUNTIF({Z("cat")},"Overdue")', f'=IF(B{{r}}=0,"OK",IF({INCOVER}="Yes","Counted in forecast","Not counted. Ask sales to update"))'),
-    ("P&L months picked in row 5", "=COUNT('P&L Dump'!$B$5:$Z$5)", '=IF(B{r}>0,"OK","No P&L pasted yet")'),
-    ("Actual months with no P&L column", f"=SUMPRODUCT(({MONTH_RNG}<={ASAT})*(COUNTIF('P&L Dump'!$B$5:$Z$5,{MONTH_RNG})=0))", '=IF(B{r}=0,"OK","Paste or pick the missing months")'),
-    ("P&L rows not in the Account Map", f"=SUM('P&L Dump'!$AE${PF}:$AE${PL})", '=IF(B{r}=0,"OK","Add the account to Account Map")'),
+    ("P&L Dump column headings found", "=COUNTIF('P&L Dump'!$V$1:$AA$1,\">0\")", '=IF(B{r}=6,"OK","A Xero heading has changed")'),
+    ("Actual months with no P&L lines", f"=SUMPRODUCT(({MONTH_RNG}<={ASAT})*(COUNTIF({P('month')},{MONTH_RNG})=0))", '=IF(B{r}=0,"OK","Paste the missing months")'),
+    ("P&L lines with an account not in the Account Map", f'=COUNTIF({P("cat")},"UNKNOWN")', '=IF(B{r}=0,"OK","Add the account to Account Map")'),
+    ("Income with no cost centre (Unallocated)", f'=SUMIFS({P("amt")},{P("dept")},"Unallocated")', '=IF(B{r}=0,"OK","Check the cost centre in Xero")'),
     ("Customers in the Zoho export", f"=MAX({Z('cno')})", f'=IF(B{{r}}<={CUST_ROWS},"OK","More than {CUST_ROWS}. Extend Customer Risk")'),
 ]
 for i, (lab, v, s_) in enumerate(checks):
     r = 51 + i
     put(db, r, 1, lab)
-    put(db, r, 2, v, "#,##0")
+    put(db, r, 2, v, MONEY if "Unallocated" in lab else "#,##0")
     put(db, r, 3, s_.replace("{r}", str(r)))
-db.conditional_formatting.add("C51:C61", FormulaRule(formula=['LEFT($C51,2)<>"OK"'], font=Font(name=ARIAL, bold=True, color="C00000")))
+db.conditional_formatting.add("C51:C62", FormulaRule(formula=['LEFT($C51,2)<>"OK"'], font=Font(name=ARIAL, bold=True, color="C00000")))
 widths(db, {"A": 30, "B": 24, **{CL(c): 13 for c in range(3, 21)}, "P": 26, "T": 11})
 db.column_dimensions["B"].width = 26
 for col in ("V", "W", "X"):
@@ -642,8 +687,8 @@ lines = [
     ("", False),
     ("Each month", True),
     ("1. Settings: change the last month of P&L actuals to the new month end.", False),
-    ("2. P&L Dump: clear A7 to Z1006. Paste the Xero Profit and Loss from cell A7, account names in column A, months across. "
-     "In row 5, pick the month for each pasted column.", False),
+    ("2. P&L Dump: clear columns A to O. Run the Xero Account Transactions report from 1 July to the month end. "
+     "Paste it into cell A1, headings in row 1. It is the same export that goes into GL_Paste in the Financial Controller Pack.", False),
     ("3. Zoho Dump: clear columns A to J. Run the Zoho report All Deals by Stage and paste the whole export into cell A1, exactly as it comes out.", False),
     ("4. Adjustments: add signed or likely revenue that is not in Zoho, such as recurring support contracts.", False),
     ("5. Dashboard: check the Data checks box at the bottom. Every line should say OK.", False),
@@ -653,7 +698,7 @@ lines = [
     ("Yellow cells with blue text are inputs. Everything else is a formula. Do not type over formulas.", False),
     ("", False),
     ("How the numbers are built", True),
-    ("Actual: Income accounts in the P&L, by department, from the Account Map.", False),
+    ("Actual: Income accounts, credit less debit, by Xero cost centre. If a line has no cost centre, the bracket tag on the job number is used. This matches the Financial Controller Pack.", False),
     ("Backlog: Zoho Closed Won deals with a closing date after the last P&L month, in the month they close.", False),
     ("Pipeline: open Zoho deals. Full value, and weighted by the stage probability on Settings.", False),
     ("Base forecast: actuals for past months, then backlog plus weighted pipeline for future months.", False),
@@ -664,7 +709,6 @@ lines = [
     ("Things to confirm", True),
     ("Stage probabilities and risk thresholds on Settings are placeholders. Management should set them.", False),
     ("Zoho department Support is mapped to Onsite, and Multi-Service to Unallocated. Both are assumptions. Please confirm.", False),
-    ("Most income accounts have no department in the current account list, so they show as Unallocated. Assign them on the Account Map if they belong to one team.", False),
     ("It is not known whether Zoho amounts include GST. The P&L is ex GST. Please confirm with sales.", False),
     ("Revenue that is never entered in Zoho, like recurring contracts, only shows if it is added on Adjustments.", False),
 ]
