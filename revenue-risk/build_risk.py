@@ -17,6 +17,10 @@ from openpyxl.formatting.rule import FormulaRule
 ROOT = Path("/home/user/Claude/revenue-risk")
 ZOHO_SRC = ROOT / "source/All Deals by Stage FY26-FY27 (12-10-2026).xlsx"
 OUT = ROOT / "CTS Revenue Risk Profile.xlsx"
+BUDGET_SRC = ROOT / "source/CTS Budget FY27 Final DN.xlsx"
+BUD_LINES = ["Onsite", "Production", "Consulting"]
+BUD_OF = {"Onsite": "Onsite", "Production": "Production", "Video": "Production",
+          "Consulting": "Consulting", "Integration": "Consulting", "Admin": None, "Unallocated": None}
 PACK = Path("/home/user/Claude/pack/CTS Financial Controller Pack.xlsx")
 
 NAVY, MUTED = "1F4E79", "595959"
@@ -117,9 +121,11 @@ st.add_data_validation(dv)
 dv.add("B8")
 
 # Departments and months
-head(st, 11, 1, ["Departments (as in the P&L)"])
+head(st, 11, 1, ["Departments (as in the P&L)", "Budget line"])
 for i, d in enumerate(DEPTS):
     put(st, 12 + i, 1, d)
+    put(st, 12 + i, 2, BUD_OF[d])
+note(st, 19, "Budget lines from the PRD/VID, ONS and CONS/INT split in CTS Budget FY27 Final DN. Admin and Unallocated have no revenue budget.")
 DEPT_RNG = "Settings!$A$12:$A$18"
 head(st, 11, 4, ["Months in this FY"])
 for i in range(12):
@@ -158,7 +164,7 @@ zmap = [("Event Production", "Production", "From the name"),
         ("Video Production", "Video", "From the name"),
         ("Consulting", "Consulting", "Same name"),
         ("Integration", "Integration", "Same name"),
-        ("Support", "Onsite", "ASSUMED. Please confirm"),
+        ("Support", "Onsite", "Budget calls Onsite Support"),
         ("Multi-Service", "Unallocated", "ASSUMED. Please confirm")]
 for i in range(10):
     r = 41 + i
@@ -391,21 +397,29 @@ AR = lambda k: f"Adjustments!${A[k]}${AF}:${A[k]}${AL}"
 
 # ---------------------------------------------------------------- Budget
 bu = wb.create_sheet("Budget")
-title(bu, "Budget: revenue by department", "Optional. Paste or type the FY budgeted revenue. It drives the gap to budget and the risk rating.")
-head(bu, 4, 1, ["Department"] + [None] * 12 + ["FY total"])
+title(bu, "Budget: revenue by budget line",
+      "Source: CTS Budget FY27 Final DN, sheet FY27 Budget - detailed, rows 3 to 5 (Consulting, Production, Onsite), July to June.")
+note(bu, 3, "The budget has three revenue lines. Production includes Video. Consulting includes Integration. Onsite is called Support on the summary sheet.")
+head(bu, 4, 1, ["Budget line"] + [None] * 12 + ["FY total"])
 for i in range(12):
-    c = bu.cell(row=4, column=2 + i, value=f"={CL(4)}{12+i}".replace("D", "Settings!$D$"))
+    c = bu.cell(row=4, column=2 + i, value=f"=Settings!$D${12+i}")
     c.number_format = MON
-for i, d in enumerate(DEPTS):
+bsrc = load_workbook(BUDGET_SRC, data_only=True)["FY27 Budget - detailed"]
+src_row = {"Consulting": 3, "Production": 4, "Onsite": 5}
+for i, line in enumerate(BUD_LINES):
     r = 5 + i
-    put(bu, r, 1, f"=Settings!$A${12+i}")
-    for c in range(2, 14):
-        put(bu, r, c, None, MONEY, fill=INPUT, color="0000FF")
+    assert bsrc.cell(src_row[line], 7).value == line
+    put(bu, r, 1, line)
+    for m in range(12):
+        assert bsrc.cell(2, 8 + m).value == dt.datetime(2026 + (m >= 6), (m + 6) % 12 + 1, 1)
+        put(bu, r, 2 + m, bsrc.cell(src_row[line], 8 + m).value, MONEY, fill=INPUT, color="0000FF")
     put(bu, r, 14, f"=SUM(B{r}:M{r})", MONEY, bold=True)
-put(bu, 12, 1, "Total", bold=True, fill=TOTAL)
+BT = 5 + len(BUD_LINES)
+put(bu, BT, 1, "Total", bold=True, fill=TOTAL)
 for c in range(2, 15):
-    put(bu, 12, c, f"=SUM({CL(c)}5:{CL(c)}11)", MONEY, bold=True, fill=TOTAL)
+    put(bu, BT, c, f"=SUM({CL(c)}5:{CL(c)}{BT-1})", MONEY, bold=True, fill=TOTAL)
 widths(bu, {"A": 16, **{CL(c): 12 for c in range(2, 15)}})
+BUD_LIST = f"Budget!$A$5:$A${BT-1}"
 
 # ---------------------------------------------------------------- Monthly Outlook
 mo = wb.create_sheet("Monthly Outlook")
@@ -434,7 +448,7 @@ def block(name, sub, cell_formula):
     for i, d in enumerate(DEPTS):
         r = first + i
         put(mo, r, 1, f"=Settings!$A${12+i}")
-        put(mo, r, 2, None)
+        put(mo, r, 2, f'=Settings!$B${12+i}&""', color=MUTED)
         for col in MCOLS:
             put(mo, r, MCOLS.index(col) + 3, cell_formula(f"$A{r}", f"{col}$4", col, i), MONEY)
         put(mo, r, 15, f"=SUM(C{r}:N{r})", MONEY, bold=True)
@@ -474,10 +488,40 @@ block("Forecast", "Actuals to date, then backlog plus weighted pipeline",
                             f"{col}{br('Backlog', i)}+{col}{br('Pipeline (weighted)', i)})"))
 block("If pipeline falls through", "Actuals, then backlog plus pipeline at the stress case rate on the Dashboard",
       lambda d, m, col, i: f"=IF({m}<={ASAT},{col}{br('Actual revenue', i)}," + both("stress", ("dept", d), ("land", m)) + ")")
-block("Budget", "From the Budget sheet",
-      lambda d, m, col, i: f"=Budget!{CL(MCOLS.index(col) + 2)}{5 + i}")
-block("Forecast less budget", "Negative means short of budget",
-      lambda d, m, col, i: f"={col}{br('Forecast', i)}-{col}{br('Budget', i)}")
+
+
+def line_block(name, sub, cell_formula):
+    """Same as block, but one row per budget line."""
+    global row
+    put(mo, row, 1, name, bold=True, color="FFFFFF", fill=HEAD)
+    put(mo, row, 2, sub, color="FFFFFF", fill=HEAD, italic=True)
+    for c in range(3, 16):
+        put(mo, row, c, None, fill=HEAD)
+    first = row + 1
+    for i, line in enumerate(BUD_LINES):
+        r = first + i
+        put(mo, r, 1, f"=Budget!$A${5+i}")
+        put(mo, r, 2, None)
+        for k, col in enumerate(MCOLS):
+            put(mo, r, k + 3, cell_formula(f"$A{r}", col, k, i), MONEY)
+        put(mo, r, 15, f"=SUM(C{r}:N{r})", MONEY, bold=True)
+    tr = first + len(BUD_LINES)
+    put(mo, tr, 1, "Total", bold=True, fill=TOTAL)
+    put(mo, tr, 2, None, fill=TOTAL)
+    for c in range(3, 16):
+        put(mo, tr, c, f"=SUM({CL(c)}{first}:{CL(c)}{tr-1})", MONEY, bold=True, fill=TOTAL)
+    blocks[name] = first
+    row = tr + 2
+
+
+fcf = blocks["Forecast"]
+fcl = fcf + len(DEPTS) - 1
+line_block("Forecast by budget line", "Forecast block above, grouped. Production includes Video, Consulting includes Integration",
+           lambda ln, col, k, i: f"=SUMIF($B${fcf}:$B${fcl},{ln},{col}${fcf}:{col}${fcl})")
+line_block("Budget", "From the Budget sheet",
+           lambda ln, col, k, i: f"=Budget!{CL(k + 2)}{5 + i}")
+line_block("Forecast less budget", "Negative means short of budget",
+           lambda ln, col, k, i: f"={col}{blocks['Forecast by budget line'] + i}-{col}{blocks['Budget'] + i}")
 widths(mo, {"A": 26, "B": 30, **{c: 12 for c in MCOLS}, "O": 14})
 mo.freeze_panes = "C6"
 
@@ -532,7 +576,8 @@ db["A4"] = f'="Base forecast for the year is "&TEXT(F{TT},"$#,##0")&". Signed so
 db["A5"] = f'="If no more pipeline comes through than the stress case below, revenue falls by "&TEXT(L{TT},"$#,##0")&"."'
 db["A6"] = f'="The selected customers withdrawing would cost "&TEXT(M{TT},"$#,##0")&" of forward revenue. Both together leave "&TEXT(O{TT},"$#,##0")&" for the year."'
 db["A7"] = f'="Largest single customer: "&B37&", "&TEXT(F37,"0.0%")&" of all forward revenue. Top 10 customers: "&TEXT(G46,"0.0%")&"."'
-for r in range(4, 8):
+db["A8"] = '="Revenue to date is "&TEXT(F13,"$#,##0")&" against a budget of "&TEXT(G13,"$#,##0")&". Full year forecast is "&TEXT(I13,"$#,##0")&" against a budget of "&TEXT(J13,"$#,##0")&"."'
+for r in range(4, 9):
     db[f"A{r}"].font = Font(name=ARIAL, size=11, bold=(r == 4), color="000000")
 
 put(db, 9, 1, "Scenario levers (yellow cells)", bold=True, color="FFFFFF", fill=HEAD)
@@ -549,16 +594,35 @@ for k in range(10):
 dv = DataValidation(type="list", formula1=CR("B"), allow_blank=True)
 db.add_data_validation(dv)
 dv.add("C13:C22")
+
+# Against budget, by the three budget lines
+head(db, 9, 5, ["Budget line", "Actual to date", "Budget to date", "Actual less budget to date",
+                "Forecast for FY", "Budget for FY", "Forecast less budget", "Signed as % of budget"])
+db.row_dimensions[9].height = 45
+dl = f"$G${T0}:$G${T1}"
+for i, line in enumerate(BUD_LINES):
+    r = 10 + i
+    br_ = 5 + i
+    fm = {5: f"=Budget!$A${br_}",
+          6: f"=SUMIF({dl},E{r},$B${T0}:$B${T1})",
+          7: f"=SUMPRODUCT((Budget!$B$4:$M$4<={ASAT})*Budget!$B${br_}:$M${br_})",
+          8: f"=F{r}-G{r}",
+          9: f"=SUMIF({dl},E{r},$F${T0}:$F${T1})",
+          10: f"=Budget!$N${br_}",
+          11: f"=I{r}-J{r}",
+          12: f"=IF(J{r}=0,0,(SUMIF({dl},E{r},$B${T0}:$B${T1})+SUMIF({dl},E{r},$C${T0}:$C${T1}))/J{r})"}
+    for c, v in fm.items():
+        put(db, r, c, v, PCT if c == 12 else (None if c == 5 else MONEY), bold=(c == 5))
+put(db, 13, 5, "Total", bold=True, fill=TOTAL)
+for c in range(6, 12):
+    put(db, 13, c, f"=SUM({CL(c)}10:{CL(c)}12)", MONEY, bold=True, fill=TOTAL)
+put(db, 13, 12, "=IF(J13=0,0,SUMPRODUCT(L10:L12,J10:J12)/J13)", PCT, bold=True, fill=TOTAL)
+note(db, 14, "Production includes Video. Consulting includes Integration. Admin and Unallocated revenue is not in any budget line.", col=5)
+db.conditional_formatting.add("H10:H13 K10:K13", FormulaRule(formula=["H10<0"], font=Font(name=ARIAL, bold=True, color="C00000")))
 note(db, 23, "A withdrawal removes that customer's backlog and pipeline for the rest of the year. It does not touch actuals already earned, or revenue that is not in Zoho or Adjustments.")
 
 dcols = ["Department", "Actual to date (P&L)", "Backlog, signed", "Pipeline, full value", "Pipeline, weighted",
-         "Base forecast for FY", "Budget for FY", "Forecast less budget", "Signed as % of budget",
-         "Pipeline share of forward revenue", "If pipeline falls through", "Revenue at risk from pipeline",
-         "Lost if selected customers withdraw", "Worst case: both", "Largest customer",
-         "Largest customer share", "Overdue Zoho deals, full value", "Won to date in Zoho (reference)", "Risk rating"]
-# columns: A..S  (O = worst case moved to N? keep order below)
-dcols = ["Department", "Actual to date (P&L)", "Backlog, signed", "Pipeline, full value", "Pipeline, weighted",
-         "Base forecast for FY", "Budget for FY", "Forecast less budget", "Signed as % of budget",
+         "Base forecast for FY", "Budget line", "Budget line: forecast less budget", "Budget line: signed as % of budget",
          "Pipeline share of forward revenue", "If pipeline falls through", "Revenue at risk from pipeline",
          "Lost if selected customers withdraw", "Forecast after withdrawals", "Worst case: both",
          "Largest customer", "Largest customer share", "Overdue Zoho deals, full value",
@@ -569,8 +633,8 @@ MO = "'Monthly Outlook'"
 for i, d in enumerate(DEPTS):
     r = T0 + i
     dref = f"$A{r}"
-    act, bkl, pip, fc, flo, bud = (br(n, i) for n in ("Actual revenue", "Backlog", "Pipeline (weighted)",
-                                                      "Forecast", "If pipeline falls through", "Budget"))
+    act, bkl, pip, fc, flo = (br(n, i) for n in ("Actual revenue", "Backlog", "Pipeline (weighted)",
+                                                 "Forecast", "If pipeline falls through"))
     ccol = CL(11 + i)
     fm = {
         1: f"=Settings!$A${12+i}",
@@ -579,9 +643,9 @@ for i, d in enumerate(DEPTS):
         4: "=" + both("full", ("dept", dref), ("cat", '"Pipeline"')) + "+" + both("full", ("dept", dref), ("cat", '"Overdue"')),
         5: f"={MO}!$O${pip}",
         6: f"={MO}!$O${fc}",
-        7: f"={MO}!$O${bud}",
-        8: f'=IF(G{r}=0,"No budget",F{r}-G{r})',
-        9: f'=IF(G{r}=0,"No budget",(B{r}+C{r})/G{r})',
+        7: f'=Settings!$B${12+i}&""',
+        8: f'=IFERROR(INDEX($K$10:$K$12,MATCH(G{r},$E$10:$E$12,0)),"-")',
+        9: f'=IFERROR(INDEX($L$10:$L$12,MATCH(G{r},$E$10:$E$12,0)),"-")',
         10: f"=IF(C{r}+E{r}=0,0,E{r}/(C{r}+E{r}))",
         11: f"={MO}!$O${flo}",
         12: f"=F{r}-K{r}",
@@ -593,24 +657,26 @@ for i, d in enumerate(DEPTS):
         18: "=" + both("amt", ("dept", dref), ("cat", '"Overdue"')),
         19: f'=SUMIFS({Z("amt")},{Z("dept")},{dref},{Z("cat")},"Delivered",{Z("close")},">="&{FYSTART})',
         20: f'=IF(AND(B{r}=0,F{r}=0),"-",CHOOSE(MAX(V{r}:X{r})+1,"Low","Medium","High"))',
-        22: f'=IF(G{r}=0,0,IF(F{r}<G{r}*(1-Settings!$C$54),2,IF(F{r}<G{r}*(1-Settings!$B$54),1,0)))',
+        22: (f'=IFERROR(IF(INDEX($J$10:$J$12,MATCH(G{r},$E$10:$E$12,0))=0,0,'
+             f'IF(INDEX($I$10:$I$12,MATCH(G{r},$E$10:$E$12,0))<INDEX($J$10:$J$12,MATCH(G{r},$E$10:$E$12,0))*(1-Settings!$C$54),2,'
+             f'IF(INDEX($I$10:$I$12,MATCH(G{r},$E$10:$E$12,0))<INDEX($J$10:$J$12,MATCH(G{r},$E$10:$E$12,0))*(1-Settings!$B$54),1,0))),0)'),
         23: f"=IF(Q{r}>=Settings!$C$55,2,IF(Q{r}>=Settings!$B$55,1,0))",
         24: f"=IF(J{r}>=Settings!$C$56,2,IF(J{r}>=Settings!$B$56,1,0))",
     }
     for c, v in fm.items():
-        fmt = PCT if c in (9, 10, 17) else (None if c in (1, 16, 20) else MONEY)
+        fmt = PCT if c in (9, 10, 17) else (None if c in (1, 7, 16, 20) else MONEY)
         cell = put(db, r, c, v, fmt, bold=(c in (1, 20)))
         if c >= 22:
             cell.font = Font(name=ARIAL, size=8, color=MUTED)
 put(db, TT, 1, "Total", bold=True, fill=TOTAL)
 for c in range(2, 21):
     L_ = CL(c)
-    if c in (2, 3, 4, 5, 6, 7, 11, 12, 13, 14, 15, 18, 19):
+    if c in (2, 3, 4, 5, 6, 11, 12, 13, 14, 15, 18, 19):
         v = f"=SUM({L_}{T0}:{L_}{T1})"
     elif c == 8:
-        v = f'=IF(G{TT}=0,"No budget",F{TT}-G{TT})'
+        v = "=K13"
     elif c == 9:
-        v = f'=IF(G{TT}=0,"No budget",(B{TT}+C{TT})/G{TT})'
+        v = "=L13"
     elif c == 10:
         v = f"=IF(C{TT}+E{TT}=0,0,E{TT}/(C{TT}+E{TT}))"
     elif c == 16:
@@ -707,8 +773,9 @@ lines = [
     ("Risk rating: the worst of three tests on Settings. Forecast against budget, largest customer share, and how much of forward revenue is still pipeline.", False),
     ("", False),
     ("Things to confirm", True),
+    ("Budget is loaded from CTS Budget FY27 Final DN at three lines: Onsite, Production with Video, and Consulting with Integration. Each month update it only if the budget is re-forecast.", False),
     ("Stage probabilities and risk thresholds on Settings are placeholders. Management should set them.", False),
-    ("Zoho department Support is mapped to Onsite, and Multi-Service to Unallocated. Both are assumptions. Please confirm.", False),
+    ("Zoho department Support is mapped to Onsite. The budget calls the Onsite line Support, so this follows the budget. Multi-Service is mapped to Unallocated, which is an assumption. Please confirm.", False),
     ("It is not known whether Zoho amounts include GST. The P&L is ex GST. Please confirm with sales.", False),
     ("Revenue that is never entered in Zoho, like recurring contracts, only shows if it is added on Adjustments.", False),
 ]
