@@ -1,0 +1,106 @@
+{
+  "_note": "ILLUSTRATIVE FIGURES. Every number here is a placeholder so the deck has a realistic shape. Replace with the month's actuals from the Financial Controller Pack before presenting. Money is A$ thousands unless stated. Departments follow pack/build_pack.py (ONSITE, PRODUCTION, VIDEO, INTEGRATION, CONSULTING, ADMIN).",
+  "month": "September 2026",
+  "monthShort": "Sep 26",
+  "priorMonthShort": "Aug 26",
+  "fy": "FY27",
+  "priorFy": "FY26",
+  "ytdLabel": "YTD (Jul to Sep)",
+  "presenter": "Financial Controller",
+  "workingDays": 22,
+  "hoursPerDay": 8,
+
+  "plSummary": {
+    "rows": [
+      { "line": "Revenue",        "month": 1482, "monthBudget": 1420, "ytd": 4310, "ytdBudget": 4200, "priorYearMonth": 1355 },
+      { "line": "Cost of sales",  "month": -918, "monthBudget": -880, "ytd": -2690, "ytdBudget": -2610, "priorYearMonth": -842 },
+      { "line": "Gross profit",   "month": 564,  "monthBudget": 540,  "ytd": 1620, "ytdBudget": 1590, "priorYearMonth": 513, "total": true },
+      { "line": "Gross margin %", "month": 0.381, "monthBudget": 0.380, "ytd": 0.376, "ytdBudget": 0.379, "priorYearMonth": 0.379, "pct": true },
+      { "line": "Overheads",      "month": -402, "monthBudget": -410, "ytd": -1215, "ytdBudget": -1230, "priorYearMonth": -385 },
+      { "line": "EBITDA",         "month": 162,  "monthBudget": 130,  "ytd": 405,  "ytdBudget": 360,  "priorYearMonth": 128, "total": true },
+      { "line": "EBITDA margin %","month": 0.109, "monthBudget": 0.092, "ytd": 0.094, "ytdBudget": 0.086, "priorYearMonth": 0.094, "pct": true }
+    ],
+    "trend": {
+      "labels": ["Apr", "May", "Jun", "Jul", "Aug", "Sep"],
+      "revenue": [1310, 1365, 1440, 1372, 1456, 1482],
+      "ebitda":  [118, 126, 149, 112, 131, 162]
+    }
+  },
+
+  "departments": [
+    { "name": "Onsite",      "revenue": 520, "revenueBudget": 505, "grossProfit": 182, "overheads": 48,  "contract": 455, "nonContract": 65 },
+    { "name": "Production",  "revenue": 468, "revenueBudget": 440, "grossProfit": 196, "overheads": 55,  "contract": 110, "nonContract": 358 },
+    { "name": "Video",       "revenue": 158, "revenueBudget": 170, "grossProfit": 61,  "overheads": 22,  "contract": 40,  "nonContract": 118 },
+    { "name": "Integration", "revenue": 214, "revenueBudget": 190, "grossProfit": 77,  "overheads": 30,  "contract": 60,  "nonContract": 154 },
+    { "name": "Consulting",  "revenue": 122, "revenueBudget": 115, "grossProfit": 48,  "overheads": 16,  "contract": 35,  "nonContract": 87 },
+    { "name": "Admin",       "revenue": 0,   "revenueBudget": 0,   "grossProfit": 0,   "overheads": 231, "contract": 0,   "nonContract": 0 }
+  ],
+
+  "riskFlags": {
+    "_rule": "From the pack's Setup sheet: below $5k materiality = Low; variance 10% or more = Medium; 25% or more, or $50k or more = High.",
+    "rows": [
+      { "line": "Production: Non contract income", "actual": 358, "budget": 300, "var": 58,  "varPct": 0.193,  "risk": "High" },
+      { "line": "Integration: Non contract income","actual": 154, "budget": 130, "var": 24,  "varPct": 0.185,  "risk": "Medium" },
+      { "line": "Video: Non contract income",      "actual": 118, "budget": 136, "var": -18, "varPct": -0.132, "risk": "Medium" },
+      { "line": "Onsite: Contract income",         "actual": 455, "budget": 440, "var": 15,  "varPct": 0.034,  "risk": "Low" },
+      { "line": "Consulting: Non contract income", "actual": 87,  "budget": 80,  "var": 7,   "varPct": 0.088,  "risk": "Low" }
+    ]
+  },
+
+  "topCustomers": [
+    { "rank": 1,  "client": "Client A", "month": 212, "ytd": 612, "lastYtd": 580 },
+    { "rank": 2,  "client": "Client B", "month": 180, "ytd": 540, "lastYtd": 505 },
+    { "rank": 3,  "client": "Client C", "month": 165, "ytd": 488, "lastYtd": 410 },
+    { "rank": 4,  "client": "Client D", "month": 130, "ytd": 410, "lastYtd": 430 },
+    { "rank": 5,  "client": "Client E", "month": 124, "ytd": 365, "lastYtd": 300 },
+    { "rank": 6,  "client": "Client F", "month": 96,  "ytd": 298, "lastYtd": 310 },
+    { "rank": 7,  "client": "Client G", "month": 88,  "ytd": 255, "lastYtd": 180 },
+    { "rank": 8,  "client": "Client H", "month": 75,  "ytd": 230, "lastYtd": 240 },
+    { "rank": 9,  "client": "Client I", "month": 70,  "ytd": 210, "lastYtd": 150 },
+    { "rank": 10, "client": "Client J", "month": 64,  "ytd": 188, "lastYtd": 0 }
+  ],
+
+  "dso": {
+    "days": 35,
+    "target": 30,
+    "receivables": 1640,
+    "trend": { "labels": ["Apr", "May", "Jun", "Jul", "Aug", "Sep"], "days": [41, 39, 44, 38, 36, 35] },
+    "aged": [
+      { "bucket": "Current", "amount": 1010 },
+      { "bucket": "1 to 30 days", "amount": 380 },
+      { "bucket": "31 to 60 days", "amount": 160 },
+      { "bucket": "61 to 90 days", "amount": 55 },
+      { "bucket": "Over 90 days", "amount": 35 }
+    ]
+  },
+
+  "utilisation": {
+    "target": 0.75,
+    "_definition": "Utilisation % = chargeable hours / (FTE x working days x hours per day). Matches the pack's Utilisation sheet.",
+    "rows": [
+      { "dept": "Onsite",      "fte": 18, "chargeable": 2540, "nonChargeable": 410, "leave": 218, "priorMonth": 0.78 },
+      { "dept": "Production",  "fte": 14, "chargeable": 1790, "nonChargeable": 520, "leave": 154, "priorMonth": 0.70 },
+      { "dept": "Video",       "fte": 5,  "chargeable": 580,  "nonChargeable": 230, "leave": 70,  "priorMonth": 0.69 },
+      { "dept": "Integration", "fte": 7,  "chargeable": 905,  "nonChargeable": 240, "leave": 87,  "priorMonth": 0.71 },
+      { "dept": "Consulting",  "fte": 4,  "chargeable": 520,  "nonChargeable": 150, "leave": 34,  "priorMonth": 0.76 }
+    ]
+  },
+
+  "labourProfit": {
+    "_definition": "Labour revenue = chargeable hours x average charge rate. Labour cost = FTE x working hours x average loaded cost per hour. Sensitivity = what five more points of utilisation would add at the same rate.",
+    "rows": [
+      { "dept": "Onsite",      "chargeRate": 115, "costRate": 52 },
+      { "dept": "Production",  "chargeRate": 140, "costRate": 58 },
+      { "dept": "Video",       "chargeRate": 130, "costRate": 60 },
+      { "dept": "Integration", "chargeRate": 125, "costRate": 55 },
+      { "dept": "Consulting",  "chargeRate": 185, "costRate": 75 }
+    ]
+  },
+
+  "actions": [
+    { "area": "P&L",        "comment": "", "owner": "", "due": "" },
+    { "area": "Risk revenue", "comment": "", "owner": "", "due": "" },
+    { "area": "Customers and DSO", "comment": "", "owner": "", "due": "" },
+    { "area": "Utilisation", "comment": "", "owner": "", "due": "" }
+  ]
+}
