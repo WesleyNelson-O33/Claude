@@ -27,9 +27,9 @@ ACCT = {
 }
 CC = {"[CTS]": "CTS", "[PRD]": "PRODUCTION", "[ONS]": "ONSITE", "[VID]": "VIDEO",
       "[INT]": "INTEGRATION", "[CONS]": "CONSULTING"}
-# 37007, as Danica set it: no GST on any line, and the ASX confetti claims
-# left out because they go in as bills paid from 21410.
-NO_GST = {"37007"}
+# 37007: the ASX confetti claims are left out because they go in as bills
+# paid from 21410.
+NO_GST = set()
 SKIP = {"37007": {"ASX - Lighting and Confetti Test - 29.9.26 [PRD]"}}
 D = lambda x: Decimal(str(x)).quantize(Decimal("0.01"), ROUND_HALF_UP)
 
