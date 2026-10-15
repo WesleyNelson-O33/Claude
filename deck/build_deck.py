@@ -173,11 +173,11 @@ for b in boxes(s):
                  'Revenue and EBITDA, Jul to Sep actual, Oct to Dec budget')
 rev = sl['s4'][0]
 commentary(s, [
-    'Revenue beat budget by 148k. The year is still 372k behind.',
-    'The whole beat is one Integration project, Aware Super. It does not repeat.',
-    'Gross margin was 33.4 per cent, but that Integration work carries only 10.',
-    'Overheads 230k against 232k budget. Cost control is not the problem.',
-    'EBITDA negative 32k for the month, 6k YTD against a 223k budget.',
+    'Break even needs 549k of revenue a month. We are running at 541k.',
+    'The EBITDA miss is all margin. Overheads came in 48k under budget.',
+    'Gross profit missed 280k: 170k on volume, 110k on a 6.8 point margin drop.',
+    'At this run rate we meet the revenue budget and still lose 37k.',
+    'Reforecast on margin, not revenue. Cost is not the lever here.',
 ])
 
 # =============================================== 5. per department =========
@@ -199,21 +199,21 @@ for b in boxes(s):
                       'overhead is charged out. Result is revenue less direct costs less all '
                       'overhead, and the five departments add back to net profit exactly.'])
 commentary(s, [
-    'Support is the only department covering its overhead. It made 29k.',
-    'Events lost 54k. It earned 73k and was charged 111k of overhead.',
-    'Integration made 10k on 235k. A 10 per cent margin is thin.',
-    'Consulting lost 20k, carrying overhead with almost no fee base.',
-    'The five results add back to net profit exactly.',
+    'Only Support covers its overhead. It returned 12 per cent on revenue.',
+    'Events is charged 87.5 per cent of premises on 13 per cent of revenue.',
+    'On that key Events cannot be profitable, whatever it sells.',
+    'Integration made 10k on 235k. A fit-out at that margin carries risk for nothing.',
+    'Consulting holds 20k of overhead on a 3.5k fee base. Its future needs a decision.',
 ])
 
 # =============================================== 6. by department chart ====
 swap_chart(S[6], f'{D}/img/dept.png')
 commentary(S[6], [
-    'Support and Integration were 85 per cent of September revenue.',
-    "Integration's bar is almost all Aware Super. Strip it out and it changes.",
-    'Only those two clear their overhead charge. The other three do not.',
-    'Events carries the biggest charge because of the Office Dept key.',
-    'That key is fixed for the year. Revisit it at FY28, not now.',
+    'Two of five departments clear their overhead. Three do not.',
+    "Integration's bar is one project. Underlying it is a 60k a quarter unit.",
+    'Events is the structural problem: heavy overhead, thin and falling fee income.',
+    'The overhead keys were set for a different shape of business.',
+    'Test the Office Dept key before the FY28 budget, not mid year.',
 ])
 
 # =============================================== 7. risk revenue ===========
@@ -235,11 +235,11 @@ fill(t, [[r['lab'], k(r['act']), k(r['bud']), sgn(r['var']),
           (pct(r['pct']) if r['bud'] else 'no budget'), r['risk']] for r in sl['s7']])
 colour_signs(t, [3, 4])
 commentary(s, [
-    '55 per cent of revenue is non-contract and must be won again.',
-    'Integration non-contract is 254k behind budget for the year.',
-    'Consulting non-contract is 233k behind. That budget needs reforecasting.',
-    'Support contract income is 134k behind. Scope, or a renewal we lost.',
-    'Two lines earn with no budget mapped. A pack fix, not trading.',
+    'Only 43 per cent of revenue is contracted. The rest is rebuilt every month.',
+    'Integration and Consulting non-contract are 487k behind for the quarter.',
+    'That budget is not recoverable across the remaining nine months.',
+    'Recommend a formal reforecast of both lines before the half year.',
+    'Two lines earn against no budget. A pack fix, not a trading issue.',
 ])
 
 # =============================================== 9. top 10 table ===========
@@ -265,11 +265,11 @@ for b in boxes(s):
                       f'the P&L. FY26 is invoices issued 1 Jul to 30 Sep 2025 from Xero, ex GST.'])
 top3 = sum(c['fy27'] for c in rows_c[:3])
 commentary(s, [
-    'The top ten are 76 per cent of revenue. The top three, 49.',
-    'Aware Super went from nil to 285k. All of it one fit-out.',
-    'Deloitte is the only large recurring customer, steady at 402k.',
-    'Three of the ten are new, worth 368k between them.',
-    'Lose Deloitte and a quarter of the book goes with it.',
+    'Top three customers are 49 per cent of revenue. That is the real exposure.',
+    'Deloitte at 402k is close to the whole EBITDA base. Losing it ends the year.',
+    'Aware Super at 285k is one fit-out and will not be there next quarter.',
+    'Three of the ten are new, 368k, none contracted beyond the current job.',
+    'Recommend a retention plan on Deloitte and contract cover on the new three.',
 ])
 
 # =============================================== 10. top 10 chart ==========
@@ -283,11 +283,11 @@ for b in boxes(s):
                       'Ties to total income on the P&L.'])
 swap_chart(s, f'{D}/img/top10.png')
 commentary(s, [
-    'Deloitte and Aware Super alone are 42 per cent of the year.',
-    'Below the top five the book falls away fast.',
-    'Aware Super is one project. Treat it as one-off when forecasting.',
-    'No customer in the ten could replace Deloitte.',
-    'The other eighteen customers are worth 384k between them.',
+    'The concentration is in project work, not in contracted revenue.',
+    'Deloitte and Aware Super are 42 per cent of the year between them.',
+    'Below the top five the book falls away fast. Number ten is 37k.',
+    'Everything outside the top ten is 384k, with no depth behind it.',
+    'Put the business development target on the second tier, not the top.',
 ])
 
 # =============================================== 11. receivables ===========
@@ -317,11 +317,11 @@ fill(t, [[n, k(v), f'{p:.1f}%'] for n, v, p in rec['top_debtors']] +
         [['All others', k(rec['total_outstanding'] - sum(d[1] for d in rec['top_debtors'])),
           f'{100-sum(d[2] for d in rec["top_debtors"]):.1f}%']])
 commentary(s, [
-    'Receivables are 833k across 61 invoices and 28 customers.',
-    'DSO is 47 days against a 30 day target.',
-    '29 per cent of the book is overdue, 245k of it.',
-    'Aware Super is a third of the ledger, on one invoice of 226k.',
-    'Two invoices sit over 90 days. Property NSW 20k, Meet Magic 5k.',
+    'DSO is 47.5 days against a 30 day target.',
+    'Every day of DSO is 17.7k of cash. Seventeen days is 309k.',
+    '309k sits in debtors against net debt of 723k. Fastest cash lever we have.',
+    'Aware Super is 277k of the 833k, on one invoice due 9 October.',
+    'Two invoices over 90 days, 25k. Chase or provide this month.',
 ])
 
 # =============================================== 12. customers YoY =========
@@ -332,11 +332,11 @@ for b in boxes(s):
                       'invoices issued in the same period from Xero, ex GST. Ranked by this year.'])
 swap_chart(s, f'{D}/img/yoy.png')
 commentary(s, [
-    'Revenue is up on last year, but the growth is three new customers.',
-    'Aware Super, Data#3 and Generation-e are 368k of new revenue.',
-    'On the customers we had last year the picture is flat.',
-    'ASX is down a third, from 90k to 61k, with no replacement.',
-    'If the three do not repeat, FY28 starts 368k behind.',
+    'All the growth is three new customers. The base we had is flat.',
+    'Aware Super, Data#3 and Generation-e are 368k and none existed last year.',
+    'On the existing base, gains of 146k against losses of 50k.',
+    'ASX is down a third. That is a relationship to repair, not a market shift.',
+    'If the three new names do not repeat, FY28 opens 368k behind.',
 ])
 
 # =============================================== 14. utilisation ===========
@@ -360,11 +360,11 @@ _pic = swap_chart(s, f'{D}/img/util.png')
 _pic.top, _pic.height = Inches(4.02), Inches(1.00)
 _pic.left, _pic.width = Inches(0.55), Inches(6.10)
 commentary(s, [
-    'Every department reports hours now, off the raw timesheet in her report.',
-    'Support is at 99.5 per cent. It still records almost no non-chargeable time.',
-    'Events is at 49 per cent, with more leave than chargeable hours.',
-    'Consulting is 27 per cent. Video 76 and Integration 100, on tiny volumes.',
-    'Hours are split by the department the work was for, same as revenue.',
+    'Support records 11 non-chargeable hours in a month. That is not credible.',
+    'Until it is fixed the 99.5 per cent means nothing, and nor does the target.',
+    'Events is at 49 per cent with 333 hours of leave. Capacity is sitting idle.',
+    'Consulting at 27 per cent confirms there is no fee base to utilise.',
+    'Hours are split by the job, the same basis revenue is split on.',
 ])
 
 # =============================================== 15. profit per hour =======
@@ -405,11 +405,11 @@ for b in boxes(s):
                       'charge rates. Labour is wages, salaries, superannuation and workers '
                       'compensation coded to the department.'])
 commentary(s, [
-    'Support earns $114 a chargeable hour and keeps $54 after labour.',
-    'Events shows $305 an hour, but that is equipment, not a rate.',
-    'Integration is the outlier: 235k of revenue on 9.5 chargeable hours.',
-    'That confirms the Aware Super job was bought in, not delivered by us.',
-    'Five points on Support and Events is worth about 20k a month.',
+    'Support returns $54 of margin an hour after direct labour. That is the engine.',
+    'Events returns $258, but on equipment revenue. It is not a labour rate.',
+    'Integration billed 235k on 9.5 chargeable hours. That work was bought in.',
+    'That is why its margin is 10 per cent. We are reselling, not delivering.',
+    'Five points on Support and Events is worth 20k a month at no extra cost.',
 ])
 
 # =============================================== 17. actions ===============
@@ -417,14 +417,17 @@ s = S[17]
 t = tables(s)[0]
 header(t, ['Area', 'What we agreed', 'Owner', 'Due'])
 fill(t, [
-    ['P&L', 'September beat budget on one Integration project. Reforecast the second half on '
-            'the recurring base, not on this month.', 'GC and FC', '31 Oct 26'],
-    ['Risk revenue', 'Integration and Consulting non-contract budgets are 487k behind for the '
-                     'year. Agree a reforecast or a plan to close it.', 'Sales and GC', '31 Oct 26'],
-    ['Customers and DSO', 'DSO is 47 days against a 30 day target. Chase Property NSW 19.7k and '
-                          'Meet Magic 5.1k, both over 90 days.', 'FC', '24 Oct 26'],
-    ['Utilisation', 'Support is recording no non-chargeable hours and Video and Integration '
-                    'report none at all. Fix the reporting before the next review.', 'Ops', '14 Nov 26'],
+    ['P&L', 'Reforecast FY27 on margin, not revenue. At the current run rate we meet the '
+            'revenue budget and deliver an EBITDA loss of 37k against a 397k plan.',
+     'GC and FC', '31 Oct 26'],
+    ['Overhead keys', 'Events carries 87.5 per cent of premises on 13 per cent of revenue and '
+                      'cannot be profitable on that key. Test it for FY28, do not change it '
+                      'mid year.', 'GC and FC', '30 Nov 26'],
+    ['Customers', 'Top three are 49 per cent of revenue. Agree a retention plan for Deloitte '
+                  'and contract cover for Aware Super, Data#3 and Generation-e.',
+     'GC and Sales', '14 Nov 26'],
+    ['Cash', 'DSO 47.5 days. Getting to 30 releases 309k against net debt of 723k. Chase '
+             'Property NSW 19.7k and Meet Magic 5.1k, both over 90 days.', 'FC', '24 Oct 26'],
 ])
 
 out = f'{D}/CTS Monthly Business Review - September 2026.pptx'

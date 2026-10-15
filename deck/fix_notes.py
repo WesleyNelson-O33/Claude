@@ -9,27 +9,33 @@ prs = Presentation(f)
 S = list(prs.slides)
 
 NOTES = {
- 1: "September 2026 review. Every figure comes from the Financial Controller Pack v18, the "
-    "Xero general ledger dump inside it, or a Xero report named on the slide.",
- 4: "Lead with the beat, then take it away: the month is ahead, the year is not. The 148k beat "
-    "is one Integration project. Overheads are on budget so do not let the conversation go there.",
- 5: "Support is the only department covering its overhead. Expect a question on why Events "
-    "carries 111k: it is the Office Dept key giving it 87.5 per cent of premises cost.",
- 6: "Point at the two bars that clear zero. If asked about the Office Dept key, the answer is "
-    "that it is fixed for the financial year and is reviewed at FY28.",
- 7: "Half the book is non-contract. The two budget lines with no budget mapped are a pack fix, "
-    "not a trading issue, but say so before someone finds it.",
- 9: "Concentration is the message. Top three are 49 per cent. Aware Super is a project, not a "
-    "customer relationship yet.",
- 10: "Same data as the table, shown so the drop after the top five is obvious.",
- 11: "DSO 47 days against a 30 day target. Two invoices over 90 days need a decision this month, "
-     "chase or provide. Aware Super is current but it is one 226k invoice.",
- 12: "Growth is three new customers, not the base. If they do not repeat, FY28 starts 368k behind.",
- 14: "Be straight that Support showing 100 per cent is a recording gap. Video and Integration "
-     "do not report hours at all.",
- 15: "Revenue per hour is not a charge rate. The pack does not hold charge rates. Say that before "
-     "anyone treats the Events figure as a rate.",
- 17: "Agree owner and date on each line before the meeting closes.",
+ 1: "September 2026. Every figure traces to the Financial Controller Pack v19, the Xero general "
+    "ledger dump inside it, or a Xero report named on the slide.",
+ 4: "Do not let the room celebrate the 148k beat. Lead with break even: we need 549k of revenue "
+    "a month and we are running at 541k. The miss is margin, not cost, and overheads are 48k "
+    "under budget. Expect the question on the full year: revenue lands, profit does not.",
+ 5: "The point is the overhead key, not the departments. Events carries 87.5 per cent of "
+    "premises on 13 per cent of revenue. Say clearly that the key is fixed for the financial "
+    "year and must not be changed mid year, but it should be tested for FY28.",
+ 6: "Two bars clear zero. If pushed on Integration, be straight that its bar is one project and "
+    "the underlying unit is about 60k a quarter.",
+ 7: "43 per cent contracted. The 487k shortfall on Integration and Consulting non-contract is "
+    "not recoverable, so ask for a reforecast rather than defending the budget. Flag the two "
+    "unmapped budget lines yourself before anyone finds them.",
+ 9: "Concentration is the message, not the ranking. Deloitte is roughly the whole EBITDA base. "
+    "Aware Super is a fit-out, not a relationship.",
+ 10: "Same data as the table. Use it to show how fast the book drops after the top five.",
+ 11: "This is the cash slide. 309k is sitting in debtors and net debt is 723k. That is the "
+     "fastest lever available and it needs no trading improvement. Name the two old invoices "
+     "and ask for a decision, chase or provide.",
+ 12: "Growth is three new names, not the base. If asked about ASX, it is down a third and that "
+     "is a relationship question for sales, not a market one.",
+ 14: "Be straight that Support recording 11 non-chargeable hours is not credible. Do not defend "
+     "the 99.5 per cent. The fix is reporting, and it belongs to Ops.",
+ 15: "Revenue per hour is not a charge rate, say so before anyone treats Events as one. The "
+     "Integration line is the real finding: 235k billed on 9.5 hours means the job was bought "
+     "in, which is why the margin is 10 per cent.",
+ 17: "Four asks, each with an owner and a date. Do not leave the room without them agreed.",
 }
 for n, txt in NOTES.items():
     tf = S[n-1].notes_slide.notes_text_frame
