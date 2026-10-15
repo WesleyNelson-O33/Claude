@@ -403,7 +403,7 @@
   var CK = {
     spikeTimes: 3, spikeFloor: 200000, recurMin: 300000, recurDrop: 0.5, dupMin: 10000, dupDays: 45, bigLine: 1000000, cutoffMin: 1000000,
     superDirect: [0.112, 0.128], superIndirectMax: 0.135, payrollTax: [0.025, 0.07], wagesMove: 0.25, overdueShare: 0.3, assetWords: /projector|screen|display|laptop|camera|lens|monitor|server|switch|mixer|console|speaker|microphone|tripod|lighting kit|drone|ipad|macbook|desk|chair|rack|amplifier|encoder|decoder/i,
-    recurringWords: /monthly|contract|subscription|rent|renewal|cleaning|plant|phone|MSA|managed|spotify|goget|employsure|retainer|licen|insurance|lease|marketing|SEO/i,
+    recurringWords: /monthly|contract|subscription|rent|renewal|cleaning|plant|phone|MSA|managed|spotify|goget|employsure|retainer|licen|insurance|lease|marketing|SEO|deposit|balance|progress|claim \d|stage \d|instalment/i,
     entertainment: /entertainment/i, bankFees: /^bank charges$|merchant/i,
     related: /holdings|directors? loan|lugstein loan|drawings|dividend|shareholder/i,
     clearing: /rounding|tracking transfers|electronic clearing|contra|suspense|undeposited|clearing/i,
