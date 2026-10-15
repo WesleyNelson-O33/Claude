@@ -125,6 +125,14 @@ def drop_rows(table, n):
     for tr in trs[-n-1:-1]:          # keep the last row, it carries the total style
         table._tbl.remove(tr)
 
+def squeeze(shape, table):
+    """Hold the table inside its box. LibreOffice and PowerPoint both grow a
+    table to fit its text, so the row heights have to be set, not assumed."""
+    rows = table.rows
+    h = int(shape.height / len(rows))
+    for r in rows:
+        r.height = h
+
 def tables(slide):
     return [x.table for x in slide.shapes if x.has_table]
 
@@ -332,37 +340,41 @@ commentary(s, [
 ])
 
 # =============================================== 14. utilisation ===========
-s = S[14]
+s = s_ = S[14]
 t = tables(s)[0]
 u = {x['name']: x for x in pl['util']}
 REPORTING = [n for n in ['Support', 'Events', 'Video', 'Integration', 'Consulting']
              if u[n]['ch'] + u[n]['nc'] + u[n]['lv'] > 0]
-drop_rows(t, len(pl['util']) - len(REPORTING))
 rows = [[n, f"{u[n]['fte']:.1f}", f"{u[n]['ch']:,.0f}", f"{u[n]['nc']:,.0f}",
          f"{u[n]['lv']:,.0f}", pct(u[n]['pct']), '', ''] for n in REPORTING]
-tc = sum(x['ch'] for x in pl['util']); tn = sum(x['nc'] for x in pl['util'])
+tc = sum(x['ch'] for x in pl['util'])
+tn = sum(x['nc'] for x in pl['util']) + pl['util_admin']['nc']
 tl = sum(x['lv'] for x in pl['util']); tf = sum(x['fte'] for x in pl['util'])
 rows.append(['CTS', f'{tf:.1f}', f'{tc:,.0f}', f'{tn:,.0f}', f'{tl:,.0f}',
              pct(tc / (tc + tn) if tc + tn else 0), '', ''])
 header(t, ['September', 'FTE', 'Chargeable', 'Non-chargeable', 'Leave', 'Chg %',
            'Prior', 'vs target'])
+squeeze([x for x in s_.shapes if x.has_table][0], t)
 fill(t, rows)
-swap_chart(s, f'{D}/img/util.png')
+_pic = swap_chart(s, f'{D}/img/util.png')
+_pic.top, _pic.height = Inches(4.02), Inches(1.00)
+_pic.left, _pic.width = Inches(0.55), Inches(6.10)
 commentary(s, [
-    'Support shows 100 per cent because no non-chargeable hours are recorded.',
-    'That is a reporting gap. Fix it before the next board pack.',
-    'Events is 48 per cent, with more leave than chargeable hours.',
-    'Consulting is 33 per cent on 40 chargeable hours.',
-    'Video and Integration do not report hours at all.',
+    'Every department reports hours now, off the raw timesheet in her report.',
+    'Support is at 99.5 per cent. It still records almost no non-chargeable time.',
+    'Events is at 49 per cent, with more leave than chargeable hours.',
+    'Consulting is 27 per cent. Video 76 and Integration 100, on tiny volumes.',
+    'Hours are split by the department the work was for, same as revenue.',
 ])
 
 # =============================================== 15. profit per hour =======
-s = S[15]
+s = s_ = S[15]
 t = tables(s)[0]
 dep = {d['name']: d for d in sl['s5']}
-drop_rows(t, len(pl['util']) - len(REPORTING))
+THICK = [n for n in REPORTING if u[n]['ch'] >= 100]
+drop_rows(t, len(REPORTING) - len(THICK))
 rows = []
-for n in REPORTING:
+for n in THICK:
     x = u[n]
     rev = dep[n]['rev']; lc = lab[n]['lab_sep']
     rph = rev / x['ch']
@@ -372,28 +384,32 @@ for n in REPORTING:
 rows.append(['CTS', pct(tc / (tc + tn)), f'{tc:,.0f}', '',
              k(sum(dep[n]['rev'] for n in dep)), k(sum(lab[n]['lab_sep'] for n in lab)),
              k(sum(dep[n]['rev'] for n in dep) + sum(lab[n]['lab_sep'] for n in lab)), '', ''])
+_five = sum(u[n]['ch'] / u[n]['pct'] * 0.05 * (dep[n]['rev'] / u[n]['ch'])
+            for n in THICK if u[n]['pct'])
 header(t, ['September', 'Chg %', 'Chg hrs', 'Rev / hr', 'Revenue',
            'Labour', 'After', 'Per hr', '+5 pts'])
+squeeze([x for x in s_.shapes if x.has_table][0], t)
 fill(t, rows)
 for b in boxes(s):
     p0 = b.text_frame.paragraphs[0].text
-    if p0.startswith('+$55k'):
-        set_para(b.text_frame.paragraphs[0], '+$13k a month')
+    if p0.startswith('+$55k') or p0.startswith('+$13k'):
+        set_para(b.text_frame.paragraphs[0], f'+${_five/1000:,.0f}k a month')
     if p0.startswith('Five more points'):
-        set_lines(b, ['Five more points of utilisation across the three departments that report '
-                      'hours, at the revenue per chargeable hour each already earns'])
+        set_lines(b, ['Five more points of utilisation on Support and Events, at the revenue '
+                      'per chargeable hour each already earns, before any extra cost'])
     if p0.startswith('Labour revenue ='):
-        set_lines(b, ['Video and Integration are left out: they do not report hours. Revenue per '
+        set_lines(b, ['Video and Integration are left out: 24 and 10 chargeable hours are too '
+                      'few for a rate to mean anything. Revenue per '
                       'hour is department revenue divided by chargeable hours. It is not a charge '
                       'rate, it includes equipment, hire and freight, and the pack does not hold '
                       'charge rates. Labour is wages, salaries, superannuation and workers '
                       'compensation coded to the department.'])
 commentary(s, [
     'Support earns $114 a chargeable hour and keeps $54 after labour.',
-    'Events shows $276 an hour, but that is equipment, not a rate.',
-    'Consulting is $88 an hour on only 40 hours. Too thin to read.',
-    'Five points of utilisation is worth about 13k a month.',
-    'This cannot be done properly until every department reports hours.',
+    'Events shows $305 an hour, but that is equipment, not a rate.',
+    'Integration is the outlier: 235k of revenue on 9.5 chargeable hours.',
+    'That confirms the Aware Super job was bought in, not delivered by us.',
+    'Five points on Support and Events is worth about 20k a month.',
 ])
 
 # =============================================== 17. actions ===============
