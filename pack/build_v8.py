@@ -28,8 +28,9 @@ ADDED
   Addback column driving the EBITDA bridge.
 """
 import json, copy, datetime as dt
+import os
 import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, Color
 from openpyxl.worksheet.properties import Outline
 from openpyxl.utils import get_column_letter as CL
 from openpyxl.workbook.defined_name import DefinedName
@@ -189,6 +190,34 @@ GL_R0 = 1   # Cleanup reads from row 1, so it does not matter whether the export
 
 wb = openpyxl.load_workbook(SRC)
 wb['GL_Paste'].title = GLSHEET
+
+# ------------------------------------------- her own P&L Analysis dump ------
+# The dump she pasted into v7 goes back in, exactly as she left it: her Xero
+# heading row on top in row 1, her data from row 2 down. Nothing of mine is
+# written into this sheet, so a plain whole-sheet paste always lands on A1 and
+# brings its own headings with it.
+V7 = ('/root/.claude/uploads/a00ffe59-433c-507b-9006-917d8c60083a/'
+      '5df596ce-CTS_Financial_Controller_Pack_-_v7.xlsx')
+_gl = wb[GLSHEET]
+for _row in _gl.iter_rows():
+    for _c in _row:
+        _c.value = None
+if os.path.exists(V7):
+    _src = openpyxl.load_workbook(V7)[GLSHEET]
+    _n = 0
+    for _r, _vals in enumerate(_src.iter_rows(values_only=True), start=1):
+        if not any(v is not None for v in _vals):
+            continue
+        for _ci, _v in enumerate(_vals, start=1):
+            if _v is None:
+                continue
+            _t = _gl.cell(_r, _ci)
+            _t.value = _v
+            _t.number_format = _src.cell(_r, _ci).number_format
+        _n = _r
+    print('P&L Analysis: her dump carried over,', _n, 'rows')
+else:
+    print('P&L Analysis: v7 dump not found, sheet left bare')
 SHAPED = ['Summary', 'P&L FY27', 'Budget FY27', 'Actual FY26', 'Budget FY26']
 MAXC = 30
 
@@ -1108,6 +1137,51 @@ wb._sheets = [wb[n] for n in ORDER]
 wb.active = ORDER.index('Summary')
 for n in ORDER:
     wb[n].sheet_view.tabSelected = (n == 'Summary')
+
+# ===================================================================== CTS ==
+# Nothing in this book is allowed to be a colour that is not CTS. Anything the
+# old file carried in - the yellow input cells, the pale blue on Utilisation,
+# the cream on Lists, the blue and grey fonts - is mapped onto the palette.
+FILL_MAP = {
+    'FFFF00': BRAND['grey'],      # yellow input cells
+    'DDEBF7': BRAND['grey'],      # pale blue banding on Utilisation
+    'FFF2CC': BRAND['grey'],      # cream on Lists
+    'F2F2F2': BRAND['grey_lt'],   # near enough to the light grey already in use
+    'FBE8EC': BRAND['grey_lt'],   # the pale pink, gone for good
+}
+FONT_MAP = {
+    '0000FF': BRAND['teal'],      # the blue "type here" convention
+    '808080': BRAND['mid'],
+    '595959': BRAND['mid'],
+    'C00000': BRAND['teal'],
+    'FF0000': BRAND['teal'],
+    'A8052E': BRAND['teal'],
+}
+ALLOWED = {v.upper() for v in BRAND.values() if isinstance(v, str) and len(v) == 6}
+ALLOWED |= {'FFFFFF', '000000'}
+_changed = 0
+for _ws in wb.worksheets:
+    for _row in _ws.iter_rows():
+        for _c in _row:
+            _f = _c.fill
+            if _f is not None and _f.fill_type == 'solid':
+                _rgb = getattr(_f.start_color, 'rgb', None)
+                if isinstance(_rgb, str):
+                    _h = _rgb[-6:].upper()
+                    if _h not in ALLOWED:
+                        _new = FILL_MAP.get(_h, BRAND['grey_lt'])
+                        _c.fill = PatternFill('solid', fgColor=_new)
+                        _changed += 1
+            _fc = getattr(_c.font, 'color', None)
+            _rgb = getattr(_fc, 'rgb', None) if _fc is not None else None
+            if isinstance(_rgb, str):
+                _h = _rgb[-6:].upper()
+                if _h not in ALLOWED:
+                    _nf = copy.copy(_c.font)
+                    _nf.color = Color(rgb='FF' + FONT_MAP.get(_h, BRAND['ink']))
+                    _c.font = _nf
+                    _changed += 1
+print('non-CTS colours remapped:', _changed)
 
 wb.save(OUT)
 print('saved', OUT)
