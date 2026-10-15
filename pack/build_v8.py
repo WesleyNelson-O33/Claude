@@ -1087,9 +1087,9 @@ if 'requirements ' in wb.sheetnames:
 
 # Tab order follows the monthly steps on the README: set the month, paste the
 # three reports, read the controls, then read the statements.
-ORDER = ['README', 'Summary', 'Setup', GLSHEET, 'PL_Paste', 'BS_Paste', 'PL_Check',
-         'P&L FY27', 'Balance_Sheet', 'Budget FY27', 'Actual FY26', 'Budget FY26',
-         'Utilisation', 'Engine', 'Lists', 'Cleanup']
+ORDER = ['README', 'Setup', 'Summary', 'PL_Paste', 'BS_Paste', 'P&L FY27', 'Budget FY27',
+         'Actual FY26', 'Budget FY26', 'Balance_Sheet', GLSHEET, 'PL_Check', 'Utilisation',
+         'Engine', 'Lists', 'Cleanup']        # the order she put them in
 assert sorted(ORDER) == sorted(wb.sheetnames), set(ORDER) ^ set(wb.sheetnames)
 wb._sheets = [wb[n] for n in ORDER]
 wb.active = ORDER.index('Summary')
