@@ -499,12 +499,8 @@ srow(36, 'GL lines dated outside this financial year',
 pp = wb.create_sheet('PL_Paste')
 for col, w in [('A', 44)] + [(CL(c), 15) for c in range(2, 17)]:
     pp.column_dimensions[col].width = w
-for r in range(1, 301):
-    for c in range(1, 17):
-        cell = pp.cell(r, c); cell.font = f(9); cell.fill = YELL; cell.border = BOX
-        if c > 1: cell.number_format = MON2
-pp.freeze_panes = 'B2'
-pp.sheet_view.showGridLines = False
+for c in range(2, 17):
+    pp.column_dimensions[CL(c)].number_format = MON2
 
 pc = wb['PL_Check']
 pc['A2'] = ('Either paste the Xero profit and loss on PL_Paste, or type the five totals into the '
@@ -543,12 +539,8 @@ pc.cell(12, 7, 'If a label reads "not found", change the text in column G to mat
 bp = wb.create_sheet('BS_Paste')
 for col, w in [('A', 44)] + [(CL(c), 15) for c in range(2, 17)]:
     bp.column_dimensions[col].width = w
-for r in range(1, 401):
-    for c in range(1, 17):
-        cell = bp.cell(r, c); cell.font = f(9); cell.fill = YELL; cell.border = BOX
-        if c > 1: cell.number_format = MON2
-bp.freeze_panes = 'B2'
-bp.sheet_view.showGridLines = False
+for c in range(2, 17):
+    bp.column_dimensions[CL(c)].number_format = MON2
 
 bs = wb.create_sheet('Balance_Sheet')
 bs.sheet_view.showGridLines = False
@@ -670,7 +662,9 @@ for i, (a, b) in enumerate([
     ('Lists', '14 accounts live in Xero were missing from the master, so every GL line on them '
      'was being dropped. One of them, 41500 Contract Help Desk, is revenue. Added and shaded '
      'cream. Please check how I have categorised them.'),
-    ('GL_Paste', 'Paste the whole Xero export anywhere from A1 down. Rows with no real date '
+    ('GL_Paste', 'A bare sheet on purpose, with no headings, so a plain whole-sheet paste '
+     'lands wherever you put it. Paste the whole Xero export anywhere from A1 down. '
+     'Rows with no real date '
      'are ignored, so the title rows and the heading row do no harm, and it does not matter '
      'whether you land on top of row 1 or under it. Do not delete the blank lines, and do not '
      'reorder the columns: Index, Account Code, Account Name, Source, Date, Contact, Debit, '
@@ -696,6 +690,43 @@ for nm_ in ('Summary', 'P&L FY27'):
                                                             color='9C0006')))
     w.conditional_formatting.add(rng, FormulaRule(formula=['$AD6="Medium"'], fill=AMB,
                                                   font=Font(name=AR, size=10, color='9C6500')))
+
+# =================================================================== 11 ===
+# GL_Paste is a bare sheet. No headings, no fill, no borders, nothing in row 1,
+# so a plain whole-sheet paste lands anywhere and Excel does not argue. The
+# column order it expects is on the README instead.
+gp2 = wb['GL_Paste']
+for c in range(1, 14):
+    cell = gp2.cell(1, c)
+    cell.value = None
+    cell.fill = PatternFill(fill_type=None)
+    cell.border = Border()
+    cell.font = f(10)
+    cell.alignment = Alignment()
+gp2.freeze_panes = None
+gp2.column_dimensions['E'].number_format = 'dd/mm/yyyy'
+for col in ('G', 'H'):
+    gp2.column_dimensions[col].number_format = MON2
+gp2.column_dimensions['H'].width = 12
+
+# No yellow anywhere. Cells you type into are marked by blue text instead,
+# which is the usual convention and is already how this pack marks them.
+for ws_ in wb.worksheets:
+    tc = ws_.sheet_properties.tabColor
+    if tc is not None and isinstance(tc.rgb, str) and tc.rgb.upper().endswith('FFFF00'):
+        ws_.sheet_properties.tabColor = None
+    for row_ in ws_.iter_rows():
+        for cell in row_:
+            fl = cell.fill
+            if fl is None or fl.fill_type != 'solid':
+                continue
+            rgb = getattr(fl.fgColor, 'rgb', None)
+            if not isinstance(rgb, str) or not rgb.upper().endswith('FFFF00'):
+                continue
+            cell.fill = PatternFill(fill_type=None)
+            fn = cell.font
+            cell.font = Font(name=fn.name or AR, size=fn.size or 10, bold=fn.bold,
+                             italic=fn.italic, color='0000FF')
 
 # the three new sheets go where she would look for them, and nothing of hers moves
 ORDER = ['README', 'requirements ', 'Setup', 'Summary', 'Engine', 'PL_Check', 'P&L FY27',
