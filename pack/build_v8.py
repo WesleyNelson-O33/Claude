@@ -446,6 +446,9 @@ for nm in SHAPED:
                 ws.cell(r, 22, f"=SUMIF('Budget FY26'!$B$5:$M$5,\"<=\"&Setup!$B$5,"
                                f"'Budget FY26'!$B{r}:$M{r})")
                 ws.cell(r, 23, f'=U{r}-V{r}')
+                ws.cell(r, 23).number_format = PCT
+                ws.cell(r, 24).number_format = 'General'
+                ws.cell(r, 24).alignment = Alignment(horizontal='center')
                 ws.cell(r, 24, f'=IFERROR(W{r}/ABS(V{r}),0)')
                 ws.cell(r, 26, f'=O{r}-U{r}')
                 ws.cell(r, 27, f'=Q{r}-V{r}')
@@ -490,6 +493,11 @@ for nm in SHAPED:
                 ws.cell(r, 21, f"=G{r}-'Budget FY26'!O{r}")
                 ws.cell(r, 22, f'=R{r}-U{r}')
                 ws.cell(r, 23, f'=IFERROR(V{r}/ABS(U{r}),0)')
+                ws.cell(r, 21).number_format = MONEY
+                ws.cell(r, 22).number_format = MONEY
+                ws.cell(r, 23).number_format = PCT
+                ws.cell(r, 24).number_format = 'General'
+                ws.cell(r, 24).alignment = Alignment(horizontal='center')
                 ws.cell(r, 24,
                         f'=IF(AND(E{r}=0,G{r}=0),"No Activity",'
                         f'IF(ABS(H{r})<Setup!$B$14,"Low",'
@@ -1059,28 +1067,33 @@ for c in range(21, 25):
     for r in (4, 5):
         sm.cell(r, c)._style = copy.copy(sm.cell(r, c + 6)._style)
         sm.cell(r, c).value = sm.cell(r, c + 6).value
-for c in range(25, 31):
+for c in range(25, 31):                 # the six columns she took out, wiped clean
     for r in range(1, 240):
-        sm.cell(r, c).value = None
-        sm.cell(r, c).fill = NO_FILL
-        sm.cell(r, c).border = NO_RULE
+        cell = sm.cell(r, c)
+        cell.value = None
+        cell.fill = NO_FILL
+        cell.border = NO_RULE
+        cell.number_format = 'General'
 for col, w in (('J', 1), ('O', 1), ('T', 1), ('U', 14), ('V', 14), ('W', 14), ('X', 12)):
     sm.column_dimensions[col].width = w
 for col in ('Y', 'Z', 'AA', 'AB', 'AC', 'AD'):
     sm.column_dimensions[col].width = 9
+for c in (16, 17, 18, 19, 21, 22, 23, 24):   # headers only, never the spacer columns
+    hc = sm.cell(5, c)
+    hc.fill = PatternFill('solid', fgColor=TEAL)
+    hc.font = Font(name=AR, size=10, bold=True, color='FFFFFF')
+    hc.alignment = Alignment(horizontal='center', wrap_text=True)
+    sm.cell(4, c).fill = NO_FILL
 sm.cell(4, 21, 'remove this YOY Budget')
 sm.cell(4, 22, 'check calc - changed it in meeting with GC ')
 for c in (21, 22):
     sm.cell(4, c).font = Font(name=AR, size=9, color='C00000')
-from openpyxl.formatting.rule import FormulaRule
-sm.conditional_formatting = type(sm.conditional_formatting)()
-sm.conditional_formatting.add(f'$X$6:$X${LAST}',
-                              FormulaRule(formula=['$X6="High"'],
-                                          fill=PatternFill('solid', fgColor=RED_LT),
-                                          font=Font(name=AR, size=10, bold=True, color=RED)))
-sm.conditional_formatting.add(f'$X$6:$X${LAST}',
-                              FormulaRule(formula=['$X6="Medium"'],
-                                          font=Font(name=AR, size=10, color=RED)))
+# No conditional formatting anywhere. Her own file carries none, and the pink
+# it was putting on the Risk column is not wanted. The column says High,
+# Medium or Low in words, which is what she reads.
+for _n in ('Summary', 'P&L FY27'):
+    _w = wb[_n]
+    _w.conditional_formatting = type(_w.conditional_formatting)()
 
 if 'requirements ' in wb.sheetnames:
     del wb['requirements ']
