@@ -1,0 +1,1388 @@
+[
+ {
+  "code": "41100",
+  "name": "Contract Support Staff",
+  "subcategory": "Contract Income",
+  "category": "Income",
+  "type": "Labour"
+ },
+ {
+  "code": "41150",
+  "name": "Mobile Phone Plans",
+  "subcategory": "Contract Income",
+  "category": "Income",
+  "type": "Labour"
+ },
+ {
+  "code": "41175",
+  "name": "Subscriptions & Licences",
+  "subcategory": "Contract Income",
+  "category": "Income",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "41200",
+  "name": "Contract Maintenance",
+  "subcategory": "Contract Income",
+  "category": "Income",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "42100",
+  "name": "Production Labour",
+  "subcategory": "Non Contract Income",
+  "category": "Income",
+  "type": "Labour"
+ },
+ {
+  "code": "42200",
+  "name": "Ad Hoc Service Labour",
+  "subcategory": "Non Contract Income",
+  "category": "Income",
+  "type": "Labour"
+ },
+ {
+  "code": "42300",
+  "name": "Installation Labour",
+  "subcategory": "Non Contract Income",
+  "category": "Income",
+  "type": "Labour"
+ },
+ {
+  "code": "42500",
+  "name": "Equipment Hires",
+  "subcategory": "Non Contract Income",
+  "category": "Income",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "42600",
+  "name": "Equipment Sales",
+  "subcategory": "Non Contract Income",
+  "category": "Income",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "42700",
+  "name": "Conference Call Charge",
+  "subcategory": "Non Contract Income",
+  "category": "Income",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "42800",
+  "name": "Tech Consulting/Project Manage",
+  "subcategory": "Non Contract Income",
+  "category": "Income",
+  "type": "Labour"
+ },
+ {
+  "code": "42900",
+  "name": "Tech Event Management",
+  "subcategory": "Non Contract Income",
+  "category": "Income",
+  "type": "Labour"
+ },
+ {
+  "code": "42150",
+  "name": "Video Labour",
+  "subcategory": "Non Contract Income",
+  "category": "Income",
+  "type": "Labour"
+ },
+ {
+  "code": "44100",
+  "name": "Opening Work in Progress",
+  "subcategory": "Work in Progess",
+  "category": "Income",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "44200",
+  "name": "Closing Work in Progress",
+  "subcategory": "Work in Progess",
+  "category": "Income",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "45000",
+  "name": "Freight Collected & Travel",
+  "subcategory": "Freight Collected & Travel",
+  "category": "Income",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "45005",
+  "name": "Freight &Travel - ADMIN",
+  "subcategory": "Freight Collected & Travel",
+  "category": "Income",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "45010",
+  "name": "Freight &Travel - ONS",
+  "subcategory": "Freight Collected & Travel",
+  "category": "Income",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "45015",
+  "name": "Freight &Travel - PRD",
+  "subcategory": "Freight Collected & Travel",
+  "category": "Income",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "45020",
+  "name": "Freight &Travel - VID",
+  "subcategory": "Freight Collected & Travel",
+  "category": "Income",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "45025",
+  "name": "Freight &Travel - INTEGRATION",
+  "subcategory": "Freight Collected & Travel",
+  "category": "Income",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "45030_x000D_",
+  "name": "Freight &Travel - CONS",
+  "subcategory": "Freight Collected & Travel",
+  "category": "Income",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "46000",
+  "name": "Credit Card Fees Collected",
+  "subcategory": "Credit Card Fees Collected",
+  "category": "Income",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "46005",
+  "name": "Credit Card Collected - ADMIN",
+  "subcategory": "Credit Card Fees Collected",
+  "category": "Income",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "46010",
+  "name": "Credit Card Collected - ONS",
+  "subcategory": "Credit Card Fees Collected",
+  "category": "Income",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "46015",
+  "name": "Credit Card Collected - PRD",
+  "subcategory": "Credit Card Fees Collected",
+  "category": "Income",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "46020",
+  "name": "Credit Card Collected - VID",
+  "subcategory": "Credit Card Fees Collected",
+  "category": "Income",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "46025",
+  "name": "Credit Card Collected-INTEGRATION",
+  "subcategory": "Credit Card Fees Collected",
+  "category": "Income",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "46030",
+  "name": "Credit Card Collected - CONS",
+  "subcategory": "Credit Card Fees Collected",
+  "category": "Income",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "47000",
+  "name": "Meal & Travel Allowances",
+  "subcategory": "Meal & Travel Allowances",
+  "category": "Income",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "47005",
+  "name": "Meal & Travel - ADMIN",
+  "subcategory": "Meal & Travel Allowances",
+  "category": "Income",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "47010",
+  "name": "Meal & Travel - ONS",
+  "subcategory": "Meal & Travel Allowances",
+  "category": "Income",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "47015",
+  "name": "Meal & Travel - PRD",
+  "subcategory": "Meal & Travel Allowances",
+  "category": "Income",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "47020",
+  "name": "Meal & Travel - VID",
+  "subcategory": "Meal & Travel Allowances",
+  "category": "Income",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "47025",
+  "name": "Meal & Travel - INTEGRATION",
+  "subcategory": "Meal & Travel Allowances",
+  "category": "Income",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "47030",
+  "name": "Meal & Travel - CONS",
+  "subcategory": "Meal & Travel Allowances",
+  "category": "Income",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "48000",
+  "name": "Miscellaneous Income",
+  "subcategory": "Miscellaneous Income",
+  "category": "Income",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "51100",
+  "name": "Equipment - Purchase",
+  "subcategory": "Equipment - Purchase",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "51200",
+  "name": "Equipment - Hires",
+  "subcategory": "Equipment - Hires",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "51300",
+  "name": "Sub-Contract Labour",
+  "subcategory": "Sub-Contract Labour",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "51305",
+  "name": "Sub-Contract Labour - ADMIN",
+  "subcategory": "Sub-Contract Labour",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "51310",
+  "name": "Sub-Contract Labour - ONS",
+  "subcategory": "Sub-Contract Labour",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "51315",
+  "name": "Sub-Contract Labour - PRD",
+  "subcategory": "Sub-Contract Labour",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "51320",
+  "name": "Sub-Contract Labour - VID",
+  "subcategory": "Sub-Contract Labour",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "51325",
+  "name": "Sub-Contract Labour - INTEGRATION",
+  "subcategory": "Sub-Contract Labour",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "51330",
+  "name": "Sub-Contract Labour - CONS",
+  "subcategory": "Sub-Contract Labour",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "51400",
+  "name": "Service - hires",
+  "subcategory": "Service - hires",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "51500",
+  "name": "Subscriptions & Licences",
+  "subcategory": "Subscriptions & Licences",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "51700",
+  "name": "Equipment -Maintenance Support",
+  "subcategory": "Equipment -Maintenance Support",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "52000",
+  "name": "Stamp Duty",
+  "subcategory": "Stamp Duty",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "52500",
+  "name": "Damage Waiver",
+  "subcategory": "Damage Waiver",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "54000",
+  "name": "Supplier Per Diems",
+  "subcategory": "Supplier Per Diems",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "54005",
+  "name": "Supplier Per Diems - ADMIN",
+  "subcategory": "Supplier Per Diems",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "54010",
+  "name": "Supplier Per Diems - ONS",
+  "subcategory": "Supplier Per Diems",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "54015_x000D_",
+  "name": "Supplier Per Diems - PRD",
+  "subcategory": "Supplier Per Diems",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "54020",
+  "name": "Supplier Per Diems - VID",
+  "subcategory": "Supplier Per Diems",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "54025",
+  "name": "Supplier Per Diems - INTEGRATION",
+  "subcategory": "Supplier Per Diems",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "54030",
+  "name": "Supplier Per Diems - CONS",
+  "subcategory": "Supplier Per Diems",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "55000",
+  "name": "Direct Wages & Salaries",
+  "subcategory": "Direct Wages & Salaries",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "55005",
+  "name": "Direct Salaries - ADMIN",
+  "subcategory": "Direct Salaries",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "55010",
+  "name": "Direct Salaries - ONS",
+  "subcategory": "Direct Salaries",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "55015",
+  "name": "Direct Salaries - PRD",
+  "subcategory": "Direct Salaries",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "55020",
+  "name": "Direct Salaries - VID",
+  "subcategory": "Direct Salaries",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "55025",
+  "name": "Direct Salaries - INTEGRATION",
+  "subcategory": "Direct Salaries",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "55030",
+  "name": "Direct Salaries - CONS",
+  "subcategory": "Direct Salaries",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "55500",
+  "name": "Direct Wages",
+  "subcategory": "Direct Wages",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "55505",
+  "name": "Direct Wages - ADMIN",
+  "subcategory": "Direct Wages",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "55510",
+  "name": "Direct Wages - ONS",
+  "subcategory": "Direct Wages",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "55515",
+  "name": "Direct Wages - PRD",
+  "subcategory": "Direct Wages",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "55520",
+  "name": "Direct Wages - VID",
+  "subcategory": "Direct Wages",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "55525",
+  "name": "Direct Wages - INTEGRATION",
+  "subcategory": "Direct Wages",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "55530",
+  "name": "Direct Wages - CONS",
+  "subcategory": "Direct Wages",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "56000",
+  "name": "Direct Superannuation",
+  "subcategory": "Direct Superannuation",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "56005",
+  "name": "Direct Superannuation - ADMIN",
+  "subcategory": "Direct Superannuation",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "56010",
+  "name": "Direct Superannuation - ONS",
+  "subcategory": "Direct Superannuation",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "56015",
+  "name": "Direct Superannuation - PRD",
+  "subcategory": "Direct Superannuation",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "56020",
+  "name": "Direct Superannuation - VID",
+  "subcategory": "Direct Superannuation",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "56025",
+  "name": "Direct Superannuation-INTEGRATION",
+  "subcategory": "Direct Superannuation",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "56030",
+  "name": "Direct Superannuation - CONS",
+  "subcategory": "Direct Superannuation",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "57000",
+  "name": "Direct Workers Comp",
+  "subcategory": "Direct Workers Comp",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "57005",
+  "name": "Direct Workers Comp - ADMIN",
+  "subcategory": "Direct Workers Comp",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "57010",
+  "name": "Direct Workers Comp - ONS",
+  "subcategory": "Direct Workers Comp",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "57015",
+  "name": "Direct Workers Comp - PRD",
+  "subcategory": "Direct Workers Comp",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "57020",
+  "name": "Direct Workers Comp - VID",
+  "subcategory": "Direct Workers Comp",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "57025",
+  "name": "Direct Workers Comp - INTEGRATION",
+  "subcategory": "Direct Workers Comp",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "57030",
+  "name": "Direct Workers Comp - CONS",
+  "subcategory": "Direct Workers Comp",
+  "category": "Cost of Sales",
+  "type": "Labour"
+ },
+ {
+  "code": "58100",
+  "name": "Direct Travel",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "58105",
+  "name": "Direct Travel - ADMIN",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "58110",
+  "name": "Direct Travel - ONS",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "58115",
+  "name": "Direct Travel - PRD",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "58120",
+  "name": "Direct Travel - VID",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "58125",
+  "name": "Direct Travel - INTEGRATION",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "58130",
+  "name": "Direct Travel - CONS",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "58200",
+  "name": "Direct Freight",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "58205",
+  "name": "Direct Freight - ADMIN",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "58210",
+  "name": "Direct Freight - ONS",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "58215",
+  "name": "Direct Freight - PRD",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "58220",
+  "name": "Direct Freight - VID",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "58225",
+  "name": "Direct Freight - INTEGRATION",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "58230",
+  "name": "Direct Freight - CONS",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "58300",
+  "name": "Direct Mobile",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "58305",
+  "name": "Direct Mobile - ADMIN",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "58310",
+  "name": "Direct Mobile - ONS",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "58315",
+  "name": "Direct Mobile - PRD",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "58320",
+  "name": "Direct Mobile - VID",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "58325",
+  "name": "Direct Mobile - INTEGRATION",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "58330",
+  "name": "Direct Mobile - CONS",
+  "subcategory": "Other Direct Expenses",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "59000",
+  "name": "Credit Card Fees paid - COGS",
+  "subcategory": "Credit Card fees paid - COGS",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "59005",
+  "name": "Credit Card Paid - ADMIN",
+  "subcategory": "Credit Card fees paid - COGS",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "59010_x000D_",
+  "name": "Credit Card Paid - ONS",
+  "subcategory": "Credit Card fees paid - COGS",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "59015",
+  "name": "Credit Card Paid - PRD",
+  "subcategory": "Credit Card fees paid - COGS",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "59020",
+  "name": "Credit Card Paid - VID",
+  "subcategory": "Credit Card fees paid - COGS",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "59025",
+  "name": "Credit Card Paid - INTEGRATION",
+  "subcategory": "Credit Card fees paid - COGS",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "59030",
+  "name": "Credit Card Paid - CONS",
+  "subcategory": "Credit Card fees paid - COGS",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "61050",
+  "name": "Accounting Fees",
+  "subcategory": "General & Administrative Exp",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "61100",
+  "name": "Legal Fees",
+  "subcategory": "General & Administrative Exp",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "61150",
+  "name": "Payroll Processing Fee",
+  "subcategory": "General & Administrative Exp",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "61200",
+  "name": "Bank Charges",
+  "subcategory": "General & Administrative Exp",
+  "category": "Expenses",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "61300",
+  "name": "Depreciation",
+  "subcategory": "General & Administrative Exp",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "61400",
+  "name": "Dues & Subscriptions",
+  "subcategory": "General & Administrative Exp",
+  "category": "Expenses",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "61450",
+  "name": "Donations / Charity",
+  "subcategory": "General & Administrative Exp",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "61900",
+  "name": "Bad Debts",
+  "subcategory": "General & Administrative Exp",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "61700",
+  "name": "Freight Paid",
+  "subcategory": "General & Administrative Exp",
+  "category": "Expenses",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "61701",
+  "name": "Filing Fee",
+  "subcategory": "General & Administrative Exp",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "61730",
+  "name": "Instant Asset Write Off",
+  "subcategory": "General & Administrative Exp",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "61901",
+  "name": "Business Advisory",
+  "subcategory": "General & Administrative Exp",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "61902",
+  "name": "Custodian Vaults",
+  "subcategory": "General & Administrative Exp",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "61903",
+  "name": "Taxis/Parking",
+  "subcategory": "General & Administrative Exp",
+  "category": "Expenses",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "62100",
+  "name": "Business Combined",
+  "subcategory": "Business Insurances",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "62200",
+  "name": "Professional Indemnity",
+  "subcategory": "Business Insurances",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "62300",
+  "name": "Other Insurance",
+  "subcategory": "Business Insurances",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "62400",
+  "name": "Travel Insurance",
+  "subcategory": "Business Insurances",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "63100",
+  "name": "Advertising",
+  "subcategory": "Advertising & Promotion Exp",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "64100",
+  "name": "Office Supplies",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "64200",
+  "name": "Postage",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "64400",
+  "name": "Rent",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "64410",
+  "name": "Rental Outgoings",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "64450",
+  "name": "Electricity",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "64451",
+  "name": "Repairs & Maintenance",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "64510",
+  "name": "1300 Number",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "64520",
+  "name": "Office Phones",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "64530",
+  "name": "Mobile Phones",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "64540",
+  "name": "Pager",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "64550",
+  "name": "Fax",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "64560",
+  "name": "Internet",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "64570",
+  "name": "Other Telco Expenses",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "64580",
+  "name": "Insurance",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "64600",
+  "name": "Office Cleaning",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "64700",
+  "name": "IT Network Service & Support",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "64800",
+  "name": "Travel & Per Diems",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Transport / Freight & Accommodation"
+ },
+ {
+  "code": "64850",
+  "name": "Client Entertainment",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "65106",
+  "name": "Payroll Tax",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Labour"
+ },
+ {
+  "code": "65110",
+  "name": "Staff Amenities",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "65115",
+  "name": "Staff Entertainment",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "65120",
+  "name": "Superannuation",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Labour"
+ },
+ {
+  "code": "65130",
+  "name": "Wages & Salaries",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Labour"
+ },
+ {
+  "code": "65131",
+  "name": "Indirect Salaries - ADMIN",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Labour"
+ },
+ {
+  "code": "65132",
+  "name": "Indirect Salaries - ONS",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Labour"
+ },
+ {
+  "code": "65133",
+  "name": "Indirect Salaries - PRD",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Labour"
+ },
+ {
+  "code": "65134",
+  "name": "Indirect Salaries - VID",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Labour"
+ },
+ {
+  "code": "65135",
+  "name": "Indirect Salaries - INTEGRATION",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Labour"
+ },
+ {
+  "code": "65136",
+  "name": "Indirect Salaries - CONS",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Labour"
+ },
+ {
+  "code": "65170",
+  "name": "Indirect Wages",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Labour"
+ },
+ {
+  "code": "65171",
+  "name": "Indirect Wages - ADMIN",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Labour"
+ },
+ {
+  "code": "65172",
+  "name": "Indirect Wages - ONS",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Labour"
+ },
+ {
+  "code": "65173",
+  "name": "Indirect Wages - PRD",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Labour"
+ },
+ {
+  "code": "65174",
+  "name": "Indirect Wages - VID",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Labour"
+ },
+ {
+  "code": "65175",
+  "name": "Indirect Wages - INTEGRATION",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Labour"
+ },
+ {
+  "code": "65176",
+  "name": "Indirect Wages - CONS",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Labour"
+ },
+ {
+  "code": "65126",
+  "name": "Workers' Compensation",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Labour"
+ },
+ {
+  "code": "65127",
+  "name": "Training Material & Courses",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "65128",
+  "name": "Recruitment",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "82000",
+  "name": "Interest Received",
+  "subcategory": "Other Income",
+  "category": "Other Income",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "83000",
+  "name": "Rental Income",
+  "subcategory": "Other Income",
+  "category": "Other Income",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "81000",
+  "name": "Interest Income",
+  "subcategory": "Other Income",
+  "category": "Other Income",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "84000_x000D_",
+  "name": "Cash Flow Boost",
+  "subcategory": "Other Income",
+  "category": "Other Income",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "85000_x000D_",
+  "name": "JobKeeper Subsidy",
+  "subcategory": "Other Income",
+  "category": "Other Income",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "91000",
+  "name": "Interest Expense",
+  "subcategory": "Other Expenses",
+  "category": "Other Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "61600_x000D_",
+  "name": "Discounts Taken",
+  "subcategory": "Other Expenses",
+  "category": "Other Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "92000",
+  "name": "Income Tax Expense",
+  "subcategory": "Other Expenses",
+  "category": "Other Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "93000",
+  "name": "Dividend paid",
+  "subcategory": "Other Expenses",
+  "category": "Other Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "61905",
+  "name": "Stamp Duty (Indirect)",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "61906",
+  "name": "Office Rentals",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "86000",
+  "name": "Income Other",
+  "subcategory": "Other Income",
+  "category": "Other Income",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "61500_x000D_",
+  "name": "Office Supplies",
+  "subcategory": "General & Administrative Exp",
+  "category": "Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "61730_x000D_",
+  "name": "Instant Asset Write Off",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "61800",
+  "name": "Credit Card Fees Paid",
+  "subcategory": "Credit Card fees paid",
+  "category": "Expenses",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "64300",
+  "name": "Printing",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "64900_x000D_",
+  "name": "Other Expenses",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "64570_x000D_",
+  "name": "Other Telco Expenses",
+  "subcategory": "Operating Expenses",
+  "category": "Expenses",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "65101",
+  "name": "Leave expense (Long Service)",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Labour"
+ },
+ {
+  "code": "65102",
+  "name": "Leave expense (Annual)",
+  "subcategory": "Employment Expenses",
+  "category": "Expenses",
+  "type": "Labour"
+ },
+ {
+  "code": "87000",
+  "name": "JobSaver",
+  "subcategory": "Other Income",
+  "category": "Other Income",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "46030_x000D_",
+  "name": "Credit Card Collected - CONS",
+  "subcategory": "Credit Card Fees Collected",
+  "category": "Income",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "59030_x000D_",
+  "name": "Credit Card Paid - CONS",
+  "subcategory": "Credit Card fees paid - COGS",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "61600",
+  "name": "Discounts Taken",
+  "subcategory": "Equipment - Purchase",
+  "category": "Cost of Sales",
+  "type": "Equipment & Misc"
+ },
+ {
+  "code": "91000_x000D_",
+  "name": "Interest Expense",
+  "subcategory": "Interest Expense",
+  "category": "Other Expenses",
+  "type": "Admin, Recruitment & Training"
+ },
+ {
+  "code": "93006",
+  "name": "Stripe Fees",
+  "subcategory": "General & Administrative Exp",
+  "category": "Expenses",
+  "type": "Equipment & Misc"
+ }
+]

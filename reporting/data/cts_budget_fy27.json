@@ -1,0 +1,138 @@
+{
+ "_source": "CTS_Budget_FY27_Final.xlsx, sheet 'FY27 Budget', columns D to O (Jul-26 to Jun-27).",
+ "_mapping": {
+  "Support -> Onsite": "matched July actual 235,402.94 vs 235,403.00",
+  "Consulting -> Integration": "matched July actual 112,803.24 vs 112,803.00",
+  "Production -> Production": "their Production budget covers Production AND Video; the GL splits them, so Video carries no budget of its own",
+  "CTS Overheads -> CTS (Direct Expenses)": "company overhead, budgeted in one line"
+ },
+ "fy": 2027,
+ "rows": [
+  {
+   "dept": "Onsite",
+   "line": "Income",
+   "months": [
+    238860.67,
+    256307.33,
+    248016.77,
+    263046.77,
+    262366.77,
+    251316.77,
+    262366.77,
+    262366.77,
+    253016.77,
+    261266.77,
+    258950.11,
+    242443.11
+   ]
+  },
+  {
+   "dept": "Onsite",
+   "line": "Cost of Sales",
+   "months": [
+    129391.68,
+    115678.57,
+    135541.85,
+    130158.68,
+    127598.94,
+    134912.18,
+    112466.56,
+    116012.62,
+    142206.77,
+    134804.11,
+    141480.1,
+    139270.0
+   ]
+  },
+  {
+   "dept": "Production",
+   "line": "Income",
+   "months": [
+    73000.02,
+    251215.02,
+    83326.02,
+    587307.02,
+    241601.02,
+    62316.02,
+    64261.94,
+    281912.02,
+    128882.02,
+    98752.02,
+    135511.94,
+    82637.02
+   ]
+  },
+  {
+   "dept": "Production",
+   "line": "Cost of Sales",
+   "months": [
+    52683.66,
+    100269.81,
+    103519.69,
+    285683.94,
+    104223.85,
+    83048.46,
+    45343.17,
+    109744.55,
+    59313.37,
+    48118.51,
+    60551.39,
+    85630.24
+   ]
+  },
+  {
+   "dept": "Integration",
+   "line": "Income",
+   "months": [
+    297416.49,
+    465645.39,
+    82321.89,
+    100061.89,
+    36337.39,
+    31337.39,
+    27340.65,
+    32340.65,
+    32340.65,
+    32340.65,
+    8035.07,
+    8035.07
+   ]
+  },
+  {
+   "dept": "Integration",
+   "line": "Cost of Sales",
+   "months": [
+    156894.91,
+    239607.17,
+    50130.11,
+    58336.6,
+    27394.35,
+    23963.88,
+    21263.5,
+    24080.81,
+    25062.91,
+    24323.32,
+    12517.15,
+    17919.3
+   ]
+  },
+  {
+   "dept": "CTS",
+   "line": "Direct Expenses",
+   "months": [
+    218401.7,
+    239717.06,
+    231573.15,
+    209130.75,
+    202345.83,
+    201077.04,
+    201203.71,
+    197422.84,
+    211706.91,
+    198848.2,
+    208673.81,
+    208102.17
+   ]
+  }
+ ]
+}
