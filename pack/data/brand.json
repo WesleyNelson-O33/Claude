@@ -1,0 +1,12 @@
+{
+  "_note": "The CTS palette, read off CTS Monthly Business Review - September 2026.pptx. Change these and rebuild, and every statement tab follows.",
+  "teal":     "005358",
+  "aqua":     "3FD0C9",
+  "grey":     "E3E6EA",
+  "grey_lt":  "F4F4F4",
+  "rule":     "C9CED6",
+  "mid":      "5F6670",
+  "ink":      "1A1A1A",
+  "red":      "A8052E",
+  "red_lt":   "FBE8EC"
+}
