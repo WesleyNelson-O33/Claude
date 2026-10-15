@@ -12,6 +12,16 @@ TEAL, AQUA, GREY = '#005358', '#3FD0C9', '#E3E6EA'
 MID, INK = '#242C39', '#242C39'          # Charcoal
 BLUE, NAVY, RED, PURP = '#6D71FF', '#122B82', '#F33844', '#8F4AFA'
 RULE = '#E3E6EA'
+PALE = '#F4F4F4'
+
+# Her department colour coding: the teals are Production, the blue and the
+# purple are Consulting, the red is Support.
+DC = json.load(open(f'{D}/data/dept_colours.json'))
+DEPT = {k: '#' + v for k, v in DC['departments'].items()}
+GROUP = [('#' + DC['groups']['Production'], 'Production'),
+         ('#' + DC['groups']['Consulting'], 'Consulting'),
+         ('#' + DC['groups']['Support'], 'Support')]
+dcol = lambda n: DEPT.get(n, INK)
 
 CSS = f"""
 *{{margin:0;padding:0;box-sizing:border-box}}
@@ -89,8 +99,10 @@ def chart_dept():
     for i, x in enumerate(d):
         cy = y0 + rowh * i
         bh = rowh * 0.3
-        s.append(f'<text class="lab" x="{x0-18}" y="{cy+rowh/2+4:.1f}" text-anchor="end">{x["name"]}</text>')
-        for j, (v, col) in enumerate(((x['inc_sep'], TEAL), (x['res_sep'], AQUA))):
+        dc = dcol(x['name'])
+        s.append(f'<text class="val" x="{x0-18}" y="{cy+rowh/2+4:.1f}" '
+                 f'text-anchor="end" fill="{dc}">{x["name"]}</text>')
+        for j, (v, col) in enumerate(((x['inc_sep'], dc), (x['res_sep'], INK))):
             yy = cy + rowh * (0.16 + j * 0.38)
             s.append(f'<rect x="{min(sx(v),sx(0)):.1f}" y="{yy:.1f}" width="{abs(sx(v)-sx(0)):.1f}" '
                      f'height="{bh:.1f}" fill="{col}" rx="2"/>')
@@ -98,7 +110,7 @@ def chart_dept():
             anc = 'start' if v >= 0 else 'end'
             s.append(f'<text class="val" font-size="12" x="{tx:.1f}" y="{yy+bh*0.72:.1f}" '
                      f'text-anchor="{anc}">{v/1000:,.0f}</text>')
-    s.append(legend(x0, H - 20, [(TEAL, 'Revenue'), (AQUA, 'Result after all overhead')]))
+    s.append(legend(x0, H - 20, GROUP + [(INK, 'Result after all overhead')]))
     return page(W, H, ''.join(s))
 
 # ------------------------------------------------- 3. revenue mix ------------
@@ -116,7 +128,7 @@ def chart_mix():
             w = v / tot * pw
             s.append(f'<rect x="{cx:.1f}" y="{cy:.1f}" width="{w:.1f}" height="40" fill="{col}"/>')
             if w > 70:
-                fc = '#fff' if col == TEAL else INK
+                fc = INK if col in (GREY, PALE, DEPT.get('Video')) else '#fff'
                 s.append(f'<text x="{cx+w/2:.1f}" y="{cy+25:.1f}" text-anchor="middle" '
                          f'font-size="13" font-weight="700" fill="{fc}">{v/tot*100:.0f}%</text>')
             cx += w
@@ -198,25 +210,29 @@ def chart_ageing():
 def chart_util():
     W, H = 1220, 330
     u = [x for x in pl['util'] if x['ch'] + x['nc'] + x['lv'] > 0]
-    x0, y0, pw, ph = 130, 56, W - 180, H - 110
+    x0, y0, pw, ph = 130, 56, W - 320, H - 110   # room on the right for the %
     rowh = ph / len(u)
     s = [f'<text x="0" y="24" class="val" font-size="15">September hours by department</text>']
     for i, x in enumerate(u):
         cy = y0 + rowh * i
         tot = x['ch'] + x['nc'] + x['lv']
-        s.append(f'<text class="lab" x="{x0-16}" y="{cy+rowh/2+5:.1f}" text-anchor="end">{x["name"]}</text>')
+        dc = dcol(x['name'])
+        s.append(f'<text class="val" x="{x0-16}" y="{cy+rowh/2+5:.1f}" '
+                 f'text-anchor="end" fill="{dc}">{x["name"]}</text>')
         cx = x0
-        for v, col in ((x['ch'], TEAL), (x['nc'], AQUA), (x['lv'], GREY)):
+        for v, col in ((x['ch'], dc), (x['nc'], GREY), (x['lv'], PALE)):
             w = v / tot * pw
             s.append(f'<rect x="{cx:.1f}" y="{cy+rowh*0.2:.1f}" width="{w:.1f}" height="{rowh*0.6:.1f}" fill="{col}"/>')
             if w > 54:
-                fc = '#fff' if col == TEAL else INK
+                fc = INK if col in (GREY, PALE, DEPT.get('Video')) else '#fff'
                 s.append(f'<text x="{cx+w/2:.1f}" y="{cy+rowh*0.58:.1f}" text-anchor="middle" '
                          f'font-size="12" font-weight="700" fill="{fc}">{v:,.0f}</text>')
             cx += w
         s.append(f'<text class="val" font-size="13" x="{W-20}" y="{cy+rowh/2+5:.1f}" text-anchor="end">'
                  f'{x["pct"]*100:.0f}% chargeable</text>')
-    s.append(legend(x0, H - 14, [(TEAL, 'Chargeable'), (AQUA, 'Non-chargeable'), (GREY, 'Leave')]))
+    s.append(legend(x0, H - 14, GROUP + [(GREY, 'Non-chargeable'), (PALE, 'Leave')]))
+    s.append(f'<text class="key" x="{x0}" y="{H-32}">The coloured bar is chargeable '
+             f'hours, in each department\u2019s own colour.</text>')
     return page(W, H, ''.join(s))
 
 CHARTS = {'rev_ebitda': chart_rev_ebitda, 'dept': chart_dept, 'mix': chart_mix,
