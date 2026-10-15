@@ -8,7 +8,7 @@ rows = json.load(open(f'{D}/gl_aug.json'))
 
 shutil.copy(SRC, TST)
 wb = openpyxl.load_workbook(TST)
-gp = wb['GL_Paste']
+gp = wb['P&L Analysis']
 for i, row in enumerate(rows, start=1):                 # whole export, title rows and all, at A1
     for c, v in enumerate(row[:12], start=1):           # the twelve Xero columns
         if v is None: continue

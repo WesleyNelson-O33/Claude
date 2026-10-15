@@ -165,11 +165,14 @@ for i, s in enumerate(EXP): OFF_SUB[27 + i] = ('Expenses', s)
 OFF_SUB[O_OIS] = ('Other Income', 'Other Income')
 OFF_SUB[O_OES] = ('Other Expenses', 'Other Expenses')
 
+GLSHEET = 'P&L Analysis'      # was GL_Paste
+GLREF = "'P&L Analysis'"      # how it has to be written inside a formula
 CLN_R0, CLN_R1 = 5, 20004
 GL_R0 = 1   # Cleanup reads from row 1, so it does not matter whether the export
             # lands on A1 or further down. A row with no real date is ignored.
 
 wb = openpyxl.load_workbook(SRC)
+wb['GL_Paste'].title = GLSHEET
 SHAPED = ['Summary', 'P&L FY27', 'Budget FY27', 'Actual FY26', 'Budget FY26']
 MAXC = 30
 
@@ -542,13 +545,13 @@ cu.column_dimensions['H'].width = 18
 GL_CODE, GL_DATE, GL_DR, GL_CR, GL_JOB, GL_CC = 'A', 'D', 'F', 'G', 'H', 'L'
 for i in range(CLN_R1 - CLN_R0 + 1):
     r = CLN_R0 + i; g = GL_R0 + i
-    gate = f'N(GL_Paste!${GL_DATE}{g})=0'
-    cu.cell(r, 1, f'=IF({gate},"",N(GL_Paste!${GL_CR}{g})-N(GL_Paste!${GL_DR}{g}))')
-    cu.cell(r, 2, f'=IF({gate},"",DATE(YEAR(GL_Paste!${GL_DATE}{g}),'
-                  f'MONTH(GL_Paste!${GL_DATE}{g}),1))')
-    cu.cell(r, 3, f'=IF({gate},"",IF(TRIM(GL_Paste!${GL_CC}{g})<>"",TRIM(GL_Paste!${GL_CC}{g}),'
-                  f'IFERROR(MID(GL_Paste!${GL_JOB}{g},FIND("[",GL_Paste!${GL_JOB}{g})+1,'
-                  f'FIND("]",GL_Paste!${GL_JOB}{g})-FIND("[",GL_Paste!${GL_JOB}{g})-1),"")))')
+    gate = f'N({GLREF}!${GL_DATE}{g})=0'
+    cu.cell(r, 1, f'=IF({gate},"",N({GLREF}!${GL_CR}{g})-N({GLREF}!${GL_DR}{g}))')
+    cu.cell(r, 2, f'=IF({gate},"",DATE(YEAR({GLREF}!${GL_DATE}{g}),'
+                  f'MONTH({GLREF}!${GL_DATE}{g}),1))')
+    cu.cell(r, 3, f'=IF({gate},"",IF(TRIM({GLREF}!${GL_CC}{g})<>"",TRIM({GLREF}!${GL_CC}{g}),'
+                  f'IFERROR(MID({GLREF}!${GL_JOB}{g},FIND("[",{GLREF}!${GL_JOB}{g})+1,'
+                  f'FIND("]",{GLREF}!${GL_JOB}{g})-FIND("[",{GLREF}!${GL_JOB}{g})-1),"")))')
     # An untagged line used to get a blank department, which meant it was in the
     # GL but in no column of the statement, so the P&L quietly did not tie. It
     # now falls into General Admin, which is the catch-all cost centre anyway,
@@ -557,11 +560,11 @@ for i in range(CLN_R1 - CLN_R0 + 1):
     cu.cell(r, 8, f'=IF({gate},"",IF(ISNA(MATCH($C{r},DeptTag,0)),"NO COST CENTRE",""))')
     cu.cell(r, 8).font = f(9)
     cu.cell(r, 5, f'=IF({gate},"",IFERROR(INDEX(AcctCat,'
-                  f'MATCH(GL_Paste!${GL_CODE}{g}&"",AcctCode,0)),"UNKNOWN"))')
+                  f'MATCH({GLREF}!${GL_CODE}{g}&"",AcctCode,0)),"UNKNOWN"))')
     cu.cell(r, 6, f'=IF({gate},"",IFERROR(INDEX(AcctSub,'
-                  f'MATCH(GL_Paste!${GL_CODE}{g}&"",AcctCode,0)),"UNKNOWN"))')
+                  f'MATCH({GLREF}!${GL_CODE}{g}&"",AcctCode,0)),"UNKNOWN"))')
     cu.cell(r, 7, f'=IF({gate},"",IFERROR(INDEX(AcctAdd,'
-                  f'MATCH(GL_Paste!${GL_CODE}{g}&"",AcctCode,0)),""))')
+                  f'MATCH({GLREF}!${GL_CODE}{g}&"",AcctCode,0)),""))')
     cu.cell(r, 7).font = f(9)
 cu.auto_filter.ref = f'A4:H{CLN_R1}'
 CL_A = f'Cleanup!$A${CLN_R0}:$A${CLN_R1}'
@@ -592,9 +595,9 @@ print('engine add-back rows', ENG_ADD_ROW[(DEPTS[0], "D&A")], 'to', ENG_ADD_LAST
 # B17 are referenced by every risk formula in the pack.
 st = wb['Setup']
 st['B6'] = 7                       # was 8, which made September period 2
-st['B20'] = '=COUNT(GL_Paste!$D$1:$D$20000)'
-st['B24'] = '=IFERROR(MIN(GL_Paste!$D$1:$D$20000),0)'
-st['B25'] = '=IFERROR(MAX(GL_Paste!$D$1:$D$20000),0)'
+st['B20'] = f'=COUNT({GLREF}!$D$1:$D$20000)'
+st['B24'] = f'=IFERROR(MIN({GLREF}!$D$1:$D$20000),0)'
+st['B25'] = f'=IFERROR(MAX({GLREF}!$D$1:$D$20000),0)'
 st['C6'] = 'July'
 st['A22'] = 'Lines with no cost centre'
 st.cell(22, 2, f'=COUNTIF(Cleanup!$H${CLN_R0}:$H${CLN_R1},"NO COST CENTRE")').number_format = '#,##0'
@@ -822,6 +825,27 @@ bs.sheet_properties.outlinePr = Outline(summaryBelow=False, summaryRight=False, 
 
 # ===================================================================== 9 ===
 rd = wb['README']
+# The monthly steps, rewritten for how the pack actually works now.
+STEPS = [
+    ('1.  Setup B5', 'Pick the reporting month. The financial year, the period and every '
+     'comparative follow from it.'),
+    ('2.  P&L Analysis', 'Xero: Account Transactions for P&L analysis, 1 July to the end of the '
+     'reporting month. Export it, select the whole thing and paste it here, anywhere from A1. '
+     'The title rows do not matter. Do not reorder the columns: Account Code, Account, Source, '
+     'Date, Contact, Debit, Credit, Job Numbers, Invoice Number, Reference, Description, '
+     'Cost Centres.'),
+    ('3.  PL_Paste, BS_Paste', 'Xero: the profit and loss for the reporting month, and the '
+     'balance sheet as at the end of it. Paste each whole export at A1.'),
+    ('4.  PL_Check, then read', 'Every status should read OK. Then read Summary, and P&L FY27 '
+     'for the detail.'),
+]
+for i, (a, b) in enumerate(STEPS):
+    r = 5 + i
+    rd.cell(r, 2, a).font = f(10, True)
+    c = rd.cell(r, 3, b); c.font = f(10)
+    c.alignment = Alignment(wrap_text=True, vertical='top')
+    rd.row_dimensions[r].height = 13 * (1 + len(b) // 105)
+
 base = max(r for r in range(1, 60) if rd.cell(r, 2).value) + 2
 rd.cell(base, 2, 'WHAT CHANGED IN THIS VERSION').font = f(10, True, 'C00000')
 for i, (a, b) in enumerate([
@@ -854,7 +878,7 @@ for i, (a, b) in enumerate([
     ('Lists', '14 accounts live in Xero were missing from the master, so every GL line on them '
      'was being dropped. One of them, 41500 Contract Help Desk, is revenue. Added and shaded '
      'cream. Please check how I have categorised them.'),
-    ('GL_Paste', 'A bare sheet on purpose, with no headings, so a plain whole-sheet paste '
+    (GLSHEET, 'A bare sheet on purpose, with no headings, so a plain whole-sheet paste '
      'lands wherever you put it. Rows with no real date are ignored, so the title rows do no '
      'harm. The column order it expects is the one Xero gives you: Account Code, Account, '
      'Source, Date, Contact, Debit, Credit, Job Numbers, Invoice Number, Reference, '
@@ -887,6 +911,13 @@ for ws_ in wb.worksheets:
                 cell.font = Font(name=fn.name or AR, size=fn.size or 10, bold=fn.bold,
                                  italic=fn.italic, color=TEAL)
 
+# the sheet is called P&L Analysis now, so nothing should still say GL_Paste
+for ws_ in wb.worksheets:
+    for row_ in ws_.iter_rows():
+        for cell in row_:
+            if isinstance(cell.value, str) and 'GL_Paste' in cell.value:
+                cell.value = cell.value.replace('GL_Paste', GLSHEET)
+
 # any text still telling her to look for yellow is now wrong
 SWAP = [('yellow cells are the only ones you type into',
          'cells in blue text are the only ones you type into'),
@@ -903,6 +934,17 @@ for ws_ in wb.worksheets:
                 t = cell.value
                 for a, b in SWAP: t = t.replace(a, b)
                 cell.value = t
+
+# Tab order follows the monthly steps on the README: set the month, paste the
+# three reports, read the controls, then read the statements.
+ORDER = ['README', 'requirements ', 'Setup', GLSHEET, 'PL_Paste', 'BS_Paste', 'PL_Check',
+         'Summary', 'P&L FY27', 'Balance_Sheet', 'Budget FY27', 'Actual FY26', 'Budget FY26',
+         'Utilisation', 'Engine', 'Lists', 'Cleanup']
+assert sorted(ORDER) == sorted(wb.sheetnames), set(ORDER) ^ set(wb.sheetnames)
+wb._sheets = [wb[n] for n in ORDER]
+wb.active = ORDER.index('Summary')
+for n in ORDER:
+    wb[n].sheet_view.tabSelected = (n == 'Summary')
 
 wb.save(OUT)
 print('saved', OUT)

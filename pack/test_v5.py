@@ -36,7 +36,7 @@ book(MONTHS[2], 3, 'PRODUCTION', byc['42100'], 0, 5000, '', 'J9 [PRD]')
 
 shutil.copy(SRC, TST)
 wb = openpyxl.load_workbook(TST)
-gp = wb['GL_Paste']
+gp = wb['P&L Analysis']
 gp.cell(1, 1, 'Corporate Technology Services Pty Ltd')
 gp.cell(2, 1, 'Account Transactions for P&L analysis')
 for i, h in enumerate(['Account Code', 'Account', 'Source', 'Date', 'Contact',
