@@ -630,7 +630,7 @@
     return { dept: g, chargeable: g !== "ADMIN" && g !== "UNALLOCATED" && !/non[- ]?ch/i.test(String(name || "")), guessed: true };
   }
   C.guessLocation = guessLocation;
-  C.earnings = function (t, locs, cats, adjs, fallbackMonth) {
+  C.earnings = function (t, locs, cats, adjs, fallbackMonth, emps) {
     var h = t.head, p = P();
     var ci = {
       empId: colIndex(h, ["employeeid"]), empExt: colIndex(h, ["employeeexternalid"]),
@@ -641,7 +641,13 @@
     };
     if (ci.catName < 0 || ci.locName < 0 || ci.units < 0) throw new Error("Earnings: need Pay Category Name, Location Name and Units.");
 
-    var locMap = {}, catMap = {};
+    var locMap = {}, catMap = {}, empMap = {}, empByName = {};
+    (emps || []).forEach(function (r) {
+      if (!r[0] && !r[1]) return;
+      var d = String(r[2] || "").trim().toUpperCase(), rec = { dept: d && E().deptOf[d] ? d : null, employment: String(r[3] || "").trim(), target: p.num(r[4]) || null };
+      if (String(r[0] || "").trim()) empMap[String(r[0]).trim()] = rec;
+      if (String(r[1] || "").trim()) empByName[String(r[1]).trim().toLowerCase()] = rec;
+    });
     (locs || []).forEach(function (r) {
       if (!r[0]) return;
       locMap[String(r[0]).trim()] = { dept: String(r[1] || "").trim().toUpperCase() || null,
@@ -662,7 +668,7 @@
     });
 
     var bucket = {}, staff = {}, labour = {}, newLocs = {}, newCats = {}, usedFallback = 0;
-    var reallocated = 0, payOnly = 0, lines = 0, spread = 0, grossTotal = 0;
+    var reallocated = 0, payOnly = 0, lines = 0, spread = 0, grossTotal = 0, peopleDept = 0;
     // Pay runs pasted one under the other: each starts with its title row.
     // A line whose note carries no date (salaried staff, allowances) is
     // spread over the months its pay run covers, on weekdays, rather than
@@ -739,8 +745,12 @@
         }
       }
       if (frac === 1 || mk === Object.keys(share || {})[0]) lines++;
-      var key = mk + "|" + loc.dept;
-      var b = bucket[key] || (bucket[key] = { month: mk, dept: loc.dept, chargeable: 0, nonChargeable: 0, leave: 0, publicHoliday: 0 });
+      var pidRaw = (ci.empExt >= 0 && String(r[ci.empExt]).trim()) || (ci.empId >= 0 && String(r[ci.empId]).trim()) || "";
+      var emp = empMap[pidRaw] || empByName[who.toLowerCase()] || null;
+      var deptKey = emp && emp.dept ? emp.dept : loc.dept;
+      if (emp && emp.dept) peopleDept++;
+      var key = mk + "|" + deptKey;
+      var b = bucket[key] || (bucket[key] = { month: mk, dept: deptKey, chargeable: 0, nonChargeable: 0, leave: 0, publicHoliday: 0 });
       if (kind === "work") b[loc.chargeable ? "chargeable" : "nonChargeable"] += units;
       else if (kind === "leave") b.leave += units;
       else if (kind === "publicHoliday") b.publicHoliday += units;
@@ -748,15 +758,15 @@
       lb.gross += gross; lb.sup += sup;
 
       var pid = (ci.empExt >= 0 && String(r[ci.empExt]).trim()) || (ci.empId >= 0 && String(r[ci.empId]).trim()) || who;
-      var sk = mk + "|" + pid + "|" + loc.dept;
-      var s = staff[sk] || (staff[sk] = { month: mk, empId: pid, name: who || pid, dept: loc.dept,
-                chargeable: 0, nonChargeable: 0, leave: 0, publicHoliday: 0, gross: 0, sup: 0, employment: null });
+      var sk = mk + "|" + pid + "|" + deptKey;
+      var s = staff[sk] || (staff[sk] = { month: mk, empId: pid, name: who || pid, dept: deptKey,
+                chargeable: 0, nonChargeable: 0, leave: 0, publicHoliday: 0, gross: 0, sup: 0, employment: null, target: emp ? emp.target : null });
       if (kind === "work") s[loc.chargeable ? "chargeable" : "nonChargeable"] += units;
       else if (kind === "leave") s.leave += units;
       else if (kind === "publicHoliday") s.publicHoliday += units;
       s.gross += gross; s.sup += sup;
-      var emp = p.guessEmployment(catName);
-      if (emp) s.employment = emp;
+      var empl = (emp && emp.employment) || p.guessEmployment(catName);
+      if (empl) s.employment = empl;
     }
     function r2(v) { return Math.round(v * 100) / 100; }
     var utilRows = Object.keys(bucket).sort().map(function (k) {
@@ -766,14 +776,14 @@
     var staffRows = Object.keys(staff).sort().map(function (k) {
       var s = staff[k];
       return [s.month, s.empId, s.name, s.dept, r2(s.chargeable), r2(s.nonChargeable), r2(s.leave),
-              r2(s.publicHoliday), Math.round(s.gross * 100), Math.round(s.sup * 100), s.employment];
+              r2(s.publicHoliday), Math.round(s.gross * 100), Math.round(s.sup * 100), s.employment, s.target];
     });
     return {
       util: { meta: { seed: false, built: today(), source: "03 Employment Hero Earnings.xlsx" },
               cols: ["month", "dept", "chargeable", "nonChargeable", "leave", "publicHoliday", "fte"], rows: utilRows },
       staff: { meta: { seed: false, built: today(), source: "03 Employment Hero Earnings.xlsx" },
-               cols: ["month", "empId", "name", "dept", "chargeable", "nonChargeable", "leave", "publicHoliday", "grossCents", "superCents", "employment"], rows: staffRows },
-      lines: lines, gross: grossTotal, newLocations: newLocs, newCategories: newCats, usedFallback: usedFallback, spread: spread,
+               cols: ["month", "empId", "name", "dept", "chargeable", "nonChargeable", "leave", "publicHoliday", "grossCents", "superCents", "employment", "target"], rows: staffRows },
+      lines: lines, gross: grossTotal, peopleDept: peopleDept, newLocations: newLocs, newCategories: newCats, usedFallback: usedFallback, spread: spread,
       blocks: blocks.map(function (b) { return { from: b.min, to: b.max, lines: b.rows.length }; }),
       reallocated: reallocated, payOnly: payOnly,
     };
@@ -1191,7 +1201,28 @@
               if (a && Math.abs(g - a) >= 100) diffs.push(mk + " " + cat + " " + ((g - a) / 100).toFixed(0));
             });
           });
-          if (diffs.length) check("warn", "Budget", "Departments tab and account budget disagree by category: " + diffs.slice(0, 4).join("; ") + (diffs.length > 4 ? " and more" : "") + ". The departmental pages read the Departments tab; the P&L reads the accounts.");
+          if (diffs.length && gb.matched > 1) check("warn", "Budget", "Departments tab and account budget disagree by category: " + diffs.slice(0, 4).join("; ") + (diffs.length > 4 ? " and more" : "") + ". The departmental pages read the Departments tab; the P&L reads the accounts.");
+          // No budget by account typed: spread the group budget across the
+          // accounts on last year's mix, so the P&L has a budget column that
+          // adds to the real departmental budget.
+          if (gb.matched <= 1 && bd.rows.length) {
+            var derived = {}, actualGrid = finActual || (E().fin || {}).actual || {}, mkList = Object.keys(bdMonths).sort();
+            ["income", "cos", "expenses"].forEach(function (cat) {
+              var names = Object.keys(E().acct).filter(function (n) { return E().acct[n].cat === cat; });
+              mkList.forEach(function (mk) {
+                var total = 0; bd.rows.forEach(function (r) { if (r.cat === cat) total += r.months[mk] || 0; });
+                if (!total) return;
+                // the prior financial year, July to June, by arithmetic: the calendar is built after this step
+                var y = +mk.slice(0, 4), m = +mk.slice(5, 7), fyStart = m >= 7 ? y : y - 1, priorKeys = [];
+                for (var i = 0; i < 12; i++) { var mm = ((6 + i) % 12) + 1, yy = fyStart - 1 + (mm >= 7 ? 0 : 1); priorKeys.push(yy + "-" + (mm < 10 ? "0" : "") + mm); }
+                var w = {}, wt = 0;
+                names.forEach(function (n) { var v = 0; priorKeys.forEach(function (k) { v += Math.abs((actualGrid[n] || {})[k] || 0); }); if (v) { w[n] = v; wt += v; } });
+                if (!wt) return;
+                Object.keys(w).forEach(function (n) { (derived[n] = derived[n] || {})[mk] = Math.round(total * w[n] / wt); });
+              });
+            });
+            if (Object.keys(derived).length) { finBudget = derived; check("info", "Budget", "No budget by account on the Budget tab, so the group budget on the Departments tab was spread across " + Object.keys(derived).length + " accounts on last year's mix. Type the account budget to replace it."); }
+          }
         } else check("info", "Budget", "No Departments tab rows; departmental budgets are derived from last year's ledger share.");
       } catch (e) { check("fail", "Budget", e.message); }
     } else check("warn", "Budget", "07 Budget.xlsx not found; keeping the current budget.");
@@ -1243,7 +1274,8 @@
         var gl;
         function detailHead(h) { return colIndex(h, ["runningbalance"]) >= 0 && colIndex(h, ["date"]) >= 0 && colIndex(h, ["debit"]) >= 0; }
         var td = B.table(glWb, "GL", { minFilled: 1, findHead: detailHead });
-        var tg = td ? null : B.table(glWb, "GL");
+        // the custom report pasted whole, title rows and all, one export under another
+        var tg = td ? null : (B.table(glWb, "GL", { findHead: function (h) { return colIndex(h, ["accountname", "account"]) >= 0 && colIndex(h, ["date"]) >= 0 && colIndex(h, ["debit"]) >= 0; } }) || B.table(glWb, "GL"));
         if (td) {
           gl = C.glDetail(td);
           var bs = Object.keys(gl.skipped);
@@ -1296,7 +1328,8 @@
         var locs = (B.table(ehWb, "Locations") || { rows: [] }).rows;
         var cats = (B.table(ehWb, "Pay categories") || { rows: [] }).rows;
         var adjs = (B.table(ehWb, "Adjustments") || { rows: [] }).rows;
-        var eh = C.earnings(te, locs, cats, adjs, reportingMonth);
+        var emps = (B.table(ehWb, "Employees") || { rows: [] }).rows;
+        var eh = C.earnings(te, locs, cats, adjs, reportingMonth, emps);
         outputs["CTS_util_data.js"] = "window.CTS_UTIL = " + JSON.stringify(eh.util) + ";\n";
         outputs["CTS_staff_data.js"] = "window.CTS_STAFF = " + JSON.stringify(eh.staff) + ";\n";
         results.util = eh.util; results.staff = eh.staff; results.pay = { blocks: eh.blocks, gross: eh.gross };
@@ -1305,6 +1338,7 @@
         if (nl.length) check("warn", "Earnings", nl.length + " locations not on the Locations tab, guessed from the bracket tag: " + nl.slice(0, 4).join("; ") + (nl.length > 4 ? " and others" : "") + ". Add them to the tab to make the guess stick.");
         var nc = Object.keys(eh.newCategories);
         if (nc.length) check("warn", "Earnings", nc.length + " pay categories not on the Pay categories tab, guessed from the name: " + nc.slice(0, 4).join("; ") + ".");
+        if (eh.peopleDept) check("ok", "Earnings", eh.peopleDept + " lines put in the person's own department from the Employees tab; the rest follow the location.");
         if (eh.blocks.length) check("info", "Earnings", eh.blocks.length + " pay run" + (eh.blocks.length > 1 ? "s" : "") + ": " + eh.blocks.map(function (b) { return (b.from || "?") + " to " + (b.to || "?"); }).join(", ") + ".");
         if (eh.spread) check("info", "Earnings", eh.spread + " lines had no date in their note (salaried hours, allowances) and were spread over their pay run's weekdays by month.");
         if (eh.usedFallback > eh.spread) check("warn", "Earnings", (eh.usedFallback - eh.spread) + " undated lines in a pay run with no dated lines at all were put in " + reportingMonth + ".");

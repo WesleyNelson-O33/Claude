@@ -333,6 +333,9 @@ for r in range(3, 302):
     for c in range(1, 7):
         wb["Adjustments"].cell(row=r, column=c).fill = PASTE
         wb["Adjustments"].cell(row=r, column=c).font = INPUT_FONT
+list_tab(wb, "Employees", ["Employee External Id", "Employee Name", "Department", "Employment", "Chargeable target"],
+         [["298", "Abel SAVIGE", "ONSITE", "Casual", 0.65], ["", "", "", "", None]] + [[None] * 5] * 300, [20, 30, 16, 14, 16],
+         note="Optional. The person's own department (their person group), used to put their hours in their department even when they work on another department's job, and their chargeable target. Leave blank to use the location's department.")
 save(wb, "03 Employment Hero Earnings.xlsx")
 
 # ----------------------------------------------------------- 04 Zoho deals
