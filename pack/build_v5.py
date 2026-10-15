@@ -529,26 +529,41 @@ cu.cell(2, 1, 'Amount is Credit less Debit, so income is positive and costs are 
               'Department comes from the Cost Centres column, falling back to the bracket tag on '
               'the job number. Any row with no real date in the Date column is ignored, so the '
               "export's title rows do no harm.")
-cu.cell(4, 7, 'Addback').font = f(10, True, 'FFFFFF')
-cu.cell(4, 7).fill = NAVY
-cu.cell(4, 7).alignment = Alignment(horizontal='center')
+for cc_, h_ in ((7, 'Addback'), (8, 'Cost centre')):
+    hc = cu.cell(4, cc_, h_)
+    hc.font = f(10, True, 'FFFFFF'); hc.fill = NAVY
+    hc.alignment = Alignment(horizontal='center')
 cu.column_dimensions['G'].width = 14
+cu.column_dimensions['H'].width = 18
+# The live Xero export, checked against the August one, is:
+#   A Account Code  B Account  C Source  D Date  E Contact  F Debit  G Credit
+#   H Job Numbers  I Invoice Number  J Reference  K Description  L Cost Centres
+# There is no Index column, whatever an older version of this pack assumed.
+GL_CODE, GL_DATE, GL_DR, GL_CR, GL_JOB, GL_CC = 'A', 'D', 'F', 'G', 'H', 'L'
 for i in range(CLN_R1 - CLN_R0 + 1):
     r = CLN_R0 + i; g = GL_R0 + i
-    gate = f'N(GL_Paste!$E{g})=0'
-    cu.cell(r, 1, f'=IF({gate},"",N(GL_Paste!$H{g})-N(GL_Paste!$G{g}))')
-    cu.cell(r, 2, f'=IF({gate},"",DATE(YEAR(GL_Paste!$E{g}),MONTH(GL_Paste!$E{g}),1))')
-    cu.cell(r, 3, f'=IF({gate},"",IF(TRIM(GL_Paste!$M{g})<>"",TRIM(GL_Paste!$M{g}),'
-                  f'IFERROR(MID(GL_Paste!$I{g},FIND("[",GL_Paste!$I{g})+1,'
-                  f'FIND("]",GL_Paste!$I{g})-FIND("[",GL_Paste!$I{g})-1),"")))')
-    cu.cell(r, 4, f'=IF($C{r}="","",IFERROR(INDEX(DeptName,MATCH($C{r},DeptTag,0)),"UNALLOCATED"))')
-    cu.cell(r, 5, f'=IF({gate},"",IFERROR(INDEX(AcctCat,MATCH(GL_Paste!$B{g}&"",AcctCode,0)),'
-                  f'"UNKNOWN"))')
-    cu.cell(r, 6, f'=IF({gate},"",IFERROR(INDEX(AcctSub,MATCH(GL_Paste!$B{g}&"",AcctCode,0)),'
-                  f'"UNKNOWN"))')
-    cu.cell(r, 7, f'=IF({gate},"",IFERROR(INDEX(AcctAdd,MATCH(GL_Paste!$B{g}&"",AcctCode,0)),""))')
+    gate = f'N(GL_Paste!${GL_DATE}{g})=0'
+    cu.cell(r, 1, f'=IF({gate},"",N(GL_Paste!${GL_CR}{g})-N(GL_Paste!${GL_DR}{g}))')
+    cu.cell(r, 2, f'=IF({gate},"",DATE(YEAR(GL_Paste!${GL_DATE}{g}),'
+                  f'MONTH(GL_Paste!${GL_DATE}{g}),1))')
+    cu.cell(r, 3, f'=IF({gate},"",IF(TRIM(GL_Paste!${GL_CC}{g})<>"",TRIM(GL_Paste!${GL_CC}{g}),'
+                  f'IFERROR(MID(GL_Paste!${GL_JOB}{g},FIND("[",GL_Paste!${GL_JOB}{g})+1,'
+                  f'FIND("]",GL_Paste!${GL_JOB}{g})-FIND("[",GL_Paste!${GL_JOB}{g})-1),"")))')
+    # An untagged line used to get a blank department, which meant it was in the
+    # GL but in no column of the statement, so the P&L quietly did not tie. It
+    # now falls into General Admin, which is the catch-all cost centre anyway,
+    # and column H counts it so you can see it happened.
+    cu.cell(r, 4, f'=IF({gate},"",IFERROR(INDEX(DeptName,MATCH($C{r},DeptTag,0)),"ADMIN"))')
+    cu.cell(r, 8, f'=IF({gate},"",IF(ISNA(MATCH($C{r},DeptTag,0)),"NO COST CENTRE",""))')
+    cu.cell(r, 8).font = f(9)
+    cu.cell(r, 5, f'=IF({gate},"",IFERROR(INDEX(AcctCat,'
+                  f'MATCH(GL_Paste!${GL_CODE}{g}&"",AcctCode,0)),"UNKNOWN"))')
+    cu.cell(r, 6, f'=IF({gate},"",IFERROR(INDEX(AcctSub,'
+                  f'MATCH(GL_Paste!${GL_CODE}{g}&"",AcctCode,0)),"UNKNOWN"))')
+    cu.cell(r, 7, f'=IF({gate},"",IFERROR(INDEX(AcctAdd,'
+                  f'MATCH(GL_Paste!${GL_CODE}{g}&"",AcctCode,0)),""))')
     cu.cell(r, 7).font = f(9)
-cu.auto_filter.ref = f'A4:G{CLN_R1}'
+cu.auto_filter.ref = f'A4:H{CLN_R1}'
 CL_A = f'Cleanup!$A${CLN_R0}:$A${CLN_R1}'
 CL_B = f'Cleanup!$B${CLN_R0}:$B${CLN_R1}'
 CL_D = f'Cleanup!$D${CLN_R0}:$D${CLN_R1}'
@@ -577,10 +592,15 @@ print('engine add-back rows', ENG_ADD_ROW[(DEPTS[0], "D&A")], 'to', ENG_ADD_LAST
 # B17 are referenced by every risk formula in the pack.
 st = wb['Setup']
 st['B6'] = 7                       # was 8, which made September period 2
-st['B20'] = '=COUNT(GL_Paste!$E$1:$E$20000)'
-st['B24'] = '=IFERROR(MIN(GL_Paste!$E$1:$E$20000),0)'
-st['B25'] = '=IFERROR(MAX(GL_Paste!$E$1:$E$20000),0)'
+st['B20'] = '=COUNT(GL_Paste!$D$1:$D$20000)'
+st['B24'] = '=IFERROR(MIN(GL_Paste!$D$1:$D$20000),0)'
+st['B25'] = '=IFERROR(MAX(GL_Paste!$D$1:$D$20000),0)'
 st['C6'] = 'July'
+st['A22'] = 'Lines with no cost centre'
+st.cell(22, 2, f'=COUNTIF(Cleanup!$H${CLN_R0}:$H${CLN_R1},"NO COST CENTRE")').number_format = '#,##0'
+st.cell(22, 3, 'These are put into General Admin so the P&L still ties. If it is not nil, '
+               'look at the next line and fix the cost centre in Xero.').font = f(9, False, '595959')
+st.cell(22, 3).alignment = Alignment(wrap_text=True, vertical='top')
 def srow(r, label, val, note='', nf='General', is_inp=False):
     st.cell(r, 1, label).font = f(10)
     c = st.cell(r, 2, val)
@@ -606,6 +626,11 @@ srow(32, 'BS paste: column holding the start of the year', 4,
      'Leave at 0 if your export has no comparison columns.', '0', True)
 srow(34, 'P&L lines pasted', '=COUNTA(PL_Paste!$A$1:$A$300)', '', '#,##0')
 srow(35, 'BS lines pasted', '=COUNTA(BS_Paste!$A$1:$A$400)', '', '#,##0')
+srow(37, 'Value sitting in General Admin for want of a cost centre',
+     f'=SUMIF(Cleanup!$H${CLN_R0}:$H${CLN_R1},"NO COST CENTRE",'
+     f'Cleanup!$A${CLN_R0}:$A${CLN_R1})',
+     'Credit less debit, so income is positive. This is the amount in the wrong department.',
+     MON2)
 srow(36, 'GL lines dated outside this financial year',
      '=$B$20-COUNTIFS(Cleanup!$B$5:$B$20004,">="&DATE($B$7-1,$B$6,1),'
      'Cleanup!$B$5:$B$20004,"<="&DATE($B$7,$B$6-1,1))',
@@ -621,36 +646,76 @@ for c in range(2, 17):
     pp.column_dimensions[CL(c)].number_format = MON2
 
 pc = wb['PL_Check']
-pc['A2'] = ('Either paste the Xero profit and loss on PL_Paste, or type the five totals into the '
-            'yellow cells in column C. Every status should read OK before you report.')
-for i, h in enumerate(['Label in your Xero P&L', 'Per the pasted P&L', 'Found?',
+pc['A2'] = ('Either paste the Xero profit and loss on PL_Paste, or type the totals into column C. '
+            'Every status should read OK before you report.')
+CU_A = f'Cleanup!$A${CLN_R0}:$A${CLN_R1}'
+CU_E = f'Cleanup!$E${CLN_R0}:$E${CLN_R1}'
+CU_B = f'Cleanup!$B${CLN_R0}:$B${CLN_R1}'
+def gl_sum(cat):
+    return f'SUMIFS({CU_A},{CU_E},"{cat}",{CU_B},Setup!$B$5)'
+# Xero reports interest, tax, dividends and currency inside Total Operating
+# Expenses, so the pack's Expenses line has to carry its Other Expenses too or
+# this will never tie.
+pc['B5'] = '=' + gl_sum('Income')
+pc['B6'] = '=' + gl_sum('Cost of Sales')
+pc['B7'] = '=' + gl_sum('Expenses') + '+' + gl_sum('Other Expenses')
+pc['B8'] = '=' + gl_sum('Other Income')
+pc['B9'] = '=' + gl_sum('Other Expenses')
+pc['B10'] = '=SUM(B5:B8)'
+pc['C10'] = '=SUM(C5:C8)'
+pc['A7'] = 'Expenses  (including interest, tax and currency)'
+pc['A9'] = 'of which Other Expenses  (already inside the line above)'
+pc['A9'].font = f(9, False, '595959')
+pc['D9'] = None
+pc['E9'] = 'INFO'
+pc['E9'].alignment = Alignment(horizontal='center')
+for i, h in enumerate(['Label in your Xero P&L', 'Sign', 'Per the pasted P&L', 'Found?',
                        'Status vs the paste']):
     c = pc.cell(4, 7 + i, h)
-    c.font = f(10, True, 'FFFFFF'); c.fill = NAVY; c.border = BOX
+    c.font = f(10, True, 'FFFFFF'); c.fill = PatternFill('solid', fgColor=TEAL); c.border = BOX
     c.alignment = Alignment(horizontal='center', wrap_text=True)
-for col, w in zip('GHIJ', (30, 16, 12, 16)): pc.column_dimensions[col].width = w
+for col, w in zip('GHIJK', (34, 7, 17, 12, 17)): pc.column_dimensions[col].width = w
 PLP, PLN = 'PL_Paste!$A$1:$P$300', 'PL_Paste!$A$1:$A$300'
-DEFLBL = ['Total Income', 'Total Cost of Sales', 'Total Operating Expenses',
-          'Total Other Income', 'Total Other Expenses']
-for i, lbl in enumerate(DEFLBL):
+# Xero prints costs as positive numbers, the pack keeps them negative, so each
+# line carries the sign that turns one into the other.
+LINES = [('Total Income', 1), ('Total Cost of Sales', -1),
+         ('Total Operating Expenses', -1), ('Total Other Income', 1)]
+for i, (lbl, sign) in enumerate(LINES):
     r = 5 + i
     c = pc.cell(r, 7, lbl)
-    c.font = f(10, False, '0000FF'); c.fill = YELL; c.border = BOX
-    pc.cell(r, 8, f'=IF($G{r}="",0,IFERROR(INDEX({PLP},MATCH($G{r},{PLN},0),'
+    c.font = f(10, False, '0000FF'); c.border = BOX
+    sc = pc.cell(r, 8, sign)
+    sc.font = f(10, False, '0000FF'); sc.border = BOX; sc.number_format = '+0;-0'
+    sc.alignment = Alignment(horizontal='center')
+    pc.cell(r, 9, f'=IF($G{r}="",0,$H{r}*IFERROR(INDEX({PLP},MATCH($G{r},{PLN},0),'
                   f'Setup!$B$29),0))').number_format = MON2
-    pc.cell(r, 9, f'=IF($G{r}="","no label",IF(ISNA(MATCH($G{r},{PLN},0)),"not found","found"))')
-    pc.cell(r, 10, f'=IF(Setup!$B$34=0,"NO PASTE",IF($I{r}<>"found","CHECK LABEL",'
-                   f'IF(ABS($B{r}-$H{r})<1,"OK","CHECK")))')
-    for cc in (8, 9, 10):
-        pc.cell(r, cc).font = f(10, cc == 10)
-        pc.cell(r, cc).alignment = Alignment(horizontal='center' if cc != 8 else 'right')
-pc.cell(10, 8, '=SUM(H5:H9)').number_format = MON2
-pc.cell(10, 8).font = f(10, True)
-pc.cell(10, 10, '=IF(Setup!$B$34=0,"NO PASTE",IF(ABS($B10-$H10)<1,"OK","CHECK"))')
-pc.cell(10, 10).font = f(10, True)
-pc.cell(10, 10).alignment = Alignment(horizontal='center')
-pc.cell(12, 7, 'If a label reads "not found", change the text in column G to match your export '
-               'word for word.').font = f(9, False, '595959')
+    pc.cell(r, 10, f'=IF($G{r}="","no label",IF(ISNA(MATCH($G{r},{PLN},0)),"not found","found"))')
+    pc.cell(r, 11, f'=IF(Setup!$B$34=0,"NO PASTE",IF($J{r}<>"found","CHECK LABEL",'
+                   f'IF(ABS($B{r}-$I{r})<1,"OK","CHECK")))')
+    for cc in (9, 10, 11):
+        pc.cell(r, cc).font = f(10, cc == 11)
+        pc.cell(r, cc).alignment = Alignment(horizontal='center' if cc != 9 else 'right')
+pc.cell(9, 11, 'INFO').font = f(10, True)
+pc.cell(9, 11).alignment = Alignment(horizontal='center')
+pc.cell(10, 9, '=SUM(I5:I8)').number_format = MON2
+pc.cell(10, 9).font = f(10, True)
+pc.cell(10, 11, '=IF(Setup!$B$34=0,"NO PASTE",IF(ABS($B10-$I10)<1,"OK","CHECK"))')
+pc.cell(10, 11).font = f(10, True)
+pc.cell(10, 11).alignment = Alignment(horizontal='center')
+for i, t in enumerate([
+        'Run the Xero profit and loss for the reporting month and paste the whole export on '
+        'PL_Paste at A1. Tell Setup B29 which column holds the figures.',
+        'If a label reads "not found", change the text in column G to match your export word '
+        'for word. Xero wording moves about between layouts.',
+        'Sign turns Xero into the pack. Xero prints costs as positive numbers and the pack '
+        'keeps them negative. If a cost line is out by exactly double, flip its sign.',
+        'Xero has no Other Expenses section. Interest, income tax, dividends and currency '
+        'movements all sit inside its Total Operating Expenses, so the Expenses line here '
+        'carries them too.']):
+    cc = pc.cell(12 + i, 7, t)
+    cc.font = f(9, False, '595959')
+    cc.alignment = Alignment(wrap_text=True, vertical='top')
+    pc.row_dimensions[12 + i].height = 13 * (1 + len(t) // 110)
 
 # ===================================================================== 8 ===
 # BS_Paste and a balance sheet, in the same style as the rest of the pack.
@@ -791,9 +856,9 @@ for i, (a, b) in enumerate([
      'cream. Please check how I have categorised them.'),
     ('GL_Paste', 'A bare sheet on purpose, with no headings, so a plain whole-sheet paste '
      'lands wherever you put it. Rows with no real date are ignored, so the title rows do no '
-     'harm. The column order it expects is Index, Account Code, Account Name, Source, Date, '
-     'Contact, Debit, Credit, Job Numbers, Invoice Number, Reference, Description, Cost '
-     'Centres.'),
+     'harm. The column order it expects is the one Xero gives you: Account Code, Account, '
+     'Source, Date, Contact, Debit, Credit, Job Numbers, Invoice Number, Reference, '
+     'Description, Cost Centres.'),
     ('No yellow', 'Cells you type into are marked by blue text instead.'),
 ]):
     r = base + 1 + i

@@ -13,7 +13,8 @@ pl_accts = [m for m in MASTER
             if m['cat'] in ('Income', 'Cost of Sales', 'Expenses', 'Other Income', 'Other Expenses')]
 rows, exp = [], {}
 def gl(d, code, name, dr, cr, cc, job=''):
-    rows.append([len(rows) + 1, code, name, 'Invoice', d, 'Test', dr or None, cr or None,
+    # the live Xero column order: no Index column
+    rows.append([code, name, 'Invoice', d, 'Test', dr or None, cr or None,
                  job, '', '', 'test', cc])
 def book(d, p, dept, m, dr, cr, cc, job=''):
     gl(d, m['code'], m['name'], dr, cr, cc, job)
@@ -38,7 +39,7 @@ wb = openpyxl.load_workbook(TST)
 gp = wb['GL_Paste']
 gp.cell(1, 1, 'Corporate Technology Services Pty Ltd')
 gp.cell(2, 1, 'Account Transactions for P&L analysis')
-for i, h in enumerate(['Index', 'Account Code', 'Account Name', 'Source', 'Date', 'Contact',
+for i, h in enumerate(['Account Code', 'Account', 'Source', 'Date', 'Contact',
                        'Debit', 'Credit', 'Job Numbers', 'Invoice Number', 'Reference',
                        'Description', 'Cost Centres']):
     gp.cell(3, 1 + i, h)
@@ -51,7 +52,9 @@ pp = wb['PL_Paste']; pp.cell(1, 1, 'Account'); pp.cell(1, 2, 'Sep 2026')
 for i, (c, lbl) in enumerate(zip(CATS, ['Total Income', 'Total Cost of Sales',
                                         'Total Operating Expenses', 'Total Other Income',
                                         'Total Other Expenses'])):
-    pp.cell(3 + i, 1, lbl); pp.cell(3 + i, 2, sep[c])
+    # Xero prints costs as positive numbers, which is what the sign column undoes
+    pp.cell(3 + i, 1, lbl)
+    pp.cell(3 + i, 2, -sep[c] if c in ('Cost of Sales', 'Expenses') else sep[c])
 bp = wb['BS_Paste']; bp.cell(1, 1, 'Account')
 for c, h in ((2, '30 Sep 2026'), (3, '31 Aug 2026'), (4, '1 Jul 2026')): bp.cell(1, c, h)
 bal, r = {}, 3
@@ -153,7 +156,7 @@ check('Budget overheads FY', b.cell(R('    Expenses Overheds '), 14).value, -252
 check('Budget net FY', b.cell(6, 14).value, 397250.75)
 print('=== controls ===')
 pc = v['PL_Check']
-print('  PL_Check:', [pc.cell(5 + i, 10).value for i in range(5)], '| net', pc.cell(10, 10).value)
+print('  PL_Check:', [pc.cell(5 + i, 11).value for i in range(4)], '| net', pc.cell(10, 11).value)
 print('  Balance sheet:', v['Balance_Sheet'].cell(100, 6).value)
 print()
 print('ALL CHECKS PASSED' if ok else 'SOMETHING IS WRONG')
