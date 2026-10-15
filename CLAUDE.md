@@ -77,3 +77,33 @@ nothing improved, no method of my own.
 - Do not pick dates, accounts, splits or wording that are not in the source.
   Copy them from last month.
 - If I am unsure whether something came from the source, it did not. Ask.
+
+## Adjustment journal schedules
+
+Danica approved the September 2026 WIP Adjustment Schedule as the model for every
+adjustment journal review (WIP, accruals, prepayments, payroll, and so on). Lay each
+one out the same way.
+
+- Tabs: Journal Edit Schedule, What i did, then the raw source tabs (the schedule
+  and the Xero export) with each item highlighted.
+- Journal Edit Schedule: starting position (schedule, Xero, variance), ending
+  position, then the lines to change grouped under a heading per journal
+  ("JOURNAL #number" and its narration). Columns: Item, Journal, Line to change,
+  Xero now, Schedule says, Effect on variance, Variance after, What to do in Xero,
+  Done. Then "Where to find each item" (schedule row, Xero tab row, colour,
+  meaning) and the RED, AMBER, BLUE legend.
+- The "What to do in Xero" column is Danica's own narration. First person, plain
+  English. Say which side the line was on, why that is wrong or right, what she
+  moved, and the schedule row. Example she approved: "I corrected this one in
+  Xero. It was sitting on the credit side of WIP, which defers the revenue out of
+  September. The pre-production labour was performed in September and has not been
+  invoiced, so the revenue is earned in September and the accrual belongs on the
+  debit side of WIP. I moved 11300 to Debit and put 42100 Production Labour on
+  Credit. The schedule also had it as a credit, so I edited the schedule to a debit
+  to match. Sheet1 row 480." Later lines in the same group start "Same reasoning
+  as ASX AGM." and stay short.
+- No "needs your OK" or approval wording. She narrates, nobody signs off.
+- Never show a correction as done unless she has told me it is done. Leave Done
+  unticked, put a status line at the top saying the corrections are not yet done,
+  and word the meaning, ending position and verification lines as still to do.
+  The narration column stays as written. She makes the corrections as it says.
