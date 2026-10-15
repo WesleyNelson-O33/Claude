@@ -1,0 +1,17 @@
+{
+  "note": "FY27 is earned revenue from the Xero GL, ex GST, and ties to the P&L. FY26 is invoices issued 1 Jul to 30 Sep 2025 from Xero, ex GST. Ventia, Bankwest and Deloitte tie exactly to Xero's own top customers report, so the two bases agree.",
+  "fy27_label": "FY27 YTD (Jul to Sep 26)",
+  "fy26_label": "FY26 YTD (Jul to Sep 25)",
+  "rows": [
+    {"name": "Deloitte Services",            "fy27": 401754.90, "fy26": 381988.92},
+    {"name": "Aware Super",                  "fy27": 285074.54, "fy26": 0.0},
+    {"name": "CBA (Place South)",            "fy27": 105039.74, "fy26": 119630.38},
+    {"name": "Ventia",                       "fy27":  97662.12, "fy26":  59169.16},
+    {"name": "PwC Services",                 "fy27":  88051.00, "fy26":  58325.00},
+    {"name": "APT Management (APA)",         "fy27":  63613.17, "fy26":   5668.91},
+    {"name": "ASX Operations",               "fy27":  60857.70, "fy26":  89996.50},
+    {"name": "Bankwest",                     "fy27":  54971.25, "fy26":  60853.75},
+    {"name": "Data#3",                       "fy27":  45909.00, "fy26":      0.0},
+    {"name": "Generation-e",                 "fy27":  37166.40, "fy26":      0.0}
+  ]
+}
