@@ -22,6 +22,7 @@ a straight paste; the Read me tab in each file says exactly what to run.
 | 10 Cash and Commitments | Bank and card statements at month end | One row per bank account and per credit card with the month end balance; keep every month. Commitments only when one changes |
 | 11 Xero Aged Receivables | Xero, Aged Receivables Detail as at month end | One row per unpaid invoice. Feeds the Revenue Risk page (past due by client) and the cash flow build |
 | 12 Xero Aged Payables | Xero, Aged Payables Detail as at month end | One row per unpaid bill. Read into the same aged data file |
+| 14 Balance Sheet and Trial Balance | Xero, Balance Sheet (as at month end, one comparison) and Trial Balance (with YTD) | Whole exports pasted from A1. Feeds the Controller Checks page: trial balance ties, current year earnings against the P&L, control accounts against the aged reports, clearing and related party balances |
 | 13 Revenue Schedule | Once a year, then only when a line is added | The sales forecast per role (onsite) or per client (elsewhere) by month, and the Clients tab with display names and aliases. Lines are prefilled from the FY27 budget workbook; type the amounts |
 
 Before you paste the ledger: fill in the contact on revenue rows from manual
@@ -64,6 +65,21 @@ The archive is the record. Every month's folder holds exactly what the portal
 showed and exactly what was pasted to get there, so a question in March about
 an August number is answered from `archive/2026-08`, not from memory. Nothing
 in it is read by the portal and nothing in it needs tidying.
+
+## 2a. Controller checks
+
+After Build, open Controller Checks. It runs what an auditor opens first over
+whatever was posted: the ledger against the P&L, the trial balance against
+both, current year earnings against the P&L, revenue without a contact, sales
+without GST, credit notes, clients billed last month and not this, work in
+progress still open, credits in cost accounts, manual journals, duplicate
+bills, spikes, recurring costs missing, GST on entertainment, bank fees and
+overseas suppliers, expensed assets, payroll ratios and the accrual, the aged
+reports against the control accounts, provisions and payroll liabilities
+moving, related party postings, clearing accounts, depreciation and cut-off.
+Each check has a status, the lines behind it and what to look for. Tick
+Reviewed and leave a note; Add to commentary carries a finding into the
+month's commentary. A check marked not loaded names the file it needs.
 
 ## 3. Commentary
 

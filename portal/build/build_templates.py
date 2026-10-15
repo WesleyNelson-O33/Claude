@@ -635,7 +635,7 @@ for r in range(7, 202):
         wb["Users"].cell(row=r, column=c).font = INPUT_FONT
 PAGES = [("home", "Dashboard"), ("context", "Business Context"), ("commentary", "Commentary"), ("story", "The Month"), ("pnl", "P&L"),
          ("pnl-dept", "P&L by Department"), ("pnl-spread", "P&L Spread"),
-         ("allocation", "Overhead Allocation"), ("control", "P&L Control"),
+         ("allocation", "Overhead Allocation"), ("control", "P&L Control"), ("checks", "Controller Checks"),
          ("bva", "Budget vs Actual"), ("actions", "Actions"), ("forecast", "Forecast"), ("cash", "Cash Flow"), ("rev-summary", "Revenue Summary"),
          ("rev-schedule", "Revenue Schedule"), ("rev-forecast", "Revenue Forecast"), ("rev-risk", "Revenue Risk"), ("pipeline", "Pipeline"), ("clients", "Top Clients"),
          ("client-dept", "Clients by Department"), ("util", "Utilisation"),
@@ -951,6 +951,66 @@ ws = list_tab(wb, "Clients", ["Xero contact", "Display name", "Industry", "Engag
               client_rows + [[None] * 6] * 200, [34, 34, 30, 24, 18, 44],
               note="Display name is what the charts show. Aliases: other Xero contact spellings for the same client, separated by semicolons; the ledger is folded to the Xero contact in column A.")
 save(wb, "13 Revenue Schedule.xlsx")
+
+# ------------------------------------- 14 Balance Sheet and Trial Balance
+wb = Workbook()
+readme(wb, "14 Balance Sheet and Trial Balance", [
+    ("h", "What this is"),
+    ("p", "The month end balance sheet and trial balance from Xero, for the Controller Checks page. "
+          "With the ledger and the P&L already posted, these let the portal prove the trial balance "
+          "balances, that its year to date agrees with the P&L, that current year earnings on the "
+          "balance sheet equal the P&L, that the aged reports tie to the control accounts, and that "
+          "clearing, related party and provision accounts look right."),
+    ("h", "Each month"),
+    ("p", "1. Xero, Reports, Balance Sheet, as at the last day of the reporting month, compared with the "
+          "prior month end (one comparison period). Export to Excel. Paste the whole sheet into the "
+          "Balance Sheet tab from cell A1, title rows and all. The portal finds the header row by its dates."),
+    ("p", "2. Xero, Reports, Trial Balance, as at the same date, with the year to date columns. Export to "
+          "Excel and paste the whole sheet into the Trial Balance tab from A1."),
+    ("p", "3. Run Build. The Controller Checks page shows the result; the Checklist tab here is the same "
+          "schedule on paper."),
+    ("h", "Where the checks come from"),
+    ("p", "Each check is what an auditor opens first, with thresholds set for CTS: super at 12 per cent "
+          "of ordinary earnings, payroll tax steady, duplicate bills within 45 days, cost accounts at "
+          "three times their median month, receivables more than 30 per cent past due."),
+])
+ws = data_tab(wb, "Balance Sheet", ["", "30 Sep 2026", "31 Aug 2026"], [44, 16, 16],
+              ["Paste the Xero Balance Sheet export here from A1", None, None],
+              "Paste the whole Xero export from A1. The header row with the dates is found automatically.", paste_rows=400)
+ws = data_tab(wb, "Trial Balance", ["Account", "Debit", "Credit", "YTD Debit", "YTD Credit"], [44, 14, 14, 14, 14],
+              ["Paste the Xero Trial Balance export here from A1", None, None, None, None],
+              "Paste the whole Xero export from A1. The header row with Debit and Credit is found automatically.", paste_rows=400)
+CHECKLIST = [
+    ("Integrity", "Ledger agrees with the P&L by category", "Both exports taken after the last journal; a difference is a late posting", "01, 02"),
+    ("Integrity", "Trial balance balances and its YTD agrees with the P&L", "A broken export, a locked period posting, or a P&L account mapped wrongly", "14, 01"),
+    ("Integrity", "Current year earnings on the balance sheet equal the P&L YTD", "Anything posted straight to equity: dividends, drawings, prior year adjustments", "14, 01"),
+    ("Revenue", "Revenue posted without a contact", "WIP, accruals and reclasses are expected; anything else should be an invoice", "02"),
+    ("Revenue", "Sales invoiced without GST", "Only exports and interest are GST free; recharges are taxable", "02"),
+    ("Revenue", "Credit notes raised", "Each needs a reason, and may move revenue between months", "02"),
+    ("Revenue", "Clients billed last month and not this month", "Contract sites bill every month; a gap is a missed invoice until proven otherwise", "02, two months"),
+    ("Revenue", "Work in progress posted and still open", "Costs parked in WIP must return to cost of sales when the job is invoiced", "02 (GL Detail)"),
+    ("Costs", "Credits in cost accounts", "Supplier credits are fine; a refund with GST on an input taxed account is not", "02"),
+    ("Costs", "Manual journals on P&L accounts", "Payroll, WIP, accruals expected; round numbers with thin narrations are the ones to open", "02"),
+    ("Costs", "Possible duplicate bills", "Same supplier, same amount, within 45 days, not a monthly contract", "02"),
+    ("Costs", "Cost accounts well above run rate", "Season explains production hires and subcontractors; elsewhere open the lines", "01"),
+    ("Costs", "Recurring costs with nothing posted", "Rent, IT, payroll processing, insurance release, accounting, Employsure arrive monthly", "01"),
+    ("Costs", "GST on expenses", "Entertainment, bank fees, overseas suppliers and mixed treatment on one account", "02 with GST columns"),
+    ("Costs", "Expensed items that look like assets", "Fleet and office equipment belong on the register; client job equipment is cost of sales", "02"),
+    ("Costs", "Largest lines of the month", "Each should be recognisable", "02"),
+    ("Payroll", "Payroll ratios and movements", "Super 12% of ordinary earnings, payroll tax steady, wages within a quarter of last month, no credits", "01"),
+    ("Payroll", "Payroll accrual posted and prior reversed", "Missing either side moves wages between months", "02"),
+    ("Payroll", "Pay runs against the wage accounts", "Gross on the runs plus the accrual change equals the P&L", "03"),
+    ("Balance sheet", "Receivables and payables tie to the control accounts, ageing reviewed", "Aged report equals the control account; over 60 days needs a decision", "11, 12, 14"),
+    ("Balance sheet", "Accruals, prepayments, provisions and payroll liabilities moved", "Each moves every month; silence means a missed journal", "02 (GL Detail)"),
+    ("Balance sheet", "Related party, director and shareholder accounts", "Every movement needs a document; drawings in a company are a Division 7A question", "02, 14"),
+    ("Balance sheet", "Clearing and suspense accounts nil", "A balance is a posting that has not found its home", "14"),
+    ("Balance sheet", "Depreciation booked", "A fixed asset base with no monthly charge overstates profit", "01, 14"),
+    ("Cut-off", "Large invoices in the last days and references naming another month", "Revenue in the month the work was done; costs in the month the service was received", "02"),
+]
+ws = list_tab(wb, "Checklist", ["Area", "Check", "What you are looking for", "Needs", "Reviewed by", "Date", "Note"],
+              [list(r) + ["", "", ""] for r in CHECKLIST], [14, 52, 70, 16, 16, 12, 40], editable_cols=[5, 6, 7],
+              note="The same schedule the Controller Checks page runs. Tick it here for the file, or on the page.")
+save(wb, "14 Balance Sheet and Trial Balance.xlsx")
 
 # ------------------------------------------- 11 and 12 Xero aged reports
 # Column shapes confirmed against the live Xero organisation on 25 Sep 2026:

@@ -35,6 +35,7 @@ window.CTS_USERS = {
     { id: "pnl-spread",   section: "Finance",     title: "P&L Spread", sensitive: true },
     { id: "allocation",   section: "Finance",     title: "Overhead Allocation", sensitive: true },
     { id: "control",      section: "Finance",     title: "P&L Control", sensitive: true },
+    { id: "checks",       section: "Finance",     title: "Controller Checks", sensitive: true },
     { id: "bva",          section: "Budget",      title: "Budget vs Actual", sensitive: true },
     { id: "actions",      section: "Budget",      title: "Actions", sensitive: true },
     { id: "forecast",     section: "Budget",      title: "Forecast", sensitive: true },
@@ -66,7 +67,7 @@ window.CTS_USERS = {
     {
       id: "admin", label: "Finance head", admin: true, ownDeptOnly: false,
       note: "Everything, including who sees what. Intended for one person.",
-      pages: ["home","context","story","commentary","pnl","pnl-dept","pnl-spread","allocation","control",
+      pages: ["home","context","story","commentary","pnl","pnl-dept","pnl-spread","allocation","control","checks",
               "bva","actions","forecast","cash","rev-summary","rev-schedule","rev-forecast","rev-risk","pipeline","clients","client-dept",
               "util","profit-fte","staff-profit","ledger","charts","setup","build",
               "distribution","config","access","about"],
@@ -74,7 +75,7 @@ window.CTS_USERS = {
     {
       id: "finance", label: "Finance", admin: false, ownDeptOnly: false,
       note: "Everything except changing who sees what. The person who runs the month.",
-      pages: ["home","context","story","commentary","pnl","pnl-dept","pnl-spread","allocation","control",
+      pages: ["home","context","story","commentary","pnl","pnl-dept","pnl-spread","allocation","control","checks",
               "bva","actions","forecast","cash","rev-summary","rev-schedule","rev-forecast","rev-risk","pipeline","clients","client-dept",
               "util","profit-fte","staff-profit","ledger","charts","setup","build",
               "distribution","config","about"],

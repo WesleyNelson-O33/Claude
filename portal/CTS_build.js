@@ -31,6 +31,7 @@
     { key: "ar",       file: "11 Xero Aged Receivables.xlsx",     sheet: "Receivables", out: "CTS_aged_data.js", need: false },
     { key: "ap",       file: "12 Xero Aged Payables.xlsx",        sheet: "Payables", out: "CTS_aged_data.js",   need: false },
     { key: "schedule", file: "13 Revenue Schedule.xlsx",          sheet: "Schedule", out: "CTS_clients_data.js",  need: false },
+    { key: "bstb",     file: "14 Balance Sheet and Trial Balance.xlsx", sheet: "Balance Sheet", out: "CTS_checks_data.js", need: false },
   ];
   B.TEMPLATES = TEMPLATES;
 
@@ -255,6 +256,7 @@
       job: colIndex(h, ["jobnumbers", "jobnumber"]), inv: colIndex(h, ["invoicenumber"]),
       ref: colIndex(h, ["reference"]), desc: colIndex(h, ["description"]),
       cc: colIndex(h, ["costcentres", "costcentre"]),
+      gst: colIndex(h, ["gst", "tax", "taxamount"]), tax: colIndex(h, ["gstratename", "taxratename", "taxrate", "gstrate"]),
     };
     if (ci.name < 0 || ci.date < 0) throw new Error("GL: could not find Account Name and Date columns.");
     var rows = [], bad = 0, unknown = {}, autoCoded = 0, noContact = 0;
@@ -276,14 +278,15 @@
                  ci.job >= 0 ? String(r[ci.job] || "") : "",
                  ci.inv >= 0 ? String(r[ci.inv] || "") : "",
                  cc,
-                 ci.desc >= 0 ? String(r[ci.desc] || "") : ""]);
+                 ci.desc >= 0 ? String(r[ci.desc] || "") : "",
+                 ci.gst >= 0 ? P().num(r[ci.gst]) : 0, ci.tax >= 0 ? String(r[ci.tax] || "") : ""]);
       var a = E().acct[name];
       if (a && a.cat === "income" && !contact && (P().num(r[ci.credit]) || P().num(r[ci.debit]))) noContact++;
     });
     return { payload: { meta: { seed: false, built: today(), rows: rows.length, note: "Built from 02 Xero GL Transactions.xlsx" },
-                        cols: ["date", "account", "contact", "debit", "credit", "source", "jobNo", "invoiceNo", "costCentre", "description"],
+                        cols: ["date", "account", "contact", "debit", "credit", "source", "jobNo", "invoiceNo", "costCentre", "description", "gst", "taxName"],
                         rows: rows },
-             bad: bad, unknown: unknown, autoCoded: autoCoded, noContact: noContact };
+             bad: bad, unknown: unknown, autoCoded: autoCoded, noContact: noContact, bs: [] };
   };
 
   /** Xero's standard General Ledger Detail report, as a fallback for the
@@ -295,9 +298,10 @@
   C.glDetail = function (t) {
     var h = t.head;
     var ci = { date: colIndex(h, ["date"]), source: colIndex(h, ["source"]), desc: colIndex(h, ["description"]),
-               ref: colIndex(h, ["reference"]), debit: colIndex(h, ["debit"]), credit: colIndex(h, ["credit"]) };
+               ref: colIndex(h, ["reference"]), debit: colIndex(h, ["debit"]), credit: colIndex(h, ["credit"]),
+               gst: colIndex(h, ["gst"]), tax: colIndex(h, ["gstratename", "taxratename"]) };
     if (ci.date < 0 || ci.debit < 0 || ci.credit < 0) throw new Error("GL Detail: could not find Date, Debit and Credit columns.");
-    var rows = [], bad = 0, account = null, skipped = {}, inChart = 0, noContact = 0;
+    var rows = [], bad = 0, account = null, skipped = {}, inChart = 0, noContact = 0, bsRows = [];
     var NOT_CONTACT = /^(manual journal|bank transfer|adjustment|spend money|receive money)$/i;
     t.rows.forEach(function (r) {
       var first = String(r[0] || "").trim();
@@ -308,21 +312,27 @@
         return;
       }
       if (!account) { bad++; return; }
-      if (!E().acct[account]) { skipped[account] = (skipped[account] || 0) + 1; return; }
-      inChart++;
       var src = ci.source >= 0 ? String(r[ci.source] || "") : "";
       var desc = ci.desc >= 0 ? String(r[ci.desc] || "").trim() : "";
+      var ref = ci.ref >= 0 ? String(r[ci.ref] || "") : "";
+      var gst = ci.gst >= 0 ? P().num(r[ci.gst]) : 0, tax = ci.tax >= 0 ? String(r[ci.tax] || "") : "";
+      if (!E().acct[account]) {
+        skipped[account] = (skipped[account] || 0) + 1;
+        bsRows.push([iso, account, NOT_CONTACT.test(src) ? "" : desc, P().num(r[ci.debit]), P().num(r[ci.credit]), src, "", "", "", ref, gst, tax, desc]);
+        return;
+      }
+      inChart++;
       var contact = NOT_CONTACT.test(src) ? "" : desc;
       var a = E().acct[account];
       if (a.cat === "income" && !contact) noContact++;
       rows.push([iso, account, contact, P().num(r[ci.debit]), P().num(r[ci.credit]), src, "", "",
-                 "", ci.ref >= 0 ? String(r[ci.ref] || "") : ""]);
+                 "", ref, gst, tax, desc]);
     });
     return { payload: { meta: { seed: false, built: today(), rows: rows.length, layout: "General Ledger Detail",
                                 note: "Built from Xero's General Ledger Detail report. No cost centres or job numbers: departments are not coded." },
-                        cols: ["date", "account", "contact", "debit", "credit", "source", "jobNo", "invoiceNo", "costCentre", "description"],
+                        cols: ["date", "account", "contact", "debit", "credit", "source", "jobNo", "invoiceNo", "costCentre", "description", "gst", "taxName", "narration"],
                         rows: rows },
-             bad: bad, unknown: {}, autoCoded: 0, noContact: noContact, skipped: skipped, detail: true };
+             bad: bad, unknown: {}, autoCoded: 0, noContact: noContact, skipped: skipped, detail: true, bs: bsRows };
   };
 
   /** The Xero Aged Receivables and Aged Payables Detail reports: one row per
@@ -352,6 +362,250 @@
                   current: c(ci.cur), lt1: c(ci.b1), m1: c(ci.b2), m2: c(ci.b3), m3: c(ci.b4), older: c(ci.older), total: Math.round(total * 100) });
     });
     return { rows: rows, skipped: skipped };
+  };
+
+  /** Xero's Balance Sheet export, pasted whole: the header row carries the
+   *  dates, section headings carry no figures, Total rows are skipped. */
+  C.balanceSheet = function (t) {
+    var h = t.head, dates = [];
+    for (var i = 1; i < h.length; i++) if (h[i]) dates.push({ col: i, label: String(h[i]) });
+    var out = [], section = "", p = P();
+    t.rows.forEach(function (r) {
+      var name = String(r[0] || "").trim(); if (!name) return;
+      var nums = dates.map(function (d) { return p.num(r[d.col]); });
+      var any = dates.some(function (d) { return r[d.col] !== "" && r[d.col] != null; });
+      if (!any) { section = name; return; }
+      if (/^(total |net assets|total assets|total liabilities|total equity)/i.test(name)) return;
+      out.push({ name: name.replace(/\s*\(\d+\)\s*$/, ""), section: section, current: Math.round(nums[0] * 100), prior: nums.length > 1 ? Math.round(nums[1] * 100) : null });
+    });
+    return { asAt: dates[0] ? dates[0].label : "", prior: dates[1] ? dates[1].label : "", rows: out };
+  };
+  /** Xero's Trial Balance export: Account, Debit, Credit, YTD Debit, YTD Credit. */
+  C.trialBalance = function (t) {
+    var h = t.head, p = P();
+    var ci = { debit: colIndex(h, ["debit"]), credit: colIndex(h, ["credit"]), ytdD: colIndex(h, ["ytddebit"]), ytdC: colIndex(h, ["ytdcredit"]) };
+    if (ci.debit < 0 || ci.credit < 0) throw new Error("Trial Balance: need Debit and Credit columns.");
+    var out = [];
+    t.rows.forEach(function (r) {
+      var name = String(r[0] || "").trim(); if (!name || /^total/i.test(name)) return;
+      var m = name.match(/^(.*?)\s*\((\d+)\)\s*$/);
+      out.push({ name: m ? m[1].trim() : name, code: m ? m[2] : "", debit: Math.round(p.num(r[ci.debit]) * 100), credit: Math.round(p.num(r[ci.credit]) * 100),
+                 ytdDebit: ci.ytdD >= 0 ? Math.round(p.num(r[ci.ytdD]) * 100) : null, ytdCredit: ci.ytdC >= 0 ? Math.round(p.num(r[ci.ytdC]) * 100) : null });
+    });
+    return { rows: out };
+  };
+
+  /* ---- the controller checks ----------------------------------------------
+   * What an auditor would look at first, run over whatever was posted: the
+   * ledger, the P&L, the balance sheet and trial balance, the aged reports
+   * and the pay runs. Each check carries a status, the lines behind it and
+   * what to look for. Thresholds are CTS specific and sit at the top. */
+  var CK = {
+    spikeTimes: 3, spikeFloor: 200000, recurMin: 300000, recurDrop: 0.5, dupMin: 10000, dupDays: 45, bigLine: 1000000, cutoffMin: 1000000,
+    superDirect: [0.112, 0.128], superIndirectMax: 0.135, payrollTax: [0.025, 0.07], wagesMove: 0.25, overdueShare: 0.3, assetWords: /projector|screen|display|laptop|camera|lens|monitor|server|switch|mixer|console|speaker|microphone|tripod|lighting kit|drone|ipad|macbook|desk|chair|rack|amplifier|encoder|decoder/i,
+    recurringWords: /monthly|contract|subscription|rent|renewal|cleaning|plant|phone|MSA|managed|spotify|goget|employsure|retainer|licen|insurance|lease|marketing|SEO/i,
+    entertainment: /entertainment/i, bankFees: /^bank charges$|merchant/i,
+    related: /holdings|directors? loan|lugstein loan|drawings|dividend|shareholder/i,
+    clearing: /rounding|tracking transfers|electronic clearing|contra|suspense|undeposited|clearing/i,
+    foreign: /\b(Inc\.?|LLC|GmbH|Pte|Corp\.?|BV|SA)\b|\.com\b|Singapore|\(US\)/i,
+  };
+  C.checks = function (ctx) {
+    var e = E(), p = P(), rm = ctx.reportingMonth, R = [];
+    var mi = ctx.monthIdx || e.monthIdx, keys = Object.keys(mi).sort();
+    var pm = keys.filter(function (k) { return k < rm; }).slice(-1)[0] || null;
+    var prior12 = keys.filter(function (k) { return k < rm; }).slice(-12);
+    var acct = e.acct;
+    function add(c) { c.items = (c.items || []).slice(0, 60); c.n = c.n != null ? c.n : (c.items ? c.items.length : 0); R.push(c); return c; }
+    function cents(v) { return Math.round(v * 100); }
+    function money(c) { return (c < 0 ? "-" : "") + "$" + Math.abs(Math.round(c / 100)).toLocaleString("en-AU"); }
+    function objs(rows) { return (rows || []).map(function (r) { return { date: r[0], account: r[1], contact: r[2], dr: r[3] || 0, cr: r[4] || 0, source: r[5] || "", job: r[6] || "", inv: r[7] || "", cc: r[8] || "", ref: r[9] || "", gst: r[10] || 0, tax: r[11] || "", desc: r[12] || r[9] || "" }; }); }
+    var gl = objs(ctx.gl), bs = objs(ctx.bs), fin = ctx.fin || {}, bud = ctx.budget || {};
+    var inM = function (x) { return x.date && x.date.slice(0, 7) === rm; }, inP = function (x) { return pm && x.date && x.date.slice(0, 7) === pm; };
+    var glm = gl.filter(inM), glp = gl.filter(inP), bsm = bs.filter(inM);
+    var cat = function (n) { return (acct[n] || {}).cat || ""; };
+    var monthVal = function (n, k) { return ((fin[n] || {})[k]) || 0; };
+    var catTotal = function (c, k) { var t = 0; Object.keys(fin).forEach(function (n) { if (cat(n) === c) t += monthVal(n, k); }); return t; };
+    var loaded = { gl: gl.length > 0, glDetail: !!ctx.glDetail, pnl: Object.keys(fin).length > 0, bs: !!(ctx.bsReport && ctx.bsReport.rows.length), tb: !!(ctx.tb && ctx.tb.rows.length), aged: !!(ctx.aged && ctx.aged.receivables), pay: !!(ctx.pay && ctx.pay.blocks) };
+
+    // ---- A. what was posted and does it tie
+    add({ id: "files", area: "Integrity", title: "What was posted for " + rm, status: "info",
+          detail: ["Ledger " + (loaded.gl ? glm.length + " lines in the month" + (loaded.glDetail ? " (General Ledger Detail, no cost centres)" : "") : "not loaded"), "P&L " + (loaded.pnl ? "loaded" : "not loaded"), "Balance sheet " + (loaded.bs ? "as at " + ctx.bsReport.asAt : "not loaded"), "Trial balance " + (loaded.tb ? ctx.tb.rows.length + " accounts" : "not loaded"), "Aged reports " + (loaded.aged ? "loaded" : "not loaded"), "Pay runs " + (loaded.pay ? ctx.pay.blocks.length + " runs" : "not loaded")].join(". ") + ".",
+          guide: "The checks below only see what is here. A check marked n/a needs the missing file." });
+    if (loaded.gl && loaded.pnl) {
+      var items = [], bad = 0;
+      ["income", "cos", "expenses", "other_income", "other_expenses"].forEach(function (c) {
+        var g = 0; glm.forEach(function (x) { if (cat(x.account) === c) g += cents(x.cr) - cents(x.dr); });
+        var pl = catTotal(c, rm), d = g - pl; if (Math.abs(d) >= 100) bad++;
+        items.push({ category: c, ledger: g, pnl: pl, diff: d, status: Math.abs(d) < 100 ? "ok" : "CHECK" });
+      });
+      add({ id: "gl-pnl", area: "Integrity", title: "Ledger agrees with the P&L by category", status: bad ? "fail" : "pass", items: items, cols: ["category", "ledger", "pnl", "diff", "status"],
+            detail: bad ? bad + " categories differ. Usually a late journal in one export and not the other: re-export both after the last posting." : "Every category ties to the cent.", guide: "Export the P&L and the ledger at the same time, after the last journal." });
+    } else add({ id: "gl-pnl", area: "Integrity", title: "Ledger agrees with the P&L by category", status: "na", detail: "Needs the ledger and the P&L." });
+    if (loaded.tb) {
+      var td = 0, tc = 0, pnlDiff = [], tbNames = {};
+      ctx.tb.rows.forEach(function (r) { td += r.debit; tc += r.credit; tbNames[r.name] = r; });
+      add({ id: "tb-balance", area: "Integrity", title: "Trial balance balances", status: Math.abs(td - tc) < 100 ? "pass" : "fail", detail: "Debits " + money(td) + ", credits " + money(tc) + ", difference " + money(td - tc) + ".", guide: "A trial balance that does not balance is a corrupted export or a posting to a locked period. Re-export." });
+      if (loaded.pnl) {
+        Object.keys(fin).forEach(function (n) { var t = tbNames[n]; if (!t) return; var tbv = (t.ytdDebit != null ? t.ytdCredit - t.ytdDebit : t.credit - t.debit); var ytd = 0; keys.filter(function (k) { return mi[k].fy === mi[rm].fy && k <= rm; }).forEach(function (k) { ytd += monthVal(n, k); }); if (Math.abs(tbv - ytd) >= 100) pnlDiff.push({ account: n, trialBalance: tbv, pnlYtd: ytd, diff: tbv - ytd }); });
+        add({ id: "tb-pnl", area: "Integrity", title: "Trial balance agrees with the P&L year to date", status: pnlDiff.length ? "fail" : "pass", items: pnlDiff, cols: ["account", "trialBalance", "pnlYtd", "diff"], detail: pnlDiff.length ? pnlDiff.length + " accounts differ between the trial balance and the P&L year to date." : "Every P&L account on the trial balance matches the P&L.", guide: "The YTD columns of the trial balance should equal the P&L from 1 July." });
+      }
+    } else add({ id: "tb-balance", area: "Integrity", title: "Trial balance balances", status: "na", detail: "Paste the Trial Balance into 14 Balance Sheet and Trial Balance." });
+    if (loaded.bs) {
+      var A = 0, L = 0, Q = 0, cye = null, tdebt = null, tcred = null, bsRows = ctx.bsReport.rows;
+      bsRows.forEach(function (r) { var sec = (r.section || "").toLowerCase(); if (/current year earnings|current earnings/i.test(r.name)) cye = r.current; if (/^trade debtors|accounts receivable/i.test(r.name)) tdebt = r.current; if (/^trade creditors|accounts payable/i.test(r.name)) tcred = r.current; });
+      var ytdNP = 0; if (loaded.pnl) keys.filter(function (k) { return mi[k].fy === mi[rm].fy && k <= rm; }).forEach(function (k) { ["income", "cos", "expenses", "other_income", "other_expenses"].forEach(function (c) { ytdNP += catTotal(c, k); }); });
+      add({ id: "bs-cye", area: "Integrity", title: "Current year earnings on the balance sheet equal the P&L year to date", status: cye == null ? "look" : Math.abs(cye - ytdNP) < 100 ? "pass" : "fail",
+            detail: cye == null ? "No Current Year Earnings line found on the balance sheet paste." : "Balance sheet " + money(cye) + ", P&L year to date " + money(ytdNP) + ", difference " + money(cye - ytdNP) + ".", guide: "A difference means something was posted straight to equity or a prior period: a dividend, drawings, an adjustment. Find it before the pack goes out." });
+      ctx._tdebt = tdebt; ctx._tcred = tcred;
+      var clearing = bsRows.filter(function (r) { return CK.clearing.test(r.name) && Math.abs(r.current) >= 100; });
+      add({ id: "bs-clearing", area: "Balance sheet", title: "Clearing and suspense accounts are nil", status: clearing.length ? "look" : "pass", items: clearing.map(function (r) { return { account: r.name, balance: r.current }; }), cols: ["account", "balance"], detail: clearing.length ? clearing.length + " clearing accounts carry a balance." : "Rounding, tracking transfers and clearing accounts are nil.", guide: "Anything sitting in a clearing account at month end is a posting that has not found its home." });
+      var related = bsRows.filter(function (r) { return CK.related.test(r.name) && (Math.abs(r.current) >= 100 || (r.prior != null && Math.abs(r.current - r.prior) >= 100)); });
+      add({ id: "bs-related", area: "Balance sheet", title: "Related party and shareholder balances", status: related.some(function (r) { return r.prior != null && Math.abs(r.current - r.prior) >= 100; }) ? "look" : related.length ? "info" : "pass", items: related.map(function (r) { return { account: r.name, balance: r.current, prior: r.prior, movement: r.prior == null ? null : r.current - r.prior }; }), cols: ["account", "balance", "prior", "movement"], detail: related.length ? related.length + " related party or shareholder accounts carry a balance." : "No related party balances.", guide: "Movements on Holdings, director and shareholder accounts need documented terms. Drawings in a company are a Division 7A question for the tax accountant." });
+      var fixed = bsRows.filter(function (r) { return /fixed|non-current|plant|equipment|motor|computer|right of use|rou/i.test(r.section + " " + r.name) && !/accum|deprec|loan|holdings|investment/i.test(r.name) && r.current > 0; }).reduce(function (a, r) { return a + r.current; }, 0);
+      ctx._fixed = fixed;
+    } else {
+      add({ id: "bs-cye", area: "Integrity", title: "Current year earnings on the balance sheet equal the P&L year to date", status: "na", detail: "Paste the Balance Sheet into 14 Balance Sheet and Trial Balance." });
+    }
+
+    // ---- B. revenue
+    if (loaded.gl) {
+      var noContact = glm.filter(function (x) { return cat(x.account) === "income" && !x.contact; });
+      add({ id: "rev-nocontact", area: "Revenue", title: "Revenue posted without a contact", status: noContact.length ? "look" : "pass", items: noContact.map(function (x) { return { date: x.date, account: x.account, source: x.source, narration: x.desc, amount: cents(x.cr) - cents(x.dr) }; }), cols: ["date", "account", "source", "narration", "amount"],
+            detail: noContact.length ? noContact.length + " income lines carry no contact, " + money(noContact.reduce(function (a, x) { return a + cents(x.cr) - cents(x.dr); }, 0)) + " net. They are invisible to top clients and the revenue schedule." : "Every income line carries a contact.", guide: "Manual journals to income (WIP, accruals, reclasses) are expected here. Anything else should be an invoice." });
+      var gstInc = glm.filter(function (x) { return cat(x.account) === "income" && /invoice|credit note/i.test(x.source) && x.tax && !/gst on income/i.test(x.tax) && !/export/i.test(x.tax); });
+      add({ id: "rev-gst", area: "Revenue", title: "Sales invoiced without GST", status: gstInc.length ? "look" : "pass", items: gstInc.map(function (x) { return { date: x.date, account: x.account, contact: x.contact, taxRate: x.tax, amount: cents(x.cr) - cents(x.dr) }; }), cols: ["date", "account", "contact", "taxRate", "amount"], detail: gstInc.length ? gstInc.length + " invoice lines carry a tax rate other than GST on Income." : "Every invoice line carries GST on Income.", guide: "Only exports and interest should be GST free. Travel and meal recharges are taxable." });
+      var cn = glm.filter(function (x) { return /receivable credit note/i.test(x.source) && cat(x.account) === "income" && cents(x.dr) >= 50000; });
+      add({ id: "rev-credits", area: "Revenue", title: "Credit notes raised this month", status: cn.length ? "look" : "pass", items: cn.map(function (x) { return { date: x.date, contact: x.contact, account: x.account, reference: x.ref, amount: -cents(x.dr) }; }), cols: ["date", "contact", "account", "reference", "amount"], detail: cn.length ? cn.length + " credit note lines of $500 or more." : "No material credit notes.", guide: "Each one needs a reason: pricing error, dispute, or cancelled work. A credit note against last month's invoice moves revenue between months." });
+      // recurring clients
+      var byC = {}, byCp = {};
+      glm.forEach(function (x) { if (cat(x.account) === "income" && x.contact) byC[x.contact] = (byC[x.contact] || 0) + cents(x.cr) - cents(x.dr); });
+      glp.forEach(function (x) { if (cat(x.account) === "income" && x.contact) byCp[x.contact] = (byCp[x.contact] || 0) + cents(x.cr) - cents(x.dr); });
+      var pm2 = keys.filter(function (k) { return k < pm; }).slice(-1)[0], byCp2 = {}, hasPm2 = false;
+      gl.forEach(function (x) { if (pm2 && x.date && x.date.slice(0, 7) === pm2 && cat(x.account) === "income" && x.contact) { hasPm2 = true; byCp2[x.contact] = (byCp2[x.contact] || 0) + cents(x.cr) - cents(x.dr); } });
+      var dropped = Object.keys(byCp).filter(function (c) { return byCp[c] >= CK.recurMin && (!hasPm2 || (byCp2[c] || 0) >= CK.recurMin / 2) && (byC[c] || 0) < byCp[c] * CK.recurDrop; }).map(function (c) { return { contact: c, lastMonth: byCp[c], thisMonth: byC[c] || 0, change: (byC[c] || 0) - byCp[c] }; }).sort(function (a, b) { return a.change - b.change; });
+      add({ id: "rev-recurring", area: "Revenue", title: "Clients billed last month and not this month", status: pm ? (dropped.length ? "look" : "pass") : "na", items: dropped, cols: ["contact", "lastMonth", "thisMonth", "change"], detail: !pm ? "Needs the prior month in the ledger." : dropped.length ? dropped.length + " clients billed " + (hasPm2 ? "in each of the last two months" : "over $3,000 last month") + " are missing or down by half." : "Every regular client is billed again.", guide: "Contract sites (Deloitte, CBA, Bankwest, PwC, Aware maintenance) bill every month. A gap is a missed invoice until proven otherwise." });
+      // WIP
+      var wip = bs.filter(function (x) { return /work in progress|^wip/i.test(x.account); });
+      if (wip.length || loaded.glDetail) {
+        var wm = wip.filter(inM), open = [];
+        var postings = wip.filter(function (x) { return /wip journal/i.test(x.desc) && !/reversal|reclass/i.test(x.desc); });
+        function jobKey(d) { return d.replace(/^(reversal:|reclass:?)?\s*/i, "").replace(/^wip journal \w+ \d{4}\s*-?\s*/i, "").replace(/\s*-\s*(cos|income|revenue|expense)\b.*$/i, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim().slice(0, 30); }
+        postings.forEach(function (x) { var key = jobKey(x.desc); var closed = wip.some(function (y) { return y !== x && y.date > x.date && (y.cr > 0) === (x.dr > 0) && jobKey(y.desc).indexOf(key.slice(0, 20)) >= 0; }); if (!closed && x.date.slice(0, 7) < rm) open.push({ date: x.date, narration: x.desc, amount: cents(x.dr) - cents(x.cr) }); });
+        var net = wm.reduce(function (a, x) { return a + cents(x.dr) - cents(x.cr); }, 0);
+        add({ id: "wip", area: "Revenue", title: "Work in progress: posted this month and still open from earlier months", status: open.length ? "look" : wm.length ? "info" : "pass", items: open.concat(wm.map(function (x) { return { date: x.date, narration: x.desc, amount: cents(x.dr) - cents(x.cr) }; })), cols: ["date", "narration", "amount"], detail: "WIP moved " + money(net) + " this month across " + wm.length + " lines. " + (open.length ? open.length + " WIP postings from earlier months have no reversal or reclass yet." : "Every earlier WIP posting has been reversed or reclassed."), guide: "Costs parked in WIP must come back to cost of sales in the month the job is invoiced. Reconcile the WIP balance to a job list at each month end." });
+      }
+    } else ["rev-nocontact", "rev-gst", "rev-credits", "rev-recurring", "wip"].forEach(function (id) { add({ id: id, area: "Revenue", title: id, status: "na", detail: "Needs the ledger." }); });
+
+    // ---- C. costs
+    if (loaded.gl) {
+      var credits = glm.filter(function (x) { return /^(cos|expenses|other_expenses)$/.test(cat(x.account)) && x.cr > 0 && !/manual journal|payable payment/i.test(x.source); });
+      add({ id: "cost-credits", area: "Costs", title: "Credits in cost accounts", status: credits.length ? "look" : "pass", items: credits.map(function (x) { return { date: x.date, account: x.account, source: x.source, contact: x.contact, reference: x.ref, amount: -cents(x.cr) }; }), cols: ["date", "account", "source", "contact", "reference", "amount"], detail: credits.length ? credits.length + " credit lines on cost accounts outside journals." : "No credits on cost accounts.", guide: "Supplier credit notes and refunds are fine. A refund with GST on an input taxed account (bank fees) is not." });
+      var manual = {}, round = [];
+      glm.forEach(function (x) { if (!/manual journal/i.test(x.source) || !acct[x.account]) return; var m = manual[x.account] || (manual[x.account] = { account: x.account, lines: 0, debits: 0, credits: 0 }); m.lines++; m.debits += cents(x.dr); m.credits += cents(x.cr); var v = Math.max(x.dr, x.cr); if (v >= 5000 && v % 100 === 0) round.push({ date: x.date, account: x.account, narration: x.desc, amount: cents(x.dr) - cents(x.cr) }); });
+      var mrows = Object.keys(manual).map(function (k) { return manual[k]; }).sort(function (a, b) { return (b.debits + b.credits) - (a.debits + a.credits); });
+      add({ id: "cost-journals", area: "Costs", title: "Manual journals on P&L accounts", status: round.length ? "look" : mrows.length ? "info" : "pass", items: mrows.map(function (m) { return { account: m.account, lines: m.lines, debits: m.debits, credits: m.credits, net: m.debits - m.credits }; }), cols: ["account", "lines", "debits", "credits", "net"], detail: mrows.length + " P&L accounts carry manual journals this month" + (round.length ? "; " + round.length + " round number journals of $5,000 or more: " + round.slice(0, 3).map(function (r) { return r.narration.slice(0, 40); }).join("; ") : "") + ".", guide: "Payroll, WIP, accruals and prepayment releases are expected. Round numbers with a thin narration are the ones to open." });
+      // duplicates
+      var bills = gl.filter(function (x) { return /payable invoice/i.test(x.source) && x.contact && cents(x.dr) >= CK.dupMin; }), dups = [];
+      var mBills = bills.filter(inM);
+      mBills.forEach(function (x) {
+        var twins = bills.filter(function (y) { return y !== x && y.contact === x.contact && Math.abs(y.dr - x.dr) < 0.005 && !(y.date === x.date && y.ref === x.ref) && Math.abs(new Date(y.date) - new Date(x.date)) <= CK.dupDays * 86400000 && !CK.recurringWords.test(x.ref + " " + y.ref + " " + x.contact); });
+        if (twins.length) dups.push({ date: x.date, supplier: x.contact, account: x.account, amount: cents(x.dr), reference: x.ref, matches: twins.map(function (y) { return y.date + " " + y.ref.slice(0, 30); }).join(" | ") });
+      });
+      add({ id: "cost-dups", area: "Costs", title: "Possible duplicate bills", status: dups.length ? "look" : "pass", items: dups, cols: ["date", "supplier", "account", "amount", "reference", "matches"], detail: dups.length ? dups.length + " bill lines this month have a twin from the same supplier for the same amount within " + CK.dupDays + " days." : "No bill this month repeats a recent one.", guide: "Confirm with the supplier that both are real. Monthly contracts are excluded by keyword." });
+      // spikes and missing recurring
+      var spikes = [], missing = [];
+      Object.keys(fin).forEach(function (n) {
+        if (!/^(cos|expenses)$/.test(cat(n))) return;
+        var hist = prior12.map(function (k) { return Math.abs(monthVal(n, k)); }).filter(function (v) { return v; });
+        var now = Math.abs(monthVal(n, rm));
+        if (hist.length >= 4) { var s = hist.slice().sort(function (a, b) { return a - b; }); var med = s[Math.floor(s.length / 2)]; if (now > Math.max(CK.spikeTimes * med, CK.spikeFloor)) spikes.push({ account: n, thisMonth: monthVal(n, rm), medianPriorMonths: -med, times: Math.round(now / med * 10) / 10 }); }
+        var last3 = prior12.slice(-3); if (last3.length === 3 && last3.every(function (k) { return Math.abs(monthVal(n, k)) >= 10000; }) && now === 0) missing.push({ account: n, lastThreeMonths: last3.map(function (k) { return money(monthVal(n, k)); }).join(", ") });
+      });
+      add({ id: "cost-spikes", area: "Costs", title: "Cost accounts well above their run rate", status: spikes.length ? "look" : "pass", items: spikes, cols: ["account", "thisMonth", "medianPriorMonths", "times"], detail: spikes.length ? spikes.length + " accounts are more than " + CK.spikeTimes + " times their median month." : "No cost account is out of line with its history.", guide: "Expected in production season (equipment hires, sub-contract labour). Elsewhere, open the lines." });
+      add({ id: "cost-missing", area: "Costs", title: "Recurring costs with nothing posted this month", status: missing.length ? "look" : "pass", items: missing, cols: ["account", "lastThreeMonths"], detail: missing.length ? missing.length + " accounts posted every month for three months and nothing this month." : "Every regular cost account has something this month.", guide: "Rent, outgoings, IT, payroll processing, insurance release, accounting fees and the Employsure retainer arrive every month. A gap is a missing bill or accrual." });
+      // GST on expenses
+      var gstIssues = [];
+      glm.forEach(function (x) {
+        if (!/^(cos|expenses)$/.test(cat(x.account)) || !/invoice|spend money|credit note|receive money/i.test(x.source)) return;
+        if (CK.entertainment.test(x.account) && x.gst > 0) gstIssues.push({ date: x.date, account: x.account, contact: x.contact, reference: x.ref, gst: cents(x.gst), why: "Entertainment: GST credit only where FBT is paid" });
+        else if (CK.bankFees.test(x.account) && x.gst) gstIssues.push({ date: x.date, account: x.account, contact: x.contact, reference: x.ref, gst: cents(x.gst), why: "Bank fees are input taxed, no GST" });
+        else if (x.gst > 0 && x.dr >= 500 && CK.foreign.test(x.contact) && !/australia|pty/i.test(x.contact)) gstIssues.push({ date: x.date, account: x.account, contact: x.contact, reference: x.ref, gst: cents(x.gst), why: "Overseas supplier: confirm it is GST registered" });
+      });
+      var mixed = {}; glm.forEach(function (x) { if (!/^(cos|expenses)$/.test(cat(x.account)) || !/payable invoice|spend money/i.test(x.source) || !x.tax) return; (mixed[x.account] = mixed[x.account] || {})[x.tax] = (mixed[x.account][x.tax] || 0) + 1; });
+      Object.keys(mixed).forEach(function (a) { var ks = Object.keys(mixed[a]).filter(function (k) { return mixed[a][k] >= 2; }); if (ks.length > 1 && !/salar|wage|super|insurance|subscription|dues|travel|amenit|entertain|staff/i.test(a)) gstIssues.push({ date: rm, account: a, contact: "", reference: ks.map(function (k) { return k + " x" + mixed[a][k]; }).join(", "), gst: null, why: "Mixed GST treatment on one account" }); });
+      add({ id: "cost-gst", area: "Costs", title: "GST on expenses worth a second look", status: gstIssues.length ? "look" : "pass", items: gstIssues, cols: ["date", "account", "contact", "reference", "gst", "why"], detail: gstIssues.length ? gstIssues.length + " lines." : "Nothing unusual in the GST treatment of expenses.", guide: "Entertainment, bank fees and overseas suppliers are where BAS credits go wrong. The BAS is only as good as the coding." });
+      // capitalisation
+      var capItems = glm.filter(function (x) { return x.dr >= 1000 && /payable invoice|spend money/i.test(x.source) && (/instant asset|repairs|equipment - purchase|office equipment|computer/i.test(x.account)) && CK.assetWords.test(x.desc + " " + x.ref) && !/for \d{7}|\[.*(PO|Q)-/i.test(x.ref); });
+      add({ id: "cost-capital", area: "Costs", title: "Expensed items that look like assets", status: capItems.length ? "look" : "pass", items: capItems.map(function (x) { return { date: x.date, account: x.account, supplier: x.contact, description: x.desc.slice(0, 60), amount: cents(x.dr) }; }), cols: ["date", "account", "supplier", "description", "amount"], detail: capItems.length ? capItems.length + " lines of $1,000 or more describe equipment and were expensed outside a client job." : "No asset-like purchase was expensed outside a job.", guide: "Equipment bought for the hire fleet or the office belongs on the asset register and is depreciated. Equipment bought for a client job is cost of sales." });
+      var big = glm.filter(function (x) { return Math.max(x.dr, x.cr) >= CK.bigLine / 100 && !/payable payment|receivable payment|bank transfer/i.test(x.source); }).sort(function (a, b) { return Math.max(b.dr, b.cr) - Math.max(a.dr, a.cr); }).slice(0, 15);
+      add({ id: "big", area: "Costs", title: "Largest lines this month", status: "info", items: big.map(function (x) { return { date: x.date, account: x.account, source: x.source, contact: x.contact, reference: x.ref.slice(0, 50), amount: cents(x.cr) - cents(x.dr) }; }), cols: ["date", "account", "source", "contact", "reference", "amount"], detail: "The fifteen largest P&L lines of the month, for a read through.", guide: "Each should be recognisable. One you cannot place is the one to open." });
+    }
+
+    // ---- D. payroll
+    if (loaded.pnl) {
+      var sumRe = function (k, re) { var t = 0; Object.keys(fin).forEach(function (n) { if (re.test(n)) t += monthVal(n, k); }); return t; };
+      var dw = -sumRe(rm, /^Direct (Salaries|Wages)/), ds = -sumRe(rm, /^Direct Superannuation/), iw = -sumRe(rm, /^Indirect (Salaries|Wages)/), isup = -monthVal("Superannuation", rm), ptax = -monthVal("Payroll Tax", rm);
+      var dwp = pm ? -sumRe(pm, /^Direct (Salaries|Wages)/) : 0, iwp = pm ? -sumRe(pm, /^Indirect (Salaries|Wages)/) : 0;
+      var pay = [], st = "pass";
+      var rD = dw ? ds / dw : null, rI = iw ? isup / iw : null, rT = dw + iw ? ptax / (dw + iw) : null;
+      pay.push({ measure: "Direct super over direct wages", value: rD == null ? "" : (rD * 100).toFixed(1) + "%", expected: "11.2% to 12.8% (SG 12%)", flag: rD != null && (rD < CK.superDirect[0] || rD > CK.superDirect[1]) ? "CHECK" : "ok" });
+      pay.push({ measure: "Overhead super over indirect wages", value: rI == null ? "" : (rI * 100).toFixed(1) + "%", expected: "up to 13.5%; salary sacrifice lands here", flag: rI != null && rI > CK.superIndirectMax ? "CHECK" : "ok" });
+      pay.push({ measure: "Payroll tax over all wages", value: rT == null ? "" : (rT * 100).toFixed(1) + "%", expected: "2.5% to 7%", flag: rT != null && (rT < CK.payrollTax[0] || rT > CK.payrollTax[1]) ? "CHECK" : "ok" });
+      pay.push({ measure: "Direct wages against last month", value: money(dw) + (pm ? " vs " + money(dwp) : ""), expected: "within 25%", flag: pm && dwp && Math.abs(dw - dwp) / dwp > CK.wagesMove ? "CHECK" : "ok" });
+      pay.push({ measure: "Indirect wages against last month", value: money(iw) + (pm ? " vs " + money(iwp) : ""), expected: "within 25%", flag: pm && iwp && Math.abs(iw - iwp) / iwp > CK.wagesMove ? "CHECK" : "ok" });
+      var leave = -(monthVal("Leave expense (Annual)", rm) + monthVal("Leave expense (Long Service)", rm));
+      pay.push({ measure: "Leave expense", value: money(leave), expected: "positive, roughly 8% of wages", flag: leave < 0 ? "CHECK" : "ok" });
+      Object.keys(fin).forEach(function (n) { if (/Salaries|Wages/.test(n) && monthVal(n, rm) > 0) pay.push({ measure: n, value: money(monthVal(n, rm)), expected: "a cost, not a credit", flag: "CHECK" }); });
+      if (pay.some(function (x) { return x.flag === "CHECK"; })) st = "look";
+      add({ id: "pay-ratios", area: "Payroll", title: "Payroll ratios and movements", status: st, items: pay, cols: ["measure", "value", "expected", "flag"], detail: pay.filter(function (x) { return x.flag === "CHECK"; }).length + " of " + pay.length + " payroll measures need a look.", guide: "Super at 12% of ordinary earnings, payroll tax steady, wages within a quarter of last month unless headcount moved. A credit in a wage account is an accrual reversal that overshot." });
+      if (loaded.gl) {
+        var accr = glm.filter(function (x) { return /payroll accrual/i.test(x.desc) && !/reversal/i.test(x.desc); }), rev = glm.filter(function (x) { return /reversal.*payroll accrual/i.test(x.desc); });
+        add({ id: "pay-accrual", area: "Payroll", title: "Payroll accrual posted and the prior one reversed", status: accr.length && rev.length ? "pass" : "look", detail: (accr.length ? "Accrual posted (" + accr.length + " lines). " : "No payroll accrual journal found this month. ") + (rev.length ? "Prior month reversed (" + rev.length + " lines)." : "No reversal of last month's accrual found."), guide: "Pay runs end mid-month; the unpaid days are accrued at month end and reversed on the first. Missing either side moves wages between months." });
+      }
+      if (loaded.pay && ctx.pay.gross != null) {
+        add({ id: "pay-runs", area: "Payroll", title: "Pay runs against the wage accounts", status: "info", detail: "Pay runs loaded: gross " + money(cents(ctx.pay.gross)) + " across " + ctx.pay.blocks.length + " runs. P&L wages for the month " + money(dw + iw) + ". The difference is the month end accrual and the runs that straddle the month.", guide: "Gross earnings on the runs plus the change in the accrual should equal the P&L." });
+      }
+    }
+
+    // ---- E. balance sheet and working capital
+    if (loaded.aged) {
+      var ar = ctx.aged.receivables || [], ap = ctx.aged.payables || [];
+      var arT = ar.reduce(function (a, r) { return a + r.total; }, 0), arO = ar.reduce(function (a, r) { return a + r.total - r.current; }, 0);
+      var old = ar.filter(function (r) { return (r.m2 || 0) + (r.m3 || 0) + (r.older || 0) > 0; }).map(function (r) { return { contact: r.contact, number: r.number, due: r.due, amount: r.total, over60: (r.m2 || 0) + (r.m3 || 0) + (r.older || 0) }; }).sort(function (a, b) { return b.over60 - a.over60; });
+      add({ id: "ar", area: "Balance sheet", title: "Receivables: ageing and tie to the balance sheet", status: (ctx._tdebt != null && Math.abs(ctx._tdebt - arT) >= 100) ? "fail" : (arT && arO / arT > CK.overdueShare) || old.length ? "look" : "pass", items: old, cols: ["contact", "number", "due", "amount", "over60"],
+            detail: "Aged receivables " + money(arT) + ", " + money(arO) + " past due (" + (arT ? Math.round(arO / arT * 100) : 0) + "%)" + (ctx._tdebt != null ? "; balance sheet Trade Debtors " + money(ctx._tdebt) + (Math.abs(ctx._tdebt - arT) < 100 ? ", agrees" : ", DIFFERS by " + money(ctx._tdebt - arT)) : "") + ". " + old.length + " invoices over 60 days.", guide: "The aged report must equal the control account. Over 60 days needs a decision: chase, dispute or provide." });
+      var apT = ap.reduce(function (a, r) { return a + r.total; }, 0), apO = ap.reduce(function (a, r) { return a + r.total - r.current; }, 0);
+      add({ id: "ap", area: "Balance sheet", title: "Payables: ageing and tie to the balance sheet", status: (ctx._tcred != null && Math.abs(ctx._tcred - apT) >= 100) ? "fail" : apO > 0 ? "look" : "pass", items: ap.filter(function (r) { return r.total - r.current > 0; }).map(function (r) { return { supplier: r.contact, due: r.due, reference: (r.ref || "").slice(0, 50), amount: r.total, pastDue: r.total - r.current }; }).sort(function (a, b) { return b.pastDue - a.pastDue; }), cols: ["supplier", "due", "reference", "amount", "pastDue"],
+            detail: "Aged payables " + money(apT) + ", " + money(apO) + " past due" + (ctx._tcred != null ? "; balance sheet Trade Creditors " + money(ctx._tcred) + (Math.abs(ctx._tcred - apT) < 100 ? ", agrees" : ", DIFFERS by " + money(ctx._tcred - apT)) : "") + ".", guide: "Past due bills are either a cash decision or a dispute. Either way they should be known." });
+    } else add({ id: "ar", area: "Balance sheet", title: "Receivables and payables ageing", status: "na", detail: "Fill 11 and 12 Xero Aged reports." });
+    if (bs.length) {
+      var byAcc = {}; bsm.forEach(function (x) { var a = byAcc[x.account] || (byAcc[x.account] = { account: x.account, lines: 0, debits: 0, credits: 0 }); a.lines++; a.debits += cents(x.dr); a.credits += cents(x.cr); });
+      var want = [["Accrual Expenses", /accrual expense|accrued expense/i, "Month end expense accrual and the reversal of last month's"], ["Prepayments", /prepayment/i, "Monthly releases to the P&L"], ["Provision for Annual Leave", /provision for annual leave|annual leave provision/i, "Monthly movement"], ["Provision for Long Service Leave", /long service/i, "Monthly movement"], ["Superannuation Payable", /superannuation payable|super payable/i, "Credited each pay run, cleared quarterly"], ["PAYG Withholding Payable", /payg withholding/i, "Credited each pay run, paid with the BAS or IAS"], ["GST", /^gst$/i, "Moves with sales and purchases, paid on the BAS"], ["Payroll Tax Payable", /payroll tax payable/i, "Accrued monthly, paid monthly"]];
+      var mv = want.map(function (w) { var hit = Object.keys(byAcc).filter(function (k) { return w[1].test(k); }).map(function (k) { return byAcc[k]; }); var a = hit[0]; return { account: w[0], lines: a ? a.lines : 0, debits: a ? a.debits : 0, credits: a ? a.credits : 0, expected: w[2], flag: a ? "ok" : "NO MOVEMENT" }; });
+      add({ id: "bs-movements", area: "Balance sheet", title: "Accruals, prepayments, provisions and payroll liabilities moved this month", status: mv.some(function (x) { return x.flag !== "ok"; }) ? "look" : "pass", items: mv, cols: ["account", "lines", "debits", "credits", "expected", "flag"], detail: mv.filter(function (x) { return x.flag !== "ok"; }).length + " of " + mv.length + " expected balance sheet accounts had no posting this month.", guide: "Each of these moves every month. Silence means a journal was missed." });
+      var rel = bsm.filter(function (x) { return CK.related.test(x.account); });
+      add({ id: "bs-related-lines", area: "Balance sheet", title: "Postings to related party, director and shareholder accounts", status: rel.length ? "look" : "pass", items: rel.map(function (x) { return { date: x.date, account: x.account, source: x.source, narration: x.desc, amount: cents(x.dr) - cents(x.cr) }; }), cols: ["date", "account", "source", "narration", "amount"], detail: rel.length ? rel.length + " lines this month." : "No postings to related party accounts this month.", guide: "Every one needs a document behind it." });
+      var cards = bsm.filter(function (x) { return /credit card/i.test(x.account); });
+      add({ id: "bs-cards", area: "Balance sheet", title: "Credit card postings", status: "info", detail: cards.length + " lines on the credit card accounts this month, net " + money(cards.reduce(function (a, x) { return a + cents(x.cr) - cents(x.dr); }, 0)) + " owing more.", guide: "Reconcile each card to its statement; the closing balance goes on 10 Cash and Commitments." });
+      var clr = bsm.filter(function (x) { return CK.clearing.test(x.account); });
+      if (clr.length) add({ id: "bs-clearing-lines", area: "Balance sheet", title: "Lines through clearing accounts", status: "info", items: clr.map(function (x) { return { date: x.date, account: x.account, source: x.source, narration: x.desc, amount: cents(x.dr) - cents(x.cr) }; }), cols: ["date", "account", "source", "narration", "amount"], detail: clr.length + " lines through rounding, tracking transfer or clearing accounts.", guide: "They should net to nil by month end." });
+    }
+    if (loaded.pnl) {
+      var dep = -(monthVal("Depreciation", rm) + monthVal("Depreciation - ROU", rm)), iawo = -monthVal("Instant Asset Write Off", rm);
+      add({ id: "depn", area: "Balance sheet", title: "Depreciation booked this month", status: dep <= 0 ? "look" : "pass", detail: "Depreciation " + money(dep) + ", Instant Asset Write Off " + money(iawo) + (ctx._fixed ? ", fixed assets on the balance sheet " + money(ctx._fixed) : "") + ".", guide: "A fixed asset base with no monthly depreciation overstates profit every month. The write off account is for genuine small items, not a plug." });
+    }
+
+    // ---- F. cut-off
+    if (loaded.gl) {
+      var end = rm + "-31", after = gl.filter(function (x) { return x.date > end; });
+      var lastDays = glm.filter(function (x) { return /payable invoice/i.test(x.source) && +x.date.slice(8, 10) >= 28 && Math.max(x.dr, x.cr) >= CK.cutoffMin / 100; }).map(function (x) { return { date: x.date, source: x.source, contact: x.contact, account: x.account, reference: x.ref.slice(0, 50), amount: cents(x.cr) - cents(x.dr) }; });
+      var mon = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"], thisMon = mon[+rm.slice(5, 7) - 1];
+      var wrongMonth = glm.filter(function (x) { return /payable invoice|receivable invoice/i.test(x.source) && mon.some(function (m) { return m !== thisMon && new RegExp("\\b" + m + "\\b", "i").test(x.ref); }) && !new RegExp("\\b" + thisMon + "\\b", "i").test(x.ref); }).map(function (x) { return { date: x.date, source: x.source, contact: x.contact, reference: x.ref.slice(0, 60), amount: cents(x.cr) - cents(x.dr) }; });
+      add({ id: "cutoff", area: "Cut-off", title: "Cut-off: large invoices in the last days, and references naming another month", status: after.length ? "fail" : (lastDays.length || wrongMonth.length) ? "look" : "pass", items: lastDays.concat(wrongMonth), cols: ["date", "source", "contact", "account", "reference", "amount"],
+            detail: (after.length ? after.length + " lines are dated after the month end. " : "") + lastDays.length + " bills of $10,000 or more dated in the last four days; " + wrongMonth.length + " invoices whose reference names a different month.", guide: "Revenue belongs to the month the work was done; costs to the month the service was received. A September bill for August work is an August accrual." });
+    }
+    var counts = { fail: 0, look: 0, pass: 0, info: 0, na: 0 }; R.forEach(function (c) { counts[c.status] = (counts[c.status] || 0) + 1; });
+    return { meta: { built: today(), month: rm, loaded: loaded, counts: counts, thresholds: { spikeTimes: CK.spikeTimes, dupDays: CK.dupDays, overdueShare: CK.overdueShare } }, checks: R };
   };
 
   /** The Earnings Details report, with the Locations, Pay categories and
@@ -408,7 +662,7 @@
     });
 
     var bucket = {}, staff = {}, labour = {}, newLocs = {}, newCats = {}, usedFallback = 0;
-    var reallocated = 0, payOnly = 0, lines = 0, spread = 0;
+    var reallocated = 0, payOnly = 0, lines = 0, spread = 0, grossTotal = 0;
     // Pay runs pasted one under the other: each starts with its title row.
     // A line whose note carries no date (salaried staff, allowances) is
     // spread over the months its pay run covers, on weekdays, rather than
@@ -468,7 +722,7 @@
       if (!monthIdx()[mk]) return;
       var isHours = ci.unitType < 0 || /hour/i.test(String(r[ci.unitType]));
       var units = (isHours ? p.num(r[ci.units]) : 0) * frac;
-      var gross = (ci.gross >= 0 ? p.money(r[ci.gross]) : 0) * frac;
+      var gross = (ci.gross >= 0 ? p.money(r[ci.gross]) : 0) * frac; grossTotal += gross;
       var sup = (ci.sup >= 0 ? p.money(r[ci.sup]) : 0) * frac;
       var who = ci.empName >= 0 ? String(r[ci.empName] || "").trim() : "";
       var note = ci.notes >= 0 ? String(r[ci.notes] || "").toLowerCase() : "";
@@ -519,7 +773,7 @@
               cols: ["month", "dept", "chargeable", "nonChargeable", "leave", "publicHoliday", "fte"], rows: utilRows },
       staff: { meta: { seed: false, built: today(), source: "03 Employment Hero Earnings.xlsx" },
                cols: ["month", "empId", "name", "dept", "chargeable", "nonChargeable", "leave", "publicHoliday", "grossCents", "superCents", "employment"], rows: staffRows },
-      lines: lines, newLocations: newLocs, newCategories: newCats, usedFallback: usedFallback, spread: spread,
+      lines: lines, gross: grossTotal, newLocations: newLocs, newCategories: newCats, usedFallback: usedFallback, spread: spread,
       blocks: blocks.map(function (b) { return { from: b.min, to: b.max, lines: b.rows.length }; }),
       reallocated: reallocated, payOnly: payOnly,
     };
@@ -899,7 +1153,8 @@
         check("ok", "Config", "Reporting month " + cfgOut.config.ORG.reportingMonth + ", " + (cfgOut.config.DEPARTMENTS || []).length + " departments, " + (cfgOut.users.USERS || []).length + " users, " + (cfgOut.config.DISTRIBUTION || []).length + " on the distribution list.");
       } catch (e) { check("fail", "Config", e.message); }
     } else check("warn", "Config", "08 Config.xlsx not found; keeping the current settings.");
-    var reportingMonth = cfgOut ? cfgOut.config.ORG.reportingMonth : E().reportingMonth();
+    var reportingMonth = opts.reportingMonth || (cfgOut ? cfgOut.config.ORG.reportingMonth : E().reportingMonth());
+    if (opts.reportingMonth && cfgOut) cfgOut.config.ORG.reportingMonth = opts.reportingMonth;
 
     // P&L and budget
     var finActual = null, finBudget = null, budgetDept = null;
@@ -1029,7 +1284,7 @@
         if (gl.noContact) check("warn", "Ledger", gl.noContact + " revenue lines carry no contact, so they cannot reach a client on the schedule or the top clients list. They count in the department's new business line.");
         var noDept = gl.payload.rows.filter(function (r) { return E().resolveDept(r[8], r[6]) === "UNALLOCATED"; }).length;
         if (noDept && !gl.detail) check("warn", "Ledger", noDept + " lines carry no department. Set the cost centre in Xero.");
-        results.glRows = gl.payload.rows;
+        results.glRows = gl.payload.rows; results.glBS = gl.bs || []; results.glDetailLayout = !!gl.detail;
       } catch (e) { check("fail", "Ledger", e.message); }
     } else check("fail", "Ledger", "02 Xero GL Transactions.xlsx not found.");
 
@@ -1044,7 +1299,7 @@
         var eh = C.earnings(te, locs, cats, adjs, reportingMonth);
         outputs["CTS_util_data.js"] = "window.CTS_UTIL = " + JSON.stringify(eh.util) + ";\n";
         outputs["CTS_staff_data.js"] = "window.CTS_STAFF = " + JSON.stringify(eh.staff) + ";\n";
-        results.util = eh.util; results.staff = eh.staff;
+        results.util = eh.util; results.staff = eh.staff; results.pay = { blocks: eh.blocks, gross: eh.gross };
         check(eh.lines ? "ok" : "warn", "Earnings", eh.lines + " pay lines, " + eh.util.rows.length + " department months, " + eh.staff.rows.length + " people months" + (eh.reallocated ? ", " + eh.reallocated + " back pays reallocated to hours" : "") + ".");
         var nl = Object.keys(eh.newLocations);
         if (nl.length) check("warn", "Earnings", nl.length + " locations not on the Locations tab, guessed from the bracket tag: " + nl.slice(0, 4).join("; ") + (nl.length > 4 ? " and others" : "") + ". Add them to the tab to make the guess stick.");
@@ -1168,6 +1423,26 @@
         }
       } catch (e) { check("fail", "Schedule", e.message); }
     } else check("info", "Schedule", "13 Revenue Schedule.xlsx not found; keeping the current schedule.");
+
+    // Balance sheet and trial balance, then the controller checks over everything posted
+    var bsReport = null, tbReport = null, btWb = wbOf("bstb");
+    if (btWb) {
+      try {
+        var tbs = B.table(btWb, "Balance Sheet", { minFilled: 1, findHead: function (h) { return h.slice(1).some(function (x) { return /^\d{4}-\d{2}-\d{2}$/.test(x) || /\d{1,2} [A-Za-z]{3} \d{4}/.test(x); }); } });
+        if (tbs) { bsReport = C.balanceSheet(tbs); check(bsReport.rows.length ? "ok" : "warn", "Balance sheet", bsReport.rows.length + " balance sheet accounts as at " + bsReport.asAt + "."); }
+        else check("info", "Balance sheet", "No balance sheet paste found on the Balance Sheet tab.");
+        var ttb = B.table(btWb, "Trial Balance", { minFilled: 2, findHead: function (h) { return colIndex(h, ["debit"]) >= 0 && colIndex(h, ["credit"]) >= 0; } });
+        if (ttb) { tbReport = C.trialBalance(ttb); check(tbReport.rows.length ? "ok" : "warn", "Trial balance", tbReport.rows.length + " trial balance accounts."); }
+        else check("info", "Trial balance", "No trial balance paste found on the Trial Balance tab.");
+      } catch (e) { check("fail", "Balance sheet", e.message); }
+    }
+    try {
+      var ck = C.checks({ reportingMonth: reportingMonth, monthIdx: ACTIVE.monthIdx || E().monthIdx, gl: results.gl ? results.gl.rows : [], bs: results.glBS || [], glDetail: !!results.glDetailLayout,
+                          fin: finActual || (E().fin || {}).actual || {}, budget: finBudget || {}, aged: results.aged || E().aged, bsReport: bsReport, tb: tbReport, pay: results.pay || null });
+      outputs["CTS_checks_data.js"] = "window.CTS_CHECKS = " + JSON.stringify(ck) + ";\n";
+      results.checks = ck;
+      check(ck.meta.counts.fail ? "warn" : "ok", "Checks", ck.checks.length + " controller checks run: " + ck.meta.counts.fail + " failed, " + ck.meta.counts.look + " to look at, " + ck.meta.counts.pass + " passed, " + ck.meta.counts.na + " not applicable. Open the Controller Checks page.");
+    } catch (e) { check("fail", "Checks", e.message); }
 
     var log = { built: new Date().toISOString(), reportingMonth: reportingMonth, checks: checks,
                 files: Object.keys(outputs), version: (cfgOut && cfgOut.config.VERSION) || (E().cfg && E().cfg.VERSION) };

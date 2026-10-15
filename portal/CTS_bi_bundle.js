@@ -2298,7 +2298,7 @@
         head.setAttribute("aria-expanded", now ? "false" : "true");
         CTS.store.set(key, now);
       },
-    }, [h("h2", { id: id + "-h" }, title), U.chev("chev")]);
+    }, [h("h2", { id: id + "-h" }, title), opts.badge || null, U.chev("chev")]);
     sec.appendChild(head); sec.appendChild(body);
     return sec;
   };
@@ -3346,6 +3346,100 @@
   var P = CTS.pages, seedBanner = CTS.seedBanner, allocBanner = CTS.allocBanner;
 
   /* ================================================== P&L control ====== */
+  /* ---- controller checks ------------------------------------------------ */
+  P.checks = {
+    section: "Finance", title: "Controller Checks",
+    sub: "What an auditor would open first, run over what was posted.",
+    render: function () {
+      var data = window.CTS_CHECKS || null;
+      if (!data || !data.checks) {
+        return [U.h1("Controller Checks", "Nothing built yet"), U.note("Run Build with the ledger, the P&L and, when you have them, 14 Balance Sheet and Trial Balance, the aged reports and the pay runs. The checks are written into data/CTS_checks_data.js and this page reads them.", "warn"),
+                U.section("What gets checked", checklistTable())];
+      }
+      var month = data.meta.month, label = (E.monthIdx[month] || {}).long || month;
+      var key = "checks." + month, state = CTS.store.get(key, {});
+      var filter = CTS.store.get("checks.filter", "all");
+      var ORDER = { fail: 0, look: 1, info: 2, pass: 3, na: 4 };
+      var LABEL = { fail: "Failed", look: "Look", info: "Info", pass: "Passed", na: "Not loaded" };
+      var CLS = { fail: "critical", look: "warning", info: "muted", pass: "good", na: "muted" };
+      var counts = data.meta.counts || {};
+      var open = data.checks.filter(function (c) { return (c.status === "fail" || c.status === "look") && !(state[c.id] || {}).done; }).length;
+      function chip(st) { return h("span.risk.risk-" + CLS[st], LABEL[st]); }
+      var tiles = h("div.tiles", [
+        U.tile({ label: "Failed", value: String(counts.fail || 0), sub: "ties that do not hold", tone: counts.fail ? "bad" : "good" }),
+        U.tile({ label: "To look at", value: String(counts.look || 0), sub: open + " not yet reviewed", tone: open ? "warn" : null }),
+        U.tile({ label: "Passed", value: String(counts.pass || 0), sub: "nothing to do" }),
+        U.tile({ label: "Not loaded", value: String(counts.na || 0), sub: "needs a file that was not posted" }),
+      ]);
+      var L = data.meta.loaded || {};
+      var posted = h("div.toolbar", [["Ledger", L.gl], ["P&L", L.pnl], ["Balance sheet", L.bs], ["Trial balance", L.tb], ["Aged reports", L.aged], ["Pay runs", L.pay]].map(function (x) {
+        return h("span.chip." + (x[1] ? "chip-good" : "chip-muted"), x[0] + (x[1] ? "" : ": not posted"));
+      }).concat([h("span.muted", "Built " + data.meta.built + ". " + (L.glDetail ? "Ledger is the General Ledger Detail layout, so departments are not coded." : ""))]));
+      var seg = h("div.seg", ["all", "fail", "look", "info", "pass", "na"].map(function (f) {
+        return h("button.seg-btn" + (f === filter ? ".on" : ""), { onclick: function () { CTS.store.set("checks.filter", f); CTS.router.reload(); } }, f === "all" ? "All" : LABEL[f]);
+      }));
+      var list = data.checks.slice().sort(function (a, b) { return ORDER[a.status] - ORDER[b.status]; }).filter(function (c) { return filter === "all" || c.status === filter; });
+      var areas = []; list.forEach(function (c) { if (areas.indexOf(c.area) < 0) areas.push(c.area); });
+      function fmtCell(col, v) {
+        if (v == null || v === "") return "";
+        if (typeof v === "number" && /amount|ledger|pnl|diff|balance|prior|movement|debits|credits|net|thisMonth|lastMonth|change|medianPriorMonths|trialBalance|pnlYtd|over60|pastDue|gst/i.test(col)) return h("span", { class: v < 0 ? "neg" : "" }, F.money(v));
+        return String(v);
+      }
+      function block(c) {
+        var st = state[c.id] || {};
+        var cols = (c.cols || []).map(function (k) { return { key: k, label: k.replace(/([A-Z])/g, " $1").replace(/^./, function (m) { return m.toUpperCase(); }), align: /amount|ledger|pnl|diff|balance|prior|movement|debits|credits|net|thisMonth|lastMonth|change|median|trialBalance|pnlYtd|over60|pastDue|gst|lines|times/i.test(k) ? "right" : "left", value: function (r) { return fmtCell(k, r[k]); } }; });
+        var body = [
+          h("p.check-detail", c.detail),
+          c.items && c.items.length ? U.table(cols, c.items, { dense: true }) : null,
+          c.guide ? U.note(c.guide, "muted") : null,
+          E.canComment && E.canComment() ? h("div.toolbar", [
+            h("label.checkbox", [h("input", { type: "checkbox", checked: !!st.done, onchange: function (ev) { state[c.id] = Object.assign({}, st, { done: ev.target.checked, at: new Date().toISOString(), who: E.identity() }); CTS.store.set(key, state); CTS.router.reload(); } }), " Reviewed" + (st.done && st.who ? " by " + st.who : "")]),
+            h("input.input", { type: "text", value: st.note || "", placeholder: "Note for the file", style: { flex: "1" }, onchange: function (ev) { state[c.id] = Object.assign({}, state[c.id] || {}, { note: ev.target.value }); CTS.store.set(key, state); } }),
+            c.status !== "pass" && c.status !== "na" ? h("button.btn.btn-sm", { onclick: function () { if (E.addCommentary({ page: "checks", month: month, text: c.title + ": " + c.detail })) CTS.router.reload(); } }, "Add to commentary") : null,
+          ]) : null,
+        ];
+        return U.section(c.title, body, null, { collapsed: c.status === "pass" || c.status === "na" || !!st.done, badge: chip(c.status) });
+      }
+      var out = [seedBanner(), CTS.periodBar(), U.h1("Controller Checks", label), tiles, posted, seg];
+      areas.forEach(function (a) {
+        out.push(h("h2.area", a));
+        list.filter(function (c) { return c.area === a; }).forEach(function (c) { out.push(block(c)); });
+      });
+      out.push(U.section("What gets checked, and why", checklistTable(), "The schedule as an auditor would read it. Print it, or tick it here as you go.", { collapsed: true }));
+      return out;
+    },
+  };
+  function checklistTable() {
+    return U.table([{ key: "area", label: "Area", align: "left" }, { key: "check", label: "Check", align: "left" }, { key: "why", label: "What you are looking for", align: "left" }, { key: "needs", label: "Needs", align: "left" }], E.CHECKLIST, { dense: true });
+  }
+  E.CHECKLIST = [
+    { area: "Integrity", check: "Ledger agrees with the P&L by category", why: "Both exports taken after the last journal; a difference is a late posting", needs: "01, 02" },
+    { area: "Integrity", check: "Trial balance balances and its YTD agrees with the P&L", why: "A broken export, a locked period posting, or a P&L account mapped wrongly", needs: "14, 01" },
+    { area: "Integrity", check: "Current year earnings on the balance sheet equal the P&L YTD", why: "Anything posted straight to equity: dividends, drawings, prior year adjustments", needs: "14, 01" },
+    { area: "Revenue", check: "Revenue posted without a contact", why: "WIP, accruals and reclasses are expected; anything else should be an invoice", needs: "02" },
+    { area: "Revenue", check: "Sales invoiced without GST", why: "Only exports and interest are GST free; recharges are taxable", needs: "02" },
+    { area: "Revenue", check: "Credit notes raised", why: "Each needs a reason, and may move revenue between months", needs: "02" },
+    { area: "Revenue", check: "Clients billed last month and not this month", why: "Contract sites bill every month; a gap is a missed invoice until proven otherwise", needs: "02, two months" },
+    { area: "Revenue", check: "Work in progress posted and still open", why: "Costs parked in WIP must return to cost of sales when the job is invoiced", needs: "02 (GL Detail)" },
+    { area: "Costs", check: "Credits in cost accounts", why: "Supplier credits are fine; a refund with GST on an input taxed account is not", needs: "02" },
+    { area: "Costs", check: "Manual journals on P&L accounts", why: "Payroll, WIP, accruals expected; round numbers with thin narrations are the ones to open", needs: "02" },
+    { area: "Costs", check: "Possible duplicate bills", why: "Same supplier, same amount, within 45 days, not a monthly contract", needs: "02" },
+    { area: "Costs", check: "Cost accounts well above run rate", why: "Season explains production hires and subcontractors; elsewhere open the lines", needs: "01" },
+    { area: "Costs", check: "Recurring costs with nothing posted", why: "Rent, IT, payroll processing, insurance release, accounting, Employsure arrive monthly", needs: "01" },
+    { area: "Costs", check: "GST on expenses", why: "Entertainment, bank fees, overseas suppliers and mixed treatment on one account", needs: "02 with GST columns" },
+    { area: "Costs", check: "Expensed items that look like assets", why: "Fleet and office equipment belong on the register; client job equipment is cost of sales", needs: "02" },
+    { area: "Costs", check: "Largest lines of the month", why: "Each should be recognisable", needs: "02" },
+    { area: "Payroll", check: "Payroll ratios and movements", why: "Super 12% of ordinary earnings, payroll tax steady, wages within a quarter of last month, no credits", needs: "01" },
+    { area: "Payroll", check: "Payroll accrual posted and prior reversed", why: "Missing either side moves wages between months", needs: "02" },
+    { area: "Payroll", check: "Pay runs against the wage accounts", why: "Gross on the runs plus the accrual change equals the P&L", needs: "03" },
+    { area: "Balance sheet", check: "Receivables and payables tie to the control accounts, ageing reviewed", why: "Aged report equals the control account; over 60 days needs a decision", needs: "11, 12, 14" },
+    { area: "Balance sheet", check: "Accruals, prepayments, provisions and payroll liabilities moved", why: "Each moves every month; silence means a missed journal", needs: "02 (GL Detail)" },
+    { area: "Balance sheet", check: "Related party, director and shareholder accounts", why: "Every movement needs a document; drawings in a company are a Division 7A question", needs: "02, 14" },
+    { area: "Balance sheet", check: "Clearing and suspense accounts nil", why: "A balance is a posting that has not found its home", needs: "14" },
+    { area: "Balance sheet", check: "Depreciation booked", why: "A fixed asset base with no monthly charge overstates profit", needs: "01, 14" },
+    { area: "Cut-off", check: "Large invoices in the last days and references naming another month", why: "Revenue in the month the work was done; costs in the month the service was received", needs: "02" },
+  ];
+
   P.control = {
     section: "Finance", title: "P&L Control",
     sub: "Does the ledger agree with the P&L, and is the coding clean.",
