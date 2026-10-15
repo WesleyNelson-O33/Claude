@@ -30,13 +30,24 @@ def sheet_parts(z):
     return out
 
 def patch(xml):
-    if '<outlinePr' in xml:
-        return re.sub(r'<outlinePr[^>]*/>|<outlinePr[^>]*>.*?</outlinePr>', TAG, xml, count=1)
+    """Insert outlinePr in the one place the schema allows it.
+
+    CT_SheetPr is an ordered sequence: tabColor, then outlinePr, then
+    pageSetUpPr. Put outlinePr before an existing tabColor and Excel refuses
+    to open the file, which is exactly the bug this function used to have.
+    """
+    # drop any outlinePr that is already there, wherever it sits
+    xml = re.sub(r'<outlinePr[^>]*/>|<outlinePr[^>]*>.*?</outlinePr>', '', xml, count=1)
     m = re.search(r'<sheetPr\b([^>]*?)(/?)>', xml)
     if m:
-        if m.group(2) == '/':
+        if m.group(2) == '/':                       # <sheetPr .../>  -> give it a body
             return xml[:m.start()] + f'<sheetPr{m.group(1)}>{TAG}</sheetPr>' + xml[m.end():]
-        return xml[:m.end()] + TAG + xml[m.end():]
+        body_start = m.end()
+        close = xml.find('</sheetPr>', body_start)
+        body = xml[body_start:close] if close != -1 else ''
+        tab = re.search(r'<tabColor[^>]*/>|<tabColor[^>]*>.*?</tabColor>', body)
+        at = body_start + (tab.end() if tab else 0)  # after tabColor, else first
+        return xml[:at] + TAG + xml[at:]
     m = re.search(r'(<worksheet\b[^>]*>)', xml)
     if not m: return None
     return xml[:m.end()] + f'<sheetPr>{TAG}</sheetPr>' + xml[m.end():]
