@@ -39,9 +39,14 @@ def main(path):
     names = set(z.namelist())
     wbx = z.read('xl/workbook.xml').decode()
     rels = z.read('xl/_rels/workbook.xml.rels').decode()
+    # Excel and openpyxl write these attributes in a different order
     tgt = dict(re.findall(r'Id="(rId\d+)"[^>]*?Target="([^"]+)"', rels))
+    tgt.update({i: t for t, i in re.findall(r'Target="([^"]+)"[^>]*?Id="(rId\d+)"', rels)})
     sheets = re.findall(r'<sheet[^>]*name="([^"]+)"[^>]*r:id="(rId\d+)"', wbx)
-    sheetnames = [n.replace('&amp;', '&').replace('&apos;', "'") for n, _ in sheets]
+    def unesc(x):
+        return (x.replace('&amp;', '&').replace('&apos;', "'").replace('&lt;', '<')
+                 .replace('&gt;', '>').replace('&quot;', '"'))
+    sheetnames = [unesc(n) for n, _ in sheets]
     # styles: how many dxf records exist
     styles = z.read('xl/styles.xml').decode()
     m = re.search(r'<dxfs count="(\d+)"', styles)
@@ -51,11 +56,12 @@ def main(path):
         t = tgt.get(rid)
         if not t:
             out.append(f'{name}: no relationship for {rid}'); continue
-        part = t.lstrip('/') if t.startswith('xl/') else 'xl/' + t.lstrip('/')
+        t = t.lstrip('/')
+        part = t if t.startswith('xl/') else 'xl/' + t
         if part not in names:
             out.append(f'{name}: part {part} missing from the zip'); continue
         root = ET.fromstring(z.read(part))
-        where = name.replace('&amp;', '&')
+        where = unesc(name)
         ordered([c.tag.replace(NS, '') for c in root], WS_ORDER, where, out)
         sp = root.find(NS + 'sheetPr')
         if sp is not None:
@@ -72,7 +78,7 @@ def main(path):
             out.append(f'{where}: autoFilter with no ref')
     # defined names must point at a sheet that exists
     for nm, ref in re.findall(r'<definedName name="([^"]+)"[^>]*>([^<]*)</definedName>', wbx):
-        for s in re.findall(r"(?:'([^']+)'|([A-Za-z_][\w.]*))!", ref):
+        for s in re.findall(r"(?:'([^']+)'|([A-Za-z_][\w.]*))!", unesc(ref)):
             sn = (s[0] or s[1]).replace("''", "'")
             if sn not in sheetnames:
                 out.append(f'defined name {nm} points at sheet "{sn}", which does not exist')
