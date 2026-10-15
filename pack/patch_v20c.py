@@ -83,11 +83,13 @@ ws.add_chart(ch, 'G5')
 ws = wb['P&L by Dept']
 m = P['month_rows']
 ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
-ch.add_data(Reference(ws, min_col=1, min_row=m['income'], max_col=7, max_row=m['income']),
-            from_rows=True, titles_from_data=True)
-ch.add_data(Reference(ws, min_col=1, min_row=m['result'], max_col=7, max_row=m['result']),
-            from_rows=True, titles_from_data=True)
-ch.set_categories(Reference(ws, min_col=2, min_row=m['income'] - 9, max_col=7))
+HDR_M = m['Total Income'] - 1
+ch.add_data(Reference(ws, min_col=1, min_row=m['Total Income'], max_col=7,
+                      max_row=m['Total Income']), from_rows=True, titles_from_data=True)
+ch.add_data(Reference(ws, min_col=1, min_row=m['Result after all overhead'], max_col=7,
+                      max_row=m['Result after all overhead']), from_rows=True,
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=2, min_row=HDR_M, max_col=7))
 style(ch, 'Revenue and result after overhead, this month', 22, 10)
 ch.legend = openpyxl.chart.legend.Legend(); ch.legend.position = 'b'
 paint(ch, [TEAL, AQUA])
@@ -95,11 +97,13 @@ ws.add_chart(ch, 'J5')
 
 y = P['ytd_rows']
 ch2 = BarChart(); ch2.type = 'col'; ch2.grouping = 'clustered'
-ch2.add_data(Reference(ws, min_col=1, min_row=y['income'], max_col=7, max_row=y['income']),
-             from_rows=True, titles_from_data=True)
-ch2.add_data(Reference(ws, min_col=1, min_row=y['result'], max_col=7, max_row=y['result']),
-             from_rows=True, titles_from_data=True)
-ch2.set_categories(Reference(ws, min_col=2, min_row=y['income'] - 9, max_col=7))
+HDR_Y = y['Total Income'] - 1
+ch2.add_data(Reference(ws, min_col=1, min_row=y['Total Income'], max_col=7,
+                       max_row=y['Total Income']), from_rows=True, titles_from_data=True)
+ch2.add_data(Reference(ws, min_col=1, min_row=y['Result after all overhead'], max_col=7,
+                       max_row=y['Result after all overhead']), from_rows=True,
+             titles_from_data=True)
+ch2.set_categories(Reference(ws, min_col=2, min_row=HDR_Y, max_col=7))
 style(ch2, 'Revenue and result after overhead, year to date', 22, 10)
 ch2.legend = openpyxl.chart.legend.Legend(); ch2.legend.position = 'b'
 paint(ch2, [TEAL, BLUE])

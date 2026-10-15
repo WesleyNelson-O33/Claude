@@ -107,85 +107,124 @@ ws['A3'].font = Font(name='Calibri', sz=11, bold=True, color=TEAL)
 NC = len(DEPTS)
 COLS = [gl(2 + i) for i in range(NC)] + [gl(2 + NC)]
 
-def grp_block(r, grp, subs, cats, m_lo, m_hi):
-    """A sub category block with its own total. Returns the next free row and
-    the row the total landed on."""
-    band(ws, r, 1, 2 + NC, AQUA)
-    ws.cell(r, 1, grp)
-    r += 1
-    first = r
-    for sub in subs:
-        ws.cell(r, 1, sub)
-        for i, (_, tag) in enumerate(DEPTS):
-            parts = '+'.join(
-                f'SUMIFS({CA},{CD},"{tag}",{CF},$A{r},{CE},"{c}",'
-                f'{CB},">="&{m_lo},{CB},"<="&{m_hi})' for c in cats)
-            ws.cell(r, 2 + i, '=' + parts)
-        ws.cell(r, 2 + NC, f'=SUM(B{r}:{gl(1+NC)}{r})')
-        body(ws, r, 1, 2 + NC, indent=1)
-        r += 1
-    ws.cell(r, 1, f'Total {grp.lower()}')
-    for i in range(NC + 1):
-        ws.cell(r, 2 + i, f'=SUM({gl(2+i)}{first}:{gl(2+i)}{r-1})')
-    body(ws, r, 1, 2 + NC, bold=True)
-    tot_rule(ws, r, 1, 2 + NC)
-    return r + 2, r
+# The sheet mirrors P&L FY27 line for line, and takes its look from it: every
+# row copies the style of the P&L row it corresponds to, so the banners,
+# indents, underlines and the costs-as-positive number format all match.
+SRCWB = openpyxl.load_workbook(SRC)
+PL = SRCWB['P&L FY27']
 
-def line(r, label, formula_for, fmt=MONEY, bold=False, rule=False):
-    ws.cell(r, 1, label)
-    for i in range(NC + 1):
-        ws.cell(r, 2 + i, formula_for(gl(2 + i), i))
-    body(ws, r, 1, 2 + NC, fmt=fmt, bold=bold)
-    if rule:
-        tot_rule(ws, r, 1, 2 + NC)
-    return r + 1
+def st(ws, r, src_row, cols):
+    """Copy a P&L row's look onto this row, column A plus the figure columns."""
+    ws.cell(r, 1)._style = copy.copy(PL.cell(src_row, 1)._style)
+    for c in cols:
+        ws.cell(r, c)._style = copy.copy(PL.cell(src_row, 2)._style)
+
+SUMD = ('SUMIFS({CA},{CD},"{tag}",{CE},"{cat}",{CB},">="&{lo},{CB},"<="&{hi})')
+SUMS = ('SUMIFS({CA},{CD},"{tag}",{CF},TRIM($A{r}),{CE},"{cat}",{CB},">="&{lo},{CB},"<="&{hi})')
 
 def pl_block(r0, label, m_lo, m_hi):
+    cols = list(range(2, 3 + NC))          # B..G departments, H total
+    last = gl(2 + NC - 1)                  # last department column
     r = r0
     band(ws, r, 1, 2 + NC, TEAL, WHITE)
     ws.cell(r, 1, label)
     ws.row_dimensions[r].height = 20
     r += 1
-    head(ws, r, 1, ['A$'] + [d for d, _ in DEPTS] + ['Total'])
+    ws.cell(r, 1, 'Line')
+    for i, (d, _) in enumerate(DEPTS):
+        ws.cell(r, 2 + i, d)
+    ws.cell(r, 2 + NC, 'Total')
+    st(ws, r, 5, cols)
+    ws.row_dimensions[r].height = PL.row_dimensions[5].height or 30
     r += 1
-    r, INC = grp_block(r, 'Income', NS['subs']['income'], ['Income'], m_lo, m_hi)
-    r, COS = grp_block(r, 'Cost of sales', NS['subs']['cos'], ['Cost of Sales'], m_lo, m_hi)
-    GP = r
-    r = line(r, 'Gross profit', lambda c, i: f'={c}{INC}+{c}{COS}', bold=True, rule=True)
-    r = line(r, 'Gross margin %',
-             lambda c, i: f'=IF({c}{INC}=0,"",{c}{GP}/{c}{INC})', fmt=PCT)
+    M = {}
+
+    def cat_row(label, cat, src):
+        nonlocal r
+        ws.cell(r, 1, label)
+        for i, (_, tag) in enumerate(DEPTS):
+            ws.cell(r, 2 + i, '=' + SUMD.format(CA=CA, CD=CD, CE=CE, CB=CB,
+                                                tag=tag, cat=cat, lo=m_lo, hi=m_hi))
+        ws.cell(r, 2 + NC, f'=SUM(B{r}:{last}{r})')
+        st(ws, r, src, cols)
+        M[label] = r
+        r += 1
+
+    def sub_rows(subs, cat, src):
+        nonlocal r
+        for sub in subs:
+            ws.cell(r, 1, '        ' + sub)
+            for i, (_, tag) in enumerate(DEPTS):
+                ws.cell(r, 2 + i, '=' + SUMS.format(CA=CA, CD=CD, CE=CE, CF=CF, CB=CB,
+                                                    tag=tag, cat=cat, r=r, lo=m_lo, hi=m_hi))
+            ws.cell(r, 2 + NC, f'=SUM(B{r}:{last}{r})')
+            st(ws, r, src, cols)
+            r += 1
+
+    def calc(label, make, src):
+        nonlocal r
+        ws.cell(r, 1, label)
+        for i in range(NC + 1):
+            ws.cell(r, 2 + i, make(gl(2 + i), i))
+        st(ws, r, src, cols)
+        M[label] = r
+        r += 1
+
+    cat_row('Total Income', 'Income', 6)
+    sub_rows(NS['subs']['income'], 'Income', 9)
+    cat_row('Other income', 'Other Income', 57)
+    cat_row('Cost of Sales', 'Cost of Sales', 59)
+    sub_rows(NS['subs']['cos'], 'Cost of Sales', 62)
+    cat_row('Expenses Overheds', 'Expenses', 164)
+    sub_rows(NS['subs']['exp'], 'Expenses', 165)
+    cat_row('Other Expenses', 'Other Expenses', 171)
+    sub_rows(NS['subs']['oexp'], 'Other Expenses', 172)
+
+    INC, OI = M['Total Income'], M['Other income']
+    COS, EXP, OEX = M['Cost of Sales'], M['Expenses Overheds'], M['Other Expenses']
+    calc('Gross profit', lambda c, i: f'={c}{INC}+{c}{COS}', 173)
+    GP = M['Gross profit']
+    calc('Gross profit %', lambda c, i: f'=IF({c}{INC}=0,"",{c}{GP}/{c}{INC})', 174)
+    calc('Depreciation & amortisation', lambda c, i: (
+        '=IF(Setup!$B$28="Yes",' + SUMIAWO.format(CA=CA, CD=CD, CG=CG, CB=CB,
+                                                  tag=DEPTS[i][1], lo=m_lo, hi=m_hi) + ',0)'
+        if i < NC else f'=SUM(B{M.get("Depreciation & amortisation", r)}:'
+                       f'{last}{M.get("Depreciation & amortisation", r)})'), 175)
+    DA = M['Depreciation & amortisation']
+    ws.cell(DA, 2 + NC, f'=SUM(B{DA}:{last}{DA})')
+    calc('EBITDA', lambda c, i: f'={c}{INC}+{c}{COS}+{c}{EXP}-{c}{DA}', 176)
+    EB = M['EBITDA']
+    calc('EBITDA %', lambda c, i: f'=IF({c}{INC}=0,"",{c}{EB}/{c}{INC})', 177)
+    calc('EBIT', lambda c, i: f'={c}{EB}+{c}{DA}', 178)
+    calc('EBIT %', lambda c, i: f'=IF({c}{INC}=0,"",{c}{M["EBIT"]}/{c}{INC})', 179)
+    calc('Net profit', lambda c, i: f'={c}{INC}+{c}{OI}+{c}{COS}+{c}{EXP}+{c}{OEX}', 180)
+    NP = M['Net profit']
+    calc('Net profit %', lambda c, i: f'=IF({c}{INC}=0,"",{c}{NP}/{c}{INC})', 181)
     r += 1
-    OI = r
-    r = line(r, 'Other income', lambda c, i: (
-        f'=SUMIFS({CA},{CD},"{DEPTS[i][1]}",{CE},"Other Income",'
-        f'{CB},">="&{m_lo},{CB},"<="&{m_hi})' if i < NC
-        else f'=SUM(B{OI}:{gl(1+NC)}{OI})'))
-    r += 1
-    r, OH = grp_block(r, 'Overheads', NS['subs']['exp'] + NS['subs']['oexp'],
-                      ['Expenses', 'Other Expenses'], m_lo, m_hi)
     OM = "'Overhead Split'!$C$22:$N$22"
     AL = r
-    r = line(r, 'Admin overhead charged across', lambda c, i: (
+    calc('Admin overhead charged across', lambda c, i: (
         f'=SUMIFS(\'Overhead Split\'!$C${90+i}:$N${90+i},{OM},">="&{m_lo},{OM},"<="&{m_hi})'
         if i < 5 else (f'=-SUM(B{AL}:{gl(NC)}{AL})' if i == 5
-                       else f'=SUM(B{AL}:{gl(1+NC)}{AL})')))
-    RES = r
-    r = line(r, 'Result after all overhead',
-             lambda c, i: f'={c}{GP}+{c}{OI}+{c}{OH}+{c}{AL}', bold=True, rule=True)
-    r = line(r, 'Result %',
-             lambda c, i: f'=IF({c}{INC}=0,"",{c}{RES}/{c}{INC})', fmt=PCT)
-    return r - 1, {'income': INC, 'cos': COS, 'gp': GP, 'other': OI,
-                   'overheads': OH, 'alloc': AL, 'result': RES}
+                       else f'=SUM(B{AL}:{last}{AL})')), 57)
+    calc('Result after all overhead', lambda c, i: f'={c}{NP}+{c}{AL}', 180)
+    RS = M['Result after all overhead']
+    calc('Result %', lambda c, i: f'=IF({c}{INC}=0,"",{c}{RS}/{c}{INC})', 181)
+    return r - 1, M
+
+SUMIAWO = 'SUMIFS({CA},{CD},"{tag}",{CG},"IAWO",{CB},">="&{lo},{CB},"<="&{hi})'
+CG = 'Cleanup!$G$5:$G$20004'
 
 end1, M1 = pl_block(5, 'THE MONTH', MON, MON)
 end2, M2 = pl_block(end1 + 3, 'YEAR TO DATE', FY0, MON)
 
-ws.column_dimensions['A'].width = 34
+ws.column_dimensions['A'].width = 36
 for i in range(NC + 1):
-    ws.column_dimensions[gl(2 + i)].width = 14
-ws.freeze_panes = 'B6'
-json.dump({'month_rows': M1, 'ytd_rows': M2, 'dept_cols': NC}, open(f'{HERE}/data/pldept.json', 'w'))
-print(f'P&L by Dept: month block rows 5..{end1}, YTD block {end1+3}..{end2}')
+    ws.column_dimensions[gl(2 + i)].width = 15
+ws.freeze_panes = 'B7'
+print(f'P&L by Dept: month block 5..{end1}, YTD block {end1+3}..{end2}')
+json.dump({'month_rows': M1, 'ytd_rows': M2, 'dept_cols': NC},
+          open(f'{HERE}/data/pldept.json', 'w'))
 
 wb.save(OUT)
 print('saved', OUT)
