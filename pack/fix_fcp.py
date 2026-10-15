@@ -136,7 +136,9 @@ OFF_SUB[O_OIS] = ('Other Income', 'Other Income')
 OFF_SUB[O_OES] = ('Other Expenses', 'Other Expenses')
 
 CLN_R0, CLN_R1 = 5, 20004
-GL_R0 = 2                                        # her paste starts at A2
+GL_R0 = 1   # Cleanup reads from GL_Paste row 1, so it does not matter whether she
+            # pastes at A1 over the headings or at A2 under them. Excel only allows a
+            # whole-sheet paste at A1, and a header row has no real date so it is ignored.
 print('new block starts:', ALL_STARTS, 'last row', NEW_LAST)
 
 wb = openpyxl.load_workbook(SRC)
@@ -457,9 +459,9 @@ print('engine add-back rows', ENG_ADD_ROW[(DEPTS[0], "D&A")], 'to', ENG_ADD_LAST
 # B17 are referenced by every risk formula in the pack.
 st = wb['Setup']
 st['B6'] = 7                       # was 8, which made September period 2
-st['B20'] = '=COUNT(GL_Paste!$E$2:$E$20001)'
-st['B24'] = '=IFERROR(MIN(GL_Paste!$E$2:$E$20001),0)'
-st['B25'] = '=IFERROR(MAX(GL_Paste!$E$2:$E$20001),0)'
+st['B20'] = '=COUNT(GL_Paste!$E$1:$E$20000)'
+st['B24'] = '=IFERROR(MIN(GL_Paste!$E$1:$E$20000),0)'
+st['B25'] = '=IFERROR(MAX(GL_Paste!$E$1:$E$20000),0)'
 st['C6'] = 'July'
 def srow(r, label, val, note='', nf='General', is_inp=False):
     st.cell(r, 1, label).font = f(10)
@@ -668,8 +670,11 @@ for i, (a, b) in enumerate([
     ('Lists', '14 accounts live in Xero were missing from the master, so every GL line on them '
      'was being dropped. One of them, 41500 Contract Help Desk, is revenue. Added and shaded '
      'cream. Please check how I have categorised them.'),
-    ('GL_Paste', 'Still paste at A2, as before. Rows with no real date are now ignored, so the '
-     "export's title rows do no harm."),
+    ('GL_Paste', 'Paste the whole Xero export anywhere from A1 down. Rows with no real date '
+     'are ignored, so the title rows and the heading row do no harm, and it does not matter '
+     'whether you land on top of row 1 or under it. Do not delete the blank lines, and do not '
+     'reorder the columns: Index, Account Code, Account Name, Source, Date, Contact, Debit, '
+     'Credit, Job Numbers, Invoice Number, Reference, Description, Cost Centres.'),
 ]):
     r = base + 1 + i
     rd.cell(r, 2, a).font = f(10, True)
