@@ -935,6 +935,76 @@ for ws_ in wb.worksheets:
                 for a, b in SWAP: t = t.replace(a, b)
                 cell.value = t
 
+# =================================================================== 12 ===
+# FY26, from her own CTS Budget FY26 v2 Final workbook.
+#
+# That file runs on three departments, which are groups of the six here, and
+# her FY27 budget proves the grouping to the dollar: Production + Video is the
+# budget's Production, Consulting + Integration is its Consulting, and Onsite
+# is its Support. It carries no subcategory split, so the detail underneath
+# each department follows the shape of her own FY27 budget. Every total, every
+# department and every month is hers exactly; only the split between the
+# subcategory lines is derived.
+FY26 = json.load(open(f'{HERE}/data/fy26.json'))
+GROUPS = {'Production': ['PRODUCTION', 'VIDEO'], 'Consulting': ['CONSULTING', 'INTEGRATION'],
+          'Support': ['ONSITE']}
+SRC_ROW = {'Income': '%s', 'Cost of Sales': '%s Direct Costs'}
+
+def fy27_shape(sheet):
+    """Proportions out of her FY27 budget: how a department splits inside its
+    group, and how a category splits across its subcategory lines."""
+    dept_tot, line = {}, {}
+    for off, lab, lvl, kind, meta in ROWS:
+        if kind not in ('inc_sub', 'cos_sub'): continue
+        d, cat, sub = meta
+        v = sum(sheet.cell(R0 + off, 2 + i).value or 0 for i in range(12))
+        line[(d, cat, sub)] = v
+        dept_tot[(d, cat)] = dept_tot.get((d, cat), 0) + v
+    return dept_tot, line
+
+bud = wb['Budget FY27']
+DEPT_TOT, LINE_TOT = fy27_shape(bud)
+EXP_TOT = {}
+for off, lab, lvl, kind, meta in ROWS:
+    if kind == 'exp_sub':
+        EXP_TOT[meta[1]] = sum(bud.cell(R0 + off, 2 + i).value or 0 for i in range(12))
+EXP_ALL = sum(EXP_TOT.values())
+
+def load_fy26(sheet_name, kind):
+    ws_ = wb[sheet_name]
+    months = FY26['months']
+    get = lambda lab, m: FY26['data'].get(f'{kind}|{lab}', {}).get(m, 0)
+    for off, lab, lvl, k, meta in ROWS:
+        if k not in ('inc_sub', 'cos_sub', 'exp_sub'): continue
+        for i, m in enumerate(months):
+            if k == 'exp_sub':
+                share = EXP_TOT[meta[1]] / EXP_ALL if EXP_ALL else 0
+                v = -abs(get('Total Expenses', m)) * share
+            else:
+                d, cat, sub = meta
+                grp = next((g for g, ds in GROUPS.items() if d in ds), None)
+                if grp is None: v = 0                      # General Admin earns nothing
+                else:
+                    total = get(SRC_ROW[cat] % grp, m)
+                    in_grp = sum(DEPT_TOT.get((x, cat), 0) for x in GROUPS[grp])
+                    dshare = DEPT_TOT.get((d, cat), 0) / in_grp if in_grp else 0
+                    dt_ = DEPT_TOT.get((d, cat), 0)
+                    lshare = LINE_TOT.get((d, cat, sub), 0) / dt_ if dt_ else 0
+                    v = total * dshare * lshare
+                    if cat == 'Cost of Sales': v = -abs(v)
+            ws_.cell(R0 + off, 2 + i, round(v, 2))
+    ws_.cell(3, 1, f'{"Last year\u2019s actuals" if kind == "ACTUAL" else "Last year\u2019s budget"}'
+                   ', from CTS Budget FY26 v2 Final. Her three budget departments map to these '
+                   'six: Production and Video are her Production, Consulting and Integration are '
+                   'her Consulting, Onsite is her Support. Totals, departments and months are '
+                   'hers exactly. The split between the subcategory lines follows the shape of '
+                   'the FY27 budget, because the FY26 file does not carry one.')
+    ws_.cell(3, 1).font = f(9, False, MID)
+
+load_fy26('Actual FY26', 'ACTUAL')
+load_fy26('Budget FY26', 'BUDGET')
+print('FY26 actuals and budget loaded')
+
 # Tab order follows the monthly steps on the README: set the month, paste the
 # three reports, read the controls, then read the statements.
 ORDER = ['README', 'requirements ', 'Setup', GLSHEET, 'PL_Paste', 'BS_Paste', 'PL_Check',
