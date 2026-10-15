@@ -1183,5 +1183,29 @@ for _ws in wb.worksheets:
                     _changed += 1
 print('non-CTS colours remapped:', _changed)
 
+# ------------------------------------------------- negatives show in red ----
+# A number format has up to three parts: positive;negative;zero. Putting
+# [Red] at the front of the middle part turns every negative figure red on
+# its own, with no conditional formatting and nothing to go stale. It follows
+# the number, so it survives a paste and a recalculation.
+def _red(fmt):
+    if not fmt or fmt == 'General' or '[Red]' in fmt:
+        return fmt
+    parts = fmt.split(';')
+    if len(parts) < 2:
+        return fmt
+    parts[1] = '[Red]' + parts[1]
+    return ';'.join(parts)
+
+_nf = 0
+for _ws in wb.worksheets:
+    for _row in _ws.iter_rows():
+        for _c in _row:
+            _new = _red(_c.number_format)
+            if _new != _c.number_format:
+                _c.number_format = _new
+                _nf += 1
+print('cells set to show negatives in red:', _nf)
+
 wb.save(OUT)
 print('saved', OUT)
