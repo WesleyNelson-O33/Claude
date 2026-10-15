@@ -1,12 +1,14 @@
 {
-  "_note": "The CTS palette, read off CTS Monthly Business Review - September 2026.pptx. Change these and rebuild, and every statement tab follows. There is no pink. red_lt now points at the light grey.",
-  "teal": "005358",
-  "aqua": "3FD0C9",
-  "grey": "E3E6EA",
-  "grey_lt": "F4F4F4",
-  "rule": "C9CED6",
-  "mid": "5F6670",
-  "ink": "1A1A1A",
-  "red": "A8052E",
-  "red_lt": "F4F4F4"
+  "_note": "The CTS palette, exactly as Danica supplied it on 15 October 2026. These nine hex codes are the only brand colours. grey and grey_lt are neutrals, used only for row banding and rules, because the brand list has no light neutral.",
+  "bright_teal":  "3FD0C9",
+  "dark_teal":    "005358",
+  "primary_blue": "6D71FF",
+  "deep_blue":    "122B82",
+  "accent_red":   "F33844",
+  "deep_red":     "A8052E",
+  "purple":       "8F4AFA",
+  "charcoal":     "242C39",
+  "white":        "FFFFFF",
+  "grey":         "E3E6EA",
+  "grey_lt":      "F4F4F4"
 }

@@ -7,8 +7,11 @@ cust = json.load(open(f'{D}/data/customers.json'))
 rec = json.load(open(f'{D}/data/receivables.json'))
 mix = json.load(open(f'{D}/data/revmix.json'))
 
-TEAL, AQUA, GREY, MID, INK = '#005358', '#3FD0C9', '#E3E6EA', '#5F6670', '#1A1A1A'
-RULE = '#C9CED6'
+# The CTS palette, exactly as supplied.
+TEAL, AQUA, GREY = '#005358', '#3FD0C9', '#E3E6EA'
+MID, INK = '#242C39', '#242C39'          # Charcoal
+BLUE, NAVY, RED, PURP = '#6D71FF', '#122B82', '#F33844', '#8F4AFA'
+RULE = '#E3E6EA'
 
 CSS = f"""
 *{{margin:0;padding:0;box-sizing:border-box}}
@@ -163,7 +166,7 @@ def chart_yoy():
             s.append(f'<text class="val" font-size="11" fill="{INK if j else INK}" x="{x0+max(w,1)+7:.1f}" '
                      f'y="{yy+rowh*0.28:.1f}">{v/1000:,.0f}</text>')
         mv = r['fy27'] - r['fy26']
-        col = TEAL if mv >= 0 else '#A8052E'
+        col = TEAL if mv >= 0 else RED
         sign = '+' if mv >= 0 else ''
         s.append(f'<text font-size="12" font-weight="700" fill="{col}" x="{W-20}" '
                  f'y="{cy+rowh/2+5:.1f}" text-anchor="end">{sign}{mv/1000:,.0f}k</text>')
@@ -181,7 +184,7 @@ def chart_ageing():
     for i, (lab, v, pct) in enumerate(bk):
         cx = x0 + step * i
         h = v / hi * ph
-        col = TEAL if lab == 'Current' else (AQUA if 'Under' in lab else '#A8052E')
+        col = TEAL if lab == 'Current' else (AQUA if 'Under' in lab else RED)
         s.append(f'<rect x="{cx+step*0.2:.1f}" y="{y0+ph-h:.1f}" width="{step*0.6:.1f}" height="{h:.1f}" fill="{col}" rx="2"/>')
         s.append(f'<text class="val" font-size="12" x="{cx+step/2:.1f}" y="{y0+ph-h-8:.1f}" text-anchor="middle">{v/1000:,.0f}</text>')
         s.append(f'<text class="lab" font-size="11" x="{cx+step/2:.1f}" y="{y0+ph+20}" text-anchor="middle">{lab}</text>')

@@ -19,9 +19,20 @@ def sheet_parts(z):
     wbx = z.read('xl/workbook.xml').decode('utf-8')
     rels = z.read('xl/_rels/workbook.xml.rels').decode('utf-8')
     tgt = dict(re.findall(r'Id="(rId\d+)"[^>]*?Target="([^"]+)"', rels))
-    tgt.update(dict(re.findall(r'Target="([^"]+)"[^>]*?Id="(rId\d+)"', rels))and{})
+    # Writers differ on attribute order, so read the other way round too.
+    # These pairs come back as (Target, Id), so flip them before merging.
+    tgt.update({i: t for t, i in
+                re.findall(r'Target="([^"]+)"[^>]*?Id="(rId\d+)"', rels)})
     out = {}
-    for name, rid in re.findall(r'<sheet[^>]*name="([^"]+)"[^>]*r:id="(rId\d+)"', wbx):
+    # The attributes come in whatever order the writer chose, so pull the tag
+    # first and read name and r:id out of it separately.
+    pairs = []
+    for tag in re.findall(r'<sheet\b[^>]*/?>', wbx):
+        nm = re.search(r'\bname="([^"]*)"', tag)
+        ri = re.search(r'\br:id="(rId\d+)"', tag)
+        if nm and ri:
+            pairs.append((nm.group(1), ri.group(1)))
+    for name, rid in pairs:
         t = tgt.get(rid)
         if not t: continue
         t = t.lstrip('/')
