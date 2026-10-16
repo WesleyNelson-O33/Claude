@@ -1,0 +1,214 @@
+"""Every chart in the pack, built in one place with the same settings.
+
+Clears whatever charts are on the sheets and puts them back, because openpyxl
+does not round trip data label settings: reload a book and the labels come
+back as None, so patching them in place is not reliable. Rebuilding is.
+
+House rules for a chart here:
+  data labels show the value and nothing else, never the series name, the
+    category name or a legend key
+  a ranked bar chart runs best at the top, and drops the value axis, since
+    the label on each bar already says the number
+  bars are thick, so the chart reads as a shape rather than a row of pins
+  colours come from brand.json, and departments from dept_colours.json
+
+Run after the patch scripts and before recalc.
+"""
+import os, json
+import openpyxl
+from openpyxl.chart import BarChart, LineChart, Reference
+from openpyxl.chart.legend import Legend
+from openpyxl.chart.label import DataLabelList
+from openpyxl.chart.shapes import GraphicalProperties
+from openpyxl.chart.text import RichText
+from openpyxl.chart.marker import DataPoint
+from openpyxl.drawing.line import LineProperties
+from openpyxl.drawing.text import (RichTextProperties, Paragraph,
+                                   ParagraphProperties, CharacterProperties)
+from openpyxl.utils import get_column_letter as gl
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+OUT = f'{HERE}/CTS Financial Controller Pack - v20.xlsx'
+B = json.load(open(f'{HERE}/data/brand.json'))
+D = json.load(open(f'{HERE}/data/dept_colours.json'))
+P = json.load(open(f'{HERE}/data/pldept.json'))
+R = json.load(open(f'{HERE}/data/newsheet_rows.json'))
+ACC = json.load(open(f'{HERE}/data/overhead_accounts.json'))
+
+INK, GREY, GREYL, WHITE = B['charcoal'], B['grey'], B['grey_lt'], B['white']
+TEAL, AQUA, NAVY, BLUE, PURP, RED = (B['dark_teal'], B['bright_teal'], B['deep_blue'],
+                                     B['primary_blue'], B['purple'], B['accent_red'])
+
+def txt(size=900, bold=False, colour=INK):
+    return RichText(bodyPr=RichTextProperties(), p=[Paragraph(
+        pPr=ParagraphProperties(defRPr=CharacterProperties(
+            sz=size, b=bold, solidFill=colour, latin=None)),
+        endParaRPr=CharacterProperties(sz=size, b=bold, solidFill=colour))])
+
+def _dl(fmt, pos, size, colour, bold):
+    d = DataLabelList()
+    d.showVal = True
+    d.showSerName = False
+    d.showCatName = False
+    d.showLegendKey = False
+    d.showPercent = False
+    d.showBubbleSize = False
+    d.numFmt = fmt
+    d.dLblPos = pos
+    d.txPr = txt(size, bold, colour)
+    return d
+
+def labels(ch, fmt='#,##0', pos='outEnd', size=900, colour=INK, bold=False):
+    ch.dataLabels = _dl(fmt, pos, size, colour, bold)
+
+def labels_in(ch, cols, fmt='$#,##0', size=900):
+    """Sit the value in the middle of each bar. At the end of the bar the
+    longest one runs into the edge of the plot and its label gets dropped.
+    One text colour per series, because a white number is invisible on a
+    pale bar."""
+    for s_, col in zip(ch.series, cols):
+        s_.dLbls = _dl(fmt, 'ctr', size, col, True)
+
+def frame(ch, title, w, h, gap=45):
+    ch.title = title
+    ch.width, ch.height = w, h
+    ch.style = None
+    ch.gapWidth = gap
+    ch.y_axis.majorGridlines = None
+    ch.legend = None
+    for ax in (ch.x_axis, ch.y_axis):
+        ax.txPr = txt(900)
+        ax.majorTickMark = 'none'
+        ax.minorTickMark = 'none'
+        ax.spPr = GraphicalProperties(ln=LineProperties(solidFill=GREY, w=9525))
+
+def ranked(ch):
+    """A top ten reads best with number one at the top and no value axis."""
+    ch.x_axis.scaling.orientation = 'maxMin'
+    ch.y_axis.delete = True
+    ch.y_axis.majorGridlines = None
+
+def legend(ch, pos='b'):
+    ch.legend = Legend()
+    ch.legend.position = pos
+    ch.legend.overlay = False
+    ch.legend.txPr = txt(900)
+
+def paint(ch, cols):
+    for s, col in zip(ch.series, cols):
+        s.graphicalProperties = GraphicalProperties(solidFill=col)
+        s.graphicalProperties.line = LineProperties(noFill=True)
+
+def paint_depts(ser, names):
+    ser.data_points = [DataPoint(idx=i, spPr=GraphicalProperties(
+        solidFill=D['departments'].get(n, INK), ln=LineProperties(noFill=True)))
+        for i, n in enumerate(names)]
+
+wb = openpyxl.load_workbook(OUT)
+for ws in wb.worksheets:
+    ws._charts = []
+
+# ---------------------------------------------------- Top 10 Clients ------
+ws = wb['Top 10 Clients']
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=4, min_row=6, max_row=16), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=7, min_row=7, max_row=16))
+frame(ch, 'Top 10 customers, year to date', 21, 12)
+ranked(ch)
+paint(ch, [TEAL])
+labels_in(ch, [WHITE])
+ws.add_chart(ch, 'G5')
+
+# -------------------------------------------------------- Top 10 YoY ------
+ws = wb['Top 10 YoY']
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=3, max_col=4, min_row=4, max_row=14),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=10, min_row=5, max_row=14))
+frame(ch, 'This year against the same three months last year', 24, 13, gap=55)
+ranked(ch)
+legend(ch)
+paint(ch, [NAVY, GREY])
+labels_in(ch, [WHITE, INK], size=800)
+ws.add_chart(ch, 'J4')
+
+# ------------------------------------------------------- P&L by Dept ------
+ws = wb['P&L by Dept']
+for rows, anchor, title in ((P['month_rows'], 'J5', 'Revenue and result after overhead, this month'),
+                            (P['ytd_rows'],   'J27', 'Revenue and result after overhead, year to date')):
+    hdr = rows['Total Income'] - 1
+    ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+    for key in ('Total Income', 'Result after all overhead'):
+        ch.add_data(Reference(ws, min_col=1, min_row=rows[key], max_col=7,
+                              max_row=rows[key]), from_rows=True, titles_from_data=True)
+    ch.set_categories(Reference(ws, min_col=2, min_row=hdr, max_col=7))
+    frame(ch, title, 23, 11)
+    labels(ch, '#,##0', size=850)
+    legend(ch)
+    paint(ch, [TEAL, INK])
+    paint_depts(ch.series[0], [ws.cell(hdr, c).value for c in range(2, 8)])
+    ws.add_chart(ch, anchor)
+
+# --------------------------------------------------------------- DSO ------
+ws = wb['DSO']
+ch = BarChart(); ch.type = 'col'
+ch.add_data(Reference(ws, min_col=2, min_row=18, max_row=24), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=19, max_row=24))
+frame(ch, 'Aged receivables', 18, 10)
+labels(ch, '$#,##0')
+ch.y_axis.delete = True
+paint(ch, [NAVY])
+ws.add_chart(ch, 'J5')
+
+ch = BarChart(); ch.type = 'bar'
+ch.add_data(Reference(ws, min_col=3, min_row=30, max_row=40), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=2, min_row=31, max_row=40))
+frame(ch, 'Who owes the most', 18, 12)
+ranked(ch)
+paint(ch, [BLUE])
+labels_in(ch, [WHITE])
+ws.add_chart(ch, 'J24')
+
+T = R['dso_trend']
+ch = LineChart()
+ch.add_data(Reference(ws, min_col=1, min_row=T + 5, max_col=13, max_row=T + 5),
+            from_rows=True, titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=2, min_row=T + 1, max_col=13))
+frame(ch, 'DSO month by month', 23, 10)
+labels(ch, '#,##0.0', pos='t')
+for s in ch.series:
+    s.graphicalProperties = GraphicalProperties(
+        ln=LineProperties(solidFill=TEAL, w=28000))
+    s.smooth = False
+ws.add_chart(ch, f'A{T + 9}')
+
+# ---------------------------------------------------- Overhead Split ------
+ws = wb['Overhead Split']
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=1, min_row=16, max_col=6, max_row=18),
+            from_rows=True, titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=2, min_row=15, max_col=6))
+frame(ch, 'The three split keys', 21, 10)
+labels(ch, '0%', size=850)
+ch.y_axis.delete = True
+legend(ch)
+paint(ch, [INK, GREY, NAVY])
+ws.add_chart(ch, 'V5')
+
+# ---------------------------------------------------- Overheads MoM ------
+ws = wb['Overheads MoM']
+SUB = [r for r in range(1, ws.max_row + 1) if ws.cell(r, 1).value in ACC]
+P0 = next(r for r in range(1, ws.max_row + 1)
+          if str(ws.cell(r, 1).value or '').startswith('CHART DATA'))
+first, last = P0 + 2, P0 + 1 + len(SUB)
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'stacked'; ch.overlap = 100
+ch.add_data(Reference(ws, min_col=1, min_row=first, max_col=13, max_row=last),
+            from_rows=True, titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=2, min_row=P0 + 1, max_col=13))
+frame(ch, 'Overhead spend, month by month', 30, 13, gap=35)
+legend(ch)
+paint(ch, [NAVY, BLUE, PURP, INK, GREY, AQUA])
+ws.add_chart(ch, f'A{last + 3}')
+
+wb.save(OUT)
+print('charts rebuilt:', sum(len(ws._charts) for ws in wb.worksheets))
