@@ -21,6 +21,18 @@ OUT = f'{HERE}/CTS Financial Controller Pack - v20.xlsx'
 B = json.load(open(f'{HERE}/data/brand.json'))
 D = json.load(open(f'{HERE}/data/dept_colours.json'))
 BUD = json.load(open(f'{HERE}/data/budget_fy27.json'))
+STAFF = json.load(open(f'{HERE}/data/staffsplit.json'))
+OFFROW = STAFF['office']
+OMM = "'Overheads MoM'"
+OMONTH = f"MATCH(Setup!$B$5,{OMM}!$B$4:$M$4,0)"
+def office(dept):
+    """The admin employment expense pushed into a department, as Gi splits it.
+    It is typed on Overheads MoM. General Admin carries whatever is left."""
+    if dept == 'General Admin':
+        return '-(' + '+'.join(f'INDEX({OMM}!$B${OFFROW[d]}:$M${OFFROW[d]},{OMONTH})'
+                               for d in OFFROW) + ')'
+    r = OFFROW[dept]
+    return f'INDEX({OMM}!$B${r}:$M${r},{OMONTH})'
 
 TEAL, AQUA, BLUE, NAVY = B['dark_teal'], B['bright_teal'], B['primary_blue'], B['deep_blue']
 RED, INK, WHITE, GREY, GREYL = (B['accent_red'], B['charcoal'], B['white'],
@@ -42,6 +54,7 @@ DEPT = {
  'Consulting':    ('CONSULTING',  33, 113, 114, 129, 5),
  'General Admin': ('ADMIN',       49, 147, 148, 160, 0),
 }
+OFFLOOKUP = True
 ORDER = list(DEPT)
 # the sixteen cost of sales subcategories, in the order every block holds them
 COS = ['Equipment - Purchase','Equipment - Hires','Sub-Contract Labour','Service - hires',
@@ -114,11 +127,12 @@ for c in range(1, 10):
 ws.cell(W + 1, 1, 'Department index')
 for i, h in enumerate(['Department', 'Tag', 'Income total row', 'COS total row',
                        'COS first row', 'First row on the Engine',
-                       'Row on the overhead split'], start=1):
+                       'Row on the overhead split', 'Office staff row'], start=1):
     ws.cell(W + 2, i, h).font = Font(name='Calibri', size=9, bold=True, color=INK)
 for i, d in enumerate(ORDER):
     t, inc, cost, cst, pc, oc = DEPT[d]
-    for j, v in enumerate([d, t, inc, cost, cst, pc, oc], start=1):
+    for j, v in enumerate([d, t, inc, cost, cst, pc, oc,
+                           OFFROW.get(d, 0)], start=1):
         ws.cell(W + 3 + i, j, v)
 DI = f'$A${W+3}:$A${W+3+len(ORDER)-1}'          # department names
 IDX = f'MATCH($B$5,{DI},0)'
@@ -264,21 +278,34 @@ GPM = r; r += 1
 OHS = "'Overhead Split'"
 OHM = f"MATCH(Setup!$B$5,{OHS}!$C$22:$N$22,0)"
 E0 = r
+HEADS = []
 for nm, pbdrow in EXP:
     own = f'INDEX({eng(22, 6)},{EXPOFF[nm]})'
     alloc = (f'IF({OC}=0,-SUMPRODUCT(({OHS}!$U$23:$U$86=$A{r})*'
              f'INDEX({OHS}!$C$23:$N$86,0,{OHM})),'
              f'SUMPRODUCT(({OHS}!$U$23:$U$86=$A{r})*INDEX({OHS}!$P$23:$T$86,0,{OC})*'
              f'INDEX({OHS}!$C$23:$N$86,0,{OHM})))')
-    bq = (f"=IF($B$5=\"General Admin\",{own},IFERROR(SUMIF({BFY}!$A${BR+2}:$A${BEND},$B$5,"
-          f"INDEX({BFY}!$C${BR+2}:$N${BEND},0,{BUC}))*0,0))")   # placeholder, set below
-    line(r, nm,
-         f'={own}+{alloc}',
-         f'={NA}',
-         f'=IF($B$5="General Admin","",SUMIFS(INDEX({BFY}!$C${BR+2}:$N${BEND},0,{BUC}),'
-         f'{BFY}!$A${BR+2}:$A${BEND},$B$5,{BFY}!$B${BR+2}:$B${BEND},$A{r}))',
-         COST)
-    r += 1
+    bud = (f'=IF($B$5="General Admin","",SUMIFS(INDEX({BFY}!$C${BR+2}:$N${BEND},0,{BUC}),'
+           f'{BFY}!$A${BR+2}:$A${BEND},$B$5,{BFY}!$B${BR+2}:$B${BEND},$A{r}))')
+    if nm != 'Employment Expenses':
+        line(r, nm, f'={own}+{alloc}', f'={NA}', bud, COST)
+        HEADS.append(r); r += 1
+        continue
+    # Gi splits this one: departmental staff is the department's own, office
+    # staff is the admin pot pushed in. The catch-all below picks up whatever
+    # the six headings do not, so the total still ties to P&L by Dept.
+    head = r
+    off_expr = ' + '.join([])
+    dep_r, off_r = r + 1, r + 2
+    line(head, nm, f'=$B{dep_r}+$B{off_r}', f'={NA}', bud, COST)
+    HEADS.append(head)
+    line(dep_r, '        Departmental staff', f'={own}',
+         f'={NA}', '=""', COST)
+    off_src = ('=IF($B$5="General Admin",' + office('General Admin') + ','
+               + 'INDEX(' + f'{OMM}!$B$1:$M$400,'
+               + f'INDEX(${gl(8)}${W+3}:${gl(8)}${W+3+len(ORDER)-1},{IDX}),{OMONTH}))')
+    line(off_r, '        Office staff', off_src, f'={NA}', '=""', COST)
+    r += 3
 # Whatever the six headings above do not pick up. Taking it as the department's
 # whole expense (its own, plus its share of admin, both already on P&L by Dept)
 # less the six means Total Expenses always ties back to that tab, so nothing
@@ -286,11 +313,14 @@ for nm, pbdrow in EXP:
 SPREAD = (f'IF({OC}=0,-INDEX({OHS}!$C$95:$N$95,1,{OHM}),'
           f'INDEX({OHS}!$C$90:$N$94,{OC},{OHM}))')
 line(r, 'Other admin overhead',
-     f'=SUM({eng(22, 6)})+{SPREAD}-SUM($B{E0}:$B{r-1})',
+     f'=SUM({eng(22, 6)})+{SPREAD}-SUM(' + ','.join(f'$B{x}' for x in HEADS) + ')',
      f'={NA}', '=""', COST)
 r += 1
 E1 = r - 1
-line(r, 'Total Expenses', f'=SUM($B{E0}:$B{E1})', f'={NA}', f'=SUM($F{E0}:$F{E1})',
+OTHER = r - 1
+line(r, 'Total Expenses',
+     '=SUM(' + ','.join(f'$B{x}' for x in HEADS + [OTHER]) + ')', f'={NA}',
+     '=SUM(' + ','.join(f'$F{x}' for x in HEADS + [OTHER]) + ')',
      COST, bold=True, fill=GREYL)
 TE = r; r += 1
 line(r, 'Net Profit/Loss', f'=$B{GP}+$B{TE}', f'={NA}', f'=$F{GP}+$F{TE}',

@@ -55,6 +55,9 @@ wb = openpyxl.load_workbook(OUT)
 PL, EN, BUD = wb['P&L FY27'], wb['Engine'], wb['Budget FY27']
 names = lambda off: [EN.cell(ENG['ONSITE'][0] + i, 4).value for i in off]
 INC_N, COS_N, EXP_N = names(INC), names(COS), names(EXP)
+STAFF = json.load(open(f'{HERE}/data/staffsplit.json'))
+OFFROW = STAFF['office']            # where each department's office staff is typed
+OMM = "'Overheads MoM'"
 BUDEXP = {}
 for r in range(197, 227):
     d, s_ = BUD.cell(r, 1).value, BUD.cell(r, 2).value
@@ -218,7 +221,6 @@ for head, tags, subs in BLOCKS:
     ROW[0] += 1
     ekids = []
     for o, n in zip(EXP, EXP_N):
-        rr = ROW[0]
         def ebody(c, cc, o=o, n=n):
             act = '+'.join(f'Engine!${ECOL(cc)}{ENG[t][0] + o}' for t in tags)
             br = [BUDEXP.get((BUDR[t][2], n)) for t in tags]
@@ -228,10 +230,36 @@ for head, tags, subs in BLOCKS:
             br = [BUDEXP.get((BUDR[t][2], n)) for t in tags]
             parts = [expbud(x) for x in br if x]
             return '=' + '+'.join(parts) if parts else 0
-        ekids.append(put('    ' + n, 165, 2, True, ebody, budget=embud))
+        if n != 'Employment Expenses':
+            ekids.append(put('    ' + n, 165, 2, True, ebody, budget=embud))
+            continue
+        # Gi splits this one two ways. Departmental staff is what sits on the
+        # department's own cost centre, which is what the Engine already holds.
+        # Office staff is the admin pot pushed in, typed on Overheads MoM.
+        # General Admin carries whatever of the pot has not been pushed out, so
+        # the five plus admin always add back to the P&L.
+        head_row = ROW[0]
+        ROW[0] += 1
+        dep = put('        Departmental staff', 165, 3, True, ebody, budget=embud)
+        if tags == ['ADMIN']:
+            offb = lambda c, cc: ('=-(' + '+'.join(f'{OMM}!{c}{OFFROW[d]}'
+                                                   for d in OFFROW) + ')')
+        else:
+            offb = lambda c, cc: ('=' + '+'.join(f'{OMM}!{c}{OFFROW[BUDR[t][2]]}'
+                                                 for t in tags if BUDR[t][2] in OFFROW)
+                                  or '=0')
+        off = put('        Office staff', 165, 3, True, offb)
+        cur = ROW[0]
+        ROW[0] = head_row
+        put('    ' + n, 165, 2, True,
+            lambda c, cc, a=dep, b=off: f'={c}{a}+{c}{b}', generic=True)
+        ROW[0] = cur
+        ekids.append(head_row)
     cur = ROW[0]; ROW[0] = EXr
+    # Add the six headings by name, not as a range. Employment Expenses has
+    # two children under it now, and a range would count them twice.
     EX = put('Expenses Overheds', 164, 1, False,
-             lambda c, cc: f'=SUM({c}{ekids[0]}:{c}{ekids[-1]})', generic=True)
+             lambda c, cc: '=' + '+'.join(f'{c}{x}' for x in ekids), generic=True)
     ROW[0] = cur
     OE = plain('Other Expenses', 171, OTH_EXP)
     GP = put('Gross profit', 173, 1, False, lambda c, cc: f'={c}{TI}+{c}{CS}',
