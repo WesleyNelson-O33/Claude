@@ -60,6 +60,14 @@ for r in range(197, 227):
     d, s_ = BUD.cell(r, 1).value, BUD.cell(r, 2).value
     if d:
         BUDEXP[(d, s_)] = r
+# That block's months sit in C to N, not B to M like the rest of the sheet, so
+# its own heading row is the criteria range. Reading B to M puts every month
+# one out and quietly picks up the wrong month's budget.
+EH = min(BUDEXP.values()) - 1
+EXPRNG = f"'Budget FY27'!$C${EH}:$N${EH}"
+assert BUD.cell(EH, 3).value, 'the overhead budget heading row moved'
+expbud = lambda r: f"SUMIF({EXPRNG},Setup!$B$5,'Budget FY27'!$C{r}:$N{r})"
+print('overhead budget months read from row', EH, 'columns C to N')
 
 if 'P&L by Dept' in wb.sheetnames:
     idx = wb.sheetnames.index('P&L by Dept')
@@ -103,9 +111,22 @@ for head, tags, subs in BLOCKS:
     ws.cell(HDR, 1, 'Line'); style_from(HDR, 1, 5, 1)
     ws.cell(HDR, 14, 'FY total'); style_from(HDR, 14, 5, 14)
     ws.cell(HDR, 15, 'YTD'); style_from(HDR, 15, 5, 15)
+    # the month block, same as the one on P&L FY27, after a blank column
+    for col, lab, src in ((17, 'Month', 15), (18, 'Month budget', 17),
+                          (19, 'Var $', 18), (20, 'Var %', 19)):
+        ws.cell(HDR, col, lab); style_from(HDR, col, 5, src)
+        ws.cell(HDR, col).alignment = Alignment(horizontal='right')
     ROW[0] = HDR + 1
 
-    def put(label, src, level, hide, body):
+    def put(label, src, level, hide, body, pct=False, generic=False, budget=None):
+        """One P&L line.
+
+        pct      the body is a ratio, so the month column is the ratio too
+                 rather than a sum of percentages
+        generic  the body is written purely in column letters, so the budget
+                 column can reuse it
+        budget   an explicit month budget formula, for the leaf rows
+        """
         r = ROW[0]
         ws.cell(r, 1, label)
         style_from(r, 1, src, 1)
@@ -114,8 +135,16 @@ for head, tags, subs in BLOCKS:
             style_from(r, c, src, 2)
         ws.cell(r, 14, f'=SUM($B{r}:$M{r})')
         ws.cell(r, 15, f'=SUMIF($B${HDR}:$M${HDR},"<="&Setup!$B$5,$B{r}:$M{r})')
-        for c in (14, 15):
+        ws.cell(r, 17, body('Q', None) if pct else
+                f'=SUMIF($B${HDR}:$M${HDR},Setup!$B$5,$B{r}:$M{r})')
+        ws.cell(r, 18, budget(r) if budget else
+                (body('R', None) if (pct or generic) else 0))
+        ws.cell(r, 19, f'=IFERROR(Q{r}-R{r},"")')
+        ws.cell(r, 20, f'=IFERROR(S{r}/ABS(R{r}),0)')
+        for c in (14, 15, 17, 18, 19):
             style_from(r, c, src, 2)
+        ws.cell(r, 20)._style = copy.copy(PL.cell(r if src != 165 else 165, 2)._style)
+        ws.cell(r, 20).number_format = PL.cell(179, 2).number_format
         ws.row_dimensions[r].outlineLevel = level
         ws.row_dimensions[r].hidden = hide
         ROW[0] = r + 1
@@ -133,9 +162,17 @@ for head, tags, subs in BLOCKS:
                 base = BUDR[tag][k] + (off if budkind == 'i' else off - 7)
                 bud = f"'Budget FY27'!{gl(cc)}{base}"
             return f'=IF({c}${HDR}<=Setup!$B$5,{act},{bud})'
+        def mbud(rr):
+            if budkind == 'e':
+                br = BUDEXP.get((BUDR[tag][2], nm))
+                return f'={expbud(br)}' if br else 0
+            k = 0 if budkind == 'i' else 1
+            base = BUDR[tag][k] + (off if budkind == 'i' else off - 7)
+            return (f"=SUMIF('Budget FY27'!$B$5:$M$5,Setup!$B$5,"
+                    f"'Budget FY27'!$B{base}:$M{base})")
         return put('        ' + nm if level > 2 else '    ' + nm,
                    42 if budkind == 'i' else (131 if budkind == 'c' else 165),
-                   level, True, body)
+                   level, True, body, budget=mbud)
 
     def section(label, src, offs, nms, budkind, sub_src):
         """A category, with its sub-departments inside it when it has any."""
@@ -150,7 +187,7 @@ for head, tags, subs in BLOCKS:
                 cur = ROW[0]
                 ROW[0] = sub_row
                 put('    ' + sublab, sub_src, 2, False,
-                    lambda c, cc, k=kids: f'=SUM({c}{k[0]}:{c}{k[-1]})')
+                    lambda c, cc, k=kids: f'=SUM({c}{k[0]}:{c}{k[-1]})', generic=True)
                 ROW[0] = cur
                 parts.append(sub_row)
         else:
@@ -160,10 +197,11 @@ for head, tags, subs in BLOCKS:
         ROW[0] = head_row
         if parts:
             put(label, src, 1, False,
-                lambda c, cc, p=parts: '=' + '+'.join(f'{c}{x}' for x in p))
+                lambda c, cc, p=parts: '=' + '+'.join(f'{c}{x}' for x in p),
+                generic=True)
         else:
             put(label, src, 1, False,
-                lambda c, cc, k=kids: f'=SUM({c}{k[0]}:{c}{k[-1]})')
+                lambda c, cc, k=kids: f'=SUM({c}{k[0]}:{c}{k[-1]})', generic=True)
         ROW[0] = cur
         return head_row
 
@@ -186,27 +224,35 @@ for head, tags, subs in BLOCKS:
             br = [BUDEXP.get((BUDR[t][2], n)) for t in tags]
             bud = '+'.join(f"'Budget FY27'!{gl(cc)}{x}" for x in br if x) or '0'
             return f'=IF({c}${HDR}<=Setup!$B$5,{act},{bud})'
-        ekids.append(put('    ' + n, 165, 2, True, ebody))
+        def embud(rr, n=n):
+            br = [BUDEXP.get((BUDR[t][2], n)) for t in tags]
+            parts = [expbud(x) for x in br if x]
+            return '=' + '+'.join(parts) if parts else 0
+        ekids.append(put('    ' + n, 165, 2, True, ebody, budget=embud))
     cur = ROW[0]; ROW[0] = EXr
     EX = put('Expenses Overheds', 164, 1, False,
-             lambda c, cc: f'=SUM({c}{ekids[0]}:{c}{ekids[-1]})')
+             lambda c, cc: f'=SUM({c}{ekids[0]}:{c}{ekids[-1]})', generic=True)
     ROW[0] = cur
     OE = plain('Other Expenses', 171, OTH_EXP)
-    GP = put('Gross profit', 173, 1, False, lambda c, cc: f'={c}{TI}+{c}{CS}')
+    GP = put('Gross profit', 173, 1, False, lambda c, cc: f'={c}{TI}+{c}{CS}',
+             generic=True)
     put('Gross profit %', 174, 1, False,
-        lambda c, cc: f'=IF({c}{TI}=0,"",{c}{GP}/{c}{TI})')
+        lambda c, cc: f'=IF({c}{TI}=0,"",{c}{GP}/{c}{TI})', pct=True)
     da = '+'.join(f'Engine!${{E}}{ENG[t][1]}+IF(Setup!$B$28="Yes",Engine!${{E}}{ENG[t][1]+1},0)'
                   for t in tags)
     DA = put('Depreciation & amortisation', 175, 1, False, lambda c, cc:
              f'=IF({c}${HDR}<=Setup!$B$5,' + da.replace('{E}', ECOL(cc)) + ',0)')
     EB = put('EBITDA', 176, 1, False,
-             lambda c, cc: f'={c}{TI}+{c}{CS}+{c}{EX}-{c}{DA}')
-    put('EBITDA %', 177, 1, False, lambda c, cc: f'=IF({c}{TI}=0,"",{c}{EB}/{c}{TI})')
-    EI = put('EBIT', 178, 1, False, lambda c, cc: f'={c}{EB}+{c}{DA}')
-    put('EBIT %', 179, 1, False, lambda c, cc: f'=IF({c}{TI}=0,"",{c}{EI}/{c}{TI})')
+             lambda c, cc: f'={c}{TI}+{c}{CS}+{c}{EX}-{c}{DA}', generic=True)
+    put('EBITDA %', 177, 1, False, lambda c, cc: f'=IF({c}{TI}=0,"",{c}{EB}/{c}{TI})',
+        pct=True)
+    EI = put('EBIT', 178, 1, False, lambda c, cc: f'={c}{EB}+{c}{DA}', generic=True)
+    put('EBIT %', 179, 1, False, lambda c, cc: f'=IF({c}{TI}=0,"",{c}{EI}/{c}{TI})',
+        pct=True)
     NP = put('Net profit', 180, 1, False,
-             lambda c, cc: f'={c}{TI}+{c}{OI}+{c}{CS}+{c}{EX}+{c}{OE}')
-    put('Net profit %', 181, 1, False, lambda c, cc: f'=IF({c}{TI}=0,"",{c}{NP}/{c}{TI})')
+             lambda c, cc: f'={c}{TI}+{c}{OI}+{c}{CS}+{c}{EX}+{c}{OE}', generic=True)
+    put('Net profit %', 181, 1, False, lambda c, cc: f'=IF({c}{TI}=0,"",{c}{NP}/{c}{TI})',
+        pct=True)
     for pct, money in (('Gross profit %', GP), ('EBITDA %', EB),
                        ('EBIT %', EI), ('Net profit %', NP)):
         pr = next(x for x in range(HDR, ROW[0]) if ws.cell(x, 1).value == pct)
@@ -244,7 +290,7 @@ for i in range(1, 8):
     style_from(T, i, 180, 1 if i == 1 else 2)
 ws.cell(T, 7).number_format = PL.cell(181, 2).number_format
 
-for c in range(1, 16):
+for c in range(1, 21):
     ws.column_dimensions[gl(c)].width = PL.column_dimensions[gl(c)].width or 13
 ws.column_dimensions['A'].width = 36
 ws.freeze_panes = 'B5'
