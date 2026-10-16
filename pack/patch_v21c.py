@@ -278,6 +278,8 @@ GPM = r; r += 1
 OHS = "'Overhead Split'"
 OHM = f"MATCH(Setup!$B$5,{OHS}!$C$22:$N$22,0)"
 E0 = r
+# The office staff and departmental staff split lives on P&L by Dept only,
+# which is where she wants it. This card keeps the single overhead line.
 HEADS = []
 for nm, pbdrow in EXP:
     own = f'INDEX({eng(22, 6)},{EXPOFF[nm]})'
@@ -287,25 +289,8 @@ for nm, pbdrow in EXP:
              f'INDEX({OHS}!$C$23:$N$86,0,{OHM})))')
     bud = (f'=IF($B$5="General Admin","",SUMIFS(INDEX({BFY}!$C${BR+2}:$N${BEND},0,{BUC}),'
            f'{BFY}!$A${BR+2}:$A${BEND},$B$5,{BFY}!$B${BR+2}:$B${BEND},$A{r}))')
-    if nm != 'Employment Expenses':
-        line(r, nm, f'={own}+{alloc}', f'={NA}', bud, COST)
-        HEADS.append(r); r += 1
-        continue
-    # Gi splits this one: departmental staff is the department's own, office
-    # staff is the admin pot pushed in. The catch-all below picks up whatever
-    # the six headings do not, so the total still ties to P&L by Dept.
-    head = r
-    off_expr = ' + '.join([])
-    dep_r, off_r = r + 1, r + 2
-    line(head, nm, f'=$B{dep_r}+$B{off_r}', f'={NA}', bud, COST)
-    HEADS.append(head)
-    line(dep_r, '        Departmental staff', f'={own}',
-         f'={NA}', '=""', COST)
-    off_src = ('=IF($B$5="General Admin",' + office('General Admin') + ','
-               + 'INDEX(' + f'{OMM}!$B$1:$M$400,'
-               + f'INDEX(${gl(8)}${W+3}:${gl(8)}${W+3+len(ORDER)-1},{IDX}),{OMONTH}))')
-    line(off_r, '        Office staff', off_src, f'={NA}', '=""', COST)
-    r += 3
+    line(r, nm, f'={own}+{alloc}', f'={NA}', bud, COST)
+    HEADS.append(r); r += 1
 # Whatever the six headings above do not pick up. Taking it as the department's
 # whole expense (its own, plus its share of admin, both already on P&L by Dept)
 # less the six means Total Expenses always ties back to that tab, so nothing
