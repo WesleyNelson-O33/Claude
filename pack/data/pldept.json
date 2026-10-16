@@ -1,12 +1,12 @@
 {
- "banners": [
-  4,
-  52,
-  100,
-  148,
-  196,
-  244
- ],
+ "leaf_rows": {
+  "Events": 52,
+  "Video": 100,
+  "Integration": 196,
+  "Consulting": 244,
+  "Support": 292,
+  "General Admin": 340
+ },
  "offsets": {
   "Total Income": 3,
   "Cost of Sales": 12,
@@ -14,5 +14,5 @@
   "EBITDA": 40,
   "Net profit": 44
  },
- "side_by_side": 292
+ "side_by_side": 388
 }

@@ -136,7 +136,7 @@ ws.add_chart(ch, 'J4')
 # The six blocks are a P&L each, so the chart reads the side by side table at
 # the bottom rather than any one block.
 ws = wb['P&L by Dept']
-S = P['side_by_side']
+S = P["side_by_side"]
 DNAMES = [ws.cell(S + 2 + i, 1).value for i in range(6)]
 for cols, anchor, title in (((2, 4), 'I292', 'Revenue and gross profit by department, year to date'),
                             ((2, 6), 'I316', 'Revenue and net profit by department, year to date')):
