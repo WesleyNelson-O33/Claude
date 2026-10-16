@@ -230,6 +230,8 @@ paint(ch, [D['departments'][d] for d in
 ws.add_chart(ch, f'J{S}')
 
 # ------------------------------------------------- Cost Analysis ---------
+# All seven sit in column I and down, stacked with a gap, so the data in
+# columns A to G stays clear of them.
 ws = wb['Cost Analysis']
 
 # the operating expense accounts, biggest first
@@ -243,7 +245,7 @@ frame(ch, 'Other operating expenses, year to date', 22, 13)
 ranked(ch)
 paint(ch, [NAVY])
 labels_in(ch, [WHITE])
-ws.add_chart(ch, 'F4')
+ws.add_chart(ch, 'I4')
 
 # where every dollar of operating cost goes
 ch = BarChart(); ch.type = 'bar'; ch.grouping = 'clustered'
@@ -255,7 +257,7 @@ frame(ch, 'Operating cost distribution, year to date', 22, 12)
 ranked(ch)
 paint(ch, [INK])
 labels_in(ch, [WHITE])
-ws.add_chart(ch, 'F33')      # spaced so the three do not sit on top of each other
+ws.add_chart(ch, 'I33')
 
 # direct against indirect labour
 ch = BarChart(); ch.type = 'bar'; ch.grouping = 'stacked'; ch.overlap = 100
@@ -267,7 +269,60 @@ frame(ch, 'Labour mix, direct against indirect, year to date', 22, 14, gap=45)
 ranked(ch)
 legend(ch)
 paint(ch, [NAVY, GREY])
-ws.add_chart(ch, 'F61')
+ws.add_chart(ch, 'I61')
+
+# ------------------------------------------- budget against actual ------
+ws = wb['Cost Analysis']
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=CC['bva_hdr'],
+                      max_row=CC['bva_last']), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=CC['bva_first'],
+                            max_row=CC['bva_last']))
+frame(ch, 'Budget against actual, year to date', 22, 11, gap=50)
+ranked(ch)
+legend(ch)
+paint(ch, [NAVY, GREY])
+labels_in(ch, [WHITE, INK], size=800)
+ws.add_chart(ch, 'I92')
+
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=CC['bvm_hdr'],
+                      max_row=CC['bvm_last']), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=CC['bvm_first'],
+                            max_row=CC['bvm_last']))
+frame(ch, 'Total income by month, actual to date then budget, against budget', 26, 11)
+ch.y_axis.delete = True
+legend(ch)
+paint(ch, [NAVY, GREY])
+labels(ch, '#,##0', size=750)
+ws.add_chart(ch, 'I117')
+
+# --------------------------------------------------- profitability ------
+ws = wb['Cost Analysis']
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, max_col=4, min_row=CC['prof_hdr'],
+                      max_row=CC['prof_last']), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=CC['prof_first'],
+                            max_row=CC['prof_last']))
+frame(ch, 'Profitability month on month, actual to date then budget', 26, 11)
+ch.y_axis.delete = True
+legend(ch)
+paint(ch, [NAVY, BLUE, INK])
+labels(ch, '#,##0', size=700)
+ws.add_chart(ch, 'I142')
+
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+for col in (4, 5):
+    ch.add_data(Reference(ws, min_col=col, min_row=CC['prof_hdr'],
+                          max_row=CC['prof_last']), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=CC['prof_first'],
+                            max_row=CC['prof_last']))
+frame(ch, 'Net profit year on year, this year against last', 26, 11)
+ch.y_axis.delete = True
+legend(ch)
+paint(ch, [NAVY, GREY])
+labels(ch, '#,##0', size=700)
+ws.add_chart(ch, 'I167')
 
 wb.save(OUT)
 print('charts rebuilt:', sum(len(ws._charts) for ws in wb.worksheets))

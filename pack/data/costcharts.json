@@ -8,5 +8,14 @@
  "lab_first": 78,
  "lab_last": 91,
  "lab_total": 92,
- "top10_dept": 105
+ "top10_dept": 105,
+ "bva_first": 102,
+ "bva_last": 107,
+ "bva_hdr": 101,
+ "bvm_first": 112,
+ "bvm_last": 123,
+ "bvm_hdr": 111,
+ "prof_hdr": 128,
+ "prof_first": 129,
+ "prof_last": 140
 }
