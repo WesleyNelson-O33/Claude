@@ -133,20 +133,23 @@ labels_in(ch, [WHITE, INK], size=800)
 ws.add_chart(ch, 'J4')
 
 # ------------------------------------------------------- P&L by Dept ------
+# The six blocks are a P&L each, so the chart reads the side by side table at
+# the bottom rather than any one block.
 ws = wb['P&L by Dept']
-for rows, anchor, title in ((P['month_rows'], 'J5', 'Revenue and result after overhead, this month'),
-                            (P['ytd_rows'],   'J27', 'Revenue and result after overhead, year to date')):
-    hdr = rows['Total Income'] - 1
+S = P['side_by_side']
+DNAMES = [ws.cell(S + 2 + i, 1).value for i in range(6)]
+for cols, anchor, title in (((2, 4), 'I292', 'Revenue and gross profit by department, year to date'),
+                            ((2, 6), 'I316', 'Revenue and net profit by department, year to date')):
     ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
-    for key in ('Total Income', 'Result after all overhead'):
-        ch.add_data(Reference(ws, min_col=1, min_row=rows[key], max_col=7,
-                              max_row=rows[key]), from_rows=True, titles_from_data=True)
-    ch.set_categories(Reference(ws, min_col=2, min_row=hdr, max_col=7))
+    for c in cols:
+        ch.add_data(Reference(ws, min_col=c, min_row=S + 1, max_row=S + 7),
+                    titles_from_data=True)
+    ch.set_categories(Reference(ws, min_col=1, min_row=S + 2, max_row=S + 7))
     frame(ch, title, 23, 11)
     labels(ch, '#,##0', size=850)
     legend(ch)
     paint(ch, [TEAL, INK])
-    paint_depts(ch.series[0], [ws.cell(hdr, c).value for c in range(2, 8)])
+    paint_depts(ch.series[0], DNAMES)
     ws.add_chart(ch, anchor)
 
 # --------------------------------------------------------------- DSO ------

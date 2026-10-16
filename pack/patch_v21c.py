@@ -32,13 +32,15 @@ VAR   = '0.0%;[Red](0.0%);\\-'
 
 # department -> tag, FY26/Budget income total row, COS total row, COS first row,
 #               column on P&L by Dept, column on the Overhead Split share block
+# tag, FY26/Budget income total row, COS total row, COS first row,
+# first row of the department's block on the Engine, row on the overhead split
 DEPT = {
- 'Support':       ('ONSITE',      41, 130, 131, 1, 1),
- 'Events':        ('PRODUCTION',   8,  61,  62, 2, 2),
- 'Video':         ('VIDEO',       16,  78,  79, 3, 3),
- 'Integration':   ('INTEGRATION', 25,  96,  97, 4, 4),
- 'Consulting':    ('CONSULTING',  33, 113, 114, 5, 5),
- 'General Admin': ('ADMIN',       49, 147, 148, 6, 0),
+ 'Support':       ('ONSITE',      41, 130, 131,   5, 1),
+ 'Events':        ('PRODUCTION',   8,  61,  62,  36, 2),
+ 'Video':         ('VIDEO',       16,  78,  79,  67, 3),
+ 'Integration':   ('INTEGRATION', 25,  96,  97,  98, 4),
+ 'Consulting':    ('CONSULTING',  33, 113, 114, 129, 5),
+ 'General Admin': ('ADMIN',       49, 147, 148, 160, 0),
 }
 ORDER = list(DEPT)
 # the sixteen cost of sales subcategories, in the order every block holds them
@@ -55,6 +57,10 @@ TYPE = {'Labour': [3,4,10,11,12,13,14],
 EXP = [('Business Insurances', 35), ('Employment Expenses', 38),
        ('General & Administrative Exp', 34), ('Advertising & Promotion Exp', 36),
        ('Operating Expenses', 37), ('Credit Card fees paid', 39)]
+# where each overhead heading sits inside the department's six Engine rows
+EXPOFF = {'General & Administrative Exp': 1, 'Business Insurances': 2,
+          'Advertising & Promotion Exp': 3, 'Operating Expenses': 4,
+          'Employment Expenses': 5, 'Credit Card fees paid': 6}
 
 wb = openpyxl.load_workbook(OUT)
 if 'Dept P&L' in wb.sheetnames:
@@ -107,8 +113,8 @@ for c in range(1, 10):
 
 ws.cell(W + 1, 1, 'Department index')
 for i, h in enumerate(['Department', 'Tag', 'Income total row', 'COS total row',
-                       'COS first row', 'Column on P&L by Dept',
-                       'Column on the overhead share'], start=1):
+                       'COS first row', 'First row on the Engine',
+                       'Row on the overhead split'], start=1):
     ws.cell(W + 2, i, h).font = Font(name='Calibri', size=9, bold=True, color=INK)
 for i, d in enumerate(ORDER):
     t, inc, cost, cst, pc, oc = DEPT[d]
@@ -169,6 +175,12 @@ for c in range(1, 8):
 ws.cell(H, 5).fill = PatternFill('solid', fgColor=WHITE)
 
 PBD, A26, BFY = "'P&L by Dept'", "'Actual FY26'", "'Budget FY27'"
+EN = "Engine"
+EM = f'MATCH(Setup!$B$5,{EN}!$E$4:$P$4,0)'          # which month column
+EB = f"INDEX(${gl(6)}${W+3}:${gl(6)}${W+3+len(ORDER)-1},{IDX})"   # Engine base row
+def eng(first, n):
+    """A department's n rows on the Engine, for the month on the dropdown."""
+    return f'OFFSET({EN}!$A$1,{EB}+{first},{EM}+3,{n},1)'
 LYC = f"MATCH(Setup!$B$5,{A26}!$B$5:$M$5,0)"      # same month column, last year's book
 BUC = f"MATCH(Setup!$B$5,{BFY}!$B$5:$M$5,0)"
 PC  = f"INDEX(${gl(6)}${W+3}:${gl(6)}${W+3+len(ORDER)-1},{IDX})"    # P&L by Dept column
@@ -203,7 +215,7 @@ NA = '"no LY split"'
 r = 8
 # revenue -------------------------------------------------------------------
 line(r, 'Total Sales Revenue',
-     f'=INDEX({PBD}!$B$7:$G$7,{PC})',
+     f'=SUM({eng(-1, 7)})',
      f'=INDEX({A26}!$B$1:$M$233,{RW(3)},{LYC})',
      f'=INDEX({BFY}!$B$1:$M$233,{RW(3)},{BUC})',
      MONEY, bold=True, fill=GREYL)
@@ -213,14 +225,14 @@ REV = r; r += 1
 for ty in ['Labour', 'Equipment & Services', 'Transportation', 'Other Direct Expenses']:
     m = MASK[ty]
     line(r, ty,
-         f'=SUMPRODUCT(INDEX({PBD}!$B$17:$G$32,0,{PC}),{m})',
+         f'=SUMPRODUCT({eng(6, 16)},{m})',
          f'=SUMPRODUCT({blk(A26,"$E$"+str(W+3)+"",16,LYC)},{m})'.replace(
              '$E$' + str(W + 3), RW(5)),
          f'=SUMPRODUCT({blk(BFY,"X",16,BUC)},{m})'.replace('X', RW(5)),
          COST)
     r += 1
 line(r, 'Total COGS',
-     f'=INDEX({PBD}!$B$16:$G$16,{PC})',
+     f'=SUM({eng(6, 16)})',
      f'=INDEX({A26}!$B$1:$M$233,{RW(4)},{LYC})',
      f'=INDEX({BFY}!$B$1:$M$233,{RW(4)},{BUC})',
      COST, bold=True, fill=GREYL)
@@ -253,7 +265,7 @@ OHS = "'Overhead Split'"
 OHM = f"MATCH(Setup!$B$5,{OHS}!$C$22:$N$22,0)"
 E0 = r
 for nm, pbdrow in EXP:
-    own = f'INDEX({PBD}!$B${pbdrow}:$G${pbdrow},{PC})'
+    own = f'INDEX({eng(22, 6)},{EXPOFF[nm]})'
     alloc = (f'IF({OC}=0,-SUMPRODUCT(({OHS}!$U$23:$U$86=$A{r})*'
              f'INDEX({OHS}!$C$23:$N$86,0,{OHM})),'
              f'SUMPRODUCT(({OHS}!$U$23:$U$86=$A{r})*INDEX({OHS}!$P$23:$T$86,0,{OC})*'
@@ -271,9 +283,10 @@ for nm, pbdrow in EXP:
 # whole expense (its own, plus its share of admin, both already on P&L by Dept)
 # less the six means Total Expenses always ties back to that tab, so nothing
 # can quietly leak out of the bottom of the card.
+SPREAD = (f'IF({OC}=0,-INDEX({OHS}!$C$95:$N$95,1,{OHM}),'
+          f'INDEX({OHS}!$C$90:$N$94,{OC},{OHM}))')
 line(r, 'Other admin overhead',
-     f'=INDEX({PBD}!$B$33:$G$33,{PC})+INDEX({PBD}!$B$52:$G$52,{PC})'
-     f'-SUM($B{E0}:$B{r-1})',
+     f'=SUM({eng(22, 6)})+{SPREAD}-SUM($B{E0}:$B{r-1})',
      f'={NA}', '=""', COST)
 r += 1
 E1 = r - 1
