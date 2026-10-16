@@ -34,6 +34,7 @@ D = json.load(open(f'{HERE}/data/dept_colours.json'))
 P = json.load(open(f'{HERE}/data/pldept.json'))
 R = json.load(open(f'{HERE}/data/newsheet_rows.json'))
 ACC = json.load(open(f'{HERE}/data/overhead_accounts.json'))
+CC = json.load(open(f'{HERE}/data/costcharts.json'))
 
 INK, GREY, GREYL, WHITE = B['charcoal'], B['grey'], B['grey_lt'], B['white']
 TEAL, AQUA, NAVY, BLUE, PURP, RED = (B['dark_teal'], B['bright_teal'], B['deep_blue'],
@@ -213,6 +214,60 @@ frame(ch, 'Overhead spend, month by month', 30, 13, gap=35)
 legend(ch)
 paint(ch, [NAVY, BLUE, PURP, INK, GREY, AQUA])
 ws.add_chart(ch, f'A{last + 3}')
+
+# -------------------------------------------- Top 10 by department -------
+ws = wb['Top 10 Clients']
+S = CC['top10_dept']
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'stacked'; ch.overlap = 100
+ch.add_data(Reference(ws, min_col=2, max_col=7, min_row=S + 1, max_row=S + 11),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=7, min_row=7, max_row=16))
+frame(ch, 'Top 10 customers, split by department', 23, 13, gap=45)
+ranked(ch)
+legend(ch)
+paint(ch, [D['departments'][d] for d in
+           ('Support', 'Events', 'Video', 'Integration', 'Consulting', 'General Admin')])
+ws.add_chart(ch, f'J{S}')
+
+# ------------------------------------------------- Cost Analysis ---------
+ws = wb['Cost Analysis']
+
+# the operating expense accounts, biggest first
+n = min(CC['ops_n'], 14)
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, min_row=CC['ops_first'] - 1,
+                      max_row=CC['ops_first'] - 1 + n), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=CC['ops_first'],
+                            max_row=CC['ops_first'] - 1 + n))
+frame(ch, 'Other operating expenses, year to date', 22, 13)
+ranked(ch)
+paint(ch, [NAVY])
+labels_in(ch, [WHITE])
+ws.add_chart(ch, 'F4')
+
+# where every dollar of operating cost goes
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, min_row=CC['dist_first'] - 1,
+                      max_row=CC['dist_last']), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=CC['dist_first'],
+                            max_row=CC['dist_last']))
+frame(ch, 'Operating cost distribution, year to date', 22, 12)
+ranked(ch)
+paint(ch, [INK])
+labels_in(ch, [WHITE])
+ws.add_chart(ch, 'F33')      # spaced so the three do not sit on top of each other
+
+# direct against indirect labour
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'stacked'; ch.overlap = 100
+ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=CC['lab_first'] - 1,
+                      max_row=CC['lab_last']), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=CC['lab_first'],
+                            max_row=CC['lab_last']))
+frame(ch, 'Labour mix, direct against indirect, year to date', 22, 14, gap=45)
+ranked(ch)
+legend(ch)
+paint(ch, [NAVY, GREY])
+ws.add_chart(ch, 'F61')
 
 wb.save(OUT)
 print('charts rebuilt:', sum(len(ws._charts) for ws in wb.worksheets))
