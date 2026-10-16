@@ -137,14 +137,15 @@ ws.add_chart(ch, 'J4')
 # the bottom rather than any one block.
 ws = wb['P&L by Dept']
 S = P["side_by_side"]
-DNAMES = [ws.cell(S + 2 + i, 1).value for i in range(6)]
-for cols, anchor, title in (((2, 4), 'I292', 'Revenue and gross profit by department, year to date'),
-                            ((2, 6), 'I316', 'Revenue and net profit by department, year to date')):
+N = 4                                       # four departments now
+DNAMES = [ws.cell(S + 2 + i, 1).value for i in range(N)]
+for cols, anchor, title in (((2, 4), f'I{S}', 'Revenue and gross profit by department, year to date'),
+                            ((2, 6), f'I{S + 24}', 'Revenue and net profit by department, year to date')):
     ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
     for c in cols:
-        ch.add_data(Reference(ws, min_col=c, min_row=S + 1, max_row=S + 7),
+        ch.add_data(Reference(ws, min_col=c, min_row=S + 1, max_row=S + 1 + N),
                     titles_from_data=True)
-    ch.set_categories(Reference(ws, min_col=1, min_row=S + 2, max_row=S + 7))
+    ch.set_categories(Reference(ws, min_col=1, min_row=S + 2, max_row=S + 1 + N))
     frame(ch, title, 23, 11)
     labels(ch, '#,##0', size=850)
     legend(ch)

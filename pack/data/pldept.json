@@ -1,18 +1,9 @@
 {
- "leaf_rows": {
-  "Events": 52,
-  "Video": 100,
-  "Integration": 196,
-  "Consulting": 244,
-  "Support": 292,
-  "General Admin": 340
+ "blocks": {
+  "Production": 4,
+  "Consulting": 79,
+  "Support": 154,
+  "General Admin": 202
  },
- "offsets": {
-  "Total Income": 3,
-  "Cost of Sales": 12,
-  "Gross profit": 37,
-  "EBITDA": 40,
-  "Net profit": 44
- },
- "side_by_side": 388
+ "side_by_side": 250
 }
