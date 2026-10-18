@@ -84,4 +84,18 @@ function barBlock(s, o) {
   });
 }
 
-module.exports = { introSlide, barBlock, inkOn };
+// Full year budget figures, needed for the EBITDA risk on the cost and profit slide.
+const EB = {
+  q1_actual: B.eb.ytd,
+  q1_budget: B.eb.ytd_budget,
+  fy_budget: 397251,          // Budget FY27 row 176, twelve months
+  fy26_actual: 235273,        // Actual FY26 row 176, twelve months
+  fy26_q1: -85404,            // Actual FY26 row 176, Jul to Sep 2025
+};
+EB.shortfall = EB.q1_actual - EB.q1_budget;
+EB.still_needed = EB.fy_budget - EB.q1_actual;
+EB.budget_assumed_rest = EB.fy_budget - EB.q1_budget;
+EB.per_month_needed = EB.still_needed / 9;
+EB.per_month_assumed = EB.budget_assumed_rest / 9;
+
+module.exports = { introSlide, barBlock, inkOn, EB };
