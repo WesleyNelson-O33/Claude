@@ -345,62 +345,19 @@ section('04', 'People and utilisation', 'Chargeable hours and the profit they pr
 // Her own Chargeable % comes first, because it is the number the business
 // already uses. Billable hours over the hours the person was available for,
 // leave and public holidays included in the bottom of the fraction.
+// One slide instead of four. The three month history and the hours and FTE
+// detail are on the Utilisation tab; what the board needs in the room is the
+// month, per group, against target.
 snipSlide({
-  eyebrow: 'People and utilisation', title: `Chargeable per cent, Production and Consulting`,
-  snip: 'util_her_a', source: FROM('Utilisation', 'Chargeable per cent against target, the Utilisation Report basis'),
+  eyebrow: 'People and utilisation', title: `Chargeable per cent, ${SHORT}`,
+  snip: 'util_month', source: FROM('Utilisation', 'chargeable per cent against target, the Utilisation Report basis'),
   commentary: [
-    `This is the monthly Utilisation Report's own calculation. Billable hours divided by the hours each person was available for, so leave and public holidays count against it.`,
-    `Production ${pct(HU.Production.pct, 0)} against a ${pct(HU.Production.target, 0)} target. That is ${pct(-HU.Production.over_under, 1)} under, the worst gap in the business.`,
-    `Leave took ${pct(HU.Production.leave_pct, 0)} of Production's available hours this month. That is the single biggest cause.`,
-    `Consulting ${pct(HU.Consulting.pct, 0)} against ${pct(HU.Consulting.target, 0)}, so ${pct(-HU.Consulting.over_under, 1)} under on a target already set low.`,
-    `Three person groups, not five. Nobody is assigned to Video or Integration; their work is done by Production and Consulting people.`,
+    `The monthly report's own calculation: billable hours divided by the hours each person was available for, so leave counts against it.`,
+    `Support ${pct(HU.Support.pct, 0)} against an ${pct(HU.Support.target, 0)} target, ${pct(HU.Support.over_under, 1)} over. The only group ahead.`,
+    `Production ${pct(HU.Production.pct, 0)} against ${pct(HU.Production.target, 0)}. Leave took ${pct(HU.Production.leave_pct, 0)} of its available hours.`,
+    `The company is ${pct(HU.Grand.pct, 0)} against ${pct(HU.Grand.target, 0)}, so ${pct(-HU.Grand.over_under, 1)} under.`,
   ],
-  notes: `Chargeable per cent for ${MONTH}, calculated exactly as the monthly Utilisation Report calculates it.\n\nThe formula is billable hours divided by Workable Business Hours, the hours each person was available for in the month. Leave and public holidays stay in the bottom of the fraction, so a team that takes its leave shows a lower percentage. That is the business's own definition and this pack now uses it.\n\nProduction ${pct(HU.Production.pct)} against a ${pct(HU.Production.target)} target, ${pct(-HU.Production.over_under)} under. Consulting ${pct(HU.Consulting.pct)} against ${pct(HU.Consulting.target)}, ${pct(-HU.Consulting.over_under)} under.\n\nLeave is the story on Production: ${money(HU.Production.lv)} hours out of ${money(HU.Production.workable)} available, which is ${pct(HU.Production.leave_pct)} of the month. The people were paid for and the work was not there.\n\nThere are three person groups because the report groups by the department a person belongs to, and nobody is assigned to Video or Integration.\n\nWorkable Business Hours and the target are pastes. Neither can be calculated in the pack: the first needs each group's headcount and who is part time, the second is set per person and averaged up. The over or under reading and the leave share are calculated off them and reproduce the report's own columns exactly.`,
-});
-
-snipSlide({
-  eyebrow: 'People and utilisation', title: `Chargeable per cent, Support and the company`,
-  snip: 'util_her_b', source: FROM('Utilisation', 'Chargeable per cent against target, the Utilisation Report basis'),
-  commentary: [
-    `Support ${pct(HU.Support.pct, 0)} against an ${pct(HU.Support.target, 0)} target, so it is ${pct(HU.Support.over_under, 1)} over. The only group ahead of its own target.`,
-    `It has been over target all three months: ${pct(HER['Jul-26'].Support.over_under, 1)}, ${pct(HER['Aug-26'].Support.over_under, 1)} and ${pct(HU.Support.over_under, 1)}.`,
-    `The company is ${pct(HU.Grand.pct, 0)} against ${pct(HU.Grand.target, 0)}, which is ${pct(-HU.Grand.over_under, 1)} under.`,
-    `Leave took ${pct(HU.Grand.leave_pct, 0)} of the company's available hours this month, against ${pct(HER['Aug-26'].Grand.leave_pct, 0)} in August.`,
-    `Five more points across Support and Production is the cheapest money in this pack. It costs nothing extra.`,
-  ],
-  notes: `Support and the company, same basis.\n\nSupport ${pct(HU.Support.pct)} against an ${pct(HU.Support.target)} target, ${pct(HU.Support.over_under)} over, on ${money(HU.Support.workable)} available hours. It has cleared its target in all three closed months.\n\nThe company ${pct(HU.Grand.pct)} against ${pct(HU.Grand.target)}, ${pct(-HU.Grand.over_under)} under. The company target moves a little month to month because it is an average over whoever was in the report that month, not a fixed number.\n\nLeave took ${pct(HU.Grand.leave_pct)} of available hours this month against ${pct(HER['Aug-26'].Grand.leave_pct)} in August. September is a heavy leave month and that is most of the movement in the company figure.\n\nA correction to earlier versions of this pack. It divided billable hours by hours actually worked, leaving leave out of the sum, which put Support at 99.5 per cent and made it look like a coding error. It was not. On the report's own basis Support is ${pct(HU.Support.pct)} and the figure is sound.\n\nOT and TIL is on the report but is not in the pack. Its August figure for Support reads 365.62, which cannot be hours in a month, so that column needs checking on the source sheet before anybody quotes it.`,
-});
-
-snipSlide({
-  eyebrow: 'People and utilisation', title: `Utilisation, Support and Events`,
-  snip: 'util_pct_a', source: FROM('Utilisation', 'hours, utilisation per cent and FTE, July to September. The pack calls these two cost centres Onsite and Production'),
-  commentary: (() => {
-    const sup = util[0], ev = util[1];
-    return [
-      `This is the calculation itself. Hours worked, how many went on jobs, the percentage that gives, and the headcount those hours represent.`,
-      `Utilisation per cent is billable hours divided by hours worked. Leave is left out, because nobody can bill leave.`,
-      `FTE is hours worked divided by the working hours in the month, so 1.0 is one full time person.`,
-      `This page is the hours record, grouped by the job the work was for. The Chargeable per cent the monthly report uses is on the slide before.`,
-      `Support billed ${money(sup.chargeable)} hours. Events billed ${money(ev.chargeable)} and lost ${money(ev.leave)} to leave.`,
-    ];
-  })(),
-  notes: `The utilisation working for the two big cost centres, straight off the pack.\n\nThe top three rows set the month: working days, and working hours at eight hours a day. Every FTE figure divides into that.\n\nFor each cost centre the sheet holds billable hours, non-billable hours and leave, then two calculated lines. The percentage here is the billable share of the hours actually worked, which is not the same as the Chargeable per cent on the slide before: this one leaves leave out of the sum, your report keeps it in. Both are on the tab and each is labelled for what it is. FTE is billable plus non-billable divided by the month's working hours.\n\nSupport: ${money(util[0].chargeable)} billable hours on ${util[0].fte.toFixed(1)} FTE. The ${money(util[0].non_chargeable)} of non-billable time shown here is an artefact of the grouping, not a coding error. The monthly report shows Support with no non-billable hours at all in ${MONTH}; this tab regroups by the job the work was for, which moves a small amount of other people's non-billable time into Support.\n\nEvents: ${pct(util[1].util_pct)} utilisation on ${util[1].fte.toFixed(1)} FTE, with ${money(util[1].leave)} hours of leave. That is the genuine operational issue on this page. The people were paid for, the work was not there.\n\nThree months sit side by side so the board reads a trend, not one month in isolation.`,
-});
-
-snipSlide({
-  eyebrow: 'People and utilisation', title: 'Utilisation, Video, Integration and Consulting',
-  snip: 'util_pct_b', source: FROM('Utilisation', 'hours, utilisation per cent and FTE, July to September'),
-  commentary: (() => {
-    const vid = util[2], itg = util[3], con = util[4];
-    return [
-      `Read these three as hours, not as percentages. The volumes are too small for a percentage to mean much.`,
-      `Integration shows ${pct(itg.util_pct, 0)} on ${itg.chargeable.toFixed(1)} billable hours. That is one day of work, not a result.`,
-      `Video put ${vid.chargeable.toFixed(1)} hours on jobs, about ${vid.fte.toFixed(2)} of a full time person.`,
-      `Consulting is the one that matters: ${pct(con.util_pct, 0)}, with ${con.non_chargeable.toFixed(0)} hours on work we cannot bill.`,
-      `Consulting has carried running costs against almost no fees for three months. That decision keeps being deferred.`,
-    ];
-  })(),
-  notes: `The three small cost centres.\n\nVideo: ${pct(util[2].util_pct)} utilisation on ${util[2].fte.toFixed(2)} FTE. ${util[2].chargeable.toFixed(1)} billable hours in the month.\n\nIntegration: ${pct(util[3].util_pct)} on ${util[3].fte.toFixed(2)} FTE. The hundred per cent is arithmetic, not performance. ${util[3].chargeable.toFixed(1)} billable hours and no non-billable time booked at all. Integration's revenue this month came from resold equipment, not from our hours, which is why the money and the hours do not match.\n\nConsulting: ${pct(util[4].util_pct)} on ${util[4].fte.toFixed(2)} FTE. ${money(util[4].non_chargeable)} hours into work we cannot bill against ${money(util[4].chargeable)} we can, plus ${money(util[4].leave)} hours of leave. Three months of that pattern, against running costs that have not moved, is the clearest case in the pack for a decision.\n\nA percentage on nine or twenty four hours is not a management number. Read the hours column.`,
+  notes: `Chargeable per cent for ${MONTH}, calculated exactly as the monthly Utilisation Report calculates it.\n\nThe formula is billable hours divided by Workable Business Hours, the hours each person was available for in the month. Leave and public holidays stay in the bottom of the fraction, so a team that takes its leave shows a lower percentage. That is the business's own definition and this pack now uses it.\n\nSupport ${pct(HU.Support.pct)} against an ${pct(HU.Support.target)} target, ${pct(HU.Support.over_under)} over. Production ${pct(HU.Production.pct)} against ${pct(HU.Production.target)}, ${pct(-HU.Production.over_under)} under. Consulting ${pct(HU.Consulting.pct)} against ${pct(HU.Consulting.target)}, ${pct(-HU.Consulting.over_under)} under. The company ${pct(HU.Grand.pct)} against ${pct(HU.Grand.target)}, ${pct(-HU.Grand.over_under)} under.\n\nSupport has cleared its own target in all three closed months, by ${pct(HER['Jul-26'].Support.over_under)}, ${pct(HER['Aug-26'].Support.over_under)} and ${pct(HU.Support.over_under)}.\n\nLeave is the story on Production: ${money(HU.Production.lv)} hours out of ${money(HU.Production.workable)} available, which is ${pct(HU.Production.leave_pct)} of the month. Across the company leave took ${pct(HU.Grand.leave_pct)} of available hours against ${pct(HER['Aug-26'].Grand.leave_pct)} in August.\n\nThree person groups, not five. The report groups by the department a person belongs to and nobody is assigned to Video or Integration; their work is carried out by Production and Consulting people.\n\nWhat is behind this slide. Workable Business Hours and the target are pastes, because neither can be calculated in the pack: the first needs each group's headcount and who is part time, the second is set per person and averaged up. The over or under reading and the leave share are calculated and reproduce the report's own columns exactly. The three month history sits on the Utilisation tab at rows 120 to 164, with two check rows against the report's Grand Total.\n\nA correction to earlier versions of this pack. It divided billable hours by hours actually worked, leaving leave out of the sum, which put Support at 99.5 per cent and made it look like a coding error. It was not.\n\nOT and TIL is on the report but is not in the pack. Its August figure for Support reads 365.62, which cannot be hours in a month, so that column needs checking on the source sheet before anybody quotes it.`,
 });
 
 snipSlide({

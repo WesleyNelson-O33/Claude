@@ -45,9 +45,9 @@ SNIPS = {
     # for each department, for the three closed months. Split in two, because
     # thirty rows on one slide shrinks the figures to nothing.
     # Chargeable per cent on her own report's basis, the three person groups.
-    # Split in two: thirty six rows on one slide shrinks the figures to nothing.
-    'util_her_a':  ('Utilisation',    'A120:F142',  False),
-    'util_her_b':  ('Utilisation',    'A143:F164',  False),
+    # The month on one line per group. The three month history is on the tab
+    # at rows 120 to 164 for anyone who wants it.
+    'util_month':  ('Utilisation',    'A170:H176',  False),
     'util_pct_a':  ('Utilisation',    'A4:F19',     False),
     'util_pct_b':  ('Utilisation',    'A20:F37',    False),
     # One slide per department, off the Dept P&L tab with its selector set.
@@ -70,7 +70,7 @@ SUBDEPTS = {'events', 'video', 'integration', 'consulting'}
 
 # Where a snip starts below the sheet's own header row, the header is printed
 # again at the top of the snip so the columns can be read.
-TITLE_ROWS = {'pl_result': '5:5', 'util_pct_b': '8:8', 'util_her_b': '122:122'}
+TITLE_ROWS = {'pl_result': '5:5', 'util_pct_b': '8:8'}
 
 
 def collapse(ws):
