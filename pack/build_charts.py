@@ -62,6 +62,19 @@ def _dl(fmt, pos, size, colour, bold):
 def labels(ch, fmt='#,##0', pos='outEnd', size=900, colour=INK, bold=False):
     ch.dataLabels = _dl(fmt, pos, size, colour, bold)
 
+def labels_out(ch, fmt='"$"#,##0', size=900):
+    """Value outside the bar end, in charcoal. Use where the figures have a
+    long tail: a centred label does not fit inside a short bar, and these
+    lists run from tens of thousands down to hundreds."""
+    ch.dataLabels = _dl(fmt, 'outEnd', size, INK, False)
+
+def ranked_axis(ch):
+    """Ranked, but the value axis stays. It gives the longest bar's label room
+    at the right hand end, which outEnd labels need."""
+    ch.x_axis.scaling.orientation = 'maxMin'
+    ch.x_axis.tickLblPos = 'low'
+    ch.y_axis.majorGridlines = None
+
 def labels_in(ch, cols, fmt='$#,##0', size=900):
     """Sit the value in the middle of each bar. At the end of the bar the
     longest one runs into the edge of the plot and its label gets dropped.
@@ -84,8 +97,11 @@ def frame(ch, title, w, h, gap=45):
         ax.spPr = GraphicalProperties(ln=LineProperties(solidFill=GREY, w=9525))
 
 def ranked(ch):
-    """A top ten reads best with number one at the top and no value axis."""
+    """A top ten reads best with number one at the top and no value axis.
+    tickLblPos low pins the names to the left; without it they drift to
+    wherever the value axis crosses and end up sitting on the bars."""
     ch.x_axis.scaling.orientation = 'maxMin'
+    ch.x_axis.tickLblPos = 'low'
     ch.y_axis.delete = True
     ch.y_axis.majorGridlines = None
 
@@ -235,16 +251,16 @@ ws.add_chart(ch, f'J{S}')
 ws = wb['Cost Analysis']
 
 # the operating expense accounts, biggest first
-n = min(CC['ops_n'], 14)
+n = CC['ops_n']
 ch = BarChart(); ch.type = 'bar'; ch.grouping = 'clustered'
 ch.add_data(Reference(ws, min_col=2, min_row=CC['ops_first'] - 1,
                       max_row=CC['ops_first'] - 1 + n), titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=CC['ops_first'],
                             max_row=CC['ops_first'] - 1 + n))
-frame(ch, 'Other operating expenses, year to date', 22, 13)
-ranked(ch)
+frame(ch, 'Other operating expenses, year to date', 22, 10, gap=40)
+ranked_axis(ch)
 paint(ch, [NAVY])
-labels_in(ch, [WHITE])
+labels_out(ch)
 ws.add_chart(ch, 'I4')
 
 # where every dollar of operating cost goes
@@ -253,10 +269,10 @@ ch.add_data(Reference(ws, min_col=2, min_row=CC['dist_first'] - 1,
                       max_row=CC['dist_last']), titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=CC['dist_first'],
                             max_row=CC['dist_last']))
-frame(ch, 'Operating cost distribution, year to date', 22, 12)
-ranked(ch)
+frame(ch, 'Operating cost distribution, year to date', 22, 11, gap=40)
+ranked_axis(ch)
 paint(ch, [INK])
-labels_in(ch, [WHITE])
+labels_out(ch)
 ws.add_chart(ch, 'I33')
 
 # direct against indirect labour
@@ -265,10 +281,11 @@ ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=CC['lab_first'] - 1,
                       max_row=CC['lab_last']), titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=CC['lab_first'],
                             max_row=CC['lab_last']))
-frame(ch, 'Labour mix, direct against indirect, year to date', 22, 14, gap=45)
-ranked(ch)
+frame(ch, 'Labour mix, direct against indirect, year to date', 22, 13, gap=40)
+ranked_axis(ch)
 legend(ch)
 paint(ch, [NAVY, GREY])
+labels_out(ch, size=800)
 ws.add_chart(ch, 'I61')
 
 # ------------------------------------------- budget against actual ------
@@ -279,10 +296,10 @@ ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=CC['bva_hdr'],
 ch.set_categories(Reference(ws, min_col=1, min_row=CC['bva_first'],
                             max_row=CC['bva_last']))
 frame(ch, 'Budget against actual, year to date', 22, 11, gap=50)
-ranked(ch)
+ranked_axis(ch)
 legend(ch)
 paint(ch, [NAVY, GREY])
-labels_in(ch, [WHITE, INK], size=800)
+labels_out(ch, size=800)
 ws.add_chart(ch, 'I92')
 
 ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
