@@ -341,5 +341,46 @@ paint(ch, [NAVY, GREY])
 labels(ch, '#,##0', size=700)
 ws.add_chart(ch, 'I167')
 
+# ------------------------------- revenue by department, the month -------
+# Actual against budget and against the same month last year.
+ws = wb['Cost Analysis']
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, max_col=4, min_row=191, max_row=196),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=192, max_row=196))
+frame(ch, 'Revenue by department, the month against budget and last year', 26, 11)
+ch.y_axis.delete = True
+legend(ch)
+paint(ch, [TEAL, GREY, AQUA])
+labels(ch, '#,##0', size=700)
+ws.add_chart(ch, 'F190')
+
+# ----------------------------------- hours by department, the month ----
+ws = wb['Utilisation']
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'stacked'; ch.overlap = 100
+ch.add_data(Reference(ws, min_col=2, max_col=4, min_row=67, max_row=72),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=68, max_row=72))
+frame(ch, 'Hours by department, chargeable, non-chargeable and leave', 24, 10)
+ranked(ch)
+legend(ch)
+paint(ch, [TEAL, AQUA, GREYL])
+# A stacked bar can only take a label inside the segment.
+labels(ch, '#,##0', pos='ctr', size=700, colour=WHITE)
+ws.add_chart(ch, 'F66')
+
+# ------------------------- employment expense, office against dept -----
+ws = wb['Overheads MoM']
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'stacked'; ch.overlap = 100
+ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=161, max_row=166),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=162, max_row=166))
+frame(ch, 'Employment expense, departmental staff against office staff', 24, 10)
+ranked(ch)
+legend(ch)
+paint(ch, [TEAL, AQUA])
+labels(ch, '$#,##0', pos='ctr', size=700, colour=WHITE)
+ws.add_chart(ch, 'E160')
+
 wb.save(OUT)
 print('charts rebuilt:', sum(len(ws._charts) for ws in wb.worksheets))

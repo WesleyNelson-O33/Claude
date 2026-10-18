@@ -1,0 +1,313 @@
+const B = require('./build.js');
+const L = require('./lib.js');
+const { C, DEPT } = require('./theme.js');
+const { head, commentary, headRow, row, money, k, pct, signed, varColour } = L;
+const { placeSnip, source } = require('./snips.js');
+const { pres, D, P, rev, gp, oh, eb, np, depts, dTot, byRev, util, utilTot, staff,
+        ytdMargin, ohRun, breakEven, revRun, section, MONTH, SHORT } = B;
+
+const BOX = { x: 0.55, y: 1.58, w: 6.10, h: 3.38 };
+const FROM = (tab, range) => `Snipped from the Financial Controller Pack, ${tab} tab, ${range}.`;
+
+// A snip wider than about 3:1 is short on a 6.1 inch column, so those run the
+// full content width with the commentary as a strip underneath instead.
+const WIDE = 3.0;
+
+/** A slide that is one Excel snip plus the controller's read of it. */
+function snipSlide(o) {
+  const s = pres.addSlide({ masterName: 'CTS_LIGHT' });
+  head(s, o.eyebrow, o.title);
+  const [pw, ph] = require('./snips.js').SIZES[o.snip];
+  const wide = pw / ph >= WIDE;
+  const box = wide ? { x: 0.55, y: 1.58, w: 8.90, h: 2.12 } : { ...BOX, ...(o.box || {}) };
+  const r = placeSnip(s, o.snip, box);
+  source(s, o.source, r.bottom + 0.08, box.w, box.x);
+  if (wide) {
+    const PY = 4.02, PH = 1.04;                 // fixed strip, clear of the footer
+    const bullets = o.commentary.slice(0, 4);   // four fit two up, five do not
+    const half = Math.ceil(bullets.length / 2);
+    s.addShape('rect', { x: 0.55, y: PY, w: 8.90, h: PH, fill: { color: C.mint },
+      line: { type: 'none' }, objectName: 'commentary panel' });
+    s.addText('COMMENTARY', { x: 0.75, y: PY + 0.09, w: 3, h: 0.18, isTextBox: true,
+      margin: 0, fontSize: 8.5, bold: true, color: C.teal, charSpacing: 1.8 });
+    [bullets.slice(0, half), bullets.slice(half)].forEach((col, i) => {
+      s.addText(col.map((t, j) => ({ text: t, options: { bullet: true, breakLine: j < col.length - 1 } })), {
+        x: 0.75 + i * 4.35, y: PY + 0.29, w: 4.05, h: PH - 0.36,
+        isTextBox: true, margin: 0, fontSize: 8, color: C.body, lineSpacing: 10,
+        paraSpaceAfter: 3, valign: 'top',
+      });
+    });
+  } else {
+    commentary(s, o.commentary);
+  }
+  if (o.notes) s.addNotes(o.notes);
+  return s;
+}
+
+/* ===================================================== 01 financial performance */
+section('01', 'Financial performance', `The P&L for ${MONTH} and the year to date`,
+  `Three months of FY27 are closed. Revenue is running at ${k(revRun)} thousand a month and break even needs ${k(breakEven)} thousand at the margin we actually deliver. That is the whole problem in one line.`);
+
+snipSlide({
+  eyebrow: 'Financial performance', title: 'P&L summary, income',
+  snip: 'pl_income', source: FROM('Summary', 'income by department, the three closed months and year to date'),
+  commentary: [
+    `Break even needs ${k(breakEven)}k of revenue a month at our real margin of ${pct(ytdMargin)}. We are running at ${k(revRun)}k.`,
+    `${SHORT} beat revenue budget by ${k(rev.month - rev.month_budget)}k and still lost ${k(-eb.month)}k of EBITDA. The miss is margin, not sales.`,
+    `Gross margin ${pct(gp.month / rev.month)} looks fine against a ${pct(gp.month_budget / rev.month_budget)} budget, but last September was ${pct(gp.month_ly / rev.month_ly)}.`,
+    `Overheads held at ${k(-oh.month)}k against ${k(-oh.month_budget)}k budget. Cost control is not the issue.`,
+    `Year to date EBITDA is ${k(eb.ytd)}k against ${k(eb.ytd_budget)}k planned. Reforecast on margin.`,
+  ],
+  notes: `P&L summary, straight off the Summary tab with the outline shut, so this is the view on screen.\n\nRevenue ${money(rev.month)} against a budget of ${money(rev.month_budget)}, ahead by ${money(rev.month - rev.month_budget)}. Against last September at ${money(rev.month_ly)} we are up ${pct(rev.month / rev.month_ly - 1, 0)}.\n\nGross profit ${money(gp.month)} at ${pct(gp.month / rev.month)}, against a budget of ${pct(gp.month_budget / rev.month_budget)} and last September at ${pct(gp.month_ly / rev.month_ly)}. The budget margin for this month was unusually low, so beating it is not the achievement it looks like.\n\nOverheads ${money(-oh.month)} against ${money(-oh.month_budget)} budget. The cost base is behaving.\n\nEBITDA ${money(eb.month)} against a budgeted ${money(eb.month_budget)}. Net profit ${money(np.month)} after depreciation and amortisation of ${money(-P.da.month)}.\n\nYear to date revenue ${money(rev.ytd)} against ${money(rev.ytd_budget)}, behind by ${money(rev.ytd_budget - rev.ytd)}. EBITDA ${money(eb.ytd)} against ${money(eb.ytd_budget)}.\n\nThe line to leave in the room: at ${pct(ytdMargin)} gross margin we need ${money(breakEven)} of revenue every month to cover overhead. We are averaging ${money(revRun)}. That gap is structural and selling more at this margin will not close it.`,
+});
+
+snipSlide({
+  eyebrow: 'Financial performance', title: 'P&L summary, cost and profit',
+  snip: 'pl_result', source: FROM('Summary', 'cost of sales, overheads and the profit lines'),
+  commentary: [
+    `Cost of sales ${k(-P.cos.month)}k against ${k(-P.cos.month_budget)}k budget. That is where the revenue beat went.`,
+    `Gross margin ${pct(gp.month / rev.month)} for the month, ${pct(ytdMargin)} year to date, against a plan of ${pct(gp.ytd_budget / rev.ytd_budget)}.`,
+    `Overheads ${k(-oh.month)}k, flat across the quarter at about ${k(ohRun)}k a month.`,
+    `EBITDA ${k(eb.month)}k. Net profit ${k(np.month)}k after ${k(-P.da.month)}k of depreciation and amortisation.`,
+    `Year to date the business has traded a quarter and produced ${k(eb.ytd)}k of EBITDA against ${k(eb.ytd_budget)}k planned.`,
+  ],
+  notes: `The cost and profit half of the Summary tab.\n\nCost of sales ${money(-P.cos.month)} against a budget of ${money(-P.cos.month_budget)}. The revenue beat came in at a margin the plan did not assume, and that is the whole variance story for the month.\n\nGross profit ${money(gp.month)} at ${pct(gp.month / rev.month)}. Year to date ${money(gp.ytd)} at ${pct(ytdMargin)} against a planned ${pct(gp.ytd_budget / rev.ytd_budget)}.\n\nOverheads ${money(-oh.month)} against ${money(-oh.month_budget)} budget, and flat across all three months at roughly ${money(ohRun)}. That is the number revenue has to clear.\n\nEBITDA ${money(eb.month)} against ${money(eb.month_budget)} budgeted. Net profit ${money(np.month)} after depreciation and amortisation of ${money(-P.da.month)}.\n\nYear to date EBITDA ${money(eb.ytd)} against ${money(eb.ytd_budget)}. A full quarter of trading has produced roughly break even.`,
+});
+
+snipSlide({
+  eyebrow: 'Financial performance', title: `Department result, ${SHORT}`,
+  snip: 'dept_result', source: FROM('Overhead Split', 'section 7, department result'),
+  commentary: [
+    `Only Support covers its overhead. It returned ${k(depts[0].result)}k on ${k(depts[0].revenue)}k of revenue.`,
+    `Events carries ${k(-depts[1].all_overhead)}k of overhead on ${k(depts[1].revenue)}k of revenue, so ${pct(depts[1].gm_pct)} margin still loses ${k(-depts[1].result)}k.`,
+    `Integration booked ${k(depts[3].revenue)}k against ${k(depts[3].budget)}k budget, but at ${pct(depts[3].gm_pct)} margin returned only ${k(depts[3].result)}k.`,
+    `Consulting holds ${k(-depts[4].all_overhead)}k of overhead on a ${k(depts[4].revenue)}k fee base. That needs a decision, not a forecast.`,
+    `The five results add back to net profit exactly. The check row on the tab proves it.`,
+  ],
+  notes: `Every department against budget with the full overhead charge, read off section 7 of the Overhead Split tab.\n\n` +
+    depts.map((x) => `${x.name}: revenue ${money(x.revenue)} against ${money(x.budget)} budget. Gross profit ${money(x.gross_profit)} at ${pct(x.gm_pct)}. Overhead ${money(-x.all_overhead)}, of which ${money(-x.alloc_overhead)} is allocated admin. Result ${money(x.result)}.`).join('\n') +
+    `\n\nThe five departments total ${money(dTot.result)}, which is net profit for the month.\n\nTwo things to flag. Integration's ${money(depts[3].revenue - depts[3].budget)} beat on revenue converted to almost nothing, because the margin was ${pct(depts[3].gm_pct)} on equipment resale. And Events absorbs ${money(-depts[1].alloc_overhead)} of allocated admin on ${money(depts[1].revenue)} of revenue, charged on the premises key, when Events is not the department consuming the premises.`,
+});
+
+snipSlide({
+  eyebrow: 'Financial performance', title: 'Revenue against budget and last year',
+  snip: 'rev_by_dept', source: FROM('Cost Analysis', 'revenue by department, the month'),
+  commentary: [
+    `Integration booked ${k(depts[3].revenue)}k against a ${k(depts[3].budget)}k budget. One fit-out, not a run rate.`,
+    `Support delivered ${k(depts[0].revenue)}k against ${k(depts[0].budget)}k. On plan, as contract income should be.`,
+    `Events at ${k(depts[1].revenue)}k beat a ${k(depts[1].budget)}k budget, in a quiet month either side of results season.`,
+    `Video ${k(depts[2].revenue)}k against ${k(depts[2].budget)}k and Consulting ${k(depts[4].revenue)}k against ${k(depts[4].budget)}k. Both structurally short.`,
+    `Company revenue is ${pct(rev.month / rev.month_ly - 1, 0)} up on last September. The growth is real, the margin on it is not.`,
+  ],
+  notes: `Revenue by department for ${MONTH}, actual against budget and against the same month last year.\n\n` +
+    byRev.map((d) => `${d.name}: ${money(d.revenue)} against a budget of ${money(d.budget)} and ${money(d.ly)} last year.`).join('\n') +
+    `\n\nCompany revenue ${money(rev.month)} against ${money(rev.month_budget)} budget and ${money(rev.month_ly)} last September.\n\nThe beat is Integration, and it is one large fit-out at ${pct(depts[3].gm_pct)} gross margin. Read it as timing, not growth. Video and Consulting are short of budget for the third month running.`,
+});
+
+/* ===================================================== 02 cost base */
+section('02', 'Cost base', 'Where the money goes and which lines move',
+  `Overheads are steady at about ${k(ohRun)} thousand a month. The cost base is not the problem this month, but it is the number revenue has to clear.`);
+
+const cd = (t) => D.cost_dist.find((x) => x.label.includes(t));
+snipSlide({
+  eyebrow: 'Cost base', title: 'Operating cost distribution, year to date',
+  snip: 'cost_dist', source: FROM('Cost Analysis', 'operating cost distribution'),
+  commentary: [
+    `Direct labour ${k(-cd('labour').amount)}k and employment overhead ${k(-cd('Employment').amount)}k together are the clear majority of cost.`,
+    'People are the cost base. Everything else is rounding by comparison.',
+    `Employment overhead at ${k(-cd('Employment').amount)}k is fixed within the year. It does not flex when a month comes in short.`,
+    `Equipment and services ${k(-cd('equipment').amount)}k is the only genuinely variable block.`,
+    'Cost reduction means headcount or premises. There is no third lever of any size.',
+  ],
+  notes: `Operating cost distribution for the year to date, cost of sales and overhead on one scale.\n\n` +
+    D.cost_dist.filter((x) => Math.abs(x.amount) > 500).map((x) => `${x.label} ${money(Math.abs(x.amount))} at ${pct(x.share)}`).join('. ') +
+    `.\n\nThe message is concentration. Direct labour and employment overhead dominate, and employment overhead is fixed inside the year, which is why a short revenue month drops straight to the bottom line.\n\nWhen the board asks what we can cut, the honest answer is people or premises. Trimming subscriptions and travel will not change the shape of this.`,
+});
+
+snipSlide({
+  eyebrow: 'Cost base', title: 'Other operating expenses, year to date',
+  snip: 'other_opex', source: FROM('Cost Analysis', 'other operating expenses'),
+  commentary: (() => {
+    const o = Object.fromEntries(D.other_opex.map((x) => [x.label, x]));
+    const prem = Math.abs(o['Rent'].amount) + Math.abs(o['Rental Outgoings'].amount);
+    return [
+      `Premises are the block: rent ${k(-o['Rent'].amount)}k plus outgoings ${k(-o['Rental Outgoings'].amount)}k, ${k(prem)}k together.`,
+      `IT network at ${k(-o['IT Network Service & Support'].amount)}k is the second line and the only one with real variability.`,
+      'Everything below the top three is under six thousand across a full quarter.',
+      'There is no saving of consequence in the tail. Do not spend management time there.',
+      'Premises is the lever, and it is a lease decision, not a budget decision.',
+    ];
+  })(),
+  notes: `Other operating expenses, year to date.\n\n` +
+    D.other_opex.filter((x) => Math.abs(x.amount) > 100).map((x) => `${x.label} ${money(Math.abs(x.amount))} at ${pct(x.share)}`).join('. ') +
+    `.\n\nRent and rental outgoings are fixed by lease. IT network service and support is the second line and the only one that moves.\n\nThe practical conclusion is that this block is not where cost comes out. Reducing operating expense materially is a premises conversation.`,
+});
+
+snipSlide({
+  eyebrow: 'Cost base', title: 'Labour mix, year to date',
+  snip: 'labour_mix', source: FROM('Cost Analysis', 'labour mix, direct against indirect'),
+  commentary: [
+    'Direct labour splits into permanent payroll and sub contract labour.',
+    'Salaries, wages and superannuation are the bulk of it and they are committed cost.',
+    'Sub contract labour is the only line that flexes with volume.',
+    'It rises when the permanent team runs out of capacity, so watch it against utilisation.',
+    'We pay for hours worked. We bill for hours that are chargeable. The gap is margin.',
+  ],
+  notes: `Labour mix for the year to date, direct labour charged to cost of sales split by type.\n\n` +
+    D.labour_mix.filter((x) => Math.abs(x.amount) > 500 && !/^all |total|check|in total/i.test(x.label))
+      .map((x) => `${x.label} ${money(Math.abs(x.amount))}`).join('. ') +
+    `.\n\nThe great majority is permanent payroll. Sub contract labour is the only line that flexes with volume.\n\nThis is the link to the utilisation section. We pay for hours worked and we bill for hours that are chargeable. Where those two diverge, margin goes with it.`,
+});
+
+snipSlide({
+  eyebrow: 'Cost base', title: 'Employment expense, office and departmental',
+  snip: 'staff_split', source: FROM('Overheads MoM', 'employment expense split, the month'),
+  commentary: (() => {
+    const tot = staff.reduce((a, x) => a + x.office, 0);
+    return [
+      `The admin employment pot is ${money(tot)} for the month and it is charged out in full.`,
+      `Support carries ${pct(staff[0].office / tot)} of it, on its share of rolling twelve month hours.`,
+      `Events pays more for its own staff, ${money(staff[1].departmental)}, than it does for office staff.`,
+      'Integration takes almost no office cost because almost nothing is clocked to it.',
+      'This is the line that used to be typed by hand. It now calculates from the labour hours report.',
+    ];
+  })(),
+  notes: `Employment expense split between office staff and departmental staff for ${MONTH}.\n\nDepartmental staff is the employment expense on each department's own cost centre: ` +
+    staff.map((x) => `${x.name} ${money(x.departmental)}`).join(', ') +
+    `.\n\nOffice staff is the admin employment pot of ${money(staff.reduce((a, x) => a + x.office, 0))}, charged across the departments on their share of full time equivalent: ` +
+    staff.map((x) => `${x.name} ${money(x.office)}`).join(', ') +
+    `.\n\nFTE is rolling twelve month worked hours on that cost centre divided by ${money(D.annual_hours)} hours, being 253 working days at eight. That is the method in the training recording.\n\nThe change worth noting is that this no longer relies on a typed figure. The pack calculates it from the Labour Hours Report, so it reproduces every month without anyone deciding it.`,
+});
+
+/* ===================================================== 03 customers and cash */
+section('03', 'Customers and cash', 'Who pays us, how much, and how slowly',
+  `Revenue is concentrated and cash is slow. Days sales outstanding is ${D.dso.days.toFixed(1)} against a ${D.dso.target} day target, which is ${money(D.dso.locked)} of cash sitting in the debtor book above where it should be.`);
+
+snipSlide({
+  eyebrow: 'Customers and cash', title: 'Top ten customers, year to date',
+  snip: 'top10', source: FROM('Top 10 Clients', 'the top ten, year to date'),
+  commentary: (() => {
+    const t = D.top10, tt = D.top10_total;
+    const top3 = t.slice(0, 3).reduce((a, x) => a + x.ytd, 0);
+    return [
+      `The top ten are ${pct(tt.top_ten_share)} of revenue. The top three alone are ${pct(top3 / rev.ytd)}.`,
+      `${t[0].name} at ${money(t[0].ytd)} is ${pct(t[0].share)} of the year. Losing it costs more than the whole EBITDA plan.`,
+      `${t[1].name} came from nothing to ${money(t[1].ytd)} in a quarter, almost all of it in September.`,
+      `Below the top five the book drops away fast. Number ten is ${money(t[9].ytd)}.`,
+      'Recommend a named retention plan on the top three before the half year.',
+    ];
+  })(),
+  notes: `Top ten customers, year to date, with the chart beside the table.\n\n` +
+    D.top10.map((x) => `${x.rank}. ${x.name}: ${money(x.ytd)} year to date at ${pct(x.share)}, ${money(x.month)} in ${MONTH}.`).join('\n') +
+    `\n\nThe top ten are ${money(D.top10_total.top_ten_ytd)} or ${pct(D.top10_total.top_ten_share)} of revenue. Everyone else is ${money(D.top10_total.rest_ytd)}.\n\nThe concentration is getting worse, not better, and the distinction that matters is contract against project. ${D.top10[0].name} is contracted support income that renews. ${D.top10[1].name} is a fit-out that completes. Treating them as the same kind of revenue is how a forecast goes wrong.\n\nThe recommendation is a retention plan with a named owner for the top three, and a growth target set on the second ten rather than the first.`,
+});
+
+snipSlide({
+  eyebrow: 'Customers and cash', title: 'Receivables and days sales outstanding',
+  snip: 'dso', source: FROM('DSO', 'the calculation, the ageing and who owes the most'),
+  commentary: (() => {
+    const d = D.dso;
+    return [
+      `DSO is ${d.days.toFixed(1)} days against a ${d.target} day target. That is ${d.above.toFixed(1)} days of cash we are not holding.`,
+      `Every day of DSO is ${money(d.receivables / d.days)}. Getting to target releases ${money(d.locked)}.`,
+      `${pct(d.overdue_share)} of the book is overdue, ${money(d.overdue)}.`,
+      `${D.debtors[0].name} alone is ${pct(D.debtors[0].share)} of receivables at ${money(D.debtors[0].amount)}.`,
+      'Chase the top two. Nothing else on this page moves the number.',
+    ];
+  })(),
+  notes: `Receivables and days sales outstanding at 30 September 2026.\n\nTrade receivables ${money(D.dso.receivables)}. DSO ${D.dso.days.toFixed(1)} days against a target of ${D.dso.target}. At target the book would be ${money(D.dso.at_target)}, so ${money(D.dso.locked)} of cash is tied up above where it should be.\n\nAgeing: ` +
+    D.ageing.filter((x) => x.amount > 0).map((x) => `${x.bucket} ${money(x.amount)} at ${pct(x.share)}`).join(', ') +
+    `. Overdue in total ${money(D.dso.overdue)} or ${pct(D.dso.overdue_share)}.\n\nLargest debtors: ` +
+    D.debtors.slice(0, 3).map((x) => `${x.name} at ${money(x.amount)}`).join(', ') +
+    `.\n\nThe action is narrow. Two customers hold the majority of the overdue balance, so a targeted chase on those two is worth more than a general collections push, and it is the fastest cash available this quarter.`,
+});
+
+/* ===================================================== 04 people and utilisation */
+section('04', 'People and utilisation', 'Chargeable hours and the profit they produce',
+  `The company billed ${utilTot.c.toLocaleString('en-AU', { maximumFractionDigits: 0 })} chargeable hours in ${MONTH} out of ${(utilTot.c + utilTot.n).toLocaleString('en-AU', { maximumFractionDigits: 0 })} worked. Where chargeable hours fall short, margin follows.`);
+
+snipSlide({
+  eyebrow: 'People and utilisation', title: `Utilisation by department, ${SHORT}`,
+  snip: 'util', source: FROM('Utilisation', 'hours by department, the month'),
+  commentary: (() => {
+    const sup = util[0], ev = util[1], con = util[4];
+    const rev0 = depts[0].revenue / sup.chargeable, cos0 = Math.abs(depts[0].cos) / sup.chargeable;
+    return [
+      `Support shows ${money(sup.non_chargeable)} non-chargeable hours on ${money(sup.chargeable)} chargeable. That is not credible.`,
+      `Until that coding is fixed the ${pct(sup.util_pct)} means nothing, and nor does the target.`,
+      `Events is at ${pct(ev.util_pct)} with ${money(ev.leave)} hours of leave. Real capacity is sitting idle.`,
+      `Consulting at ${pct(con.util_pct)} confirms there is no fee base to utilise.`,
+      `Support earns $${money(rev0 - cos0)} of margin per chargeable hour. Five more points on Support and Events is worth about ${k((rev0 * sup.chargeable + (depts[1].revenue / ev.chargeable) * ev.chargeable) * 0.05)}k a month.`,
+    ];
+  })(),
+  notes: `Utilisation by department for ${MONTH}.\n\n` +
+    util.map((u) => `${u.name}: ${money(u.chargeable)} chargeable, ${money(u.non_chargeable)} non-chargeable, ${money(u.leave)} leave, ${pct(u.util_pct)} chargeable.`).join('\n') +
+    `\n\nFive departments together, ${money(utilTot.c)} chargeable out of ${money(utilTot.c + utilTot.n)} worked, ${pct(utilTot.c / (utilTot.c + utilTot.n))}.\n\nI need to be straight about the Support figure. ${pct(util[0].util_pct)} chargeable on only ${money(util[0].non_chargeable)} non-chargeable hours in a whole month is not believable for a team of that size. Non-chargeable time is being booked to chargeable cost centres. The hours total is right, the split is not, and the Support utilisation figure is unusable until timesheet coding is corrected.\n\nEvents at ${pct(util[1].util_pct)} is the real operational issue: ${money(util[1].leave)} hours of leave on a small team takes out most of the capacity.\n\nThe prize is in the last bullet. Five more points of utilisation on Support and Events, at the revenue per chargeable hour each already earns, is the largest controllable item in this pack and costs nothing extra.`,
+});
+
+/* ===================================================== 05 budget and outlook */
+section('05', 'Budget and outlook', 'What the rest of the year looks like and what we change',
+  'Three months are closed and the remaining nine are still at original budget. That is the decision in front of the board.');
+
+snipSlide({
+  eyebrow: 'Budget and outlook', title: 'Revenue by month against budget',
+  snip: 'income_month', source: FROM('Cost Analysis', 'total income by month, actual to date then budget'),
+  commentary: (() => {
+    const m = D.income_by_month;
+    const q1a = m.slice(0, 3).reduce((a, x) => a + x.actual, 0), q1b = m.slice(0, 3).reduce((a, x) => a + x.budget, 0);
+    return [
+      `Q1 came in ${k(q1a - q1b)}k behind on revenue, and almost all of it is Consulting and Video.`,
+      'The remaining nine months are untouched original budget. They are not a forecast.',
+      `October alone is budgeted at ${k(m[3].budget)}k, nearly double our best month so far.`,
+      'December carries a planned loss. The business closes for two weeks, so that is correct and should stay.',
+      'Recommend a Q1 rolling forecast: rebuild Consulting on real capacity and reset the margin assumptions.',
+    ];
+  })(),
+  notes: (() => {
+    const m = D.income_by_month;
+    const q1a = m.slice(0, 3).reduce((a, x) => a + x.actual, 0), q1b = m.slice(0, 3).reduce((a, x) => a + x.budget, 0);
+    return `Revenue by month, actual for the three closed months and original budget for the rest.\n\nQ1 actual ${money(q1a)} against a budget of ${money(q1b)}, behind by ${money(q1b - q1a)}.\n\nThe nine months from October are still at the budget set before the year started. October is budgeted at ${money(m[3].budget)}, higher than any month we have delivered.\n\nTwo things for the board. The Q1 variance is concentrated in Consulting and Video, which were budgeted on a resourcing level that does not exist. And the margin assumption in the budget is above what the business has delivered for two years, so even a month that hits the revenue number will miss the profit number.\n\nMy recommendation is a rolling forecast from Q2, rebuilding Consulting around actual capacity and resetting gross margin to delivered rates. December should stay as budgeted: the business closes for two weeks and the loss is real.`;
+  })(),
+});
+
+/* ===================================================== summary and actions */
+{
+  const s = pres.addSlide({ masterName: 'CTS_LIGHT' });
+  head(s, 'Summary and actions', 'What we agreed');
+  const sup = util[0], ev = util[1];
+  const gain = (depts[0].revenue / sup.chargeable) * sup.chargeable * 0.05 + (depts[1].revenue / ev.chargeable) * ev.chargeable * 0.05;
+  const acts = [
+    ['P&L', `Reforecast FY27 on margin, not revenue. At ${pct(ytdMargin)} gross margin break even needs ${k(breakEven)}k a month and we are running at ${k(revRun)}k.`, 'GC and FC', '31 Oct 26'],
+    ['Overhead keys', `Events carries ${k(-depts[1].all_overhead)}k of overhead on ${k(depts[1].revenue)}k of revenue and cannot be profitable on that key. Test the keys for FY28, do not change them mid year.`, 'GC and FC', '30 Nov 26'],
+    ['Consulting', `${k(-depts[4].all_overhead)}k of overhead on a ${k(depts[4].revenue)}k fee base. Decide whether the department is rebuilt, merged into Integration, or closed.`, 'GC', '30 Nov 26'],
+    ['Customers', `Top three are ${pct(D.top10.slice(0, 3).reduce((a, x) => a + x.ytd, 0) / rev.ytd)} of revenue. Agree a named retention plan, and set the growth target on the second ten.`, 'GC and Sales', '14 Nov 26'],
+    ['Cash', `DSO ${D.dso.days.toFixed(1)} days. Getting to ${D.dso.target} releases ${k(D.dso.locked)}k. Chase ${D.debtors[0].name} and ${D.debtors[1].name} first.`, 'FC', '24 Oct 26'],
+    ['Utilisation', `Five more points on Support and Events is worth about ${k(gain)}k a month at no extra cost. Set it as a target once timesheet coding is fixed.`, 'Ops and FC', '30 Nov 26'],
+    ['Timesheets', `Support shows ${money(util[0].non_chargeable)} non-chargeable hours in a month. Correct the coding before utilisation is used to manage anyone.`, 'Ops and FC', '31 Oct 26'],
+  ];
+  s.addTable([headRow(['Area', 'What we agreed', 'Owner', 'Due'], 'left'),
+    ...acts.map(([a, w, o, dd]) => [
+      { text: a, options: { fontSize: 8, bold: true, color: C.navy, align: 'left', valign: 'top', margin: [3, 5, 3, 5] } },
+      { text: w, options: { fontSize: 8, color: C.body, align: 'left', valign: 'top', margin: [3, 5, 3, 5] } },
+      { text: o, options: { fontSize: 8, color: C.body, align: 'left', valign: 'top', margin: [3, 5, 3, 5] } },
+      { text: dd, options: { fontSize: 8, color: C.body, align: 'left', valign: 'top', margin: [3, 5, 3, 5] } },
+    ])], {
+    x: 0.55, y: 1.58, w: 8.90, colW: [1.00, 5.75, 1.05, 1.10],
+    border: { type: 'solid', color: C.rule, pt: 0.5 }, autoPage: false,
+  });
+  s.addNotes('Seven actions, each with an owner and a date.\n\nThe first two matter most: reforecasting on margin rather than revenue, and testing the overhead keys. Everything else in this pack follows from those two numbers.\n\nThe Consulting decision cannot keep being deferred; it has carried overhead against no fee base for three months.\n\nThe cash action is the only one that produces money this quarter, and the utilisation action is the largest controllable item.');
+}
+
+/* ===================================================== thank you */
+{
+  const s = pres.addSlide({ masterName: 'CTS_DARK' });
+  [{ x: 5.5, y: 0.25, d: 2.5, c: C.tealLt }, { x: 6.8, y: 1.35, d: 2.1, c: C.blue }, { x: 5.8, y: 2.35, d: 2.6, c: C.red }]
+    .forEach((o, i) => s.addShape('ellipse', { x: o.x, y: o.y, w: o.d, h: o.d, fill: { color: o.c, transparency: 18 }, line: { type: 'none' }, objectName: `closing circle ${i}` }));
+  s.addText('cts', { x: 0.55, y: 0.45, w: 2, h: 0.7, isTextBox: true, margin: 0, fontSize: 34, bold: true, color: C.white });
+  s.addText('Seamless AV', { x: 0.60, y: 0.98, w: 2, h: 0.25, isTextBox: true, margin: 0, fontSize: 8.5, color: C.grey });
+  s.addText('Thank you', { x: 0.55, y: 2.30, w: 5, h: 0.8, isTextBox: true, margin: 0, fontSize: 38, bold: true, color: C.white, valign: 'middle' });
+  s.addText('Questions and discussion', { x: 0.55, y: 3.10, w: 5, h: 0.4, isTextBox: true, margin: 0, fontSize: 13, color: C.grey, valign: 'middle' });
+  s.addNotes(`Close on the two numbers that matter: break even needs ${money(breakEven)} a month at our real margin, and we are running at ${money(revRun)}. Everything else in the pack is detail underneath that.`);
+}
+
+module.exports = { pres };
