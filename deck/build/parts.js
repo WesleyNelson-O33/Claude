@@ -53,11 +53,11 @@ snipSlide({
   eyebrow: 'Financial performance', title: 'P&L summary, income',
   snip: 'pl_income', source: FROM('Summary', 'income by department, the three closed months and year to date'),
   commentary: [
-    `Break even needs ${k(breakEven)}k of revenue a month at our real margin of ${pct(ytdMargin)}. We are running at ${k(revRun)}k.`,
-    `${SHORT} beat revenue budget by ${k(rev.month - rev.month_budget)}k and still lost ${k(-eb.month)}k of EBITDA. The miss is margin, not sales.`,
-    `Gross margin ${pct(gp.month / rev.month)} looks fine against a ${pct(gp.month_budget / rev.month_budget)} budget, but last September was ${pct(gp.month_ly / rev.month_ly)}.`,
-    `Overheads held at ${k(-oh.month)}k against ${k(-oh.month_budget)}k budget. Cost control is not the issue.`,
-    `Year to date EBITDA is ${k(eb.ytd)}k against ${k(eb.ytd_budget)}k planned. Reforecast on margin.`,
+    `We need ${k(breakEven)}k of sales a month just to cover our costs. We are averaging ${k(revRun)}k.`,
+    `${SHORT} sold ${k(rev.month - rev.month_budget)}k more than planned and still lost ${k(-eb.month)}k. We sold enough. We did not keep enough of it.`,
+    `We kept ${pct(gp.month / rev.month, 0)} of every dollar sold. The plan said ${pct(gp.month_budget / rev.month_budget, 0)}, but last September we kept ${pct(gp.month_ly / rev.month_ly, 0)}.`,
+    `Running costs came in at ${k(-oh.month)}k against ${k(-oh.month_budget)}k planned. Spending is not the problem.`,
+    `Profit for the quarter is ${k(eb.ytd)}k against ${k(eb.ytd_budget)}k planned. The plan needs redoing around what we keep, not what we sell.`,
   ],
   notes: `P&L summary, straight off the Summary tab with the outline shut, so this is the view on screen.\n\nRevenue ${money(rev.month)} against a budget of ${money(rev.month_budget)}, ahead by ${money(rev.month - rev.month_budget)}. Against last September at ${money(rev.month_ly)} we are up ${pct(rev.month / rev.month_ly - 1, 0)}.\n\nGross profit ${money(gp.month)} at ${pct(gp.month / rev.month)}, against a budget of ${pct(gp.month_budget / rev.month_budget)} and last September at ${pct(gp.month_ly / rev.month_ly)}. The budget margin for this month was unusually low, so beating it is not the achievement it looks like.\n\nOverheads ${money(-oh.month)} against ${money(-oh.month_budget)} budget. The cost base is behaving.\n\nEBITDA ${money(eb.month)} against a budgeted ${money(eb.month_budget)}. Net profit ${money(np.month)} after depreciation and amortisation of ${money(-P.da.month)}.\n\nYear to date revenue ${money(rev.ytd)} against ${money(rev.ytd_budget)}, behind by ${money(rev.ytd_budget - rev.ytd)}. EBITDA ${money(eb.ytd)} against ${money(eb.ytd_budget)}.\n\nThe line to leave in the room: at ${pct(ytdMargin)} gross margin we need ${money(breakEven)} of revenue every month to cover overhead. We are averaging ${money(revRun)}. That gap is structural and selling more at this margin will not close it.`,
 });
@@ -66,11 +66,11 @@ snipSlide({
   eyebrow: 'Financial performance', title: 'P&L summary, cost and profit',
   snip: 'pl_result', source: FROM('Summary', 'cost of sales, overheads and the profit lines'),
   commentary: [
-    `EBITDA is ${k(EB.q1_actual)}k for the quarter against ${k(EB.q1_budget)}k budgeted. A miss of ${k(-EB.shortfall)}k, or ${pct(-EB.shortfall / EB.q1_budget, 0)}.`,
-    `The plan put ${pct(EB.q1_budget / EB.fy_budget, 0)} of the year's profit in Q1. It was not earned, so the whole year now rests on the nine months left.`,
-    `Those nine months must produce ${k(EB.still_needed)}k to reach the ${k(EB.fy_budget)}k budget. The budget only ever asked them for ${k(EB.budget_assumed_rest)}k.`,
-    `${k(EB.still_needed)}k is ${(EB.still_needed / EB.fy26_actual).toFixed(1)} times the whole of last year, which delivered ${k(EB.fy26_actual)}k. The full year number is not recoverable.`,
-    `The cause is margin, not sales. Revenue came in at ${pct(rev.ytd / rev.ytd_budget, 0)} of budget and gross profit at only ${pct(gp.ytd / gp.ytd_budget, 0)}.`,
+    `Operating profit, or EBITDA, is ${k(EB.q1_actual)}k for the quarter against ${k(EB.q1_budget)}k planned. We are ${k(-EB.shortfall)}k short, which is ${pct(-EB.shortfall / EB.q1_budget, 0)} of it.`,
+    `The plan expected ${pct(EB.q1_budget / EB.fy_budget, 0)} of the year's profit in these first three months. It did not happen, so the whole year now rides on the nine months left.`,
+    `To still hit the ${k(EB.fy_budget)}k target those nine months have to make ${k(EB.still_needed)}k. The plan only ever asked them for ${k(EB.budget_assumed_rest)}k.`,
+    `${k(EB.still_needed)}k is ${(EB.still_needed / EB.fy26_actual).toFixed(1)} times what the whole of last year made, which was ${k(EB.fy26_actual)}k. We will not get the year back.`,
+    `The problem is what we keep, not what we sell. Sales hit ${pct(rev.ytd / rev.ytd_budget, 0)} of plan. What was left after direct costs hit only ${pct(gp.ytd / gp.ytd_budget, 0)}.`,
   ],
   notes: `The risk in one slide: EBITDA against what was budgeted.\n\nThe quarter produced ${money(EB.q1_actual)} of EBITDA against a budget of ${money(EB.q1_budget)}. That is a miss of ${money(-EB.shortfall)}, or ${pct(-EB.shortfall / EB.q1_budget, 1)}.\n\nWhy it matters more than the number suggests. The FY27 budget is ${money(EB.fy_budget)} of EBITDA for the year, and it put ${money(EB.q1_budget)} of that, ${pct(EB.q1_budget / EB.fy_budget, 0)}, into the first quarter. The year was planned to be earned early. It was not, so the remaining nine months now have to carry the whole thing.\n\nTo still land on ${money(EB.fy_budget)} the nine months from October must produce ${money(EB.still_needed)}, which is ${money(EB.per_month_needed)} a month. The budget itself only asked those nine months for ${money(EB.budget_assumed_rest)}, or ${money(EB.per_month_assumed)} a month. We would need ${(EB.still_needed / EB.budget_assumed_rest).toFixed(1)} times the run rate the plan assumed, in the months the plan already treated as the quiet ones.\n\nPut it against last year and it is clearer. The whole of FY26 delivered ${money(EB.fy26_actual)} of EBITDA. The next nine months would need ${money(EB.still_needed)}, which is ${(EB.still_needed / EB.fy26_actual).toFixed(1)} times a full year of last year's earnings. My view is that the full year EBITDA budget is not recoverable and the board should be told that now rather than at the half year.\n\nThe cause is margin, not sales. Revenue for the quarter came in at ${pct(rev.ytd / rev.ytd_budget, 1)} of budget, which is a respectable miss. Gross profit came in at ${pct(gp.ytd / gp.ytd_budget, 1)} of budget. The gap between those two percentages is the whole problem: we sold reasonably well and converted it badly. September is the clearest example, where revenue beat budget by ${money(rev.month - rev.month_budget)} and the month still lost ${money(-eb.month)} of EBITDA.\n\nNothing in the cost base absorbs it. Overheads ran at ${money(-oh.ytd)} for the quarter, ${money(ohRun)} a month, and came in ${money(oh.ytd - oh.ytd_budget)} under budget. Cost control is not the problem and there is no further saving of any size: employment and premises are the cost base and both are fixed inside the year. So a margin miss drops straight to EBITDA.\n\nWhere that leaves break even. At the ${pct(ytdMargin)} gross margin we actually deliver, the business needs ${money(breakEven)} of revenue a month to cover overhead. We are running at ${money(revRun)}. The business is trading at break even, not at a profit, and it is doing so in the quarter the budget expected to be the strongest.\n\nTwo things make the next two quarters harder, not easier. December is budgeted at a loss because the business closes for two weeks, so Q2 cannot make the gap up. And with EBITDA at break even there is no earnings buffer, while ${money(D.dso.locked)} of cash sits in debtors above the ${D.dso.target} day target.\n\nThe one piece of genuine good news: last year's first quarter was a loss of ${money(-EB.fy26_q1)}. This quarter is ${money(EB.q1_actual - EB.fy26_q1)} better than that. The business is improving year on year. It is the budget that was set above what the business can deliver, and that is the distinction to draw in the room.\n\nWhat I am recommending. Reforecast now, on margin rather than revenue. Rebuild Consulting around the capacity that actually exists. Reset the gross margin assumption to the rate delivered over two years rather than the rate in the plan. Hold December as budgeted. And give the board a revised full year EBITDA they can rely on, because the one in front of them cannot be met.`,
 });
@@ -79,11 +79,11 @@ snipSlide({
   eyebrow: 'Financial performance', title: `Department result, ${SHORT}`,
   snip: 'dept_result', source: FROM('Overhead Split', 'section 7, department result'),
   commentary: [
-    `Only Support covers its overhead. It returned ${k(depts[0].result)}k on ${k(depts[0].revenue)}k of revenue.`,
-    `Events carries ${k(-depts[1].all_overhead)}k of overhead on ${k(depts[1].revenue)}k of revenue, so ${pct(depts[1].gm_pct)} margin still loses ${k(-depts[1].result)}k.`,
-    `Integration booked ${k(depts[3].revenue)}k against ${k(depts[3].budget)}k budget, but at ${pct(depts[3].gm_pct)} margin returned only ${k(depts[3].result)}k.`,
-    `Consulting holds ${k(-depts[4].all_overhead)}k of overhead on a ${k(depts[4].revenue)}k fee base. That needs a decision, not a forecast.`,
-    `The five results add back to net profit exactly. The check row on the tab proves it.`,
+    `Support is the only department earning enough to cover its share of running costs. It made ${k(depts[0].result)}k on ${k(depts[0].revenue)}k of sales.`,
+    `Events is charged ${k(-depts[1].all_overhead)}k of running costs and only billed ${k(depts[1].revenue)}k. It keeps ${pct(depts[1].gm_pct, 0)} of what it sells and still loses ${k(-depts[1].result)}k.`,
+    `Integration billed ${k(depts[3].revenue)}k against a ${k(depts[3].budget)}k plan but keeps only ${pct(depts[3].gm_pct, 0)} of it, so it made just ${k(depts[3].result)}k.`,
+    `Consulting is charged ${k(-depts[4].all_overhead)}k of running costs and billed ${k(depts[4].revenue)}k. That needs a decision, not a forecast.`,
+    `The five departments add up to the company result exactly. The check row on the tab proves it.`,
   ],
   notes: `Every department against budget with the full overhead charge, read off section 7 of the Overhead Split tab.\n\n` +
     depts.map((x) => `${x.name}: revenue ${money(x.revenue)} against ${money(x.budget)} budget. Gross profit ${money(x.gross_profit)} at ${pct(x.gm_pct)}. Overhead ${money(-x.all_overhead)}, of which ${money(-x.alloc_overhead)} is allocated admin. Result ${money(x.result)}.`).join('\n') +
@@ -94,11 +94,11 @@ snipSlide({
   eyebrow: 'Financial performance', title: 'Revenue against budget and last year',
   snip: 'rev_by_dept', source: FROM('Cost Analysis', 'revenue by department, the month'),
   commentary: [
-    `Integration booked ${k(depts[3].revenue)}k against a ${k(depts[3].budget)}k budget. One fit-out, not a run rate.`,
-    `Support delivered ${k(depts[0].revenue)}k against ${k(depts[0].budget)}k. On plan, as contract income should be.`,
-    `Events at ${k(depts[1].revenue)}k beat a ${k(depts[1].budget)}k budget, in a quiet month either side of results season.`,
-    `Video ${k(depts[2].revenue)}k against ${k(depts[2].budget)}k and Consulting ${k(depts[4].revenue)}k against ${k(depts[4].budget)}k. Both structurally short.`,
-    `Company revenue is ${pct(rev.month / rev.month_ly - 1, 0)} up on last September. The growth is real, the margin on it is not.`,
+    `Integration billed ${k(depts[3].revenue)}k against a ${k(depts[3].budget)}k plan. Nearly all of it was one big installation job, now finished, so next month drops back.`,
+    `Support billed ${k(depts[0].revenue)}k against ${k(depts[0].budget)}k. On plan, which is what fixed monthly contracts should do.`,
+    `Events billed ${k(depts[1].revenue)}k against ${k(depts[1].budget)}k, in a month that sits between the busy results periods.`,
+    `Video billed ${k(depts[2].revenue)}k against ${k(depts[2].budget)}k and Consulting ${k(depts[4].revenue)}k against ${k(depts[4].budget)}k. Both have been short every month this year.`,
+    `Company sales are ${pct(rev.month / rev.month_ly - 1, 0)} up on last September. We are selling more than last year and keeping less of it.`,
   ],
   notes: `Revenue by department for ${MONTH}, actual against budget and against the same month last year.\n\n` +
     byRev.map((d) => `${d.name}: ${money(d.revenue)} against a budget of ${money(d.budget)} and ${money(d.ly)} last year.`).join('\n') +
@@ -114,11 +114,11 @@ snipSlide({
   eyebrow: 'Cost base', title: 'Operating cost distribution, year to date',
   snip: 'cost_dist', source: FROM('Cost Analysis', 'operating cost distribution'),
   commentary: [
-    `Direct labour ${k(-cd('labour').amount)}k and employment overhead ${k(-cd('Employment').amount)}k together are the clear majority of cost.`,
+    `Wages on jobs ${k(-cd('labour').amount)}k and wages off jobs ${k(-cd('Employment').amount)}k are most of what we spend.`,
     'People are the cost base. Everything else is rounding by comparison.',
-    `Employment overhead at ${k(-cd('Employment').amount)}k is fixed within the year. It does not flex when a month comes in short.`,
-    `Equipment and services ${k(-cd('equipment').amount)}k is the only genuinely variable block.`,
-    'Cost reduction means headcount or premises. There is no third lever of any size.',
+    `The ${k(-cd('Employment').amount)}k of wages off jobs is fixed for the year. It does not drop when a month comes in short.`,
+    `Equipment and services at ${k(-cd('equipment').amount)}k is the only cost that rises and falls with the work.`,
+    'If we have to cut cost it is people or the office. Nothing else is big enough to matter.',
   ],
   notes: `Operating cost distribution for the year to date, cost of sales and overhead on one scale.\n\n` +
     D.cost_dist.filter((x) => Math.abs(x.amount) > 500).map((x) => `${x.label} ${money(Math.abs(x.amount))} at ${pct(x.share)}`).join('. ') +
@@ -135,8 +135,8 @@ snipSlide({
       `Premises are the block: rent ${k(-o['Rent'].amount)}k plus outgoings ${k(-o['Rental Outgoings'].amount)}k, ${k(prem)}k together.`,
       `IT network at ${k(-o['IT Network Service & Support'].amount)}k is the second line and the only one with real variability.`,
       'Everything below the top three is under six thousand across a full quarter.',
-      'There is no saving of consequence in the tail. Do not spend management time there.',
-      'Premises is the lever, and it is a lease decision, not a budget decision.',
+      'There is nothing worth saving further down the list. Do not spend management time there.',
+      'The office is the only real saving here, and that is a lease decision, not a budget one.',
     ];
   })(),
   notes: `Other operating expenses, year to date.\n\n` +
@@ -150,8 +150,8 @@ snipSlide({
   commentary: [
     'Direct labour splits into permanent payroll and sub contract labour.',
     'Salaries, wages and superannuation are the bulk of it and they are committed cost.',
-    'Sub contract labour is the only line that flexes with volume.',
-    'It rises when the permanent team runs out of capacity, so watch it against utilisation.',
+    'Contractors are the only labour cost that goes up and down with the work.',
+    'It rises when our own team runs out of hours, so watch it against the utilisation page.',
     'We pay for hours worked. We bill for hours that are chargeable. The gap is margin.',
   ],
   notes: `Labour mix for the year to date, direct labour charged to cost of sales split by type.\n\n` +
@@ -192,10 +192,10 @@ snipSlide({
     const top3 = t.slice(0, 3).reduce((a, x) => a + x.ytd, 0);
     return [
       `The top ten are ${pct(tt.top_ten_share)} of revenue. The top three alone are ${pct(top3 / rev.ytd)}.`,
-      `${t[0].name} at ${money(t[0].ytd)} is ${pct(t[0].share)} of the year. Losing it costs more than the whole EBITDA plan.`,
+      `${t[0].name} at ${money(t[0].ytd)} is ${pct(t[0].share)} of the year. Losing them would wipe out more than the whole year's profit plan.`,
       `${t[1].name} came from nothing to ${money(t[1].ytd)} in a quarter, almost all of it in September.`,
-      `Below the top five the book drops away fast. Number ten is ${money(t[9].ytd)}.`,
-      'Recommend a named retention plan on the top three before the half year.',
+      `After the top five the amounts fall away quickly. Number ten is only ${money(t[9].ytd)}.`,
+      'We should agree who looks after the top three, by name, before the half year.',
     ];
   })(),
   notes: `Top ten customers, year to date, with the chart beside the table.\n\n` +
@@ -209,10 +209,10 @@ snipSlide({
   commentary: (() => {
     const d = D.dso;
     return [
-      `DSO is ${d.days.toFixed(1)} days against a ${d.target} day target. That is ${d.above.toFixed(1)} days of cash we are not holding.`,
-      `Every day of DSO is ${money(d.receivables / d.days)}. Getting to target releases ${money(d.locked)}.`,
-      `${pct(d.overdue_share)} of the book is overdue, ${money(d.overdue)}.`,
-      `${D.debtors[0].name} alone is ${pct(D.debtors[0].share)} of receivables at ${money(D.debtors[0].amount)}.`,
+      `Customers take ${d.days.toFixed(0)} days to pay us. The target is ${d.target}. That is ${d.above.toFixed(0)} days of cash we are not holding.`,
+      `Every day we shave off brings in ${money(d.receivables / d.days)}. Getting to target frees up ${money(d.locked)}.`,
+      `${pct(d.overdue_share, 0)} of what we are owed is already late, ${money(d.overdue)}.`,
+      `${D.debtors[0].name} alone owes ${money(D.debtors[0].amount)}, which is ${pct(D.debtors[0].share, 0)} of the total.`,
       'Chase the top two. Nothing else on this page moves the number.',
     ];
   })(),
