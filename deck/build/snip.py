@@ -39,13 +39,18 @@ SNIPS = {
     'dso_calc':    ('DSO',            'A5:B15',     False),
     'dso_who':     ('DSO',            'J23:T46',    False),
     'util_tbl':    ('Utilisation',    'A66:D73',    False),
+    # The utilisation calculation itself: hours, utilisation per cent and FTE
+    # for each department, for the three closed months. Split in two, because
+    # thirty rows on one slide shrinks the figures to nothing.
+    'util_pct_a':  ('Utilisation',    'A4:F19',     False),
+    'util_pct_b':  ('Utilisation',    'A20:F37',    False),
     # One slide per department, off the Dept P&L tab with its selector set.
     'dept_Support':     ('Dept P&L', 'A7:G25', False, '', {'B5': 'Support'}),
     'dept_Events':      ('Dept P&L', 'A7:G25', False, '', {'B5': 'Events'}),
     'dept_Video':       ('Dept P&L', 'A7:G25', False, '', {'B5': 'Video'}),
     'dept_Integration': ('Dept P&L', 'A7:G25', False, '', {'B5': 'Integration'}),
     'dept_Consulting':  ('Dept P&L', 'A7:G25', False, '', {'B5': 'Consulting'}),
-    'util_chart':  ('Utilisation',    'F65:Q86',    False),
+    'util_chart':  ('Utilisation',    'F65:Q92',    False),
 }
 
 
@@ -53,6 +58,11 @@ SNIPS = {
 # and the account detail at 4. The screenshot shows departments and
 # sub-departments but not the account categories, which also sit at level 3.
 SUBDEPTS = {'events', 'video', 'integration', 'consulting'}
+
+
+# Where a snip starts below the sheet's own header row, the header is printed
+# again at the top of the snip so the columns can be read.
+TITLE_ROWS = {'pl_result': '5:5', 'util_pct_b': '8:8'}
 
 
 def collapse(ws):
@@ -80,8 +90,8 @@ def build(snip_id, sheet, rng, do_collapse, hide_cols='', set_cells=None):
     for ref, value in (set_cells or {}).items():
         ws[ref] = value
     ws.print_area = rng
-    if rng.startswith('A59'):
-        ws.print_title_rows = '5:5'       # repeat the month header on the cost half
+    if snip_id in TITLE_ROWS:
+        ws.print_title_rows = TITLE_ROWS[snip_id]
     ws.page_setup.orientation = 'landscape'
     ws.page_setup.fitToWidth = 1
     ws.page_setup.fitToHeight = 0

@@ -114,7 +114,7 @@ const DEPT_STORY = {
     `Keeps ${pct(d.gm_pct, 0)} of what it sells, the best margin in the business.`,
     `But on ${k(d.revenue)}k of sales that is only ${k(d.gross_profit)}k, against ${k(-d.all_overhead)}k of running costs.`,
     `The margin is not the problem. There is not enough work going through it.`,
-    `${money(util[2].chargeable)} billable hours in the month. That is one person, part of the time.`,
+    `${util[2].chargeable.toFixed(1)} billable hours in the month. That is one person, part of the time.`,
   ]),
   Integration: (d) => ([
     `Billed ${k(d.revenue)}k against a ${k(d.budget)}k plan. Nearly all of it one installation job, now finished.`,
@@ -300,6 +300,38 @@ snipSlide({
 /* ===================================================== 04 people and utilisation */
 section('04', 'People and utilisation', 'Chargeable hours and the profit they produce',
   `The company billed ${utilTot.c.toLocaleString('en-AU', { maximumFractionDigits: 0 })} chargeable hours in ${MONTH} out of ${(utilTot.c + utilTot.n).toLocaleString('en-AU', { maximumFractionDigits: 0 })} worked. Where chargeable hours fall short, margin follows.`);
+
+snipSlide({
+  eyebrow: 'People and utilisation', title: `Utilisation, Support and Events`,
+  snip: 'util_pct_a', source: FROM('Utilisation', 'hours, utilisation per cent and FTE, July to September. The pack calls these two cost centres Onsite and Production'),
+  commentary: (() => {
+    const sup = util[0], ev = util[1];
+    return [
+      `This is the calculation itself. Hours worked, how many went on jobs, the percentage that gives, and the headcount those hours represent.`,
+      `Utilisation per cent is billable hours divided by hours worked. Leave is left out, because nobody can bill leave.`,
+      `FTE is hours worked divided by the working hours in the month, so 1.0 is one full time person.`,
+      `Support reads ${pct(sup.util_pct, 0)} on only ${money(sup.non_chargeable)} non-billable hours. That is a coding problem, not a result.`,
+      `Events at ${pct(ev.util_pct, 0)} is the real one. ${money(ev.leave)} hours of leave took out most of the month.`,
+    ];
+  })(),
+  notes: `The utilisation working for the two big cost centres, straight off the pack.\n\nThe top three rows set the month: working days, and working hours at eight hours a day. Every FTE figure divides into that.\n\nFor each cost centre the sheet holds billable hours, non-billable hours and leave, then two calculated lines. Utilisation per cent is billable divided by billable plus non-billable. Leave is excluded, because leave cannot be billed and including it would punish a team for taking its entitlement. FTE is billable plus non-billable divided by the month's working hours.\n\nSupport: ${pct(util[0].util_pct)} utilisation on ${util[0].fte.toFixed(1)} FTE. I cannot put my name to that percentage. ${money(util[0].non_chargeable)} non-billable hours in a whole month, for a team that size, is not a real number. Non-billable time is being coded to billable cost centres. The hours total is right, the split is not, and until the coding is corrected this figure cannot be used to manage anybody.\n\nEvents: ${pct(util[1].util_pct)} utilisation on ${util[1].fte.toFixed(1)} FTE, with ${money(util[1].leave)} hours of leave. That is the genuine operational issue on this page. The people were paid for, the work was not there.\n\nThree months sit side by side so the board reads a trend, not one month in isolation.`,
+});
+
+snipSlide({
+  eyebrow: 'People and utilisation', title: 'Utilisation, Video, Integration and Consulting',
+  snip: 'util_pct_b', source: FROM('Utilisation', 'hours, utilisation per cent and FTE, July to September'),
+  commentary: (() => {
+    const vid = util[2], itg = util[3], con = util[4];
+    return [
+      `Read these three as hours, not as percentages. The volumes are too small for a percentage to mean much.`,
+      `Integration shows ${pct(itg.util_pct, 0)} on ${itg.chargeable.toFixed(1)} billable hours. That is one day of work, not a result.`,
+      `Video put ${vid.chargeable.toFixed(1)} hours on jobs, about ${vid.fte.toFixed(2)} of a full time person.`,
+      `Consulting is the one that matters: ${pct(con.util_pct, 0)}, with ${con.non_chargeable.toFixed(0)} hours on work we cannot bill.`,
+      `Consulting has carried running costs against almost no fees for three months. That decision keeps being deferred.`,
+    ];
+  })(),
+  notes: `The three small cost centres.\n\nVideo: ${pct(util[2].util_pct)} utilisation on ${util[2].fte.toFixed(2)} FTE. ${util[2].chargeable.toFixed(1)} billable hours in the month.\n\nIntegration: ${pct(util[3].util_pct)} on ${util[3].fte.toFixed(2)} FTE. The hundred per cent is arithmetic, not performance. ${util[3].chargeable.toFixed(1)} billable hours and no non-billable time booked at all. Integration's revenue this month came from resold equipment, not from our hours, which is why the money and the hours do not match.\n\nConsulting: ${pct(util[4].util_pct)} on ${util[4].fte.toFixed(2)} FTE. ${money(util[4].non_chargeable)} hours into work we cannot bill against ${money(util[4].chargeable)} we can, plus ${money(util[4].leave)} hours of leave. Three months of that pattern, against running costs that have not moved, is the clearest case in the pack for a decision.\n\nA percentage on nine or twenty four hours is not a management number. Read the hours column.`,
+});
 
 snipSlide({
   eyebrow: 'People and utilisation', title: `How each department spent its hours, ${SHORT}`,

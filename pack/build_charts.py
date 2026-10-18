@@ -75,6 +75,34 @@ def ranked_axis(ch):
     ch.x_axis.tickLblPos = 'low'
     ch.y_axis.majorGridlines = None
 
+def hide_thin(ch, shares, floor=0.045):
+    """Drop the label on any segment too narrow to hold it.
+
+    A hundred per cent stacked bar can only put the label inside the segment.
+    Where a segment is half a per cent of the bar, its number prints across the
+    neighbour and both become unreadable. The figures are all on the table
+    beside the chart, so dropping the label loses nothing."""
+    from openpyxl.chart.label import DataLabel
+    off = dict(showVal=False, showSerName=False, showCatName=False,
+               showLegendKey=False, showPercent=False, showBubbleSize=False)
+    for s_, row in zip(ch.series, shares):
+        thin = [DataLabel(idx=i, **off)
+                for i, v in enumerate(row) if v < floor]
+        if thin:
+            s_.dLbls.dLbl = thin
+
+
+def mix_shares(wb, bases, n=3):
+    """Each segment as a share of its own bar, for the reporting month. Read
+    from the pasted hours, not from the chart cells, because those are formulas
+    and an openpyxl save leaves them with no cached value."""
+    u, want = wb['Utilisation'], wb['Summary']['B3'].value
+    col = next(c for c in range(4, 16) if u.cell(4, c).value == want)
+    rows = [[u.cell(b + i, col).value or 0 for b in bases] for i in range(n)]
+    tot = [sum(rows[i][j] for i in range(n)) or 1 for j in range(len(bases))]
+    return [[rows[i][j] / tot[j] for j in range(len(bases))] for i in range(n)]
+
+
 def labels_in(ch, cols, fmt='$#,##0', size=900):
     """Sit the value in the middle of each bar. At the end of the bar the
     longest one runs into the edge of the plot and its label gets dropped.
@@ -376,12 +404,16 @@ ch = BarChart(); ch.type = 'bar'; ch.grouping = 'percentStacked'; ch.overlap = 1
 ch.add_data(Reference(ws, min_col=2, max_col=4, min_row=67, max_row=72),
             titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=68, max_row=72))
-frame(ch, 'How each department spent its hours', 24, 12)
+frame(ch, 'How each department spent its hours, billable against not billable',
+      24, 13)
 ranked(ch)
 legend(ch)
 paint(ch, [TEAL, AQUA, GREYL])
-# A stacked bar can only take a label inside the segment.
-labels(ch, '#,##0', pos='ctr', size=800, colour=WHITE)
+# A stacked bar can only take a label inside the segment, so the label colour
+# has to follow the segment under it. White is invisible on the bright teal and
+# on the pale grey.
+labels_in(ch, [WHITE, INK, INK], fmt='#,##0', size=800)
+hide_thin(ch, mix_shares(wb, [9, 15, 21, 27, 33]))
 ws.add_chart(ch, 'F66')
 
 # ------------------------- employment expense, office against dept -----
@@ -394,7 +426,8 @@ frame(ch, 'Employment expense, departmental staff against office staff', 24, 10)
 ranked(ch)
 legend(ch)
 paint(ch, [TEAL, AQUA])
-labels(ch, '$#,##0', pos='ctr', size=700, colour=WHITE)
+# Same again: the office staff segment is bright teal, so its label is ink.
+labels_in(ch, [WHITE, INK], fmt='$#,##0', size=700)
 ws.add_chart(ch, 'E160')
 
 wb.save(OUT)
