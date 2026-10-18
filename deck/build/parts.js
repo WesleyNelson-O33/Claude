@@ -4,6 +4,8 @@ const { C, DEPT } = require('./theme.js');
 const { head, commentary, headRow, row, money, k, pct, signed, varColour } = L;
 const { placeSnip, source } = require('./snips.js');
 const { EB } = require('./part0.js');
+const HER = require('../data/util_her_basis.json');   // her own report's Chargeable %
+const HU = HER['Sep-26'];
 const { pres, D, P, rev, gp, oh, eb, np, depts, dTot, byRev, util, utilTot, staff,
         ytdMargin, ohRun, breakEven, revRun, section, MONTH, SHORT } = B;
 
@@ -139,7 +141,7 @@ const DEPT_STORY = {
     `Keeps ${pct(d.gm_pct, 0)} of what it sells, the same as last September. Steady and predictable.`,
     `After its ${k(-d.all_overhead)}k share of running costs it still made ${k(d.result)}k. The only department that does.`,
     `Of that share, ${money(staff[0].office)} is office wages. Support picks up the most because it works the most hours.`,
-    `The one thing not to trust here is the ${pct(util[0].util_pct, 0)} billable figure. Non-billable time is being booked to jobs.`,
+    `On the monthly report's basis Support bills ${pct(HU.Support.pct, 0)} of the hours it is available for. The best in the business.`,
   ]),
   Events: (d) => ([
     `Billed ${k(d.revenue)}k against ${k(d.budget)}k, in a month between the busy results periods.`,
@@ -338,7 +340,23 @@ snipSlide({
 
 /* ===================================================== 04 people and utilisation */
 section('04', 'People and utilisation', 'Chargeable hours and the profit they produce',
-  `The company billed ${utilTot.c.toLocaleString('en-AU', { maximumFractionDigits: 0 })} chargeable hours in ${MONTH} out of ${(utilTot.c + utilTot.n).toLocaleString('en-AU', { maximumFractionDigits: 0 })} worked. Where chargeable hours fall short, margin follows.`);
+  `The company billed ${money(HU.Grand.ch)} hours in ${MONTH} out of ${money(HU.Grand.workable)} it was available for, which is ${pct(HU.Grand.pct, 0)}. Where chargeable hours fall short, margin follows.`);
+
+// Her own Chargeable % comes first, because it is the number the business
+// already uses. Billable hours over the hours the person was available for,
+// leave and public holidays included in the bottom of the fraction.
+snipSlide({
+  eyebrow: 'People and utilisation', title: `Chargeable per cent, ${SHORT}`,
+  snip: 'util_her', source: FROM('Utilisation', 'Chargeable per cent, the Utilisation Report basis'),
+  commentary: [
+    `This is the monthly Utilisation Report's own calculation. Billable hours divided by the hours each person was available for, so leave and public holidays count against it.`,
+    `Support ${pct(HU.Support.pct, 0)}. Production ${pct(HU.Production.pct, 0)}. Consulting ${pct(HU.Consulting.pct, 0)}. The company ${pct(HU.Grand.pct, 0)}.`,
+    `Three person groups, not five, because nobody is assigned to Video or Integration. Their work is done by Production and Consulting people.`,
+    `Production is the one to act on. ${money(HU.Production.lv)} hours of leave on ${money(HU.Production.workable)} available took most of the month out.`,
+    `Each month ties to the Grand Total on the monthly report to four decimal places.`,
+  ],
+  notes: `Chargeable per cent for ${MONTH}, calculated exactly as the monthly Utilisation Report calculates it.\n\nThe formula is billable hours divided by Workable Business Hours, which is the hours each person was available for in the month. Leave and public holidays stay in the bottom of the fraction, so a team that takes its leave shows a lower percentage. That is the business's own definition and this pack now uses it.\n\nSupport ${pct(HU.Support.pct)} on ${money(HU.Support.workable)} available hours. Production ${pct(HU.Production.pct)} on ${money(HU.Production.workable)}. Consulting ${pct(HU.Consulting.pct)} on ${money(HU.Consulting.workable)}. The company ${pct(HU.Grand.pct)}.\n\nThere are three person groups because the report groups by the department a person belongs to, and nobody is assigned to Video or Integration. Their work is carried out by Production and Consulting people and appears under those groups.\n\nWorkable Business Hours is a paste, like the hours themselves. It cannot be calculated inside the pack, because it needs the headcount of each group and who is part time, and neither of those is in here.\n\nWhat this replaces. An earlier version of this pack divided billable hours by hours actually worked, leaving leave out of the sum. That put Support at 99.5 per cent and made it look like a coding error. It was not. On this basis Support is ${pct(HU.Support.pct)} and the figure is sound.`,
+});
 
 snipSlide({
   eyebrow: 'People and utilisation', title: `Utilisation, Support and Events`,
@@ -349,11 +367,11 @@ snipSlide({
       `This is the calculation itself. Hours worked, how many went on jobs, the percentage that gives, and the headcount those hours represent.`,
       `Utilisation per cent is billable hours divided by hours worked. Leave is left out, because nobody can bill leave.`,
       `FTE is hours worked divided by the working hours in the month, so 1.0 is one full time person.`,
-      `Support reads ${pct(sup.util_pct, 0)} on only ${money(sup.non_chargeable)} non-billable hours. That is a coding problem, not a result.`,
-      `Events at ${pct(ev.util_pct, 0)} is the real one. ${money(ev.leave)} hours of leave took out most of the month.`,
+      `This page is the hours record, grouped by the job the work was for. The Chargeable per cent the monthly report uses is on the slide before.`,
+      `Support billed ${money(sup.chargeable)} hours. Events billed ${money(ev.chargeable)} and lost ${money(ev.leave)} to leave.`,
     ];
   })(),
-  notes: `The utilisation working for the two big cost centres, straight off the pack.\n\nThe top three rows set the month: working days, and working hours at eight hours a day. Every FTE figure divides into that.\n\nFor each cost centre the sheet holds billable hours, non-billable hours and leave, then two calculated lines. Utilisation per cent is billable divided by billable plus non-billable. Leave is excluded, because leave cannot be billed and including it would punish a team for taking its entitlement. FTE is billable plus non-billable divided by the month's working hours.\n\nSupport: ${pct(util[0].util_pct)} utilisation on ${util[0].fte.toFixed(1)} FTE. I cannot put my name to that percentage. ${money(util[0].non_chargeable)} non-billable hours in a whole month, for a team that size, is not a real number. Non-billable time is being coded to billable cost centres. The hours total is right, the split is not, and until the coding is corrected this figure cannot be used to manage anybody.\n\nEvents: ${pct(util[1].util_pct)} utilisation on ${util[1].fte.toFixed(1)} FTE, with ${money(util[1].leave)} hours of leave. That is the genuine operational issue on this page. The people were paid for, the work was not there.\n\nThree months sit side by side so the board reads a trend, not one month in isolation.`,
+  notes: `The utilisation working for the two big cost centres, straight off the pack.\n\nThe top three rows set the month: working days, and working hours at eight hours a day. Every FTE figure divides into that.\n\nFor each cost centre the sheet holds billable hours, non-billable hours and leave, then two calculated lines. The percentage here is the billable share of the hours actually worked, which is not the same as the Chargeable per cent on the slide before: this one leaves leave out of the sum, your report keeps it in. Both are on the tab and each is labelled for what it is. FTE is billable plus non-billable divided by the month's working hours.\n\nSupport: ${money(util[0].chargeable)} billable hours on ${util[0].fte.toFixed(1)} FTE. The ${money(util[0].non_chargeable)} of non-billable time shown here is an artefact of the grouping, not a coding error. The monthly report shows Support with no non-billable hours at all in ${MONTH}; this tab regroups by the job the work was for, which moves a small amount of other people's non-billable time into Support.\n\nEvents: ${pct(util[1].util_pct)} utilisation on ${util[1].fte.toFixed(1)} FTE, with ${money(util[1].leave)} hours of leave. That is the genuine operational issue on this page. The people were paid for, the work was not there.\n\nThree months sit side by side so the board reads a trend, not one month in isolation.`,
 });
 
 snipSlide({
@@ -379,7 +397,7 @@ snipSlide({
     const sup = util[0], ev = util[1], con = util[4];
     return [
       `Each bar is scaled to that department's own hours, so you can compare the mix. Support works about a hundred times the hours Integration does.`,
-      `Support shows ${money(sup.non_chargeable)} hours not on jobs out of ${money(sup.chargeable + sup.non_chargeable)} worked. That is not credible.`,
+      `Support is almost entirely billable, which is why it is the only department that makes money.`,
       `Events put ${money(ev.leave)} hours into leave and only ${money(ev.chargeable)} onto jobs. The people are there, the work is not.`,
       `Consulting put ${money(con.non_chargeable)} hours into work we cannot bill against ${money(con.chargeable)} we can.`,
       `We pay for every hour. We only bill the ones on jobs. The grey and light teal are the gap.`,
@@ -387,7 +405,7 @@ snipSlide({
   })(),
   notes: `How each department spent its hours in ${MONTH}.\n\nRead the bars as a mix, not as a size. Each one is scaled to that department's own total, because Support works around a hundred times the hours Integration does and on a straight scale four of the five departments disappear. The number on each segment is the real hours.\n\n` +
     util.map((u) => `${u.name}: ${money(u.chargeable)} hours on jobs, ${money(u.non_chargeable)} not on jobs, ${money(u.leave)} leave. ${pct(u.util_pct)} of worked hours were billable.`).join('\n') +
-    `\n\nAcross the five departments, ${money(utilTot.c)} hours on jobs out of ${money(utilTot.c + utilTot.n)} worked.\n\nI need to be straight about the Support bar. ${money(util[0].non_chargeable)} hours not on jobs, in a whole month, for a team that size, is not believable. Non-billable time is being booked to billable jobs. The total hours are right, the split is not, and until timesheet coding is corrected the Support percentage cannot be used to manage anybody.\n\nEvents is the real operational issue: ${money(util[1].leave)} hours of leave on a small team takes out most of the month's capacity.\n\nAnd the prize. Support earns about ${money(depts[0].revenue / util[0].chargeable - Math.abs(depts[0].cos) / util[0].chargeable)} of margin on every hour it bills. Five more points of billable time across Support and Events, at the rate each already earns, is worth roughly ${money((depts[0].revenue + depts[1].revenue) * 0.05)} a month and costs nothing extra. It is the largest controllable item in this pack.`,
+    `\n\nAcross the five departments, ${money(utilTot.c)} hours on jobs out of ${money(utilTot.c + utilTot.n)} worked.\n\nOn the Support bar: the small slice of non-billable time comes from the regrouping, not from bad coding. The monthly report shows Support with no non-billable hours in ${MONTH}. This view regroups by the job the work was for, so a little of other people's non-billable time lands here.\n\nEvents is the real operational issue: ${money(util[1].leave)} hours of leave on a small team takes out most of the month's capacity.\n\nAnd the prize. Support earns about ${money(depts[0].revenue / util[0].chargeable - Math.abs(depts[0].cos) / util[0].chargeable)} of margin on every hour it bills. Five more points of billable time across Support and Events, at the rate each already earns, is worth roughly ${money((depts[0].revenue + depts[1].revenue) * 0.05)} a month and costs nothing extra. It is the largest controllable item in this pack.`,
 });
 
 snipSlide({
@@ -408,7 +426,7 @@ snipSlide({
       `Each bar is scaled to its own hours. Support works about four times the hours of the other two together.`,
     ];
   })(),
-  notes: `The hours mix for ${MONTH}, rolled up to the three departments the P&L is built on.\n\nProduction is Events and Video together. Consulting is Integration and Consulting together. Support stands alone.\n\nRead each bar as a mix, not a size. Each is scaled to its own total, because Support works far more hours than the other two combined.\n\nThe pattern is the whole argument of this pack. Support is almost entirely billable and it is the only department that covers its costs. Production and Consulting both spend roughly half their paid hours, or more, on work no customer pays for, and both lose money.\n\nThe Support bar still cannot be used as a performance figure. ${money(util[0].non_chargeable)} non-billable hours in a month is a coding problem, as set out on the earlier slide. What the bar does show correctly is the hours total and the leave.`,
+  notes: `The hours mix for ${MONTH}, rolled up to the three departments the P&L is built on.\n\nProduction is Events and Video together. Consulting is Integration and Consulting together. Support stands alone.\n\nRead each bar as a mix, not a size. Each is scaled to its own total, because Support works far more hours than the other two combined.\n\nThe pattern is the whole argument of this pack. Support is almost entirely billable and it is the only department that covers its costs. Production and Consulting both spend roughly half their paid hours, or more, on work no customer pays for, and both lose money.\n\nSupport reads ${pct(HU.Support.pct)} on the monthly report's own basis, which counts leave against it. That is the figure to quote in the room.`,
 });
 
 /* ===================================================== 05 budget and outlook */
@@ -448,8 +466,8 @@ snipSlide({
     ['Consulting', `${k(-depts[4].all_overhead)}k of running costs against ${k(depts[4].revenue)}k of fees. Decide whether the department is rebuilt, merged into Integration, or closed.`, 'GC', '30 Nov 26'],
     ['Customers', `Top three are ${pct(D.top10.slice(0, 3).reduce((a, x) => a + x.ytd, 0) / rev.ytd)} of revenue. Agree a named retention plan, and set the growth target on the second ten.`, 'GC and Sales', '14 Nov 26'],
     ['Cash', `DSO ${D.dso.days.toFixed(1)} days. Getting to ${D.dso.target} releases ${k(D.dso.locked)}k. Chase ${D.debtors[0].name} and ${D.debtors[1].name} first.`, 'FC', '24 Oct 26'],
-    ['Utilisation', `Five more points on Support and Events is worth about ${k(gain)}k a month at no extra cost. Set it as a target once timesheet coding is fixed.`, 'Ops and FC', '30 Nov 26'],
-    ['Timesheets', `Support shows ${money(util[0].non_chargeable)} non-chargeable hours in a month. Correct the coding before utilisation is used to manage anyone.`, 'Ops and FC', '31 Oct 26'],
+    ['Utilisation', `Chargeable per cent is ${pct(HU.Grand.pct, 0)} against a ${pct(0.81, 0)} target. Five more points on Support and Production is worth about ${k(gain)}k a month at no extra cost.`, 'Ops and FC', '30 Nov 26'],
+    ['Leave', `Production lost ${money(HU.Production.lv)} hours to leave on ${money(HU.Production.workable)} available. Plan leave against the booking calendar, not around it.`, 'Ops', '30 Nov 26'],
   ];
   s.addTable([headRow(['Area', 'What we agreed', 'Owner', 'Due'], 'left'),
     ...acts.map(([a, w, o, dd]) => [

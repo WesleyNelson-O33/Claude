@@ -44,6 +44,8 @@ SNIPS = {
     # The utilisation calculation itself: hours, utilisation per cent and FTE
     # for each department, for the three closed months. Split in two, because
     # thirty rows on one slide shrinks the figures to nothing.
+    # Chargeable per cent on her own report's basis, the three person groups.
+    'util_her':    ('Utilisation',    'A120:F149',  False),
     'util_pct_a':  ('Utilisation',    'A4:F19',     False),
     'util_pct_b':  ('Utilisation',    'A20:F37',    False),
     # One slide per department, off the Dept P&L tab with its selector set.
