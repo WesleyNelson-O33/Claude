@@ -346,16 +346,29 @@ section('04', 'People and utilisation', 'Chargeable hours and the profit they pr
 // already uses. Billable hours over the hours the person was available for,
 // leave and public holidays included in the bottom of the fraction.
 snipSlide({
-  eyebrow: 'People and utilisation', title: `Chargeable per cent, ${SHORT}`,
-  snip: 'util_her', source: FROM('Utilisation', 'Chargeable per cent, the Utilisation Report basis'),
+  eyebrow: 'People and utilisation', title: `Chargeable per cent, Production and Consulting`,
+  snip: 'util_her_a', source: FROM('Utilisation', 'Chargeable per cent against target, the Utilisation Report basis'),
   commentary: [
     `This is the monthly Utilisation Report's own calculation. Billable hours divided by the hours each person was available for, so leave and public holidays count against it.`,
-    `Support ${pct(HU.Support.pct, 0)}. Production ${pct(HU.Production.pct, 0)}. Consulting ${pct(HU.Consulting.pct, 0)}. The company ${pct(HU.Grand.pct, 0)}.`,
-    `Three person groups, not five, because nobody is assigned to Video or Integration. Their work is done by Production and Consulting people.`,
-    `Production is the one to act on. ${money(HU.Production.lv)} hours of leave on ${money(HU.Production.workable)} available took most of the month out.`,
-    `Each month ties to the Grand Total on the monthly report to four decimal places.`,
+    `Production ${pct(HU.Production.pct, 0)} against a ${pct(HU.Production.target, 0)} target. That is ${pct(-HU.Production.over_under, 1)} under, the worst gap in the business.`,
+    `Leave took ${pct(HU.Production.leave_pct, 0)} of Production's available hours this month. That is the single biggest cause.`,
+    `Consulting ${pct(HU.Consulting.pct, 0)} against ${pct(HU.Consulting.target, 0)}, so ${pct(-HU.Consulting.over_under, 1)} under on a target already set low.`,
+    `Three person groups, not five. Nobody is assigned to Video or Integration; their work is done by Production and Consulting people.`,
   ],
-  notes: `Chargeable per cent for ${MONTH}, calculated exactly as the monthly Utilisation Report calculates it.\n\nThe formula is billable hours divided by Workable Business Hours, which is the hours each person was available for in the month. Leave and public holidays stay in the bottom of the fraction, so a team that takes its leave shows a lower percentage. That is the business's own definition and this pack now uses it.\n\nSupport ${pct(HU.Support.pct)} on ${money(HU.Support.workable)} available hours. Production ${pct(HU.Production.pct)} on ${money(HU.Production.workable)}. Consulting ${pct(HU.Consulting.pct)} on ${money(HU.Consulting.workable)}. The company ${pct(HU.Grand.pct)}.\n\nThere are three person groups because the report groups by the department a person belongs to, and nobody is assigned to Video or Integration. Their work is carried out by Production and Consulting people and appears under those groups.\n\nWorkable Business Hours is a paste, like the hours themselves. It cannot be calculated inside the pack, because it needs the headcount of each group and who is part time, and neither of those is in here.\n\nWhat this replaces. An earlier version of this pack divided billable hours by hours actually worked, leaving leave out of the sum. That put Support at 99.5 per cent and made it look like a coding error. It was not. On this basis Support is ${pct(HU.Support.pct)} and the figure is sound.`,
+  notes: `Chargeable per cent for ${MONTH}, calculated exactly as the monthly Utilisation Report calculates it.\n\nThe formula is billable hours divided by Workable Business Hours, the hours each person was available for in the month. Leave and public holidays stay in the bottom of the fraction, so a team that takes its leave shows a lower percentage. That is the business's own definition and this pack now uses it.\n\nProduction ${pct(HU.Production.pct)} against a ${pct(HU.Production.target)} target, ${pct(-HU.Production.over_under)} under. Consulting ${pct(HU.Consulting.pct)} against ${pct(HU.Consulting.target)}, ${pct(-HU.Consulting.over_under)} under.\n\nLeave is the story on Production: ${money(HU.Production.lv)} hours out of ${money(HU.Production.workable)} available, which is ${pct(HU.Production.leave_pct)} of the month. The people were paid for and the work was not there.\n\nThere are three person groups because the report groups by the department a person belongs to, and nobody is assigned to Video or Integration.\n\nWorkable Business Hours and the target are pastes. Neither can be calculated in the pack: the first needs each group's headcount and who is part time, the second is set per person and averaged up. The over or under reading and the leave share are calculated off them and reproduce the report's own columns exactly.`,
+});
+
+snipSlide({
+  eyebrow: 'People and utilisation', title: `Chargeable per cent, Support and the company`,
+  snip: 'util_her_b', source: FROM('Utilisation', 'Chargeable per cent against target, the Utilisation Report basis'),
+  commentary: [
+    `Support ${pct(HU.Support.pct, 0)} against an ${pct(HU.Support.target, 0)} target, so it is ${pct(HU.Support.over_under, 1)} over. The only group ahead of its own target.`,
+    `It has been over target all three months: ${pct(HER['Jul-26'].Support.over_under, 1)}, ${pct(HER['Aug-26'].Support.over_under, 1)} and ${pct(HU.Support.over_under, 1)}.`,
+    `The company is ${pct(HU.Grand.pct, 0)} against ${pct(HU.Grand.target, 0)}, which is ${pct(-HU.Grand.over_under, 1)} under.`,
+    `Leave took ${pct(HU.Grand.leave_pct, 0)} of the company's available hours this month, against ${pct(HER['Aug-26'].Grand.leave_pct, 0)} in August.`,
+    `Five more points across Support and Production is the cheapest money in this pack. It costs nothing extra.`,
+  ],
+  notes: `Support and the company, same basis.\n\nSupport ${pct(HU.Support.pct)} against an ${pct(HU.Support.target)} target, ${pct(HU.Support.over_under)} over, on ${money(HU.Support.workable)} available hours. It has cleared its target in all three closed months.\n\nThe company ${pct(HU.Grand.pct)} against ${pct(HU.Grand.target)}, ${pct(-HU.Grand.over_under)} under. The company target moves a little month to month because it is an average over whoever was in the report that month, not a fixed number.\n\nLeave took ${pct(HU.Grand.leave_pct)} of available hours this month against ${pct(HER['Aug-26'].Grand.leave_pct)} in August. September is a heavy leave month and that is most of the movement in the company figure.\n\nA correction to earlier versions of this pack. It divided billable hours by hours actually worked, leaving leave out of the sum, which put Support at 99.5 per cent and made it look like a coding error. It was not. On the report's own basis Support is ${pct(HU.Support.pct)} and the figure is sound.\n\nOT and TIL is on the report but is not in the pack. Its August figure for Support reads 365.62, which cannot be hours in a month, so that column needs checking on the source sheet before anybody quotes it.`,
 });
 
 snipSlide({
@@ -466,7 +479,7 @@ snipSlide({
     ['Consulting', `${k(-depts[4].all_overhead)}k of running costs against ${k(depts[4].revenue)}k of fees. Decide whether the department is rebuilt, merged into Integration, or closed.`, 'GC', '30 Nov 26'],
     ['Customers', `Top three are ${pct(D.top10.slice(0, 3).reduce((a, x) => a + x.ytd, 0) / rev.ytd)} of revenue. Agree a named retention plan, and set the growth target on the second ten.`, 'GC and Sales', '14 Nov 26'],
     ['Cash', `DSO ${D.dso.days.toFixed(1)} days. Getting to ${D.dso.target} releases ${k(D.dso.locked)}k. Chase ${D.debtors[0].name} and ${D.debtors[1].name} first.`, 'FC', '24 Oct 26'],
-    ['Utilisation', `Chargeable per cent is ${pct(HU.Grand.pct, 0)} against a ${pct(0.81, 0)} target. Five more points on Support and Production is worth about ${k(gain)}k a month at no extra cost.`, 'Ops and FC', '30 Nov 26'],
+    ['Utilisation', `Chargeable per cent is ${pct(HU.Grand.pct, 0)} against the report's own ${pct(HU.Grand.target, 0)} target. Five more points on Support and Production is worth about ${k(gain)}k a month at no extra cost.`, 'Ops and FC', '30 Nov 26'],
     ['Leave', `Production lost ${money(HU.Production.lv)} hours to leave on ${money(HU.Production.workable)} available. Plan leave against the booking calendar, not around it.`, 'Ops', '30 Nov 26'],
   ];
   s.addTable([headRow(['Area', 'What we agreed', 'Owner', 'Due'], 'left'),
