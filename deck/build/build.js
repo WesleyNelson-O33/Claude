@@ -52,7 +52,7 @@ const deptStaffTot = staff.reduce((a, s) => a + s.departmental, 0);
   s.addText('Seamless AV', { x: 0.62, y: 1.05, w: 2, h: 0.25, isTextBox: true, margin: 0, fontSize: 9.5, color: C.grey });
   s.addText('MONTHLY BUSINESS REVIEW', { x: 0.55, y: 2.00, w: 6, h: 0.3, isTextBox: true, margin: 0, fontSize: 10.5, bold: true, color: C.tealLt, charSpacing: 3 });
   s.addText(MONTH, { x: 0.55, y: 2.35, w: 6, h: 0.8, isTextBox: true, margin: 0, fontSize: 40, bold: true, color: C.white });
-  s.addText('Results, departments, cost base, customers, cash and utilisation', { x: 0.55, y: 3.30, w: 6, h: 0.4, isTextBox: true, margin: 0, fontSize: 13, color: C.lt2 || 'E3E6EA' });
+  s.addText('Results, departments, spending, customers, cash and utilisation', { x: 0.55, y: 3.30, w: 6, h: 0.4, isTextBox: true, margin: 0, fontSize: 13, color: C.lt2 || 'E3E6EA' });
   s.addText('Financial Controller', { x: 0.55, y: 4.55, w: 3, h: 0.25, isTextBox: true, margin: 0, fontSize: 9.5, color: C.grey });
   s.addNotes(`Monthly Business Review for ${MONTH}. Everything in this pack comes from the Financial Controller Pack, which ties to the Xero general ledger to the cent for every department and for the company.\n\nThe headline is that ${SHORT} beat budget on revenue by ${k(rev.month - rev.month_budget)} thousand and still lost money. Revenue was ${k(rev.month)} thousand against a budget of ${k(rev.month_budget)} thousand. EBITDA was ${k(eb.month)} thousand against a budgeted loss of ${k(eb.month_budget)} thousand.\n\nThe story of the month is margin and the overhead base, not sales.`);
 }
@@ -63,7 +63,7 @@ const deptStaffTot = staff.reduce((a, s) => a + s.departmental, 0);
   head(s, 'Agenda', 'What we will cover');
   const items = [
     ['01', 'Financial performance', 'P&L summary, the three months to date, and every department against budget'],
-    ['02', 'Cost base', 'Where the money goes: cost distribution, operating expense, labour and employment'],
+    ['02', 'What we spend', 'Where the money goes: cost distribution, operating expense, labour and employment'],
     ['03', 'Customers and cash', 'Top ten customers, receivables and days sales outstanding'],
     ['04', 'People and utilisation', 'Chargeable hours by department and the profit they produce'],
     ['05', 'Budget and outlook', 'Revenue by month against budget, and what we do about it'],
@@ -75,7 +75,7 @@ const deptStaffTot = staff.reduce((a, s) => a + s.departmental, 0);
     s.addText(t, { x: 1.15, y: y - 0.02, w: 8.3, h: 0.26, isTextBox: true, margin: 0, fontSize: 13, bold: true, color: C.navy, valign: 'middle' });
     s.addText(sub, { x: 1.15, y: y + 0.22, w: 8.3, h: 0.24, isTextBox: true, margin: 0, fontSize: 10, color: C.muted, valign: 'middle' });
   });
-  s.addNotes('Five sections. Financial performance first, because that is what the numbers say. Cost base second, because that is where the answer is this month. Then customers and cash, then people, then what we do about the budget.');
+  s.addNotes('Five sections. Financial performance first, because that is what the numbers say. What we spend second, because that is where the answer is this month. Then customers and cash, then people, then what we do about the budget.');
 }
 
 /* ------------------------------------------------- section divider helper */
