@@ -21,7 +21,8 @@ WORK = os.path.join(HERE, 'snipwork')
 OUTDIR = os.path.join(HERE, '..', 'snips')
 SOFFICE = '/root/.claude/skills/synced/e9aa5ee9-a99d-40c9-9bb1-cc5bc5010cf8_723c92f1-3883-471f-8787-0ed0739f050b/pptx/scripts/office/soffice.py'
 
-# id -> (sheet, print range, collapse the outline first, columns to hide)
+# id -> (sheet, print range, collapse the outline first, columns to hide,
+#        cells to set first)
 # Hidden columns let a snip sit a table next to a chart without the working
 # columns that happen to live between them.
 SNIPS = {
@@ -38,6 +39,12 @@ SNIPS = {
     'dso_calc':    ('DSO',            'A5:B15',     False),
     'dso_who':     ('DSO',            'J23:T46',    False),
     'util_tbl':    ('Utilisation',    'A66:D73',    False),
+    # One slide per department, off the Dept P&L tab with its selector set.
+    'dept_Support':     ('Dept P&L', 'A7:G25', False, '', {'B5': 'Support'}),
+    'dept_Events':      ('Dept P&L', 'A7:G25', False, '', {'B5': 'Events'}),
+    'dept_Video':       ('Dept P&L', 'A7:G25', False, '', {'B5': 'Video'}),
+    'dept_Integration': ('Dept P&L', 'A7:G25', False, '', {'B5': 'Integration'}),
+    'dept_Consulting':  ('Dept P&L', 'A7:G25', False, '', {'B5': 'Consulting'}),
     'util_chart':  ('Utilisation',    'F65:Q86',    False),
 }
 
@@ -60,7 +67,7 @@ def collapse(ws):
             d.hidden = True
 
 
-def build(snip_id, sheet, rng, do_collapse, hide_cols=''):
+def build(snip_id, sheet, rng, do_collapse, hide_cols='', set_cells=None):
     wb = openpyxl.load_workbook(PACK)
     for ws in wb.worksheets:
         ws.sheet_state = 'visible' if ws.title == sheet else 'hidden'
@@ -70,6 +77,8 @@ def build(snip_id, sheet, rng, do_collapse, hide_cols=''):
         collapse(ws)
     for col in hide_cols:
         ws.column_dimensions[col].hidden = True
+    for ref, value in (set_cells or {}).items():
+        ws[ref] = value
     ws.print_area = rng
     if rng.startswith('A59'):
         ws.print_title_rows = '5:5'       # repeat the month header on the cost half
@@ -118,7 +127,8 @@ def main(only=None):
             continue
         sheet, rng, coll = spec[0], spec[1], spec[2]
         hide = spec[3] if len(spec) > 3 else ''
-        x = build(snip_id, sheet, rng, coll, hide)
+        sets = spec[4] if len(spec) > 4 else None
+        x = build(snip_id, sheet, rng, coll, hide, sets)
         subprocess.run([sys.executable, SOFFICE, '--headless', '--convert-to', 'pdf',
                         '--outdir', WORK, x], check=True, capture_output=True)
         pdf = os.path.join(WORK, f'{snip_id}.pdf')

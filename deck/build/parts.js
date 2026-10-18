@@ -90,6 +90,65 @@ snipSlide({
     `\n\nThe five departments total ${money(dTot.result)}, which is net profit for the month.\n\nTwo things to flag. Integration sold ${money(depts[3].revenue - depts[3].budget)} more than planned and it turned into almost no profit, because we keep only ${pct(depts[3].gm_pct)} on reselling equipment. And Events is charged ${money(-depts[1].alloc_overhead)} of office costs on ${money(depts[1].revenue)} of sales. That charge is split on who uses the office, and Events is not the department sitting in it.`,
 });
 
+/* ---------------------------------- one P&L per department ---------------- */
+// The pack's Dept P&L tab, pointed at each department in turn. Same columns
+// every time: the month, the same month last year, and budget, each with a
+// variance, so the three comparisons a department head asks for are all there.
+const DEPT_STORY = {
+  Support: (d) => ([
+    `Billed ${k(d.revenue)}k against ${k(d.budget)}k. Within ${k(Math.abs(d.revenue - d.budget))}k of plan, which is what fixed monthly contracts should do.`,
+    `Keeps ${pct(d.gm_pct, 0)} of what it sells, the same as last September. Steady and predictable.`,
+    `After its ${k(-d.all_overhead)}k share of running costs it still made ${k(d.result)}k. The only department that does.`,
+    `Of that share, ${money(staff[0].office)} is office wages. Support picks up the most because it works the most hours.`,
+    `The one thing not to trust here is the ${pct(util[0].util_pct, 0)} billable figure. Non-billable time is being booked to jobs.`,
+  ]),
+  Events: (d) => ([
+    `Billed ${k(d.revenue)}k against ${k(d.budget)}k, in a month between the busy results periods.`,
+    `Keeps ${pct(d.gm_pct, 0)} of what it sells, the second best in the business.`,
+    `And still loses ${k(-d.result)}k, because it is charged ${k(-d.all_overhead)}k of running costs on ${k(d.revenue)}k of sales.`,
+    `${k(-d.alloc_overhead)}k of that is office cost, split on who uses the office. Events is not the department sitting in it.`,
+    `${money(util[1].leave)} hours went to leave and only ${money(util[1].chargeable)} onto jobs. The people were there, the work was not.`,
+  ]),
+  Video: (d) => ([
+    `Billed ${k(d.revenue)}k against ${k(d.budget)}k. Short of plan for the third month running.`,
+    `Keeps ${pct(d.gm_pct, 0)} of what it sells, the best margin in the business.`,
+    `But on ${k(d.revenue)}k of sales that is only ${k(d.gross_profit)}k, against ${k(-d.all_overhead)}k of running costs.`,
+    `The margin is not the problem. There is not enough work going through it.`,
+    `${money(util[2].chargeable)} billable hours in the month. That is one person, part of the time.`,
+  ]),
+  Integration: (d) => ([
+    `Billed ${k(d.revenue)}k against a ${k(d.budget)}k plan. Nearly all of it one installation job, now finished.`,
+    `Keeps only ${pct(d.gm_pct, 0)} of it. We bought the equipment and resold it, so the money went mostly to suppliers.`,
+    `${k(d.revenue)}k of sales turned into ${k(d.gross_profit)}k. Do not read the revenue line as a good month.`,
+    `It shows a ${k(d.result)}k profit only because it carries almost no running costs, ${k(-d.all_overhead)}k.`,
+    `${money(util[3].chargeable)} billable hours against ${k(d.revenue)}k of sales. We resold, we did not deliver.`,
+  ]),
+  Consulting: (d) => ([
+    `Billed ${k(d.revenue)}k against a ${k(d.budget)}k plan. There is almost no fee income here.`,
+    `Carries ${k(-d.all_overhead)}k of running costs against ${k(d.revenue)}k of sales, so it loses ${k(-d.result)}k.`,
+    `${money(util[4].non_chargeable)} hours went into work we cannot bill against ${money(util[4].chargeable)} we can.`,
+    `Year to date it has billed ${k(d.ytd_revenue)}k against a ${k(d.ytd_budget)}k plan.`,
+    `This is a decision for the board, not a forecast. Rebuild it, merge it into Integration, or close it.`,
+  ]),
+};
+
+for (const name of ['Support', 'Events', 'Video', 'Integration', 'Consulting']) {
+  const d = depts.find((x) => x.name === name);
+  snipSlide({
+    eyebrow: 'Financial performance', title: `${name}, ${SHORT}`,
+    snip: `dept_${name}`,
+    source: FROM('Dept P&L', `the department selector set to ${name}`),
+    commentary: DEPT_STORY[name](d),
+    notes: `${name} for ${MONTH}, read off the Dept P&L tab.\n\n` +
+      `Sales ${money(d.revenue)} against a budget of ${money(d.budget)}, ${d.revenue >= d.budget ? 'ahead' : 'behind'} by ${money(Math.abs(d.revenue - d.budget))}. Last September it billed ${money(d.ly)}.\n\n` +
+      `After direct costs of ${money(-d.cos)} it kept ${money(d.gross_profit)}, which is ${pct(d.gm_pct)} of what it sold.\n\n` +
+      `Running costs charged to it were ${money(-d.all_overhead)}. ${money(-d.own_overhead)} of that is its own spending and ${money(-d.alloc_overhead)} is its share of the office, charged on the keys set in the pack.\n\n` +
+      `That leaves ${money(d.result)} for the month.\n\n` +
+      `Year to date it has billed ${money(d.ytd_revenue)} against a budget of ${money(d.ytd_budget)}.\n\n` +
+      `On people: employment expense of ${money(staff.find((x) => x.name === name).total)}, of which ${money(staff.find((x) => x.name === name).departmental)} is its own staff and ${money(staff.find((x) => x.name === name).office)} is its share of office wages. It put ${money(util.find((x) => x.name === name).chargeable)} hours onto jobs and ${money(util.find((x) => x.name === name).non_chargeable)} onto work we cannot bill, with ${money(util.find((x) => x.name === name).leave)} hours of leave.`,
+  });
+}
+
 snipSlide({
   eyebrow: 'Financial performance', title: 'Revenue against budget and last year',
   snip: 'rev_by_dept', source: FROM('Cost Analysis', 'revenue by department, the month'),

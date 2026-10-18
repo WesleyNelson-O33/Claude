@@ -309,15 +309,20 @@ labels_out(ch, size=800)
 ws.add_chart(ch, 'I92')
 
 ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
-ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=CC['bvm_hdr'],
-                      max_row=CC['bvm_last']), titles_from_data=True)
+# Column D is the actual for closed months only. Column B carries the budget
+# once the month is in the future, so charting B printed every label twice.
+ch.add_data(Reference(ws, min_col=4, min_row=CC['bvm_hdr'], max_row=CC['bvm_last']),
+            titles_from_data=True)
+ch.add_data(Reference(ws, min_col=3, min_row=CC['bvm_hdr'], max_row=CC['bvm_last']),
+            titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=CC['bvm_first'],
                             max_row=CC['bvm_last']))
-frame(ch, 'Total income by month, actual to date then budget, against budget', 26, 11)
-ch.y_axis.delete = True
+frame(ch, 'Income by month, actual against budget', 26, 12, gap=60)
 legend(ch)
 paint(ch, [NAVY, GREY])
-labels(ch, '#,##0', size=750)
+# Thousands, so twenty four labels fit side by side instead of colliding, and
+# the trailing semicolons hide the zero on the months with no actual yet.
+labels(ch, '#,##0,;;', size=800)
 ws.add_chart(ch, 'I117')
 
 # --------------------------------------------------- profitability ------

@@ -29,7 +29,7 @@
  ],
  "income_month": [
   2067,
-  886
+  965
  ],
  "staff_split": [
   1989,
@@ -62,5 +62,25 @@
  "util_chart": [
   1910,
   895
+ ],
+ "dept_Support": [
+  1746,
+  812
+ ],
+ "dept_Events": [
+  1746,
+  812
+ ],
+ "dept_Video": [
+  1746,
+  812
+ ],
+ "dept_Integration": [
+  1746,
+  812
+ ],
+ "dept_Consulting": [
+  1746,
+  812
  ]
 }
