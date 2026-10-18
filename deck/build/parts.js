@@ -90,6 +90,40 @@ snipSlide({
     `\n\nThe five departments total ${money(dTot.result)}, which is net profit for the month.\n\nTwo things to flag. Integration sold ${money(depts[3].revenue - depts[3].budget)} more than planned and it turned into almost no profit, because we keep only ${pct(depts[3].gm_pct)} on reselling equipment. And Events is charged ${money(-depts[1].alloc_overhead)} of office costs on ${money(depts[1].revenue)} of sales. That charge is split on who uses the office, and Events is not the department sitting in it.`,
 });
 
+/* ------------------------- the three departments the P&L is built on ------ */
+// Her Summary tab has three trading departments, not five: Production is the
+// parent of Events and Video, Consulting is the parent of Integration and
+// Consulting. Section 8 of Overhead Split rolls section 7 up to those three.
+const roll = (name, list) => {
+  const t = (f) => list.reduce((a, d) => a + d[f], 0);
+  const o = { name, revenue: t('revenue'), budget: t('budget'),
+              gross_profit: t('gross_profit'), all_overhead: t('all_overhead'),
+              result: t('result') };
+  o.gm_pct = o.gross_profit / o.revenue;
+  return o;
+};
+const TRIO = [roll('Support', [depts[0]]),
+              roll('Production', [depts[1], depts[2]]),
+              roll('Consulting', [depts[3], depts[4]])];
+
+snipSlide({
+  eyebrow: 'Financial performance', title: `The three departments, ${SHORT}`,
+  snip: 'dept_three', source: FROM('Overhead Split', 'section 8, the three departments the P&L is built on'),
+  commentary: (() => {
+    const [sup, prod, cons] = TRIO;
+    return [
+      `This is how the P&L itself groups us. Production is Events and Video together. Consulting is Integration and Consulting together.`,
+      `Support made ${k(sup.result)}k on ${k(sup.revenue)}k of sales. It is the only one of the three that covers its own running costs.`,
+      `Production sold ${k(prod.revenue)}k and keeps ${pct(prod.gm_pct, 0)} of it, the best margin in the business, and still loses ${k(-prod.result)}k on ${k(-prod.all_overhead)}k of running costs.`,
+      `Consulting sold ${k(cons.revenue)}k against a ${k(cons.budget)}k plan and keeps only ${pct(cons.gm_pct, 0)}, so it still loses ${k(-cons.result)}k.`,
+      `The three add to ${k(dTot.result)}k, the same as the five. Nothing is lost in the grouping.`,
+    ];
+  })(),
+  notes: `The same month read three ways instead of five, which is how the Summary tab is actually built.\n\nProduction is the parent of Events and Video. Consulting is the parent of Integration and Consulting. Support has no children. Admin is not a trading department; its costs are spread across the three.\n\n` +
+    TRIO.map((x) => `${x.name}: revenue ${money(x.revenue)} against ${money(x.budget)} budget. Gross profit ${money(x.gross_profit)} at ${pct(x.gm_pct)}. All overhead ${money(-x.all_overhead)}. Result ${money(x.result)}.`).join('\n') +
+    `\n\nThe three total ${money(dTot.result)}, which is net profit for the month, and the check row on the tab proves it against the five department version above.\n\nWhat the grouping shows that the five did not. Production, Events and Video together, keeps ${pct(TRIO[1].gm_pct)} of what it sells. That is the strongest margin we have anywhere. It loses money only because it carries ${money(-TRIO[1].all_overhead)} of running costs against ${money(TRIO[1].revenue)} of sales. This is a volume problem, not a pricing problem, and it is the clearest growth case in the pack.\n\nConsulting, Integration and Consulting together, is the opposite. It sold ${money(TRIO[2].revenue - TRIO[2].budget)} more than plan and keeps only ${pct(TRIO[2].gm_pct)}, because almost all of that was resold equipment through Integration. Selling more of it will not fix the result.\n\nSupport is the whole profit of the business. On these three lines that is the decision: protect Support, give Production volume, and resolve Consulting.`,
+});
+
 /* ---------------------------------- one P&L per department ---------------- */
 // The pack's Dept P&L tab, pointed at each department in turn. Same columns
 // every time: the month, the same month last year, and budget, each with a
@@ -349,6 +383,27 @@ snipSlide({
   notes: `How each department spent its hours in ${MONTH}.\n\nRead the bars as a mix, not as a size. Each one is scaled to that department's own total, because Support works around a hundred times the hours Integration does and on a straight scale four of the five departments disappear. The number on each segment is the real hours.\n\n` +
     util.map((u) => `${u.name}: ${money(u.chargeable)} hours on jobs, ${money(u.non_chargeable)} not on jobs, ${money(u.leave)} leave. ${pct(u.util_pct)} of worked hours were billable.`).join('\n') +
     `\n\nAcross the five departments, ${money(utilTot.c)} hours on jobs out of ${money(utilTot.c + utilTot.n)} worked.\n\nI need to be straight about the Support bar. ${money(util[0].non_chargeable)} hours not on jobs, in a whole month, for a team that size, is not believable. Non-billable time is being booked to billable jobs. The total hours are right, the split is not, and until timesheet coding is corrected the Support percentage cannot be used to manage anybody.\n\nEvents is the real operational issue: ${money(util[1].leave)} hours of leave on a small team takes out most of the month's capacity.\n\nAnd the prize. Support earns about ${money(depts[0].revenue / util[0].chargeable - Math.abs(depts[0].cos) / util[0].chargeable)} of margin on every hour it bills. Five more points of billable time across Support and Events, at the rate each already earns, is worth roughly ${money((depts[0].revenue + depts[1].revenue) * 0.05)} a month and costs nothing extra. It is the largest controllable item in this pack.`,
+});
+
+snipSlide({
+  eyebrow: 'People and utilisation', title: `Hours, the three departments, ${SHORT}`,
+  snip: 'util_three', source: FROM('Utilisation', 'hours rolled up to the three departments, each bar scaled to its own total'),
+  commentary: (() => {
+    const prod = { c: util[1].chargeable + util[2].chargeable,
+                   n: util[1].non_chargeable + util[2].non_chargeable,
+                   l: util[1].leave + util[2].leave };
+    const cons = { c: util[3].chargeable + util[4].chargeable,
+                   n: util[3].non_chargeable + util[4].non_chargeable,
+                   l: util[3].leave + util[4].leave };
+    return [
+      `The same picture grouped the way the P&L is. Production is Events and Video. Consulting is Integration and Consulting.`,
+      `Production put ${money(prod.c)} hours onto jobs and ${money(prod.n)} onto work we cannot bill, with ${money(prod.l)} hours of leave on top.`,
+      `Consulting put ${money(cons.c)} onto jobs against ${money(cons.n)} we cannot bill. Two thirds of its paid hours earn nothing.`,
+      `Support is the only bar that is almost all dark. That is why it is the only department that makes money.`,
+      `Each bar is scaled to its own hours. Support works about four times the hours of the other two together.`,
+    ];
+  })(),
+  notes: `The hours mix for ${MONTH}, rolled up to the three departments the P&L is built on.\n\nProduction is Events and Video together. Consulting is Integration and Consulting together. Support stands alone.\n\nRead each bar as a mix, not a size. Each is scaled to its own total, because Support works far more hours than the other two combined.\n\nThe pattern is the whole argument of this pack. Support is almost entirely billable and it is the only department that covers its costs. Production and Consulting both spend roughly half their paid hours, or more, on work no customer pays for, and both lose money.\n\nThe Support bar still cannot be used as a performance figure. ${money(util[0].non_chargeable)} non-billable hours in a month is a coding problem, as set out on the earlier slide. What the bar does show correctly is the hours total and the leave.`,
 });
 
 /* ===================================================== 05 budget and outlook */

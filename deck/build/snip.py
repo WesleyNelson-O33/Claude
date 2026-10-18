@@ -29,6 +29,8 @@ SNIPS = {
     'pl_income':   ('Summary',        'A5:I58',     True),
     'pl_result':   ('Summary',        'A59:I181',   True),
     'dept_result': ('Overhead Split', 'A140:H148',  False),
+    # The same result rolled up to the three departments the P&L is built on.
+    'dept_three':  ('Overhead Split', 'A152:H158',  False),
     'rev_by_dept': ('Cost Analysis',  'F190:W212',  False),
     'cost_dist':   ('Cost Analysis',  'I33:X59',    False),
     'other_opex':  ('Cost Analysis',  'I4:X30',     False),
@@ -51,6 +53,8 @@ SNIPS = {
     'dept_Integration': ('Dept P&L', 'A7:G25', False, '', {'B5': 'Integration'}),
     'dept_Consulting':  ('Dept P&L', 'A7:G25', False, '', {'B5': 'Consulting'}),
     'util_chart':  ('Utilisation',    'F65:Q92',    False),
+    # The same hours picture rolled up to the three departments.
+    'util_three':  ('Utilisation',    'F92:Q117',   False),
 }
 
 
