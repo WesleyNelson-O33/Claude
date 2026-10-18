@@ -31,12 +31,39 @@ function head(slide, eyebrow, title) {
   });
 }
 
-// Roughly 34 characters fit on a line in the panel at 10pt. Step down as the
-// copy grows so the last bullet always lands inside the tint.
-const sizeFor = (b) => { const n = b.join(' ').length; return n > 560 ? 8.5 : n > 440 ? 9 : n > 340 ? 9.5 : 10; };
-const lineFor = (b) => { const n = b.join(' ').length; return n > 560 ? 11 : n > 440 ? 11.5 : 13; };
+// How much text fits in a panel, worked out rather than guessed.
+//
+// The old version stepped the size down on a character count of the whole
+// block, which does not know how the text wraps. A slide with five bullets of
+// forty characters has the same count as one with two of a hundred, and only
+// the first fits. On the long slides the last line fell out of the tint and
+// landed on the page number.
+//
+// Calibri averages about 0.45 of the font size in width, so at ten point a
+// 2.20 inch column holds about thirty two characters once the bullet indent is
+// taken off. From there the number of wrapped lines is countable, and the
+// height each bullet needs follows. Step the size down until it fits.
+const CHARS_AT_10 = 32;        // characters on one line, 10pt, a 2.20in column
+const SAFETY = 0.94;           // leave a little room; estimates run optimistic
+
+function fitPanel(bullets, w, hIn, sizes = [10, 9.5, 9, 8.5, 8, 7.5, 7]) {
+  const avail = hIn * 72 * SAFETY;
+  let pick = { fontSize: sizes[sizes.length - 1], lineSpacing: 9 };
+  for (const fs of sizes) {
+    const cpl = Math.max(12, Math.floor(CHARS_AT_10 * (10 / fs) * (w / 2.20)));
+    const ls = Math.round(fs * 1.25 * 2) / 2;
+    const lines = bullets.reduce(
+      (a, t) => a + Math.max(1, Math.ceil(String(t).length / cpl)), 0);
+    const need = lines * ls + (bullets.length - 1) * 4;
+    pick = { fontSize: fs, lineSpacing: ls };
+    if (need <= avail) return pick;
+  }
+  return pick;
+}
 
 /** The pale commentary panel on the right. Bullets are short conclusions. */
+const fit = fitPanel;
+
 function commentary(slide, bullets, opts = {}) {
   const box = { ...G.panel, ...(opts.panel || {}) };
   slide.addShape('rect', { ...box, fill: { color: C.mint }, line: { type: 'none' }, objectName: 'commentary panel' });
@@ -48,9 +75,9 @@ function commentary(slide, bullets, opts = {}) {
     bullets.map((t, i) => ({ text: t, options: { bullet: true, breakLine: i < bullets.length - 1 } })),
     {
       ...G.panelText, y: box.y + 0.48, h: box.h - 0.66, isTextBox: true, margin: 0,
-      fontSize: opts.fontSize || sizeFor(bullets), color: C.body,
-      lineSpacing: opts.fontSize ? 13 : lineFor(bullets),
-      paraSpaceAfter: 5, valign: 'top', shrinkText: true,
+      ...(opts.fontSize ? { fontSize: opts.fontSize, lineSpacing: 13 }
+                        : fit(bullets, G.panelText.w, box.h - 0.66)),
+      color: C.body, paraSpaceAfter: 4, valign: 'top', shrinkText: true,
     });
 }
 
@@ -111,4 +138,4 @@ const CHART = {
   chartColors: [C.teal],
 };
 
-module.exports = { G, FOOT, money, k, pct, signed, varColour, head, commentary, note, tile, row, headRow, CHART, HEAD, CELL, DEPT, C };
+module.exports = { fitPanel, G, FOOT, money, k, pct, signed, varColour, head, commentary, note, tile, row, headRow, CHART, HEAD, CELL, DEPT, C };

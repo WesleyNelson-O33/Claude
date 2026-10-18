@@ -27,6 +27,11 @@ function snipSlide(o) {
     const PY = 4.02, PH = 1.04;                 // fixed strip, clear of the footer
     const bullets = o.commentary.slice(0, 4);   // four fit two up, five do not
     const half = Math.ceil(bullets.length / 2);
+    // Size the strip to the longer of the two columns, same as the side panel.
+    const longer = bullets.slice(0, half).join('').length >=
+                   bullets.slice(half).join('').length
+                 ? bullets.slice(0, half) : bullets.slice(half);
+    const strip = L.fitPanel(longer, 4.05, PH - 0.36, [8.5, 8, 7.5, 7, 6.5]);
     s.addShape('rect', { x: 0.55, y: PY, w: 8.90, h: PH, fill: { color: C.mint },
       line: { type: 'none' }, objectName: 'commentary panel' });
     s.addText('COMMENTARY', { x: 0.75, y: PY + 0.09, w: 3, h: 0.18, isTextBox: true,
@@ -34,8 +39,8 @@ function snipSlide(o) {
     [bullets.slice(0, half), bullets.slice(half)].forEach((col, i) => {
       s.addText(col.map((t, j) => ({ text: t, options: { bullet: true, breakLine: j < col.length - 1 } })), {
         x: 0.75 + i * 4.35, y: PY + 0.29, w: 4.05, h: PH - 0.36,
-        isTextBox: true, margin: 0, fontSize: 8, color: C.body, lineSpacing: 10,
-        paraSpaceAfter: 3, valign: 'top',
+        isTextBox: true, margin: 0, ...strip, color: C.body,
+        paraSpaceAfter: 3, valign: 'top', shrinkText: true,
       });
     });
   } else {
