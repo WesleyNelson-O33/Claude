@@ -20,7 +20,7 @@ function snipSlide(o) {
   head(s, o.eyebrow, o.title);
   const [pw, ph] = require('./snips.js').SIZES[o.snip];
   const wide = pw / ph >= WIDE;
-  const box = wide ? { x: 0.55, y: 1.58, w: 8.90, h: 2.12 } : { ...BOX, ...(o.box || {}) };
+  const box = wide ? { x: 0.55, y: 1.52, w: 8.90, h: 2.45 } : { ...BOX, ...(o.box || {}) };
   const r = placeSnip(s, o.snip, box);
   source(s, o.source, r.bottom + 0.08, box.w, box.x);
   if (wide) {
@@ -186,41 +186,56 @@ section('03', 'Customers and cash', 'Who pays us, how much, and how slowly',
 
 snipSlide({
   eyebrow: 'Customers and cash', title: 'Top ten customers, year to date',
-  snip: 'top10', source: FROM('Top 10 Clients', 'the top ten, year to date'),
+  snip: 'top10', source: FROM('Top 10 Clients', 'top ten customers by revenue, the top three in red'),
   commentary: (() => {
     const t = D.top10, tt = D.top10_total;
     const top3 = t.slice(0, 3).reduce((a, x) => a + x.ytd, 0);
     return [
-      `The top ten are ${pct(tt.top_ten_share)} of revenue. The top three alone are ${pct(top3 / rev.ytd)}.`,
-      `${t[0].name} at ${money(t[0].ytd)} is ${pct(t[0].share)} of the year. Losing them would wipe out more than the whole year's profit plan.`,
-      `${t[1].name} came from nothing to ${money(t[1].ytd)} in a quarter, almost all of it in September.`,
-      `After the top five the amounts fall away quickly. Number ten is only ${money(t[9].ytd)}.`,
-      'We should agree who looks after the top three, by name, before the half year.',
+      `The three red bars are ${pct(top3 / rev.ytd, 0)} of everything we sold this year.`,
+      `All ten together are ${pct(tt.top_ten_share, 0)}. Every other customer we have is the remaining ${pct(tt.rest_share, 0)}.`,
+      `${t[0].name} at ${money(t[0].ytd)} is ${pct(t[0].share, 0)} on its own. Losing them would wipe out more than the whole year's profit plan.`,
+      `${t[1].name} came from nothing to ${money(t[1].ytd)} in a quarter, and nearly all of it was one job in September.`,
+      `After the top five it falls away fast. Number ten is only ${money(t[9].ytd)}.`,
     ];
   })(),
-  notes: `Top ten customers, year to date, with the chart beside the table.\n\n` +
-    D.top10.map((x) => `${x.rank}. ${x.name}: ${money(x.ytd)} year to date at ${pct(x.share)}, ${money(x.month)} in ${MONTH}.`).join('\n') +
-    `\n\nThe top ten are ${money(D.top10_total.top_ten_ytd)} or ${pct(D.top10_total.top_ten_share)} of revenue. Everyone else is ${money(D.top10_total.rest_ytd)}.\n\nThe reliance on a handful of customers is getting worse, not better, and the difference that matters is contract work against one-off projects. ${D.top10[0].name} is contracted support income that renews. ${D.top10[1].name} is a fit-out that completes. Treating them as the same kind of revenue is how a forecast goes wrong.\n\nThe recommendation is a retention plan with a named owner for the top three, and a growth target set on the second ten rather than the first.`,
+  notes: `Top ten customers by revenue, year to date, with the top three called out in red.\n\n` +
+    D.top10.map((x) => `${x.rank}. ${x.name}: ${money(x.ytd)} for the year, ${pct(x.share)} of the total, ${money(x.month)} of it in ${MONTH}.`).join('\n') +
+    `\n\nThe ten together are ${money(D.top10_total.top_ten_ytd)}, or ${pct(D.top10_total.top_ten_share)} of everything we sold. Every other customer on the books makes up the remaining ${money(D.top10_total.rest_ytd)}.\n\nThe three red bars are the point of the slide. They are ${pct(D.top10.slice(0, 3).reduce((a, x) => a + x.ytd, 0) / rev.ytd)} of the year between them.\n\nThe difference that matters is contract work against one-off projects. ${D.top10[0].name} is contracted support that renews every month. ${D.top10[1].name} is a fit-out that has finished. Counting them as the same kind of income is how a forecast goes wrong.\n\nWhat I am recommending: a named owner for each of the top three before the half year, and the new business target set on customers four to twenty rather than on the ones we already have.`,
 });
 
 snipSlide({
-  eyebrow: 'Customers and cash', title: 'Receivables and days sales outstanding',
-  snip: 'dso', source: FROM('DSO', 'the calculation, the ageing and who owes the most'),
+  eyebrow: 'Customers and cash', title: 'How long customers take to pay',
+  snip: 'dso_calc', source: FROM('DSO', 'the calculation, built off the Xero age analysis'),
   commentary: (() => {
     const d = D.dso;
     return [
-      `Customers take ${d.days.toFixed(0)} days to pay us. The target is ${d.target}. That is ${d.above.toFixed(0)} days of cash we are not holding.`,
-      `Every day we shave off brings in ${money(d.receivables / d.days)}. Getting to target frees up ${money(d.locked)}.`,
-      `${pct(d.overdue_share, 0)} of what we are owed is already late, ${money(d.overdue)}.`,
-      `${D.debtors[0].name} alone owes ${money(D.debtors[0].amount)}, which is ${pct(D.debtors[0].share, 0)} of the total.`,
-      'Chase the top two. Nothing else on this page moves the number.',
+      `Customers take ${d.days.toFixed(0)} days to pay us. We want ${d.target}.`,
+      `That is ${d.above.toFixed(0)} days of sales sitting in the debtor book instead of the bank.`,
+      `In money, ${money(d.locked)} that should be ours already.`,
+      `Every single day we pull that back brings in ${money(d.receivables / d.days)}.`,
+      `This is the fastest cash available to the business this quarter. Nothing else comes close.`,
     ];
   })(),
-  notes: `Receivables and days sales outstanding at 30 September 2026.\n\nTrade receivables ${money(D.dso.receivables)}. DSO ${D.dso.days.toFixed(1)} days against a target of ${D.dso.target}. At target we would be owed ${money(D.dso.at_target)}, so ${money(D.dso.locked)} of cash is sitting in the debtor book that should be in the bank.\n\nAgeing: ` +
-    D.ageing.filter((x) => x.amount > 0).map((x) => `${x.bucket} ${money(x.amount)} at ${pct(x.share)}`).join(', ') +
-    `. Overdue in total ${money(D.dso.overdue)} or ${pct(D.dso.overdue_share)}.\n\nLargest debtors: ` +
-    D.debtors.slice(0, 3).map((x) => `${x.name} at ${money(x.amount)}`).join(', ') +
-    `.\n\nThe action is narrow. Two customers hold the majority of the overdue balance, so a targeted chase on those two is worth more than a general collections push, and it is the fastest cash available this quarter.`,
+  notes: `How long customers take to pay, at 30 September 2026.\n\nWe are owed ${money(D.dso.receivables)}. Across the last three months we sold ${money(D.dso.revenue_3m)}, which over ${D.dso.days_in || 92} days is ${money(D.dso.receivables / D.dso.days)} of sales a day. Divide what we are owed by that and it takes customers ${D.dso.days.toFixed(1)} days to pay us.\n\nThe target is ${D.dso.target} days. We are ${D.dso.above.toFixed(1)} days over it. If we collected on time we would be owed ${money(D.dso.at_target)} instead of ${money(D.dso.receivables)}, so ${money(D.dso.locked)} of cash that should already be ours is sitting in the debtor book.\n\nPut that next to the profit position. The quarter made ${money(eb.ytd)}. There is ${money(D.dso.locked)} of our own money uncollected. Collecting it is worth many times more than anything we can trade our way to between now and Christmas, and it costs nothing but phone calls.\n\nEvery day we take off the number brings in ${money(D.dso.receivables / D.dso.days)}.`,
+});
+
+snipSlide({
+  eyebrow: 'Customers and cash', title: 'Who owes us the most',
+  snip: 'dso_who', source: FROM('DSO', 'the ten largest amounts owed at month end'),
+  commentary: (() => {
+    const d = D.dso, deb = D.debtors;
+    return [
+      `${deb[0].name} owes ${money(deb[0].amount)} on its own, ${pct(deb[0].share, 0)} of everything owed to us.`,
+      `With ${deb[1].name} at ${money(deb[1].amount)}, two customers hold ${pct((deb[0].share + deb[1].share), 0)} of the book.`,
+      `${pct(d.overdue_share, 0)} of what we are owed is already late, ${money(d.overdue)}.`,
+      `Chase those two first. Everything below them is small by comparison.`,
+      `A general collections push is not the answer. Two phone calls are.`,
+    ];
+  })(),
+  notes: `The ten largest amounts owed at 30 September 2026.\n\n` +
+    D.debtors.slice(0, 5).map((x) => `${x.name}: ${money(x.amount)}, ${pct(x.share)} of the total.`).join('\n') +
+    `\n\nThe ageing: ` + D.ageing.filter((x) => x.amount > 0).map((x) => `${x.bucket} ${money(x.amount)} at ${pct(x.share)}`).join(', ') +
+    `. Late in total ${money(D.dso.overdue)}, or ${pct(D.dso.overdue_share)} of the book.\n\nThe action here is narrow and that is the point. Two customers hold most of the balance. A targeted chase on those two is worth more than a general collections exercise across everyone, and it is the fastest money available to us this quarter.`,
 });
 
 /* ===================================================== 04 people and utilisation */
@@ -228,22 +243,21 @@ section('04', 'People and utilisation', 'Chargeable hours and the profit they pr
   `The company billed ${utilTot.c.toLocaleString('en-AU', { maximumFractionDigits: 0 })} chargeable hours in ${MONTH} out of ${(utilTot.c + utilTot.n).toLocaleString('en-AU', { maximumFractionDigits: 0 })} worked. Where chargeable hours fall short, margin follows.`);
 
 snipSlide({
-  eyebrow: 'People and utilisation', title: `Utilisation by department, ${SHORT}`,
-  snip: 'util', source: FROM('Utilisation', 'hours by department, the month'),
+  eyebrow: 'People and utilisation', title: `How each department spent its hours, ${SHORT}`,
+  snip: 'util_chart', source: FROM('Utilisation', 'hours by department, each bar scaled to its own total'),
   commentary: (() => {
     const sup = util[0], ev = util[1], con = util[4];
-    const rev0 = depts[0].revenue / sup.chargeable, cos0 = Math.abs(depts[0].cos) / sup.chargeable;
     return [
-      `Support shows ${money(sup.non_chargeable)} non-chargeable hours on ${money(sup.chargeable)} chargeable. That is not credible.`,
-      `Until that coding is fixed the ${pct(sup.util_pct)} means nothing, and nor does the target.`,
-      `Events is at ${pct(ev.util_pct)} with ${money(ev.leave)} hours of leave. Real capacity is sitting idle.`,
-      `Consulting at ${pct(con.util_pct)} confirms there is almost no work there to bill.`,
-      `Support earns $${money(rev0 - cos0)} of margin per chargeable hour. Five more points on Support and Events is worth about ${k((rev0 * sup.chargeable + (depts[1].revenue / ev.chargeable) * ev.chargeable) * 0.05)}k a month.`,
+      `Each bar is scaled to that department's own hours, so you can compare the mix. Support works about a hundred times the hours Integration does.`,
+      `Support shows ${money(sup.non_chargeable)} hours not on jobs out of ${money(sup.chargeable + sup.non_chargeable)} worked. That is not credible.`,
+      `Events put ${money(ev.leave)} hours into leave and only ${money(ev.chargeable)} onto jobs. The people are there, the work is not.`,
+      `Consulting put ${money(con.non_chargeable)} hours into work we cannot bill against ${money(con.chargeable)} we can.`,
+      `We pay for every hour. We only bill the ones on jobs. The grey and light teal are the gap.`,
     ];
   })(),
-  notes: `Utilisation by department for ${MONTH}.\n\n` +
-    util.map((u) => `${u.name}: ${money(u.chargeable)} chargeable, ${money(u.non_chargeable)} non-chargeable, ${money(u.leave)} leave, ${pct(u.util_pct)} chargeable.`).join('\n') +
-    `\n\nFive departments together, ${money(utilTot.c)} chargeable out of ${money(utilTot.c + utilTot.n)} worked, ${pct(utilTot.c / (utilTot.c + utilTot.n))}.\n\nI need to be straight about the Support figure. ${pct(util[0].util_pct)} chargeable on only ${money(util[0].non_chargeable)} non-chargeable hours in a whole month is not believable for a team of that size. Non-chargeable time is being booked to chargeable cost centres. The hours total is right, the split is not, and the Support utilisation figure is unusable until timesheet coding is corrected.\n\nEvents at ${pct(util[1].util_pct)} is the real operational issue: ${money(util[1].leave)} hours of leave on a small team takes out most of the capacity.\n\nThe prize is in the last bullet. Five more points of utilisation on Support and Events, at the revenue per chargeable hour each already earns, is the largest controllable item in this pack and costs nothing extra.`,
+  notes: `How each department spent its hours in ${MONTH}.\n\nRead the bars as a mix, not as a size. Each one is scaled to that department's own total, because Support works around a hundred times the hours Integration does and on a straight scale four of the five departments disappear. The number on each segment is the real hours.\n\n` +
+    util.map((u) => `${u.name}: ${money(u.chargeable)} hours on jobs, ${money(u.non_chargeable)} not on jobs, ${money(u.leave)} leave. ${pct(u.util_pct)} of worked hours were billable.`).join('\n') +
+    `\n\nAcross the five departments, ${money(utilTot.c)} hours on jobs out of ${money(utilTot.c + utilTot.n)} worked.\n\nI need to be straight about the Support bar. ${money(util[0].non_chargeable)} hours not on jobs, in a whole month, for a team that size, is not believable. Non-billable time is being booked to billable jobs. The total hours are right, the split is not, and until timesheet coding is corrected the Support percentage cannot be used to manage anybody.\n\nEvents is the real operational issue: ${money(util[1].leave)} hours of leave on a small team takes out most of the month's capacity.\n\nAnd the prize. Support earns about ${money(depts[0].revenue / util[0].chargeable - Math.abs(depts[0].cos) / util[0].chargeable)} of margin on every hour it bills. Five more points of billable time across Support and Events, at the rate each already earns, is worth roughly ${money((depts[0].revenue + depts[1].revenue) * 0.05)} a month and costs nothing extra. It is the largest controllable item in this pack.`,
 });
 
 /* ===================================================== 05 budget and outlook */

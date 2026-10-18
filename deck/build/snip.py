@@ -34,9 +34,11 @@ SNIPS = {
     'labour_mix':  ('Cost Analysis',  'I61:X87',    False),
     'income_month':('Cost Analysis',  'I117:X140',  False),  # I142 starts the next chart
     'staff_split': ('Overheads MoM',  'A160:P178',  False),
-    'top10':       ('Top 10 Clients', 'A5:N20',     False, 'FG'),
-    'dso':         ('DSO',            'A5:S45',     False, 'EFGHI'),
-    'util':        ('Utilisation',    'A66:P84',    False),
+    'top10':       ('Top 10 Clients', 'G4:Q27',     False),
+    'dso_calc':    ('DSO',            'A5:B15',     False),
+    'dso_who':     ('DSO',            'J23:T46',    False),
+    'util_tbl':    ('Utilisation',    'A66:D73',    False),
+    'util_chart':  ('Utilisation',    'F65:Q86',    False),
 }
 
 

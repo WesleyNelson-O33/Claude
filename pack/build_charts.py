@@ -130,9 +130,15 @@ ws = wb['Top 10 Clients']
 ch = BarChart(); ch.type = 'bar'; ch.grouping = 'clustered'
 ch.add_data(Reference(ws, min_col=4, min_row=6, max_row=16), titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=7, min_row=7, max_row=16))
-frame(ch, 'Top 10 customers, year to date', 21, 12)
+frame(ch, 'Top 10 customers, year to date', 24, 12)
 ranked(ch)
 paint(ch, [TEAL])
+# The story on this chart is concentration, so the top three are called out in
+# the Support red and the rest left in teal.
+ch.series[0].data_points = [
+    DataPoint(idx=i, spPr=GraphicalProperties(
+        solidFill=RED if i < 3 else TEAL, ln=LineProperties(noFill=True)))
+    for i in range(10)]
 labels_in(ch, [WHITE])
 ws.add_chart(ch, 'G5')
 
@@ -357,16 +363,20 @@ ws.add_chart(ch, 'F190')
 
 # ----------------------------------- hours by department, the month ----
 ws = wb['Utilisation']
-ch = BarChart(); ch.type = 'bar'; ch.grouping = 'stacked'; ch.overlap = 100
+# Support works roughly a hundred times the hours Integration does, so on an
+# absolute scale four of the five departments are invisible. Each bar is scaled
+# to its own total instead, which is what makes the mix readable. The label on
+# each segment still carries the hours.
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'percentStacked'; ch.overlap = 100
 ch.add_data(Reference(ws, min_col=2, max_col=4, min_row=67, max_row=72),
             titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=68, max_row=72))
-frame(ch, 'Hours by department, chargeable, non-chargeable and leave', 24, 10)
+frame(ch, 'How each department spent its hours', 24, 12)
 ranked(ch)
 legend(ch)
 paint(ch, [TEAL, AQUA, GREYL])
 # A stacked bar can only take a label inside the segment.
-labels(ch, '#,##0', pos='ctr', size=700, colour=WHITE)
+labels(ch, '#,##0', pos='ctr', size=800, colour=WHITE)
 ws.add_chart(ch, 'F66')
 
 # ------------------------- employment expense, office against dept -----
