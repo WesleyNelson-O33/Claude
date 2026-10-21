@@ -433,6 +433,27 @@ paint(ch, [TEAL, AQUA])
 labels_in(ch, [WHITE, INK], fmt='$#,##0', size=700)
 ws.add_chart(ch, 'E160')
 
+# ------------------------- revenue by month and department --------------
+# The mix behind each month's revenue, which the other revenue charts do not
+# show: one column a month, split by the department that billed it.
+ws = wb['Cost Analysis']
+# only the closed months: an empty column for every month still to come makes
+# the chart read as unfinished. The period number comes off the reporting
+# month, so the chart lengthens on its own as the year goes on.
+period = ((wb['Summary']['B3'].value.month - int(wb['Setup']['B6'].value)) % 12) + 1
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'stacked'; ch.overlap = 100
+ch.add_data(Reference(ws, min_col=2, max_col=6, min_row=231,
+                      max_row=231 + period), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=232, max_row=231 + period))
+frame(ch, 'Revenue by month and department', 24, 12, gap=60)
+legend(ch)
+# each department in its own colour, the same ones the introduction cards use
+paint(ch, [D['departments'][k] for k in
+                ('Support', 'Events', 'Video', 'Integration', 'Consulting')])
+# no segment labels: five stacked segments a column collide at this size, and
+# the figures behind them are on the P&L summary table two slides earlier
+ws.add_chart(ch, 'H230')
+
 # ----------------- hours by the three departments, the month ------------
 # The same picture as the five department version, rolled up the way the P&L
 # groups the business: Production is Events and Video, Consulting is
