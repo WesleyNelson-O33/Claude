@@ -31,7 +31,7 @@ SNIPS = {
     'dept_result': ('Overhead Split', 'A140:H148',  False),
     # The same result rolled up to the three departments the P&L is built on.
     'dept_three':  ('Overhead Split', 'A152:H158',  False),
-    'rev_by_dept': ('Cost Analysis',  'F190:W212',  False),
+    'rev_by_dept': ('Cost Analysis',  'F190:AA212', False),
     'rev_month':   ('Cost Analysis',  'H229:AA251', False),
     'rev_ytd':     ('Cost Analysis',  'H259:T282',  False),
     'rev_years':   ('Cost Analysis',  'H339:T362',  False),

@@ -390,7 +390,7 @@ ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
 ch.add_data(Reference(ws, min_col=2, max_col=4, min_row=191, max_row=196),
             titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=192, max_row=196))
-frame(ch, 'Revenue by department, the month against budget and last year', 26, 11)
+frame(ch, 'Revenue by department, the month against budget and last year', 30, 7.66)
 ch.y_axis.delete = True
 legend(ch)
 paint(ch, [TEAL, GREY, AQUA])
@@ -445,7 +445,7 @@ ch = BarChart(); ch.type = 'col'; ch.grouping = 'stacked'; ch.overlap = 100
 ch.add_data(Reference(ws, min_col=2, max_col=6, min_row=231,
                       max_row=231 + period), titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=232, max_row=231 + period))
-frame(ch, 'Revenue by month and department, against budget', 30, 11, gap=60)
+frame(ch, 'Revenue by month and department, against budget', 30, 8.27, gap=60)
 legend(ch)
 # each department in its own colour, the same ones the introduction cards use
 paint(ch, [D['departments'][k] for k in
@@ -553,7 +553,7 @@ last = 33 + period                  # closed months only, so the year end
 ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
 ch.add_data(Reference(ws, min_col=3, min_row=10, max_row=last))
 ch.set_categories(Reference(ws, min_col=1, min_row=10, max_row=last))
-frame(ch, 'Revenue by month, FY25 then FY26 then FY27', 30, 11, gap=30)
+frame(ch, 'Revenue by month, FY25 then FY26 then FY27', 30, 9.08, gap=30)
 ch.x_axis.txPr = txt(700)
 ch.series[0].data_points = [
     DataPoint(idx=i, spPr=GraphicalProperties(solidFill=GREY,
@@ -606,7 +606,7 @@ for col, colour, last in ((2, NAVY, 69), (3, AQUA, 69), (4, TEAL, 57 + period)):
 b = line_series(ch, 5, 58, 69, RED, width=22000, marker=False)
 b.graphicalProperties.ln.dashStyle = 'dash'
 ch.set_categories(Reference(ws, min_col=1, min_row=58, max_row=69))
-frame(ch, 'Revenue year to date, cumulative, against budget', 30, 11)
+frame(ch, 'Revenue year to date, cumulative, against budget', 30, 9.08)
 legend(ch)
 ws.add_chart(ch, 'F34')
 
@@ -617,7 +617,7 @@ ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=73, max_row=77),
 ch.add_data(Reference(ws, min_col=4, min_row=73, max_row=73 + max(1, period // 3)),
             titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=74, max_row=77))
-frame(ch, 'Revenue by quarter, year on year', 30, 11, gap=60)
+frame(ch, 'Revenue by quarter, year on year', 30, 9.08, gap=60)
 legend(ch)
 paint(ch, [NAVY, AQUA, TEAL])
 labels(ch, '#,##0', size=800)
