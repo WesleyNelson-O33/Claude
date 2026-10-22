@@ -556,5 +556,60 @@ ch.series[0].data_points = [
     for i in range(last - 9)]
 ws.add_chart(ch, 'F9')
 
+# --------- the same three years, in forms that carry more than three bars ---
+# Three columns for one month is a table drawn as a chart. These three are the
+# same data asked better: where the year stands at every point in it, what is
+# still to come, and the trend with the seasonality taken out.
+ws = wb['Xero History']
+
+def line_series(ch, col, first, last, colour, width=28000, marker=True):
+    before = len(ch.series)
+    ch.add_data(Reference(ws, min_col=col, min_row=first - 1, max_row=last),
+                titles_from_data=True)
+    s_ = ch.series[before]
+    s_.graphicalProperties = GraphicalProperties(
+        ln=LineProperties(solidFill=colour, w=width))
+    s_.marker = Marker(symbol='circle' if marker else 'none', size=6,
+                       spPr=GraphicalProperties(solidFill=colour,
+                                                ln=LineProperties(solidFill=colour)))
+    s_.smooth = False
+    return s_
+
+# cumulative revenue year to date, one line per year
+ch = LineChart()
+for col, colour, last in ((2, NAVY, 69), (3, AQUA, 69), (4, TEAL, 57 + period)):
+    line_series(ch, col, 58, last, colour)
+ch.set_categories(Reference(ws, min_col=1, min_row=58, max_row=69))
+frame(ch, 'Revenue year to date, cumulative', 30, 11)
+legend(ch)
+ws.add_chart(ch, 'F34')
+
+# all four quarters across the three years
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=73, max_row=77),
+            titles_from_data=True)
+ch.add_data(Reference(ws, min_col=4, min_row=73, max_row=73 + max(1, period // 3)),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=74, max_row=77))
+frame(ch, 'Revenue by quarter, year on year', 30, 11, gap=60)
+legend(ch)
+paint(ch, [NAVY, AQUA, TEAL])
+labels(ch, '#,##0', size=800)
+ws.add_chart(ch, 'F60')
+
+# the rolling twelve months: the trend with the seasonality taken out
+ch = LineChart()
+line_series(ch, 2, 82, 94 + period, TEAL, width=32000, marker=False)
+ch.set_categories(Reference(ws, min_col=1, min_row=82, max_row=94 + period))
+frame(ch, 'Revenue, rolling twelve months', 30, 11)
+ch.x_axis.txPr = txt(800)
+# The series moves between 5.8m and 7.0m. Drawn from zero it reads as a flat
+# line and a 17% fall disappears, so the scale starts at 5m. The axis labels
+# say so, and the speaker note says so.
+ch.y_axis.scaling.min = 5000000
+ch.y_axis.scaling.max = 7250000
+ch.y_axis.majorUnit = 500000
+ws.add_chart(ch, 'F86')
+
 wb.save(OUT)
 print('charts rebuilt:', sum(len(ws._charts) for ws in wb.worksheets))

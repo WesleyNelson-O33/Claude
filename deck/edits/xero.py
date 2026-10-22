@@ -11,9 +11,7 @@ strip is set by how much commentary there is, and the commentary has changed.
 import sys
 sys.path.insert(0, '/home/user/Claude/deck/edits')
 from pptx import Presentation
-from addslide import add, balance, need, write, TOP, FLOOR, LEFT, SIZE
-from PIL import Image
-from pptx.util import Inches, Pt
+from addslide import add, relay
 
 SNIP = '/home/user/Claude/deck/snips'
 
@@ -86,49 +84,6 @@ The second is January. FY25 billed $918,289 in January and FY26 billed $268,631,
 On the source and how it is maintained. FY25 was pulled from Xero on 22 October 2026 as total income by month on the accrual basis, and is held on the tab as figures, because the pack has no FY25 tab to reference. FY26 and FY27 are references to the Actual FY26 and P&L FY27 tabs, so they follow the pack rather than duplicating it, and FY27 shows closed months only. Four months were checked against Xero directly and agree to the cent, apart from one cent of rounding on September 2025.
 
 Xero serves the last three financial years. FY23 and FY24 cannot be pulled, which is why the history begins in July 2024."""
-
-
-def relay(slide, snip, bullets, notes, name, title=None):
-    """Rework a chart page that was built by add(): new picture, new commentary,
-    and the strip resized to whatever depth the new commentary needs. The page
-    itself is left alone, so nothing is deleted from the deck."""
-    by = {sh.name: sh for sh in slide.shapes}
-    tree = slide.shapes._spTree
-    if title is not None:
-        by['Text 1'].text_frame.paragraphs[0].runs[0].text = title
-
-    cols = list(balance(bullets, 4.05))
-    ph_panel = max(need(c, 4.05) for c in cols if c) + 0.30
-    strip_top = FLOOR - ph_panel
-
-    old = by[name]
-    tree.remove(old._element)
-    im = Image.open(snip)
-    aspect = im.width / im.height
-    pic_h = min(strip_top - 0.12 - TOP, 8.90 / aspect)
-    pic_w = pic_h * aspect
-    pic = slide.shapes.add_picture(snip, Inches(LEFT + (8.90 - pic_w) / 2),
-                                   Inches(TOP), width=Inches(pic_w),
-                                   height=Inches(pic_h))
-    pic.name = name
-    tree.remove(pic._element)
-    tree.insert(2, pic._element)
-
-    panel, label = by['commentary panel'], by['Text 4']
-    panel.left, panel.top = Inches(LEFT), Inches(strip_top)
-    panel.width, panel.height = Inches(8.90), Inches(ph_panel)
-    label.left, label.top, label.width = Inches(0.75), Inches(strip_top + 0.08), Inches(3.0)
-    for key, x, items in (('Text 5', 0.75, cols[0]), ('Text 5b', 5.10, cols[1])):
-        box = by[key]
-        box.left, box.top = Inches(x), Inches(strip_top + 0.27)
-        box.width, box.height = Inches(4.05), Inches(ph_panel - 0.30)
-        write(box, items)
-        for para in box.text_frame.paragraphs:
-            for r in para.runs:
-                r.font.size = Pt(SIZE)
-
-    slide.notes_slide.notes_text_frame.text = notes
-    return pic_w, pic_h, ph_panel
 
 
 p = Presentation(sys.argv[1])
