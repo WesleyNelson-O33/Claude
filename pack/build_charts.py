@@ -348,7 +348,7 @@ ch.add_data(Reference(ws, min_col=3, min_row=CC['bvm_hdr'], max_row=CC['bvm_last
             titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=CC['bvm_first'],
                             max_row=CC['bvm_last']))
-frame(ch, 'Income by month, actual against budget', 26, 12, gap=60)
+frame(ch, 'Income by month, actual against budget', 30, 7.71, gap=60)
 legend(ch)
 paint(ch, [NAVY, GREY])
 # Thousands, so twenty four labels fit side by side instead of colliding, and
@@ -408,7 +408,7 @@ ch.add_data(Reference(ws, min_col=2, max_col=4, min_row=67, max_row=72),
             titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=68, max_row=72))
 frame(ch, 'How each department spent its hours, billable against not billable',
-      24, 13)
+      30, 7.71)
 ranked(ch)
 legend(ch)
 paint(ch, [TEAL, AQUA, GREYL])
@@ -529,7 +529,7 @@ ch = BarChart(); ch.type = 'bar'; ch.grouping = 'percentStacked'; ch.overlap = 1
 ch.add_data(Reference(ws, min_col=2, max_col=4, min_row=77, max_row=80),
             titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=78, max_row=80))
-frame(ch, 'How the three departments spent their hours', 24, 11)
+frame(ch, 'How the three departments spent their hours', 30, 7.12)
 ranked(ch)
 legend(ch)
 paint(ch, [TEAL, AQUA, GREYL])

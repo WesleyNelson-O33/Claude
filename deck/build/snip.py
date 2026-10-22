@@ -40,12 +40,12 @@ SNIPS = {
     'xero_cum':    ('Xero History',   'F33:AA58',   False),
     'xero_qtr':    ('Xero History',   'F59:AA84',   False),
     'xero_roll':   ('Xero History',   'F85:AA110',  False),
-    'cost_dist':   ('Cost Analysis',  'I33:X59',    False),
-    'other_opex':  ('Cost Analysis',  'I4:X30',     False),
-    'labour_mix':  ('Cost Analysis',  'I61:X87',    False),
-    'income_month':('Cost Analysis',  'I117:X140',  False),  # I142 starts the next chart
+    'cost_dist':   ('Cost Analysis',  'I33:AC59',    False),
+    'other_opex':  ('Cost Analysis',  'I4:AC30',     False),
+    'labour_mix':  ('Cost Analysis',  'I61:AC87',    False),
+    'income_month':('Cost Analysis',  'I117:AC140',  False),  # I142 starts the next chart
     'staff_split': ('Overheads MoM',  'A160:P178',  False),
-    'top10':       ('Top 10 Clients', 'G4:Q27',     False),
+    'top10':       ('Top 10 Clients', 'G4:AA27',     False),
     'dso_calc':    ('DSO',            'A5:B15',     False),
     'dso_who':     ('DSO',            'J23:T46',    False),
     'util_tbl':    ('Utilisation',    'A66:D73',    False),
@@ -64,9 +64,9 @@ SNIPS = {
     'dept_Video':       ('Dept P&L', 'A7:G25', False, '', {'B5': 'Video'}),
     'dept_Integration': ('Dept P&L', 'A7:G25', False, '', {'B5': 'Integration'}),
     'dept_Consulting':  ('Dept P&L', 'A7:G25', False, '', {'B5': 'Consulting'}),
-    'util_chart':  ('Utilisation',    'F65:Q92',    False),
+    'util_chart':  ('Utilisation',    'F65:AA90',    False),
     # The same hours picture rolled up to the three departments.
-    'util_three':  ('Utilisation',    'F92:Q117',   False),
+    'util_three':  ('Utilisation',    'F92:AA117',   False),
 }
 
 
