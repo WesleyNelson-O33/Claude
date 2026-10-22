@@ -637,5 +637,49 @@ ch.y_axis.scaling.max = 7250000
 ch.y_axis.majorUnit = 500000
 ws.add_chart(ch, 'F86')
 
+# ----------- spend and profit for the cost and profit pages -------------
+# Three charts, all drawn at the shape of the box on a bottom commentary page.
+# Spend is the two parts stacked with revenue on the line over the top, so the
+# months where revenue sat under the spend are visible. Profit is one bar per
+# period, teal above the line and red below, fed from two columns so the colour
+# does not depend on this script reading the figures.
+ws = wb['Xero History']
+
+def spend_chart(first, title, anchor):
+    ch = BarChart(); ch.type = 'col'; ch.grouping = 'stacked'; ch.overlap = 100
+    ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=first - 1,
+                          max_row=first + 3), titles_from_data=True)
+    ch.set_categories(Reference(ws, min_col=1, min_row=first, max_row=first + 3))
+    frame(ch, title, 30, 9.14, gap=55)
+    legend(ch)
+    paint(ch, [TEAL, AQUA])
+    labels_in(ch, [WHITE, WHITE], fmt='#,##0', size=800)
+    ln = LineChart()
+    ln.add_data(Reference(ws, min_col=4, min_row=first - 1, max_row=first + 3),
+                titles_from_data=True)
+    r = ln.series[0]
+    r.graphicalProperties = GraphicalProperties(
+        ln=LineProperties(solidFill=RED, w=26000))
+    r.marker = Marker(symbol='circle', size=7, spPr=GraphicalProperties(
+        solidFill=RED, ln=LineProperties(solidFill=RED)))
+    r.smooth = False
+    ch += ln
+    ws.add_chart(ch, anchor)
+
+spend_chart(120, 'Spend for the month, against budget and the two years before',
+            'H146')
+spend_chart(128, 'Spend for the first quarter, against budget and the two years '
+                 'before', 'H174')
+
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'; ch.overlap = 100
+ch.add_data(Reference(ws, min_col=3, max_col=4, min_row=135, max_row=141),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=136, max_row=141))
+frame(ch, 'Net profit above and below the line', 30, 9.14, gap=50)
+paint(ch, [TEAL, RED])
+labels(ch, '#,##0', size=900)
+ch.x_axis.tickLblPos = 'low'
+ws.add_chart(ch, 'H202')
+
 wb.save(OUT)
 print('charts rebuilt:', sum(len(ws._charts) for ws in wb.worksheets))
