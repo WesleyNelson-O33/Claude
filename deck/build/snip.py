@@ -29,6 +29,7 @@ SNIPS = {
     'pl_income':   ('Summary',        'A5:I58',     True),
     'pl_result':   ('Summary',        'A59:I181',   True),
     'dept_result': ('Overhead Split', 'A140:H148',  False),
+    'dept_mix':    ('Overhead Split', 'J159:AD184', False),
     # The same result rolled up to the three departments the P&L is built on.
     'dept_three':  ('Overhead Split', 'A152:H158',  False),
     'rev_by_dept': ('Cost Analysis',  'F190:AA212', False),

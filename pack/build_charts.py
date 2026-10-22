@@ -687,5 +687,33 @@ def profit_chart(head, title, anchor):
 profit_chart(135, 'Net profit and net loss, the month', 'H202')
 profit_chart(141, 'Net profit and net loss, the quarter', 'H230')
 
+# ------- where each department's result came from, the month on setup ---
+# What the department earned against the overhead charged to it, with the
+# result marked on top. This is the only cut of the table that shows why a
+# department on a good margin can still finish below the line.
+ws = wb['Overhead Split']
+FIRST_D, LAST_D, HEAD_D = 143, 147, 142
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=5, min_row=HEAD_D, max_row=LAST_D),
+            titles_from_data=True)
+ch.add_data(Reference(ws, min_col=7, min_row=HEAD_D, max_row=LAST_D),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=FIRST_D, max_row=LAST_D))
+frame(ch, 'Gross profit against the overhead charged to it', 30, 9.14, gap=45)
+legend(ch)
+paint(ch, [TEAL, RED])
+labels(ch, '#,##0', size=800)
+ch.x_axis.tickLblPos = 'low'
+ln = LineChart()
+ln.add_data(Reference(ws, min_col=8, min_row=HEAD_D, max_row=LAST_D),
+            titles_from_data=True)
+res = ln.series[0]
+res.graphicalProperties = GraphicalProperties(ln=LineProperties(noFill=True))
+res.marker = Marker(symbol='diamond', size=9, spPr=GraphicalProperties(
+    solidFill=NAVY, ln=LineProperties(solidFill=WHITE, w=19050)))
+res.smooth = False
+ch += ln
+ws.add_chart(ch, 'J160')
+
 wb.save(OUT)
 print('charts rebuilt:', sum(len(ws._charts) for ws in wb.worksheets))
