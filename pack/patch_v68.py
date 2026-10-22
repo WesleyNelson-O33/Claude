@@ -43,7 +43,8 @@ XQ_BAND, XQ_HEAD, XQ_FIRST = 110, 111, 112          # the Xero quarter
 XQ_TOT = XQ_FIRST + 3
 M_BAND, M_HEAD, M_FIRST = 118, 119, 120             # the month on Setup
 Q_BAND, Q_HEAD, Q_FIRST = 126, 127, 128             # the first quarter
-P_BAND, P_HEAD, P_FIRST = 134, 135, 136             # net profit, six bars
+PM_BAND, PM_HEAD, PM_FIRST = 134, 135, 136          # net profit, the month
+PQ_BAND, PQ_HEAD, PQ_FIRST = 140, 141, 142          # net profit, the quarter
 
 MONTHS = ('mmm')
 COLS = ['Period', 'Cost of sales', 'Overheads', 'Revenue', 'Net profit', 'Total spend']
@@ -133,20 +134,29 @@ for i, (label, tab) in enumerate(QSRC):
     money(r, 6, f'=B{r}+C{r}', BOLD if tab == 'P&L FY27' else BODY)
 
 # ---- net profit, the three months then the three quarters -------------------
-# Profit and loss are split into their own columns so the chart can colour
-# them without the build script having to read the figures. A profit lands in
-# the profit column and a loss in the loss column, the other goes blank, and the
-# two series sit on top of each other so each period shows one bar.
-band(P_BAND, 4, 'NET PROFIT, ABOVE AND BELOW THE LINE')
-header(P_HEAD, ['Period', 'Net profit', 'Profit', 'Loss'])
-for i in range(6):
-    r = P_FIRST + i
-    src = (M_FIRST + i) if i < 3 else (Q_FIRST + i - 3)
-    ws.cell(r, 1, f'=$A${src}').font = BODY
-    money(r, 2, f'=$E${src}')
-    money(r, 3, f'=IF(N($B{r})>0,$B{r},"")')
-    money(r, 4, f'=IF(N($B{r})<=0,$B{r},"")')
+# The month and the quarter are two separate blocks, because the deck carries a
+# monthly slide and a quarterly slide and either one can be hidden. They must
+# never share a chart.
+#
+# Profit and loss are split into their own columns so the chart can colour them
+# without the build script having to read the figures. A profit lands in the
+# profit column and a loss in the loss column, the other goes blank, and the two
+# series sit on top of each other so each period shows one bar.
+def profit_block(band_row, head_row, first_row, title, src_first):
+    band(band_row, 4, title)
+    header(head_row, ['Period', 'Net profit', 'Profit', 'Loss'])
+    for i in range(3):
+        r = first_row + i
+        ws.cell(r, 1, f'=$A${src_first + i}').font = BODY
+        money(r, 2, f'=$E${src_first + i}')
+        money(r, 3, f'=IF(N($B{r})>0,$B{r},"")')
+        money(r, 4, f'=IF(N($B{r})<=0,$B{r},"")')
+
+profit_block(PM_BAND, PM_HEAD, PM_FIRST,
+             'NET PROFIT AND NET LOSS, THE MONTH', M_FIRST)
+profit_block(PQ_BAND, PQ_HEAD, PQ_FIRST,
+             'NET PROFIT AND NET LOSS, THE QUARTER', Q_FIRST)
 
 wb.save(WB)
-print(f'Xero History rows {XQ_BAND} to {P_FIRST + 5} added: spend and profit for '
-      f'the month and the quarter, and net profit above and below the line')
+print(f'Xero History rows {XQ_BAND} to {PQ_FIRST + 2} added: spend and profit for '
+      f'the month and the quarter, and net profit and net loss as two blocks')

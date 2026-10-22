@@ -107,3 +107,20 @@ one out the same way.
   unticked, put a status line at the top saying the corrections are not yet done,
   and word the meaning, ending position and verification lines as still to do.
   The narration column stays as written. She makes the corrections as it says.
+
+## One deck, monthly and quarterly
+
+The deck is one file that serves both the monthly review and the quarterly review.
+Danica hides the slides that do not apply to the period she is presenting. So the
+slides have to come apart cleanly.
+
+- Never put monthly and quarterly figures on the same slide, and never in the same
+  chart. Three Septembers is one slide. Three first quarters is another.
+- Every slide is either a monthly slide or a quarterly slide. If the business needs
+  the same cut on both bases, it gets a slide of each.
+- Keep the pair next to each other and built the same way, so hiding one leaves the
+  other reading correctly on its own.
+- The same goes for the commentary and the speaker notes. A monthly slide talks
+  about the month only. It does not refer across to the quarter, because the
+  quarter slide may be hidden.
+- When adding anything new, say which of the two it is before building it.

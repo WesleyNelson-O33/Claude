@@ -671,15 +671,21 @@ spend_chart(120, 'Spend for the month, against budget and the two years before',
 spend_chart(128, 'Spend for the first quarter, against budget and the two years '
                  'before', 'H174')
 
-ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'; ch.overlap = 100
-ch.add_data(Reference(ws, min_col=3, max_col=4, min_row=135, max_row=141),
-            titles_from_data=True)
-ch.set_categories(Reference(ws, min_col=1, min_row=136, max_row=141))
-frame(ch, 'Net profit above and below the line', 30, 9.14, gap=50)
-paint(ch, [TEAL, RED])
-labels(ch, '#,##0', size=900)
-ch.x_axis.tickLblPos = 'low'
-ws.add_chart(ch, 'H202')
+# The month and the quarter get a chart each. The deck hides one or the other
+# depending on which review is being given, so they can never share a slide.
+def profit_chart(head, title, anchor):
+    ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'; ch.overlap = 100
+    ch.add_data(Reference(ws, min_col=3, max_col=4, min_row=head,
+                          max_row=head + 3), titles_from_data=True)
+    ch.set_categories(Reference(ws, min_col=1, min_row=head + 1, max_row=head + 3))
+    frame(ch, title, 30, 9.14, gap=60)
+    paint(ch, [TEAL, RED])
+    labels(ch, '#,##0', size=900)
+    ch.x_axis.tickLblPos = 'low'
+    ws.add_chart(ch, anchor)
+
+profit_chart(135, 'Net profit and net loss, the month', 'H202')
+profit_chart(141, 'Net profit and net loss, the quarter', 'H230')
 
 wb.save(OUT)
 print('charts rebuilt:', sum(len(ws._charts) for ws in wb.worksheets))
