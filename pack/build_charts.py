@@ -475,7 +475,7 @@ ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
 ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=261,
                       max_row=261 + period), titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=262, max_row=261 + period))
-frame(ch, 'Revenue against budget, month by month', 30, 10, gap=55)
+frame(ch, 'Revenue against budget, month by month', 18, 11, gap=55)
 ch.y_axis.delete = True
 legend(ch)
 paint(ch, [TEAL, GREY])
@@ -502,11 +502,11 @@ first_m = min(318 + j for j in range(5) if 2 + j in live)
 ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
 ch.add_data(Reference(ws, min_col=2, min_row=first_m, max_row=322))
 ch.set_categories(Reference(ws, min_col=1, min_row=first_m, max_row=322))
-frame(ch, 'Revenue for the month, year on year', 24, 10, gap=60)
+frame(ch, 'Revenue for the month, year on year', 18, 11, gap=60)
 ch.y_axis.delete = True
 paint(ch, [TEAL])
 labels(ch, '#,##0,;;', size=900)
-ws.add_chart(ch, 'H280')
+ws.add_chart(ch, 'H340')
 
 # the same years as the line chart, so an empty FY23 to FY25 does not sit
 # there as three gaps on the floor of the chart
@@ -542,18 +542,40 @@ ws.add_chart(ch, 'F92')
 # year comparison lives on Cost Analysis; what this one shows is the shape of
 # the business over three years, and where the seasonal peaks fall. The colour
 # changes at each financial year so the three years can be told apart.
+# The bars sit behind in grey and the dotted line and its dots sit in front.
+# The colour is on the dots rather than the bars, because grey bars let the line
+# read in front of them and the dots still say which year is which. The line is
+# one series across the whole period so it does not break at a year end; the
+# dots are three marker only series, one per year, because LibreOffice ignores a
+# marker colour set per data point.
 ws = wb['Xero History']
-ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
 last = 33 + period                  # closed months only, so the year end
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
 ch.add_data(Reference(ws, min_col=3, min_row=10, max_row=last))
 ch.set_categories(Reference(ws, min_col=1, min_row=10, max_row=last))
 frame(ch, 'Revenue by month, FY25 then FY26 then FY27', 30, 11, gap=30)
 ch.x_axis.txPr = txt(700)
 ch.series[0].data_points = [
-    DataPoint(idx=i, spPr=GraphicalProperties(
-        solidFill=(NAVY if i < 12 else AQUA if i < 24 else TEAL),
-        ln=LineProperties(noFill=True)))
+    DataPoint(idx=i, spPr=GraphicalProperties(solidFill=GREY,
+                                              ln=LineProperties(noFill=True)))
     for i in range(last - 9)]
+
+ln = LineChart()
+ln.add_data(Reference(ws, min_col=3, min_row=10, max_row=last))
+run = ln.series[0]
+run.graphicalProperties = GraphicalProperties(
+    ln=LineProperties(solidFill=INK, w=19050, prstDash='sysDot'))
+run.marker = Marker(symbol='none')
+run.smooth = False
+for colour, col in ((NAVY, 29), (AQUA, 30), (TEAL, 31)):
+    at = len(ln.series)
+    ln.add_data(Reference(ws, min_col=col, min_row=10, max_row=last))
+    d = ln.series[at]
+    d.graphicalProperties = GraphicalProperties(ln=LineProperties(noFill=True))
+    d.marker = Marker(symbol='circle', size=7, spPr=GraphicalProperties(
+        solidFill=colour, ln=LineProperties(solidFill=WHITE, w=19050)))
+    d.smooth = False
+ch += ln
 ws.add_chart(ch, 'F9')
 
 # --------- the same three years, in forms that carry more than three bars ---
