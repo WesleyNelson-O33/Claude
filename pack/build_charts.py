@@ -466,6 +466,19 @@ line.series[0].smooth = False
 ch += line
 ws.add_chart(ch, 'H230')
 
+# ------------- revenue against budget, year to date, by department ------
+ws = wb['Cost Analysis']
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=251, max_row=256),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=252, max_row=256))
+frame(ch, 'Revenue against budget, year to date', 30, 9, gap=40)
+ranked_axis(ch)
+legend(ch)
+paint(ch, [TEAL, GREY])
+labels_out(ch, '#,##0,"k"', size=800)
+ws.add_chart(ch, 'H250')
+
 # ----------------- hours by the three departments, the month ------------
 # The same picture as the five department version, rolled up the way the P&L
 # groups the business: Production is Events and Video, Consulting is
