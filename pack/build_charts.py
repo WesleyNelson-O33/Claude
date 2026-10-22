@@ -699,21 +699,32 @@ ch.add_data(Reference(ws, min_col=5, min_row=HEAD_D, max_row=LAST_D),
 ch.add_data(Reference(ws, min_col=7, min_row=HEAD_D, max_row=LAST_D),
             titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=FIRST_D, max_row=LAST_D))
-frame(ch, 'Gross profit against the overhead charged to it', 30, 9.14, gap=45)
-legend(ch)
-paint(ch, [TEAL, RED])
-labels(ch, '#,##0', size=800)
-ch.x_axis.tickLblPos = 'low'
-ln = LineChart()
-ln.add_data(Reference(ws, min_col=8, min_row=HEAD_D, max_row=LAST_D),
+ch.add_data(Reference(ws, min_col=8, min_row=HEAD_D, max_row=LAST_D),
             titles_from_data=True)
-res = ln.series[0]
-res.graphicalProperties = GraphicalProperties(ln=LineProperties(noFill=True))
-res.marker = Marker(symbol='diamond', size=9, spPr=GraphicalProperties(
-    solidFill=NAVY, ln=LineProperties(solidFill=WHITE, w=19050)))
-res.smooth = False
-ch += ln
+frame(ch, 'Gross profit against the overhead charged to it', 30, 9.14, gap=40)
+legend(ch)
+paint(ch, [TEAL, RED, NAVY])
+labels(ch, '#,##0', pos='outEnd', size=800)
+ch.x_axis.tickLblPos = 'low'
 ws.add_chart(ch, 'J160')
+
+# ------------- the whole profit and loss, by department ----------------
+# What each department earned, what it cost and what was left. Total cost is
+# cost of sales plus overhead, from the working at P to R. Three bars rather
+# than a stack, because a stack hides the result and squashes the two small
+# departments into slivers, and the labels sit out at the bar ends where each
+# one has its own air.
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=16, max_col=18, min_row=HEAD_D, max_row=LAST_D),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=FIRST_D, max_row=LAST_D))
+frame(ch, 'What each department earned, what it cost, what was left', 30, 9.14,
+      gap=40)
+legend(ch)
+paint(ch, [TEAL, RED, NAVY])
+labels(ch, '#,##0', pos='outEnd', size=800)
+ch.x_axis.tickLblPos = 'low'
+ws.add_chart(ch, 'J190')
 
 wb.save(OUT)
 print('charts rebuilt:', sum(len(ws._charts) for ws in wb.worksheets))
