@@ -57,19 +57,20 @@ The cost of earning it is where the quarter went. Cost of sales was $992,160 aga
 
 FY25 was pulled from Xero on 22 October 2026. The quarter is July to September, so it is fixed rather than following Setup."""
 
-p = Presentation(sys.argv[1])
+if __name__ == '__main__':
+    p = Presentation(sys.argv[1])
 
-slide = p.slides[13]
-w, h, strip = relay(slide, f'{SNIP}/profit_month.png', MONTH_B, MONTH_N,
-                    'snip profit_line', 'Net profit and net loss, the month')
-for sh in slide.shapes:
-    if sh.name == 'snip profit_line':
-        sh.name = 'snip profit_month'
-print(f'page 14: the month | picture {w:.2f} x {h:.2f}, strip {strip:.2f}')
+    slide = p.slides[13]
+    w, h, strip = relay(slide, f'{SNIP}/profit_month.png', MONTH_B, MONTH_N,
+                        'snip profit_line', 'Net profit and net loss, the month')
+    for sh in slide.shapes:
+        if sh.name == 'snip profit_line':
+            sh.name = 'snip profit_month'
+    print(f'page 14: the month | picture {w:.2f} x {h:.2f}, strip {strip:.2f}')
 
-w, h, strip = add(p, 8, 14, 'FINANCIAL PERFORMANCE',
-                  'Net profit and net loss, the quarter',
-                  f'{SNIP}/profit_qtr.png', QTR_B, QTR_N, 'snip profit_qtr')
-print(f'page 15: the quarter | picture {w:.2f} x {h:.2f}, strip {strip:.2f}')
+    w, h, strip = add(p, 8, 14, 'FINANCIAL PERFORMANCE',
+                      'Net profit and net loss, the quarter',
+                      f'{SNIP}/profit_qtr.png', QTR_B, QTR_N, 'snip profit_qtr')
+    print(f'page 15: the quarter | picture {w:.2f} x {h:.2f}, strip {strip:.2f}')
 
-p.save(sys.argv[2])
+    p.save(sys.argv[2])

@@ -13,6 +13,14 @@ from pptx.util import Inches, Pt
 LOGO = '/home/user/Claude/deck/assets/cts-logo.png'
 TOP, FLOOR, LEFT = 1.22, 5.06, 0.55
 SIZE, LEAD, GAP = 10.0, 12.5, 4.0
+# The commentary strip is as deep as the commentary needs, which left six
+# different depths across the deck and six different picture sizes with them.
+# Snapping each one up to the next rung on this ladder gives three. Snapping up
+# is always safe: the text gets more room than it asked for, never less.
+LADDER = (1.10, 1.53, 1.72)
+
+def strip_depth(ph):
+    return next((rung for rung in LADDER if ph <= rung), ph)
 
 def lines(bullets, w_in):
     cpl = max(12, int(32 * (10 / SIZE) * (w_in / 2.20)))
@@ -67,7 +75,7 @@ def add(pres, template_index, at, eyebrow, title, snip, bullets, notes, name):
             mark.name = 'cts logo'
 
     cols = list(balance(bullets, 4.05))
-    ph_panel = max(need(c, 4.05) for c in cols if c) + 0.30
+    ph_panel = strip_depth(max(need(c, 4.05) for c in cols if c) + 0.30)
     strip_top = FLOOR - ph_panel
 
     im = Image.open(snip)
@@ -120,7 +128,7 @@ def relay(slide, snip, bullets, notes, name, title=None):
         by['Text 1'].text_frame.paragraphs[0].runs[0].text = title
 
     cols = list(balance(bullets, 4.05))
-    ph_panel = max(need(c, 4.05) for c in cols if c) + 0.30
+    ph_panel = strip_depth(max(need(c, 4.05) for c in cols if c) + 0.30)
     strip_top = FLOOR - ph_panel
 
     old = by[name]
