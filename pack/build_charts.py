@@ -726,5 +726,22 @@ labels(ch, '#,##0', pos='outEnd', size=800)
 ch.x_axis.tickLblPos = 'low'
 ws.add_chart(ch, 'J190')
 
+# ---------- gross profit by department, this year against last ---------
+# Gross profit only. Overhead was not split by department before FY27, so a net
+# result cannot go back a year, and September 2024 is not held by department at
+# all. Last year is aqua and this year teal, the same as the other year on year
+# charts in the deck.
+ws = wb['Overhead Split']
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=171, max_row=176),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=172, max_row=176))
+frame(ch, 'Gross profit by department, this September against last', 30, 9.14,
+      gap=45)
+legend(ch)
+paint(ch, [AQUA, TEAL])
+labels(ch, '#,##0', pos='outEnd', size=800)
+ws.add_chart(ch, 'J220')
+
 wb.save(OUT)
 print('charts rebuilt:', sum(len(ws._charts) for ws in wb.worksheets))
