@@ -14,9 +14,12 @@ from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.dml.color import RGBColor
+from pptx.oxml.ns import qn
 
 D = json.load(open('/home/user/Claude/pack/data/dept_colours.json'))['departments']
 DEPTS = ['Support', 'Events', 'Video', 'Integration', 'Consulting']
+ALPHA = '55000'               # every dot on the other dividers is 55% opacity,
+                              # so they blend where they overlap
 
 # left, top, diameter. Five circles down the right, overlapping the way the other
 # dividers do, and all of them inside the page.
@@ -78,6 +81,8 @@ for i, (name, (left, top, dia)) in enumerate(zip(DEPTS, DOTS)):
     dot.name = f'dot {i}'
     dot.fill.solid()
     dot.fill.fore_color.rgb = RGBColor.from_string(D[name])
+    srgb = dot.fill.fore_color._xFill.find(qn('a:srgbClr'))
+    srgb.append(srgb.makeelement(qn('a:alpha'), {'val': ALPHA}))
     dot.line.fill.background()
     dot.shadow.inherit = False
     tree.remove(dot._element)
