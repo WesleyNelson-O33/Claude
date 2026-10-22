@@ -496,23 +496,16 @@ for j in range(5):
     if any(ws.cell(r, col).value not in (None, '') for r in range(282, 294)):
         live.append(col)
 
-ch = LineChart()
-for col in live:
-    # FY27 is a part year, so its series stops at the reporting month. A blank
-    # charts as a zero in a line chart and would drop the line to the floor.
-    end = 281 + period if col == 6 else 293
-    ch.add_data(Reference(ws, min_col=col, min_row=281, max_row=end),
-                titles_from_data=True)
-ch.set_categories(Reference(ws, min_col=1, min_row=282, max_row=293))
-frame(ch, 'Revenue by month, year on year', 30, 10)
-legend(ch)
-YEAR_LINE = [GREY, AQUA, PURP, BLUE, TEAL][-len(live):]
-for ser, colour in zip(ch.series, YEAR_LINE):
-    ser.graphicalProperties = GraphicalProperties(
-        ln=LineProperties(solidFill=colour, w=24000))
-    ser.marker = Marker(symbol='circle', size=6)
-    ser.marker.graphicalProperties = GraphicalProperties(solidFill=colour)
-    ser.smooth = False
+# the reporting month set against the same month in earlier years, which is
+# the comparison asked for: September 2026 beside September 2025 and so on
+first_m = min(318 + j for j in range(5) if 2 + j in live)
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, min_row=first_m, max_row=322))
+ch.set_categories(Reference(ws, min_col=1, min_row=first_m, max_row=322))
+frame(ch, 'Revenue for the month, year on year', 24, 10, gap=60)
+ch.y_axis.delete = True
+paint(ch, [TEAL])
+labels(ch, '#,##0,;;', size=900)
 ws.add_chart(ch, 'H280')
 
 # the same years as the line chart, so an empty FY23 to FY25 does not sit
@@ -543,6 +536,25 @@ paint(ch, [TEAL, AQUA, GREYL])
 labels_in(ch, [WHITE, INK, INK], fmt='#,##0', size=800)
 hide_thin(ch, mix_shares(wb, [9, 15, 21, 27, 33], groups=[[0], [1, 2], [3, 4]]))
 ws.add_chart(ch, 'F92')
+
+# ------------------- the Xero history, thirty six months ----------------
+# One continuous run rather than three lines on top of each other. The year on
+# year comparison lives on Cost Analysis; what this one shows is the shape of
+# the business over three years, and where the seasonal peaks fall. The colour
+# changes at each financial year so the three years can be told apart.
+ws = wb['Xero History']
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+last = 33 + period                  # closed months only, so the year end
+ch.add_data(Reference(ws, min_col=3, min_row=10, max_row=last))
+ch.set_categories(Reference(ws, min_col=1, min_row=10, max_row=last))
+frame(ch, 'Revenue by month, FY25 then FY26 then FY27', 30, 11, gap=30)
+ch.x_axis.txPr = txt(700)
+ch.series[0].data_points = [
+    DataPoint(idx=i, spPr=GraphicalProperties(
+        solidFill=(NAVY if i < 12 else AQUA if i < 24 else TEAL),
+        ln=LineProperties(noFill=True)))
+    for i in range(last - 9)]
+ws.add_chart(ch, 'F9')
 
 wb.save(OUT)
 print('charts rebuilt:', sum(len(ws._charts) for ws in wb.worksheets))

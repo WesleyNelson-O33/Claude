@@ -110,36 +110,37 @@ def add(pres, template_index, at, eyebrow, title, snip, bullets, notes, name):
     ids.insert(at, el)
     return pic_w, pic_h, ph_panel
 
-BULLETS = [
-    'Year to date revenue is $1,624k against a budget of $1,996k, $372k short.',
-    'Consulting is most of the gap: $4k billed against a $237k budget.',
-    'Integration is $167k short and Video $45k short, both for a third month.',
-    'Events is the only department ahead, $420k against a $322k budget.',
-    'Support is within $25k of its $743k budget, which is the contract base '
-    'behaving as it should.',
-]
-NOTES = """Revenue against budget for the year to date, by department, taken from the Cost Analysis tab.
+if __name__ == '__main__':
+    BULLETS = [
+        'Year to date revenue is $1,624k against a budget of $1,996k, $372k short.',
+        'Consulting is most of the gap: $4k billed against a $237k budget.',
+        'Integration is $167k short and Video $45k short, both for a third month.',
+        'Events is the only department ahead, $420k against a $322k budget.',
+        'Support is within $25k of its $743k budget, which is the contract base '
+        'behaving as it should.',
+    ]
+    NOTES = """Revenue against budget for the year to date, by department, taken from the Cost Analysis tab.
 
-Support $718,587 against a budget of $743,185, short by $24,597 or 3.3%.
-Events $420,121 against $321,957, ahead by $98,163 or 30.5%.
-Video $40,270 against $85,584, short by $45,313 or 52.9%.
-Integration $441,414 against $608,676, short by $167,263 or 27.5%.
-Consulting $4,068 against $236,707, short by $232,640 or 98.3%.
+    Support $718,587 against a budget of $743,185, short by $24,597 or 3.3%.
+    Events $420,121 against $321,957, ahead by $98,163 or 30.5%.
+    Video $40,270 against $85,584, short by $45,313 or 52.9%.
+    Integration $441,414 against $608,676, short by $167,263 or 27.5%.
+    Consulting $4,068 against $236,707, short by $232,640 or 98.3%.
 
-The company is $371,650 short of budget on revenue, or 18.6%.
+    The company is $371,650 short of budget on revenue, or 18.6%.
 
-Where the shortfall actually sits. Consulting accounts for $232,640 of it, which is almost two thirds. Integration adds $167,263 and Video $45,313. Events offsets $98,163 of the total and Support is within 3.3% of plan.
+    Where the shortfall actually sits. Consulting accounts for $232,640 of it, which is almost two thirds. Integration adds $167,263 and Video $45,313. Events offsets $98,163 of the total and Support is within 3.3% of plan.
 
-That distribution matters for the reforecast. Support and Events are delivering close to or ahead of what was asked of them. The gap is concentrated in the three departments that were budgeted on a resourcing level which does not exist, and no amount of additional effort from Support or Events closes it.
+    That distribution matters for the reforecast. Support and Events are delivering close to or ahead of what was asked of them. The gap is concentrated in the three departments that were budgeted on a resourcing level which does not exist, and no amount of additional effort from Support or Events closes it.
 
-Consulting in particular was budgeted $236,707 for the quarter and has billed $4,068. That is not a performance variance, it is a plan built on capacity the business never had.
+    Consulting in particular was budgeted $236,707 for the quarter and has billed $4,068. That is not a performance variance, it is a plan built on capacity the business never had.
 
-Year to date is summed across the closed months rather than read from a stored total, so this chart follows the reporting month on Setup and will extend as the year goes on."""
+    Year to date is summed across the closed months rather than read from a stored total, so this chart follows the reporting month on Setup and will extend as the year goes on."""
 
-p = Presentation(sys.argv[1])
-w, h, strip = add(p, 5, 6, 'FINANCIAL PERFORMANCE',
-                  'Revenue against budget, year to date',
-                  '/home/user/Claude/deck/snips/rev_ytd.png',
-                  BULLETS, NOTES, 'snip rev_ytd')
-p.save(sys.argv[2])
-print(f'slide added as page 7: picture {w:.2f} x {h:.2f}, strip {strip:.2f}')
+    p = Presentation(sys.argv[1])
+    w, h, strip = add(p, 5, 6, 'FINANCIAL PERFORMANCE',
+                      'Revenue against budget, year to date',
+                      '/home/user/Claude/deck/snips/rev_ytd.png',
+                      BULLETS, NOTES, 'snip rev_ytd')
+    p.save(sys.argv[2])
+    print(f'slide added as page 7: picture {w:.2f} x {h:.2f}, strip {strip:.2f}')
