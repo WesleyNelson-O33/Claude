@@ -21,7 +21,7 @@ from openpyxl.chart.legend import Legend
 from openpyxl.chart.label import DataLabelList
 from openpyxl.chart.shapes import GraphicalProperties
 from openpyxl.chart.text import RichText
-from openpyxl.chart.marker import DataPoint
+from openpyxl.chart.marker import DataPoint, Marker
 from openpyxl.drawing.line import LineProperties
 from openpyxl.drawing.text import (RichTextProperties, Paragraph,
                                    ParagraphProperties, CharacterProperties)
@@ -445,13 +445,25 @@ ch = BarChart(); ch.type = 'col'; ch.grouping = 'stacked'; ch.overlap = 100
 ch.add_data(Reference(ws, min_col=2, max_col=6, min_row=231,
                       max_row=231 + period), titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=232, max_row=231 + period))
-frame(ch, 'Revenue by month and department', 24, 12, gap=60)
+frame(ch, 'Revenue by month and department, against budget', 30, 11, gap=60)
 legend(ch)
 # each department in its own colour, the same ones the introduction cards use
 paint(ch, [D['departments'][k] for k in
                 ('Support', 'Events', 'Video', 'Integration', 'Consulting')])
 # no segment labels: five stacked segments a column collide at this size, and
-# the figures behind them are on the P&L summary table two slides earlier
+# the figures behind them are on the P&L summary table
+
+# budget for the same months, as a line over the stack, so the chart answers
+# both questions at once: who billed it, and was the month enough
+line = LineChart()
+line.add_data(Reference(ws, min_col=7, min_row=231, max_row=231 + period),
+              titles_from_data=True)
+line.series[0].graphicalProperties = GraphicalProperties(
+    ln=LineProperties(solidFill=INK, w=22000))
+line.series[0].marker = Marker(symbol='circle', size=7)
+line.series[0].marker.graphicalProperties = GraphicalProperties(solidFill=INK)
+line.series[0].smooth = False
+ch += line
 ws.add_chart(ch, 'H230')
 
 # ----------------- hours by the three departments, the month ------------
