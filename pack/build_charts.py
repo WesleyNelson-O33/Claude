@@ -482,6 +482,51 @@ paint(ch, [TEAL, GREY])
 labels(ch, '#,##0', size=900)
 ws.add_chart(ch, 'H260')
 
+# ------------- revenue by month, year on year, and the first quarter ----
+# Only the years that have figures are charted. FY26 and FY27 are references
+# and are always there; FY23 to FY25 appear the moment they are pasted in.
+ws = wb['Cost Analysis']
+YEAR_COL = {0: 'FY23', 1: 'FY24', 2: 'FY25', 3: 'FY26', 4: 'FY27'}
+live = []
+for j in range(5):
+    col = 2 + j
+    if YEAR_COL[j] in ('FY26', 'FY27'):
+        live.append(col)
+        continue
+    if any(ws.cell(r, col).value not in (None, '') for r in range(282, 294)):
+        live.append(col)
+
+ch = LineChart()
+for col in live:
+    # FY27 is a part year, so its series stops at the reporting month. A blank
+    # charts as a zero in a line chart and would drop the line to the floor.
+    end = 281 + period if col == 6 else 293
+    ch.add_data(Reference(ws, min_col=col, min_row=281, max_row=end),
+                titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=282, max_row=293))
+frame(ch, 'Revenue by month, year on year', 30, 10)
+legend(ch)
+YEAR_LINE = [GREY, AQUA, PURP, BLUE, TEAL][-len(live):]
+for ser, colour in zip(ch.series, YEAR_LINE):
+    ser.graphicalProperties = GraphicalProperties(
+        ln=LineProperties(solidFill=colour, w=24000))
+    ser.marker = Marker(symbol='circle', size=6)
+    ser.marker.graphicalProperties = GraphicalProperties(solidFill=colour)
+    ser.smooth = False
+ws.add_chart(ch, 'H280')
+
+# the same years as the line chart, so an empty FY23 to FY25 does not sit
+# there as three gaps on the floor of the chart
+first_q = min(298 + j for j in range(5) if 2 + j in live)
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, min_row=first_q, max_row=302))
+ch.set_categories(Reference(ws, min_col=1, min_row=first_q, max_row=302))
+frame(ch, 'First quarter revenue, year on year', 24, 10, gap=60)
+ch.y_axis.delete = True
+paint(ch, [TEAL])
+labels(ch, '#,##0,;;', size=900)
+ws.add_chart(ch, 'H306')
+
 # ----------------- hours by the three departments, the month ------------
 # The same picture as the five department version, rolled up the way the P&L
 # groups the business: Production is Events and Video, Consulting is
