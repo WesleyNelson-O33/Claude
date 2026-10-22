@@ -466,18 +466,21 @@ line.series[0].smooth = False
 ch += line
 ws.add_chart(ch, 'H230')
 
-# ------------- revenue against budget, year to date, by department ------
+# ------------- revenue against budget, month by month -------------------
+# Each closed month with its actual and its budget side by side. The year to
+# date pair is on the table rather than the chart: it cannot sit next to the
+# months in one series, and a column five times the others wrecks the scale.
 ws = wb['Cost Analysis']
-ch = BarChart(); ch.type = 'bar'; ch.grouping = 'clustered'
-ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=251, max_row=256),
-            titles_from_data=True)
-ch.set_categories(Reference(ws, min_col=1, min_row=252, max_row=256))
-frame(ch, 'Revenue against budget, year to date', 30, 9, gap=40)
-ranked_axis(ch)
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=261,
+                      max_row=261 + period), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=262, max_row=261 + period))
+frame(ch, 'Revenue against budget, month by month', 30, 10, gap=55)
+ch.y_axis.delete = True
 legend(ch)
 paint(ch, [TEAL, GREY])
-labels_out(ch, '#,##0,"k"', size=800)
-ws.add_chart(ch, 'H250')
+labels(ch, '#,##0', size=900)
+ws.add_chart(ch, 'H260')
 
 # ----------------- hours by the three departments, the month ------------
 # The same picture as the five department version, rolled up the way the P&L

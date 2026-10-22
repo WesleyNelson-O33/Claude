@@ -33,7 +33,7 @@ SNIPS = {
     'dept_three':  ('Overhead Split', 'A152:H158',  False),
     'rev_by_dept': ('Cost Analysis',  'F190:W212',  False),
     'rev_month':   ('Cost Analysis',  'H229:AA251', False),
-    'rev_ytd':     ('Cost Analysis',  'H249:AA270', False),
+    'rev_ytd':     ('Cost Analysis',  'H259:AA282', False),
     'cost_dist':   ('Cost Analysis',  'I33:X59',    False),
     'other_opex':  ('Cost Analysis',  'I4:X30',     False),
     'labour_mix':  ('Cost Analysis',  'I61:X87',    False),
