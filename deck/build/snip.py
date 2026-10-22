@@ -32,6 +32,7 @@ SNIPS = {
     'dept_mix':    ('Overhead Split', 'J159:AD184', False),
     'dept_pl':     ('Overhead Split', 'J189:AD214', False),
     'dept_gp_yoy': ('Overhead Split', 'J219:AD244', False),
+    'dept_line':   ('Overhead Split', 'J249:AD274', False),
     # The same result rolled up to the three departments the P&L is built on.
     'dept_three':  ('Overhead Split', 'A152:H158',  False),
     'rev_by_dept': ('Cost Analysis',  'F190:AA212', False),

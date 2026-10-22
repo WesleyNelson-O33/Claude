@@ -743,5 +743,21 @@ paint(ch, [AQUA, TEAL])
 labels(ch, '#,##0', pos='outEnd', size=800)
 ws.add_chart(ch, 'J220')
 
+# -------- the departmental result, above and below the line -----------
+# Every department makes a gross profit, so a gross profit chart reads as
+# though they all made money. This one shows what is left after the overhead
+# charged to them, teal above the line and red below, fed from the two columns
+# at S and T so the colour does not depend on this script reading the figures.
+ws = wb['Overhead Split']
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'; ch.overlap = 100
+ch.add_data(Reference(ws, min_col=19, max_col=20, min_row=142, max_row=147),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=143, max_row=147))
+frame(ch, 'Result by department, above and below the line', 30, 9.14, gap=60)
+paint(ch, [TEAL, RED])
+labels(ch, '#,##0', pos='outEnd', size=900)
+ch.x_axis.tickLblPos = 'low'
+ws.add_chart(ch, 'J250')
+
 wb.save(OUT)
 print('charts rebuilt:', sum(len(ws._charts) for ws in wb.worksheets))
