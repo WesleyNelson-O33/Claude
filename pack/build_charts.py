@@ -579,8 +579,12 @@ def line_series(ch, col, first, last, colour, width=28000, marker=True):
 ch = LineChart()
 for col, colour, last in ((2, NAVY, 69), (3, AQUA, 69), (4, TEAL, 57 + period)):
     line_series(ch, col, 58, last, colour)
+# budget last, dashed, so the two readings sit on one picture: ahead of both
+# completed years, behind the plan for this one
+b = line_series(ch, 5, 58, 69, RED, width=22000, marker=False)
+b.graphicalProperties.ln.dashStyle = 'dash'
 ch.set_categories(Reference(ws, min_col=1, min_row=58, max_row=69))
-frame(ch, 'Revenue year to date, cumulative', 30, 11)
+frame(ch, 'Revenue year to date, cumulative, against budget', 30, 11)
 legend(ch)
 ws.add_chart(ch, 'F34')
 
