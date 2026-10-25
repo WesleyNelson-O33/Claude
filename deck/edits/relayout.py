@@ -136,9 +136,10 @@ JOBS = {6:  ('pl_result', (27, PL_DETAIL)),
         13: ('dept_Consulting', (18, OVERHEAD_DETAIL)),
         14: ('rev_by_dept', None)}
 
-p = Presentation(sys.argv[1])
-for i, (tag, crop) in JOBS.items():
-    before, after = relayout(p.slides[i - 1], tag, crop)
-    print(f'slide {i:>3} {tag:16s} picture {before[0]:.2f} x {before[1]:.2f}  ->  '
-          f'{after[0]:.2f} x {after[1]:.2f}')
-p.save(sys.argv[2])
+if __name__ == '__main__':
+    p = Presentation(sys.argv[1])
+    for i, (tag, crop) in JOBS.items():
+        before, after = relayout(p.slides[i - 1], tag, crop)
+        print(f'slide {i:>3} {tag:16s} picture {before[0]:.2f} x {before[1]:.2f}  ->  '
+              f'{after[0]:.2f} x {after[1]:.2f}')
+    p.save(sys.argv[2])
