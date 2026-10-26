@@ -30,7 +30,7 @@ def ordered(seq, order, where, out):
             out.append(f'{where}: unknown element <{s}>'); return
         idx.append(order.index(s))
     for i in range(len(idx) - 1):
-        if idx[i] >= idx[i + 1]:
+        if idx[i] > idx[i + 1]:
             out.append(f'{where}: <{seq[i+1]}> must come before <{seq[i]}>')
 
 def main(path):
@@ -77,13 +77,31 @@ def main(path):
         if af is not None and not af.get('ref'):
             out.append(f'{where}: autoFilter with no ref')
     # defined names must point at a sheet that exists
-    for nm, ref in re.findall(r'<definedName name="([^"]+)"[^>]*>([^<]*)</definedName>', wbx):
+    for nm, ref in re.findall(r'<definedName[^>]*\bname="([^"]+)"[^>]*>([^<]*)</definedName>', wbx):
         for s in re.findall(r"(?:'([^']+)'|([A-Za-z_][\w.]*))!", unesc(ref)):
             sn = (s[0] or s[1]).replace("''", "'")
             if sn not in sheetnames:
                 out.append(f'defined name {nm} points at sheet "{sn}", which does not exist')
         if '#REF' in ref:
             out.append(f'defined name {nm} contains #REF: {ref}')
+    # [n] refers to the nth external workbook. If the externalLink part is gone,
+    # Excel asks to repair the file. This happens when linked formulas are frozen
+    # to values but a leftover chart name still carries the reference.
+    nlinks = len([p for p in names
+                  if re.match(r'xl/externalLinks/externalLink\d+\.xml$', p)])
+    for nm, ref in re.findall(
+            r'<definedName[^>]*\bname="([^"]+)"[^>]*>([^<]*)</definedName>', wbx):
+        for i in sorted(set(re.findall(r'\[(\d+)\]', ref))):
+            if int(i) > nlinks:
+                out.append(f'defined name {nm} refers to external workbook [{i}], '
+                           f'but {nlinks} external link part(s) exist: {ref}')
+    for p in sorted(names):
+        if re.match(r'xl/worksheets/sheet\d+\.xml$', p):
+            body = z.read(p).decode('utf8', 'replace')
+            for i in sorted(set(re.findall(r'\[(\d+)\]', body))):
+                if int(i) > nlinks:
+                    out.append(f'{p} has a formula referring to external '
+                               f'workbook [{i}], but {nlinks} exist')
     if 'xl/calcChain.xml' in names:
         out.append('calcChain.xml is present and is almost certainly stale; delete it')
     ct = z.read('[Content_Types].xml').decode()

@@ -372,5 +372,14 @@ ws.column_dimensions['A'].width = 44
 ws.column_dimensions['B'].width = 3
 ws.column_dimensions['C'].width = 16
 ws.sheet_view.showGridLines = False
+
+# Four dead chart helper names point at external workbook [2], which the freeze
+# above removed. Excel asks to repair the file when a name refers to a workbook
+# that is not there. There is no chart in the file, so the names go.
+for n in list(wf.defined_names):
+    if n.startswith('__xlchart'):
+        del wf.defined_names[n]
+        print(f'  dropped the dead defined name {n}')
+
 wf.save(OUT)
 print('added the October Xero tab')
