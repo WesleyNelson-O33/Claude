@@ -80,6 +80,8 @@ text(sc, "A2", "Found by searching every Xero bill from 1 June 2025 for 2506208 
                "or line description. Read from Xero on 27 October 2026. Amounts are what Xero holds.", wrap=True)
 sc.merge_cells("A2:K2"); sc.row_dimensions[2].height = 30
 B = [
+    ("2026-06-13", "Swan Taxis Pty Ltd", "13062026", "DL taxi in Perth for CBA AGM 2026", "58115 54.55 / 59015 2.73", 57.28, 5.72, "Paid",
+     "Bill number says CBA AGM 2027, line says 2026. Included as 2026. The tracker holds 13062026 in CBA AGM 2027 WIP.", AMBER),
     ("2026-07-03", "Red Bee Media Pty Ltd", "INV7060003977", "Testing of live remote captioning for Viostream", "51400", 365.00, 36.50, "Paid", ""),
     ("2026-09-30", "Goget Carshare", "INV10498230926", "Tyler Wood, CBA AGM, Chair Review, 21/09/2026", "58115", 72.00, 7.20, "Paid",
      "One line of a 572.29 bill. The other lines are other jobs."),
@@ -173,7 +175,7 @@ sh.freeze_panes = "A5"
 # ---------------------------------------------------------------- Unclear
 uc = sheet("Unclear Items")
 text(uc, "A1", "CBA AGM items not counted above", bold=True, size=13)
-text(uc, "A2", "These say CBA AGM with no year or job number, or the labels conflict. By date they look like the 2025 AGM "
+text(uc, "A2", "These say CBA AGM with no year or job number. By date they look like the 2025 AGM "
                "(job 3059), but that is not proof. They are not in the totals.", wrap=True)
 uc.merge_cells("A2:H2"); uc.row_dimensions[2].height = 30
 U = [
@@ -181,7 +183,6 @@ U = [
     ("2025-10-01", "NW Group Australasia", "019453", "CBA AGM Rehearsal (PO-00016795)", "51200", 1446.38, 144.64, "Paid"),
     ("2025-10-09", "Hire Intelligence", "PO-00016800", "CS81531, CBA AGM Additional. Bill CS162740 says CBA AGM 2025", "", 470.00, 47.00, "Billed"),
     ("2025-10-31", "Goget Carshare", "10498231025", "Eight CBA AGM lines, 7 to 27 October 2025", "58115", 639.92, 64.00, "Paid"),
-    ("2026-06-13", "Swan Taxis Pty Ltd", "13062026", "Bill number says CBA AGM 2027, line says CBA AGM 2026", "58115 / 59015", 57.28, 5.72, "Paid"),
 ]
 last = table(uc, 4, ["Date", "Supplier", "Bill / PO", "Description", "Account", "Ex GST", "GST", "Status"],
              [list(u) for u in U], [11, 24, 14, 50, 14, 12, 11, 10], {6: MONEY, 7: MONEY})
@@ -192,7 +193,7 @@ nd = sheet("What I need", first=False)
 wb.move_sheet(nd, offset=-3)
 text(nd, "A1", "CBA AGM 2026 invoice. Status and what is still needed", bold=True, size=13)
 L = [
-    ("Supplier bills in Xero", "='Supplier Costs'!F%d" % (len(B) + 5), "Ex GST, 12 bills"),
+    ("Supplier bills in Xero", "='Supplier Costs'!F%d" % (len(B) + 5), "Ex GST, 13 bills"),
     ("Encore, PO amount", "='Supplier Costs'!F%d" % po_row, "Ex GST. This is the PO amount for PO-00016949. Encore has not billed yet."),
     ("Total cost to use", "='Supplier Costs'!F%d" % (po_row + 2), "Ex GST. Xero bills plus the Encore PO amount."),
     ("Staff hours seen so far", "='Staff Hours'!D%d" % (len(H) + 5), "Hours. No dates by day. October missing."),
@@ -209,7 +210,7 @@ N = [
     "3. No October GoGet, taxi, travel or expense claims for the event week are in Xero yet. None are included.",
     "4. Charge-out rates used on the tracker are $130 per hour for production and $95 per hour for video.",
     "5. Staff hours by person and date are still to come from the Employment Hero timesheet export for 2506208 and 2506208V.",
-    "6. The Unclear Items tab is left out of the totals. They look like the 2025 AGM.",
+    "6. The Unclear Items tab is left out of the totals. They look like the 2025 AGM. The Swan Taxis bill 13062026 is included as 2026.",
 ]
 for i, n in enumerate(N, 10):
     text(nd, "A%d" % i, n, wrap=True)
