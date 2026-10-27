@@ -89,7 +89,7 @@ B = [
     ("2026-10-07", "Tony Taouk (T/A New Office)", "CTS-20261007", "Acoustic screen hire", "51200", 3072.73, 307.27, "Paid", ""),
     ("2026-10-07", "Officeworks Superstores Pty Ltd", "INV632570641", "HP keyboard and mouse combo", "51100", 98.18, 9.82, "Unpaid", ""),
     ("2026-10-14", "Start Webcast Pty Ltd", "INV-202222", "Equipment and services hire", "51315 7,315.00 / 51200 4,309.60", 11624.60, 1162.46, "Unpaid",
-     "Bill says DL/TW yet to approve.", AMBER),
+     "Included as billed. Still waiting on DL/TW approval in Xero.", AMBER),
     ("2026-10-19", "Access Innovation Media Pty Ltd", "INV22272", "Services hire", "51400", 240.00, 24.00, "Unpaid", ""),
     ("2026-10-19", "Access Innovation Media Pty Ltd", "INV22273", "Services hire", "51400", 840.00, 84.00, "Unpaid", ""),
     ("2026-10-19", "Access Innovation Media Pty Ltd", "INV22274", "Services hire", "51400", 620.00, 62.00, "Unpaid", ""),
@@ -202,13 +202,14 @@ for i, (a, f, n) in enumerate(L, 3):
     c = nd["B%d" % i]; c.value = f; c.font = Font(name=F, size=10)
     c.number_format = HRS if "hours" in a else MONEY
     text(nd, "C%d" % i, n)
-text(nd, "A9", "To finish this for Duncan", bold=True, size=12)
+text(nd, "A9", "Notes for the invoice", bold=True, size=12)
 N = [
-    "1. Employment Hero timesheet export for jobs 2506208 and 2506208V, every date from the start of the job to today. This gives the hours by person and date. October is the big gap.",
-    "2. Start Webcast INV-202222 is waiting on DL/TW approval. Confirm the 11,624.60 ex GST is right.",
-    "3. Any October GoGet, taxi, travel or expense claims for the event week. None are in Xero yet.",
-    "4. The charge-out rates Duncan wants on the invoice. The tracker uses $130 production and $95 video.",
-    "5. Confirm the Unclear Items tab can be left out. They look like the 2025 AGM.",
+    "1. Encore is included at the PO amount, PO-00016949. Encore has not billed yet, so the final cost could differ.",
+    "2. Start Webcast INV-202222 is included as billed, 11,624.60 ex GST. It is still waiting on DL/TW approval in Xero.",
+    "3. No October GoGet, taxi, travel or expense claims for the event week are in Xero yet. None are included.",
+    "4. Charge-out rates used on the tracker are $130 per hour for production and $95 per hour for video.",
+    "5. Staff hours by person and date are still to come from the Employment Hero timesheet export for 2506208 and 2506208V.",
+    "6. The Unclear Items tab is left out of the totals. They look like the 2025 AGM.",
 ]
 for i, n in enumerate(N, 10):
     text(nd, "A%d" % i, n, wrap=True)
