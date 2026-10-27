@@ -111,16 +111,16 @@ for x in (r, r + 1):
     sc["F%d" % x].number_format = MONEY; sc["F%d" % x].font = Font(name=F, size=10)
 
 r += 3
-text(sc, "A%d" % r, "Purchase order not yet billed", bold=True, size=12)
+text(sc, "A%d" % r, "Encore, using the PO amount (no bill yet)", bold=True, size=12)
 po_row = r + 2
 table(sc, r + 1, ["PO date", "Supplier", "PO number", "Reference", "Account", "Ex GST", "GST", "Inc GST", "Status", "Notes"],
       [["2026-10-09", "Encore Event Technologies Pty Ltd", "PO-00016949", "Q-000000985630 - CBA 2026 AGM", "Not shown by Xero",
         18318.43, 1831.93, "=F%d+G%d" % (po_row, po_row), "Authorised",
-        "No Encore bill in Xero yet. Final cost could differ from the PO.", AMBER]],
+        "This is the PO amount, not a bill. Encore has not billed yet, so the final cost could differ.", AMBER]],
       [11, 30, 16, 40, 30, 12, 11, 12, 9, 40], {6: MONEY, 7: MONEY, 8: MONEY})
 sc.freeze_panes = "A5"
 r = po_row + 2
-text(sc, "E%d" % r, "Bills plus PO", bold=True)
+text(sc, "E%d" % r, "Bills plus Encore PO amount", bold=True)
 for col in "FGH":
     c = sc["%s%d" % (col, r)]
     c.value = "=%s%d+%s%d" % (col, last + 1, col, po_row)
@@ -193,8 +193,8 @@ wb.move_sheet(nd, offset=-3)
 text(nd, "A1", "CBA AGM 2026 invoice. Status and what is still needed", bold=True, size=13)
 L = [
     ("Supplier bills in Xero", "='Supplier Costs'!F%d" % (len(B) + 5), "Ex GST, 12 bills"),
-    ("Encore PO not yet billed", "='Supplier Costs'!F%d" % po_row, "Ex GST, PO-00016949"),
-    ("Bills plus Encore PO", "='Supplier Costs'!F%d" % (po_row + 2), "Ex GST"),
+    ("Encore, PO amount", "='Supplier Costs'!F%d" % po_row, "Ex GST. This is the PO amount for PO-00016949. Encore has not billed yet."),
+    ("Total cost to use", "='Supplier Costs'!F%d" % (po_row + 2), "Ex GST. Xero bills plus the Encore PO amount."),
     ("Staff hours seen so far", "='Staff Hours'!D%d" % (len(H) + 5), "Hours. No dates by day. October missing."),
 ]
 for i, (a, f, n) in enumerate(L, 3):
@@ -205,11 +205,10 @@ for i, (a, f, n) in enumerate(L, 3):
 text(nd, "A9", "To finish this for Duncan", bold=True, size=12)
 N = [
     "1. Employment Hero timesheet export for jobs 2506208 and 2506208V, every date from the start of the job to today. This gives the hours by person and date. October is the big gap.",
-    "2. Encore's final bill for PO-00016949, or confirm the PO amount is the figure to use.",
-    "3. Start Webcast INV-202222 is waiting on DL/TW approval. Confirm the 11,624.60 ex GST is right.",
-    "4. Any October GoGet, taxi, travel or expense claims for the event week. None are in Xero yet.",
-    "5. The charge-out rates Duncan wants on the invoice. The tracker uses $130 production and $95 video.",
-    "6. Confirm the Unclear Items tab can be left out. They look like the 2025 AGM.",
+    "2. Start Webcast INV-202222 is waiting on DL/TW approval. Confirm the 11,624.60 ex GST is right.",
+    "3. Any October GoGet, taxi, travel or expense claims for the event week. None are in Xero yet.",
+    "4. The charge-out rates Duncan wants on the invoice. The tracker uses $130 production and $95 video.",
+    "5. Confirm the Unclear Items tab can be left out. They look like the 2025 AGM.",
 ]
 for i, n in enumerate(N, 10):
     text(nd, "A%d" % i, n, wrap=True)
