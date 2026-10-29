@@ -81,6 +81,8 @@ paste is header for header. Built by `portal/build/build_templates.py`.
 | 11 and 12 Xero Aged reports | Monthly | Aged receivables and payables, matched to the live Xero layout |
 | 13 Revenue Schedule | Once a year | The sales forecast per role or client, and the client list with display names and aliases |
 
+The Project P&L page is built from the Job Numbers tracking on every ledger line. Each job shows income, cost of sales split into labour (the pay run journal already posts direct wages and super to the job), equipment, subcontract and other, gross margin, overheads coded to the job, hours from the pay runs, and the won Zoho deal with the same opportunity number. Overhead jobs (the 9000 series) are hidden by default. Jobs under 15 per cent margin are flagged, and income lines with no job number are counted so the table ties back to the P&L.
+
 The Revenue Risk page reads the aged receivables, the pipeline, the schedule and the client history together: how much of the rest of the year is recurring or confirmed, concentration in the top clients, clients lost or declining against last year, open deals past their closing date, and what is past due.
 
 The Build page (`CTS_build.js`, SheetJS vendored in `vendor`) reads them with

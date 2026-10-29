@@ -636,7 +636,7 @@
       empId: colIndex(h, ["employeeid"]), empExt: colIndex(h, ["employeeexternalid"]),
       empName: colIndex(h, ["employeename"]), catName: colIndex(h, ["paycategoryname"]),
       units: colIndex(h, ["units"]), unitType: colIndex(h, ["unittype"]),
-      locName: colIndex(h, ["locationname"]), notes: colIndex(h, ["notes"]),
+      locName: colIndex(h, ["locationname"]), locExt: colIndex(h, ["locationexternalid"]), notes: colIndex(h, ["notes"]),
       gross: colIndex(h, ["grossearnings"]), sup: colIndex(h, ["sgsuper"]),
     };
     if (ci.catName < 0 || ci.locName < 0 || ci.units < 0) throw new Error("Earnings: need Pay Category Name, Location Name and Units.");
@@ -668,7 +668,7 @@
     });
 
     var bucket = {}, staff = {}, labour = {}, newLocs = {}, newCats = {}, usedFallback = 0;
-    var reallocated = 0, payOnly = 0, lines = 0, spread = 0, grossTotal = 0, peopleDept = 0;
+    var reallocated = 0, payOnly = 0, lines = 0, spread = 0, grossTotal = 0, peopleDept = 0, jobHours = {};
     // Pay runs pasted one under the other: each starts with its title row.
     // A line whose note carries no date (salaried staff, allowances) is
     // spread over the months its pay run covers, on weekdays, rather than
@@ -756,6 +756,8 @@
       else if (kind === "publicHoliday") b.publicHoliday += units;
       var lb = labour[key] || (labour[key] = { gross: 0, sup: 0 });
       lb.gross += gross; lb.sup += sup;
+      var locExt = ci.locExt >= 0 ? String(r[ci.locExt] || "").trim() : "";
+      if (locExt && kind === "work" && units) { var jk = mk + "|" + locExt; jobHours[jk] = (jobHours[jk] || 0) + units; }
 
       var pid = (ci.empExt >= 0 && String(r[ci.empExt]).trim()) || (ci.empId >= 0 && String(r[ci.empId]).trim()) || who;
       var sk = mk + "|" + pid + "|" + deptKey;
@@ -780,7 +782,8 @@
     });
     return {
       util: { meta: { seed: false, built: today(), source: "03 Employment Hero Earnings.xlsx" },
-              cols: ["month", "dept", "chargeable", "nonChargeable", "leave", "publicHoliday", "fte"], rows: utilRows },
+              cols: ["month", "dept", "chargeable", "nonChargeable", "leave", "publicHoliday", "fte"], rows: utilRows,
+              jobs: Object.keys(jobHours).sort().map(function (k) { var x = k.split("|"); return [x[0], x[1], r2(jobHours[k])]; }) },
       staff: { meta: { seed: false, built: today(), source: "03 Employment Hero Earnings.xlsx" },
                cols: ["month", "empId", "name", "dept", "chargeable", "nonChargeable", "leave", "publicHoliday", "grossCents", "superCents", "employment", "target"], rows: staffRows },
       lines: lines, gross: grossTotal, peopleDept: peopleDept, newLocations: newLocs, newCategories: newCats, usedFallback: usedFallback, spread: spread,

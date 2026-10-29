@@ -177,6 +177,9 @@
   };
 
   /* ---- GL hydration -------------------------------------------------- */
+  /** "2604704 - Aware Super Seminar Room [INT]" becomes 2604704; blank stays blank. */
+  E.jobKey = function (jobNo) { var m = String(jobNo || "").trim().match(/^(\d{3,8})\b/); return m ? m[1] : ""; };
+  E.jobName = function (jobNo) { return String(jobNo || "").replace(/^\d{3,8}\s*-?\s*/, "").replace(/\s*\[[^\]]*\]\s*$/, "").trim(); };
   E.resolveDept = function (costCentre, jobNo) {
     var cc = (costCentre || "").trim().toUpperCase();
     if (cc) {
@@ -212,7 +215,9 @@
       acctMonth: blank(), deptCatMonth: blank(), deptSubMonth: blank(),
       deptAcctMonth: blank(), catMonth: blank(), clientMonth: blank(),
       clientDeptMonth: blank(), subMonth: blank(),
+      jobCatMonth: blank(), jobAcctMonth: blank(), jobSubMonth: blank(),
     });
+    var jobs = (E.jobs = {});
     var q = (E.quality = { rows: rows.length, noDept: 0, unknownAcct: 0,
                            noContact: 0, minDate: null, maxDate: null });
 
@@ -255,7 +260,18 @@
           bump2(idx.clientDeptMonth, contact, dept, month, amount);
         }
       }
+      // the job: "2604704 - Aware Super Seminar Room [INT]"; 9xxx jobs are overheads
+      var jk = E.jobKey(r[ci.jobNo]);
+      if (jk) {
+        var j = jobs[jk] || (jobs[jk] = { id: jk, name: E.jobName(r[ci.jobNo]), tag: dept, overhead: /^9\d{3}$/.test(jk), first: date, last: date, contacts: {}, lines: 0 });
+        j.lines++; if (date < j.first) j.first = date; if (date > j.last) j.last = date;
+        if (cat === "income" && contact) j.contacts[contact] = (j.contacts[contact] || 0) + amount;
+        bump2(idx.jobCatMonth, jk, cat, month, amount);
+        bump2(idx.jobAcctMonth, jk, name, month, amount);
+        bump2(idx.jobSubMonth, jk, sub, month, amount);
+      }
     }
+    Object.keys(jobs).forEach(function (k) { var j = jobs[k], best = null; Object.keys(j.contacts).forEach(function (c) { if (!best || j.contacts[c] > j.contacts[best]) best = c; }); j.client = best || ""; });
     E.glMonths = Object.keys(idx.catMonth.income || {}).sort();
     return E;
   };
@@ -278,6 +294,8 @@
   };
 
   E.loadUtil = function (data) {
+    E.jobHours = {};
+    (data.jobs || []).forEach(function (r) { (E.jobHours[r[1]] = E.jobHours[r[1]] || {})[r[0]] = (E.jobHours[r[1]][r[0]] || 0) + r[2]; });
     var cols = data.cols, ci = {};
     cols.forEach(function (c, i) { ci[c] = i; });
     E.utilRows = (data.rows || []).map(function (r) {
@@ -612,6 +630,7 @@
   function sumMonths(map, keys) {
     if (!map) return 0;
     var t = 0;
+    if (!keys) { Object.keys(map).forEach(function (k) { t += map[k] || 0; }); return t; }
     for (var i = 0; i < keys.length; i++) t += map[keys[i]] || 0;
     return t;
   }
@@ -1092,6 +1111,52 @@
     rows.sort(function (a, b) { return b.amount - a.amount; });
     rows.forEach(function (r, i) { r.rank = i + 1; });
     return rows;
+  };
+
+  /* ---- project P&L -----------------------------------------------------
+   * One row per job from the ledger's Job Numbers tracking: income, cost of
+   * sales split into labour, equipment, subcontract and other, overheads
+   * coded to the job, and the quote from Zoho where the opportunity number
+   * matches. Payroll is already split to jobs by the pay run journal, so
+   * labour needs no estimate. */
+  var LABOUR_RE = /salar|wage|superann|workers comp/i, EQUIP_RE = /equipment|hire|damage waiver|subscriptions & licences - expense/i, SUBBIE_RE = /sub-contract|service - hires/i;
+  E.projectRows = function (monthKeys, opts) {
+    opts = opts || {};
+    var dept = E.viewDept(), keys = monthKeys && monthKeys.length ? monthKeys : null, quotes = {};
+    (E.pipeline.deals || []).forEach(function (d) { var k = E.jobKey(d.job); if (k && /closed won|^won$/i.test(d.stage)) quotes[k] = (quotes[k] || 0) + (d.amount || 0); });
+    var hrs = E.jobHours || {};
+    var rows = [];
+    Object.keys(E.jobs).forEach(function (k) {
+      var j = E.jobs[k];
+      if (opts.overheads === false && j.overhead) return;
+      if (opts.overheads === "only" && !j.overhead) return;
+      if (dept && j.tag !== dept) return;
+      var cats = E.idx.jobCatMonth[k] || {}, subs = E.idx.jobSubMonth[k] || {};
+      var income = E.sumMonths(cats.income, keys), cos = E.sumMonths(cats.cos, keys), exp = E.sumMonths(cats.expenses, keys), oi = E.sumMonths(cats.other_income, keys) + E.sumMonths(cats.other_expenses, keys);
+      if (!income && !cos && !exp && !oi) return;
+      var labour = 0, equip = 0, subbie = 0, other = 0;
+      Object.keys(subs).forEach(function (sub) {
+        var accts = E.subsOf.cos && E.subsOf.cos[sub]; if (!accts) return;
+        var v = E.sumMonths(subs[sub], keys);
+        if (LABOUR_RE.test(sub)) labour += v; else if (SUBBIE_RE.test(sub)) subbie += v; else if (EQUIP_RE.test(sub)) equip += v; else other += v;
+      });
+      var hours = 0; if (hrs[k]) Object.keys(hrs[k]).forEach(function (m) { if (!keys || keys.indexOf(m) >= 0) hours += hrs[k][m]; });
+      var gp = income + cos;
+      rows.push({ id: k, name: j.name, client: j.client, dept: j.tag, overhead: j.overhead, first: j.first, last: j.last,
+                  income: income, cos: cos, labour: labour, equipment: equip, subcontract: subbie, otherCos: other, grossProfit: gp,
+                  gmPct: income ? gp / income : null, overheads: exp, net: gp + exp + oi, hours: hours, quote: quotes[k] || 0,
+                  status: j.last >= (E.reportingMonth() + "-01") ? "active" : "closed" });
+    });
+    rows.sort(function (a, b) { return (b.income || 0) - (a.income || 0) || (a.cos - b.cos); });
+    return rows;
+  };
+  E.projectDetail = function (id, monthKeys) {
+    var keys = monthKeys && monthKeys.length ? monthKeys : null, accts = E.idx.jobAcctMonth[id] || {}, out = [];
+    Object.keys(accts).forEach(function (n) { var v = E.sumMonths(accts[n], keys); if (v) out.push({ account: n, cat: (E.acct[n] || {}).cat || "", sub: (E.acct[n] || {}).sub || "", amount: v }); });
+    out.sort(function (a, b) { return E.CAT_KEYS.indexOf(a.cat) - E.CAT_KEYS.indexOf(b.cat) || Math.abs(b.amount) - Math.abs(a.amount); });
+    var months = {}; Object.keys(accts).forEach(function (n) { Object.keys(accts[n]).forEach(function (m) { if (keys && keys.indexOf(m) < 0) return; var c = (E.acct[n] || {}).cat; var t = months[m] || (months[m] = { month: m, income: 0, cos: 0, expenses: 0 }); if (c === "income") t.income += accts[n][m]; else if (c === "cos") t.cos += accts[n][m]; else t.expenses += accts[n][m]; }); });
+    var lines = E.gl.filter(function (r) { return E.jobKey(r.jobNo) === id && (!keys || keys.indexOf(r.month) >= 0); }).sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+    return { accounts: out, months: Object.keys(months).sort().map(function (m) { return months[m]; }), lines: lines };
   };
 
   /* ---- revenue risk ---------------------------------------------------
@@ -2127,6 +2192,10 @@
       var misses = s.lines.filter(function (l) { return l.risk === "High"; }).slice(0, 5);
       var none = s.lines.filter(function (l) { return l.kind !== "newbiz" && l.budget > 0 && !l.actual; }).slice(0, 5);
       return (E.deptOf[dept] || {}).short + " schedule " + d(s.actualTotal) + " against " + d(s.budgetTotal) + " budgeted and " + d(s.lastYearTotal) + " last year. " + (misses.length ? "High variances: " + misses.map(function (l) { return (l.client || l.line) + " " + F.money(l.variance); }).join(", ") + "." : "No line is flagged High.") + (none.length ? " Budgeted with nothing invoiced: " + none.map(function (l) { return l.client || l.line; }).join(", ") + "." : "") + (dept === "CONSULTING" ? " [For each: lost, or moved to a later month? Ask Jordan before the revenue meeting.]" : " [For each miss: timing, lost, or grouped under new business?]");
+    },
+    projects: function (rm, p) {
+      var rows = E.projectRows(p.keys, { overheads: false }), low = rows.filter(function (r) { return r.income > 0 && r.gmPct != null && r.gmPct < 0.15; }).slice(0, 4), top = rows.slice(0, 3);
+      return rows.length + " jobs with activity for " + p.label + ". Largest: " + top.map(function (r) { return r.name + " " + d(r.income) + " at " + F.pct(r.gmPct); }).join(", ") + "." + (low.length ? " Under 15% margin: " + low.map(function (r) { return r.name + " " + F.pct(r.gmPct); }).join(", ") + "." : " No client job is under 15% margin.") + " [Which margins are timing, costs ahead of invoicing, and which are real.]";
     },
     "rev-risk": function (rm, p) {
       var r = E.revenueRisk(p.keys);
@@ -4280,6 +4349,73 @@
           "Budget, actual and last year side by side, which is what management asked for instead of hiding the budget column once the actual is in. Last year is the same months a year earlier, in dollars."),
         U.note(s.note),
         U.note("Close is good enough. Work in progress revenue forms part of the P&L but is not invoiced to a client, so an exact tie back is not possible; being close is the standard here.", "muted"),
+      ];
+    },
+  };
+
+  P.projects = {
+    section: "Revenue", title: "Project P&L",
+    sub: "Every job off the ledger's job numbers: income, cost split, margin and the quote.",
+    render: function () {
+      var p = CTS.period();
+      var life = CTS.store.get("proj.lifetime", false), showOH = CTS.store.get("proj.overheads", false), q = CTS.store.get("proj.search", ""), sel = CTS.store.get("proj.sel", null);
+      var keys = life ? null : p.keys;
+      var rows = E.projectRows(keys, { overheads: showOH ? true : false });
+      var ql = q.toLowerCase();
+      if (ql) rows = rows.filter(function (r) { return (r.id + " " + r.name + " " + r.client).toLowerCase().indexOf(ql) >= 0; });
+      var tot = rows.reduce(function (a, r) { a.income += r.income; a.cos += r.cos; a.labour += r.labour; a.equipment += r.equipment; a.subcontract += r.subcontract; a.otherCos += r.otherCos; a.gp += r.grossProfit; a.overheads += r.overheads; a.net += r.net; a.hours += r.hours; a.quote += r.quote; return a; }, { income: 0, cos: 0, labour: 0, equipment: 0, subcontract: 0, otherCos: 0, gp: 0, overheads: 0, net: 0, hours: 0, quote: 0 });
+      var noJob = (function () { var inc = 0, cnt = 0; E.gl.forEach(function (r) { if (!E.jobKey(r.jobNo) && r.cat === "income" && (!keys || keys.indexOf(r.month) >= 0)) { inc += r.amount; cnt++; } }); return { income: inc, lines: cnt }; })();
+      var below = rows.filter(function (r) { return !r.overhead && r.income > 0 && r.gmPct != null && r.gmPct < 0.15; });
+      var tiles = h("div.tiles", [
+        U.tile({ label: "Jobs with activity", value: String(rows.length), sub: (life ? "lifetime" : p.label) + (showOH ? ", overhead jobs included" : "") }),
+        U.tile({ label: "Income on jobs", value: F.dollars(tot.income), sub: noJob.income ? F.dollars(noJob.income) + " of income carries no job number" : "every income line carries a job", tone: noJob.income ? "warn" : null }),
+        U.tile({ label: "Gross margin on jobs", value: F.pct(tot.income ? tot.gp / tot.income : null), sub: "labour " + F.dollars(-tot.labour) + ", equipment " + F.dollars(-tot.equipment) + ", subcontract " + F.dollars(-tot.subcontract) }),
+        U.tile({ label: "Jobs under 15% margin", value: String(below.length), sub: below.slice(0, 2).map(function (r) { return r.name.slice(0, 24); }).join(", "), tone: below.length ? "warn" : "good" }),
+      ]);
+      var toolbar = h("div.toolbar", [
+        h("input.input", { type: "search", value: q, placeholder: "Search job number, name or client", style: { minWidth: "18rem" }, oninput: function (ev) { CTS.store.set("proj.search", ev.target.value); clearTimeout(window.__projT); window.__projT = setTimeout(function () { CTS.router.reload(); }, 250); } }),
+        h("label.checkbox", [h("input", { type: "checkbox", checked: life, onchange: function (ev) { CTS.store.set("proj.lifetime", ev.target.checked); CTS.router.reload(); } }), " Lifetime (every month in the ledger)"]),
+        h("label.checkbox", [h("input", { type: "checkbox", checked: showOH, onchange: function (ev) { CTS.store.set("proj.overheads", ev.target.checked); CTS.router.reload(); } }), " Include overhead jobs (9000 series)"]),
+      ]);
+      var table = U.table([
+        { key: "id", label: "Job", align: "left", value: function (r) { return h("a", { href: "#", onclick: function (ev) { ev.preventDefault(); CTS.store.set("proj.sel", r.id); CTS.router.reload(); } }, r.id); } },
+        { key: "name", label: "Name", align: "left", width: "18rem" },
+        { key: "client", label: "Client", align: "left" },
+        { key: "dept", label: "Dept", align: "left", value: function (r) { return (E.deptOf[r.dept] || {}).short || r.dept; } },
+        { key: "income", label: "Income", fmt: F.money },
+        { key: "labour", label: "Labour", fmt: F.money, cell: U.moneyCell },
+        { key: "equipment", label: "Equipment", fmt: F.money, cell: U.moneyCell },
+        { key: "subcontract", label: "Subcontract", fmt: F.money, cell: U.moneyCell },
+        { key: "otherCos", label: "Other COS", fmt: F.money, cell: U.moneyCell },
+        { key: "grossProfit", label: "Gross profit", fmt: F.money, cell: U.moneyCell },
+        { key: "gmPct", label: "GM %", fmt: function (v) { return F.pct(v); }, cell: function (r) { return r.gmPct != null && r.gmPct < 0.15 && r.income > 0 ? "neg" : ""; } },
+        { key: "hours", label: "Hours", fmt: function (v) { return v ? F.hours(v) : ""; } },
+        { key: "quote", label: "Quoted (Zoho)", fmt: function (v) { return v ? F.money(v) : ""; } },
+        { key: "status", label: "", align: "left", value: function (r) { return h("span.chip." + (r.status === "active" ? "chip-good" : "chip-muted"), r.status); } },
+      ], rows.slice(0, 300).concat([{ id: "", name: "Total", client: "", dept: "", income: tot.income, labour: tot.labour, equipment: tot.equipment, subcontract: tot.subcontract, otherCos: tot.otherCos, grossProfit: tot.gp, gmPct: tot.income ? tot.gp / tot.income : null, hours: tot.hours, quote: tot.quote, status: "", _cls: "totalrow" }]), { dense: true });
+      var detail = null;
+      if (sel && E.jobs[sel]) {
+        var j = E.jobs[sel], d = E.projectDetail(sel, keys), r0 = E.projectRows(keys, { overheads: true }).filter(function (x) { return x.id === sel; })[0];
+        detail = U.section("Job " + sel + ": " + j.name, [
+          h("div.toolbar", [h("span.chip.chip-muted", (E.deptOf[j.tag] || {}).short || j.tag), h("span.muted", (j.client ? "Client " + j.client + ". " : "") + "First line " + F.date(j.first) + ", last line " + F.date(j.last) + ", " + j.lines + " ledger lines in total."), h("button.btn.btn-sm", { onclick: function () { CTS.store.set("proj.sel", null); CTS.router.reload(); } }, "Close")]),
+          r0 ? h("div.tiles", [
+            U.tile({ label: "Income", value: F.dollars(r0.income), sub: r0.quote ? "quoted " + F.dollars(r0.quote) + " in Zoho" : "no won deal with this number in Zoho" }),
+            U.tile({ label: "Gross profit", value: F.dollars(r0.grossProfit), sub: F.pct(r0.gmPct) + " margin", tone: r0.gmPct != null && r0.gmPct < 0.15 ? "warn" : null }),
+            U.tile({ label: "Labour", value: F.dollars(-r0.labour), sub: r0.hours ? F.hours(r0.hours) + " hours from the pay runs" : "wages posted to the job by the pay run journal" }),
+            U.tile({ label: "Net after overheads coded here", value: F.dollars(r0.net), sub: F.dollars(-r0.overheads) + " overheads coded to the job" }),
+          ]) : null,
+          U.figure("By month", U.columns({ labels: d.months.map(function (m) { return (E.monthIdx[m] || {}).label || m; }), width: 700, height: 220,
+            series: [{ label: "Income", colour: "var(--measure-1)", values: d.months.map(function (m) { return m.income; }) }, { label: "Cost of sales", colour: "var(--measure-3)", values: d.months.map(function (m) { return -m.cos; }) }] }),
+            U.table([{ key: "month", label: "Month", align: "left", value: function (m) { return (E.monthIdx[m.month] || {}).label || m.month; } }, { key: "income", label: "Income", fmt: F.money }, { key: "cos", label: "Cost of sales", fmt: F.money, cell: U.moneyCell }, { key: "expenses", label: "Overheads", fmt: F.money, cell: U.moneyCell }], d.months, { dense: true })),
+          U.section("By account", U.table([{ key: "cat", label: "Category", align: "left", value: function (x) { return E.CAT_LABEL[x.cat] || x.cat; } }, { key: "account", label: "Account", align: "left" }, { key: "amount", label: "Amount", fmt: F.money, cell: U.moneyCell }], d.accounts, { dense: true }), null, { collapsed: false }),
+          U.section("Ledger lines (" + d.lines.length + ")", U.table([{ key: "date", label: "Date", align: "left", fmt: F.date }, { key: "account", label: "Account", align: "left" }, { key: "contact", label: "Contact", align: "left" }, { key: "source", label: "Source", align: "left" }, { key: "description", label: "Reference", align: "left", value: function (x) { return String(x.description || "").slice(0, 70); } }, { key: "amount", label: "Amount", fmt: F.money, cell: U.moneyCell }], d.lines.slice(0, 400), { dense: true }), d.lines.length > 400 ? "First 400 lines shown." : null, { collapsed: true }),
+        ], null, { collapsed: false });
+      }
+      return [
+        seedBanner(), CTS.periodBar(), U.h1("Project P&L", life ? "Lifetime, every month in the ledger" : p.label),
+        tiles, toolbar, detail,
+        U.section("Jobs", table, "Income and costs are what Xero holds against the job number. Labour is the direct salary, wage and super accounts the pay run journal posts to each job. Equipment covers purchases, hires and licences for the job; subcontract is contractor labour and service hires. Click a job number for its months, accounts and lines." + (noJob.lines ? " " + noJob.lines + " income lines carry no job number and are not in this table." : "")),
+        U.note("A job is active while it has a ledger line in the reporting month. Jobs under 15 per cent gross margin are flagged. Quoted is the won deal in Zoho with the same opportunity number; where it is blank the deal was not won in Zoho or the number differs.", "muted"),
       ];
     },
   };
