@@ -17,7 +17,7 @@ Run after the patch scripts and before recalc.
 import os, json
 import openpyxl
 from openpyxl.chart import BarChart, LineChart, Reference
-from openpyxl.chart.legend import Legend
+from openpyxl.chart.legend import Legend, LegendEntry
 from openpyxl.chart.label import DataLabelList
 from openpyxl.chart.shapes import GraphicalProperties
 from openpyxl.chart.text import RichText
@@ -758,6 +758,111 @@ paint(ch, [TEAL, RED])
 labels(ch, '#,##0', pos='outEnd', size=900)
 ch.x_axis.tickLblPos = 'low'
 ws.add_chart(ch, 'J250')
+
+
+# ======================================================================
+# The five cuts carried over from the Q4 FY2026 Business Advisory pack.
+# patch_v86.py lays the data out on Xero History; these draw it. They start
+# at row 260 because that sheet already carries charts down to about row 254,
+# and sit twenty five rows apart so no two of them overlap.
+# ======================================================================
+ws = wb['Xero History']
+
+# ---- profit per employee, four groups over five years --------------------
+# A line each, because the shape over time is the point. CONS runs far below
+# the other three, so the axis has to carry the whole range and the top three
+# bunch up. That bunching is the finding, not a fault in the chart.
+ch = LineChart()
+ch.add_data(Reference(ws, min_col=2, max_col=5, min_row=152, max_row=157),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=153, max_row=157))
+frame(ch, 'Profit per employee by reporting group', 30, 10)
+legend(ch)
+# the cells carry the pack's red-bracket negative, which on an axis reads as
+# though every gridline were an exception. The axis gets a plain format.
+ch.y_axis.numFmt = '#,##0;-#,##0'
+for s_, colour in zip(ch.series, (TEAL, AQUA, PURP, INK)):
+    s_.graphicalProperties = GraphicalProperties(
+        ln=LineProperties(solidFill=colour, w=28000))
+    s_.marker = Marker(symbol='circle', size=7, spPr=GraphicalProperties(
+        solidFill=colour, ln=LineProperties(solidFill=WHITE, w=19050)))
+    s_.smooth = False
+ws.add_chart(ch, 'G260')
+
+
+def rev_and_profit(first, last, title, anchor):
+    """Revenue as bars with the net profit as a line in front of them.
+    Eleven years is too many for a label on every bar, so only the profit
+    line carries its values; the revenue scale is on the axis."""
+    c = BarChart(); c.type = 'col'; c.grouping = 'clustered'
+    c.add_data(Reference(ws, min_col=2, min_row=first - 1, max_row=last),
+               titles_from_data=True)
+    c.set_categories(Reference(ws, min_col=1, min_row=first, max_row=last))
+    frame(c, title, 30, 10, gap=40)
+    paint(c, [GREY])
+    l = LineChart()
+    l.add_data(Reference(ws, min_col=3, min_row=first - 1, max_row=last),
+               titles_from_data=True)
+    s_ = l.series[0]
+    s_.graphicalProperties = GraphicalProperties(
+        ln=LineProperties(solidFill=TEAL, w=28000))
+    s_.marker = Marker(symbol='circle', size=7, spPr=GraphicalProperties(
+        solidFill=TEAL, ln=LineProperties(solidFill=WHITE, w=19050)))
+    s_.smooth = False
+    s_.dLbls = _dl('#,##0', 't', 800, INK, False)
+    c += l
+    legend(c)
+    c.y_axis.numFmt = '#,##0;-#,##0'
+    ws.add_chart(c, anchor)
+
+
+rev_and_profit(163, 173, 'Revenue and net profit, full year', 'G285')
+rev_and_profit(179, 189, 'Revenue and net profit, fourth quarter', 'G310')
+
+# ---- changes in profitability, FY25 to FY26 ------------------------------
+# openpyxl has no waterfall type. A stacked bar does the same job: an invisible
+# base lifts each step to the running total and the step sits on top of it.
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'stacked'; ch.overlap = 100
+ch.add_data(Reference(ws, min_col=2, max_col=5, min_row=194, max_row=201),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=195, max_row=201))
+frame(ch, 'Changes in profitability, FY2025 to FY2026', 30, 10, gap=40)
+ch.series[0].graphicalProperties = GraphicalProperties(
+    noFill=True, ln=LineProperties(noFill=True))
+# The step bars are thin, because the step is small, so a label on one sits
+# half on the bar and half on white paper either side of it. Both step colours
+# are therefore light enough to take a charcoal number: the bright teal rather
+# than the dark one for an increase, and the red for a decrease. Only the two
+# totals are tall enough to carry white.
+for s_, colour in zip(ch.series[1:], (AQUA, RED, NAVY)):
+    s_.graphicalProperties = GraphicalProperties(
+        solidFill=colour, ln=LineProperties(noFill=True))
+for s_, colour in zip(ch.series[1:], (INK, INK, WHITE)):
+    s_.dLbls = _dl('#,##0', 'ctr', 800, colour, True)
+legend(ch)
+# the base series is the scaffolding that lifts each step; it has no meaning,
+# so it is dropped from the legend rather than shown as an empty swatch
+ch.legend.legendEntry = [LegendEntry(idx=0, delete=True)]
+ch.y_axis.numFmt = '#,##0;-#,##0'
+ch.x_axis.txPr = txt(800)
+ws.add_chart(ch, 'G335')
+
+# ---- revenue by type, average month --------------------------------------
+# Horizontal, because eight type names will not sit under eight columns, and
+# ranked so the lines that carry the revenue are read first.
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=207, max_row=215),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=208, max_row=215))
+frame(ch, 'Revenue by type, average month', 32, 10, gap=55)
+ranked(ch)
+legend(ch)
+paint(ch, [GREY, TEAL])
+# outside the bar end, because Miscellaneous averages under four thousand a
+# month and its label will not fit inside a bar that short
+for s_ in ch.series:
+    s_.dLbls = _dl('#,##0', 'outEnd', 800, INK, False)
+ws.add_chart(ch, 'G360')
 
 wb.save(OUT)
 print('charts rebuilt:', sum(len(ws._charts) for ws in wb.worksheets))

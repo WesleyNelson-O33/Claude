@@ -48,6 +48,13 @@ SNIPS = {
     'profit_month':('Xero History',   'H201:AC226', False),
     'profit_qtr':  ('Xero History',   'H229:AC254', False),
     'xero_roll':   ('Xero History',   'F85:AA110',  False),
+    # The five cuts carried over from the Q4 FY2026 Business Advisory pack.
+    'q4_perhead':  ('Xero History',   'G259:AB281', False),
+    'q4_fullyear': ('Xero History',   'G284:AB306', False),
+    'q4_quarter':  ('Xero History',   'G309:AB331', False),
+    'q4_bridge':   ('Xero History',   'G334:AB356', False),
+    'q4_revtype':  ('Xero History',   'G359:AD383', False),
+    'q4_ratios':   ('Xero History',   'A225:G236', False),
     'cost_dist':   ('Cost Analysis',  'I33:AC59',    False),
     'other_opex':  ('Cost Analysis',  'I4:AC30',     False),
     'labour_mix':  ('Cost Analysis',  'I61:AC87',    False),
