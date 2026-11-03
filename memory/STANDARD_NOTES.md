@@ -33,3 +33,13 @@ Every time a full-timer has overtime in the approval email to Graham, add one li
 ```
 <Name>: <N> h ordinary plus <X> h overtime at x1.5 (over 80 h). Total hours <N+X> match the timesheet; the x1.5 is in the rate, not the hours.
 ```
+
+## Less than 10 hour break (always explain this to Graham)
+When someone works overtime and starts again before a 10 hour break, EH pays the whole next day at
+x2.0 ("Permanent - Less than 10 hrs break") until a 10 hour break is taken (Live Performance Award
+cl 63.3(d), 200% full-time and part-time, 225% casual). Every time it appears, add one line in the
+approval email, e.g.:
+
+```
+<Name>: finished <time> on <date> and started <time> the next day, a <N> hour break. The award requires 10 hours, so <date> is paid at x2.0 (<H> h). Chargeable to <client> under the after-hours approval.
+```
