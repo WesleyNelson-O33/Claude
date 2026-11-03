@@ -23,3 +23,13 @@ Part-timers: a day is their contracted hours per day, not 8 (e.g. 56 h fortnight
 ```
 1 x Day $125.00 - Cost centre: <cost centre number> - <client> - <job> - DD.MM.YY [PRD]
 ```
+
+## Overtime lines: hours vs multiplier (always explain this to Graham)
+On an EH overtime line the Hours box is the hours worked, not the rate multiplier. A 1 hour shift
+at x1.5 is entered as Hours = 1 on the "Permanent - Overtime x1.5" category; EH applies the 1.5 through
+the rate. Typing 1.5 in Hours overpays and makes the total hours wrong (81.5 instead of 81).
+Every time a full-timer has overtime in the approval email to Graham, add one line explaining it, e.g.:
+
+```
+<Name>: <N> h ordinary plus <X> h overtime at x1.5 (over 80 h). Total hours <N+X> match the timesheet; the x1.5 is in the rate, not the hours.
+```
