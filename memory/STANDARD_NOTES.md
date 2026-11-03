@@ -43,3 +43,10 @@ approval email, e.g.:
 ```
 <Name>: finished <time> on <date> and started <time> the next day, a <N> hour break. The award requires 10 hours, so <date> is paid at x2.0 (<H> h). Chargeable to <client> under the after-hours approval.
 ```
+
+## Full-time staff: no 200% less-than-10-hour-break penalty
+CTS does not pay full-time (salaried) staff the x2.0 "Permanent - Less than 10 hrs break" rate: their
+salaries carry a buffer above the award that covers it. When EH generates those lines for a full-timer,
+change them back to Permanent Ordinary Hours at the ordinary rate. Still flag it to Danica each time it
+appears, and ask before changing it if the circumstances look different (e.g. a part-timer, or a casual,
+who are not covered by this). Casuals keep the award rate (225%, cl 63.3(d)).
