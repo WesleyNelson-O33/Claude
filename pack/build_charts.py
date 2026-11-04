@@ -798,7 +798,7 @@ def rev_and_profit(first, last, title, anchor):
     c.add_data(Reference(ws, min_col=2, min_row=first - 1, max_row=last),
                titles_from_data=True)
     c.set_categories(Reference(ws, min_col=1, min_row=first, max_row=last))
-    frame(c, title, 30, 10, gap=40)
+    frame(c, title, 32, 9, gap=40)
     paint(c, [GREY])
     l = LineChart()
     l.add_data(Reference(ws, min_col=3, min_row=first - 1, max_row=last),
@@ -826,7 +826,7 @@ ch = BarChart(); ch.type = 'col'; ch.grouping = 'stacked'; ch.overlap = 100
 ch.add_data(Reference(ws, min_col=2, max_col=5, min_row=194, max_row=201),
             titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=195, max_row=201))
-frame(ch, 'Changes in profitability, FY2025 to FY2026', 30, 10, gap=40)
+frame(ch, 'Changes in profitability, FY2025 to FY2026', 32, 9, gap=40)
 ch.series[0].graphicalProperties = GraphicalProperties(
     noFill=True, ln=LineProperties(noFill=True))
 # The step bars are thin, because the step is small, so a label on one sits

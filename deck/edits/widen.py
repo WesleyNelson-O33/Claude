@@ -14,6 +14,9 @@ SNIP = '/home/user/Claude/deck/snips/'
 
 # page number -> snip name, as the picture on that page is called
 PAGES = {
+    17: 'q4_fullyear',
+    18: 'q4_quarter',
+    19: 'q4_bridge',
     33: 'cost_dist',
     34: 'other_opex',
     35: 'labour_mix',
