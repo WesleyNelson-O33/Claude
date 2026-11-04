@@ -161,7 +161,7 @@ ws = wb['Top 10 Clients']
 ch = BarChart(); ch.type = 'bar'; ch.grouping = 'clustered'
 ch.add_data(Reference(ws, min_col=4, min_row=6, max_row=16), titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=7, min_row=7, max_row=16))
-frame(ch, 'Top 10 customers, year to date', 24, 12)
+frame(ch, 'Top 10 customers, year to date', 32, 8.5, gap=32)
 ranked(ch)
 paint(ch, [TEAL])
 # The story on this chart is concentration, so the top three are called out in
@@ -221,7 +221,7 @@ ws.add_chart(ch, 'J5')
 ch = BarChart(); ch.type = 'bar'
 ch.add_data(Reference(ws, min_col=3, min_row=30, max_row=40), titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=2, min_row=31, max_row=40))
-frame(ch, 'Who owes the most', 18, 12)
+frame(ch, 'Who owes the most', 32, 8.5, gap=32)
 ranked(ch)
 paint(ch, [BLUE])
 labels_in(ch, [WHITE])
@@ -294,7 +294,7 @@ ch.add_data(Reference(ws, min_col=2, min_row=CC['ops_first'] - 1,
                       max_row=CC['ops_first'] - 1 + n), titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=CC['ops_first'],
                             max_row=CC['ops_first'] - 1 + n))
-frame(ch, 'Other operating expenses, year to date', 22, 10, gap=40)
+frame(ch, 'Other operating expenses, year to date', 32, 9, gap=40)
 ranked_axis(ch)
 paint(ch, [NAVY])
 labels_out(ch)
@@ -306,7 +306,7 @@ ch.add_data(Reference(ws, min_col=2, min_row=CC['dist_first'] - 1,
                       max_row=CC['dist_last']), titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=CC['dist_first'],
                             max_row=CC['dist_last']))
-frame(ch, 'Operating cost distribution, year to date', 22, 11, gap=40)
+frame(ch, 'Operating cost distribution, year to date', 32, 8.5, gap=32)
 ranked_axis(ch)
 paint(ch, [INK])
 labels_out(ch)
@@ -318,7 +318,7 @@ ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=CC['lab_first'] - 1,
                       max_row=CC['lab_last']), titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=CC['lab_first'],
                             max_row=CC['lab_last']))
-frame(ch, 'Labour mix, direct against indirect, year to date', 22, 13, gap=40)
+frame(ch, 'Labour mix, direct against indirect, year to date', 36, 10, gap=28)
 ranked_axis(ch)
 legend(ch)
 paint(ch, [NAVY, GREY])
@@ -776,7 +776,7 @@ ch = LineChart()
 ch.add_data(Reference(ws, min_col=2, max_col=5, min_row=152, max_row=157),
             titles_from_data=True)
 ch.set_categories(Reference(ws, min_col=1, min_row=153, max_row=157))
-frame(ch, 'Profit per employee by reporting group', 30, 10)
+frame(ch, 'Profit per employee by reporting group', 32, 9)
 legend(ch)
 # the cells carry the pack's red-bracket negative, which on an axis reads as
 # though every gridline were an exception. The axis gets a plain format.

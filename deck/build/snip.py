@@ -57,12 +57,12 @@ SNIPS = {
     'q4_ratios':   ('Xero History',   'A225:G236', False),
     'cost_dist':   ('Cost Analysis',  'I33:AC59',    False),
     'other_opex':  ('Cost Analysis',  'I4:AC30',     False),
-    'labour_mix':  ('Cost Analysis',  'I61:AC87',    False),
+    'labour_mix':  ('Cost Analysis',  'I61:AF87',    False),
     'income_month':('Cost Analysis',  'I117:AC140',  False),  # I142 starts the next chart
     'staff_split': ('Overheads MoM',  'A160:P178',  False),
     'top10':       ('Top 10 Clients', 'G4:AA27',     False),
     'dso_calc':    ('DSO',            'A5:B15',     False),
-    'dso_who':     ('DSO',            'J23:T46',    False),
+    'dso_who':     ('DSO',            'J23:AC46',   False),
     'util_tbl':    ('Utilisation',    'A66:D73',    False),
     # The utilisation calculation itself: hours, utilisation per cent and FTE
     # for each department, for the three closed months. Split in two, because

@@ -359,8 +359,11 @@ def main():
             cell.font = BOLD if c == 6 else BODY
             cell.alignment = Alignment(horizontal='left', wrap_text=True)
     rows['ratios'] = (R + 3, R + 4, R + 3 + len(RATIOS))
-    for col, w in (('A', 34), ('B', 10), ('C', 10), ('D', 11),
-                   ('E', 36), ('F', 17), ('G', 15)):
+    # wide columns: the table is snipped into the deck, and a snip lands on
+    # the page at whatever shape it is. A narrow table makes a tall picture,
+    # and a tall picture gets squeezed by the commentary strip under it.
+    for col, w in (('A', 38), ('B', 11), ('C', 11), ('D', 13),
+                   ('E', 46), ('F', 20), ('G', 18)):
         ws.column_dimensions[col].width = w
 
     wb.save(PACK)
