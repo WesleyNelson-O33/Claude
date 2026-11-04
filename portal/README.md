@@ -13,7 +13,8 @@ and nothing needs a server. Keep the folder together: the HTML needs
 
 For the team, host the folder in a SharePoint library that everyone syncs and
 opens from the synced copy. `docs/HOSTING.md` has the setup; `docs/MONTHLY.md`
-the routine; `docs/AUTOMATION.md` the email flow.
+the routine; `docs/AUTOMATION.md` the email flow; `docs/HANDOVER.md` the state of
+the work and how to take it over.
 
 ## The monthly cycle in one line
 
