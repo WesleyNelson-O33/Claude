@@ -44,21 +44,37 @@ MONTH_F = 'IF(C{r}="","",TEXT(C{r},"mmmm"))'
 
 
 def survey(path):
-    """Which rows belong to October, which carry a state, and which are the
-    duplicate copy of pay run 7."""
+    """Which rows belong to the month, and which of them are a duplicate.
+
+    A duplicate is a row that matches another row of the same month in every
+    column except the state, where the other one has a state and this one
+    does not. That is the shape the double-pasted pay run took. If the file
+    has already had them removed, nothing is found and nothing is cleared.
+    """
     wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
     ws = wb[TAB]
-    oct_rows, run7_stated, run7_blank = [], [], []
+    rows, seen, dup = [], {}, []
     for i, row in enumerate(ws.iter_rows(values_only=True), 1):
         if i <= 2 or row[EMP_COL - 1] is None:
             continue
         if str(row[0]).strip() != MONTH:
             continue
-        oct_rows.append(i)
-        if row[RUN_COL - 1] == 7:
-            (run7_stated if row[STATE_IDX - 1] else run7_blank).append(i)
+        rows.append(i)
+        key = tuple(v for j, v in enumerate(row) if j != STATE_IDX - 1)
+        has_state = row[STATE_IDX - 1] not in (None, '')
+        if key in seen:
+            keep, keep_state = seen[key]
+            if keep_state and not has_state:
+                dup.append(i)
+                continue
+            if has_state and not keep_state:
+                dup.append(keep)
+                seen[key] = (i, has_state)
+                continue
+        else:
+            seen[key] = (i, has_state)
     wb.close()
-    return oct_rows, run7_stated, run7_blank
+    return rows, dup
 
 
 def clear_rows(xml, rows):
@@ -112,25 +128,24 @@ def main():
         return 1
     src, dst = sys.argv[1], sys.argv[2]
 
-    oct_rows, stated, blank = survey(src)
-    print(f'  October rows on {TAB}: {len(oct_rows)}')
-    print(f'  pay run 7: {len(stated)} with a state, {len(blank)} without')
-    if len(stated) != len(blank):
-        print('  those two should match if it is a straight duplicate, '
-              'stopping')
-        return 1
+    oct_rows, dup = survey(src)
+    print(f'  {MONTH} rows on {TAB}: {len(oct_rows)}')
+    print(f'  rows that duplicate another one but for the state: {len(dup)}')
 
     zin = zipfile.ZipFile(src)
     parts = {n: zin.read(n) for n in zin.namelist()}
     xml = parts[SHEET].decode('utf-8')
 
-    xml, n = clear_rows(xml, blank)
-    if isinstance(n, str):
-        print(f'  STOPPED, {n}')
-        return 1
-    print(f'  {n} duplicate rows cleared')
+    if dup:
+        xml, n = clear_rows(xml, dup)
+        if isinstance(n, str):
+            print(f'  STOPPED, {n}')
+            return 1
+        print(f'  {n} duplicate rows cleared')
+    else:
+        print('  no duplicates to clear, they have already been taken out')
 
-    keep = [r for r in oct_rows if r not in set(blank)]
+    keep = [r for r in oct_rows if r not in set(dup)]
     ok = 0
     for r in keep:
         xml, a = set_formula(xml, r, STATE_COL, STATE_F.format(r=r))
