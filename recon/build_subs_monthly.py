@@ -1,22 +1,30 @@
 """Subscriptions and licences, income against cost, reconciled month by month.
 
-Built from the Account Transactions export Danica sent, which carries both
-accounts: Subscriptions & Licences - Income and Subscriptions & Licences -
-Expense, for 1 July 2024 to 30 September 2026.
+Built from the Account Transactions export carrying both accounts,
+Subscriptions & Licences - Income and Subscriptions & Licences - Expense, for
+1 July 2024 to 30 September 2026.
 
-The question was why the book only makes about 3 per cent. It does not. It
-makes 11.3 per cent in FY2025 and 13.0 per cent in FY2026, and it ran at 15
-per cent through June and July 2026. The 3 per cent is FY2027 to date, and the
-whole of the fall is in August and September.
+The book made 11.3 per cent in FY2025 and 13.0 per cent in FY2026. It is
+losing money in FY2027. One contract is the whole of the difference.
 
-One supplier explains all of it. SPACERA PTY LTD began billing 5,208.00 a
-month to the expense account in August 2026, for the Aware Super National
-Support Agreement, and there is no subscription income beside it. Taken out,
-the four months to September read 15.2, 15.7, 15.6 and 15.1 per cent.
+SPACERA PTY LTD bills 5,208.00 a month for the Aware Super National Support
+Agreement, a twelve month contract that started on 1 July 2026. The lines are
+HYPERCARE MANAGED, MISSION CONTROL and PHOTON. Four bills to 1 October, all
+paid, all with attachments. Taken from Xero:
 
-Whether that cost belongs in subscriptions is not something this export can
-answer. The only recurring Aware Super income is 11,000.00 a month and it is
-coded to Contract Support Staff, not here.
+    INV-0041   1 July 2026        5,208.00   account 51310 Sub-Contract Labour - ONS
+    INV-0049   1 August 2026      5,208.00   account 51500 Subscriptions - Expense
+    INV-0056   1 September 2026   5,208.00   account 51500 Subscriptions - Expense
+    INV-0060   1 October 2026     5,208.00   account 51500 Subscriptions - Expense
+
+So July sits in a different account from the rest. On a consistent basis the
+three months to September read minus 3.6, minus 3.7 and minus 1.9 per cent.
+
+No sales invoice bills Hypercare, Mission Control or Photon to Aware Super.
+Every Aware Super invoice from June to October was checked. The only platform
+licence billed on is Appspace, on INV-10635, which is a separate deal. The
+recurring Aware Super income is 11,000.00 a month for National AV Maintenance
+site visits, and it does not mention the platform.
 
 Income is shown positive and cost negative, the way the profit and loss reads.
 
@@ -53,9 +61,22 @@ MON = 'mmm yyyy'
 CAUSE = 'SPACERA'
 INVOICE = ('Payable Invoice', 'Payable Credit Note', 'Receivable Invoice')
 
+# The Spacera bills as Xero holds them. July is the one coded elsewhere, so
+# it is not in the export and has to be brought in to compare like with like.
+BILLS = [
+    ('INV-0041', datetime.date(2026, 7, 1), 5208.00, '51310',
+     'Sub-Contract Labour - ONS'),
+    ('INV-0049', datetime.date(2026, 8, 1), 5208.00, '51500',
+     'Subscriptions & Licences - Expense'),
+    ('INV-0056', datetime.date(2026, 9, 1), 5208.00, '51500',
+     'Subscriptions & Licences - Expense'),
+    ('INV-0060', datetime.date(2026, 10, 1), 5208.00, '51500',
+     'Subscriptions & Licences - Expense'),
+]
+ELSEWHERE = {(b[1].year, b[1].month): -b[2] for b in BILLS if b[3] != '51500'}
+
 
 def load(path):
-    """Both sections of the export, tagged Income or Expense."""
     ws = openpyxl.load_workbook(path, data_only=True).worksheets[0]
     out, sec = [], None
     for r in range(6, ws.max_row + 1):
@@ -83,7 +104,6 @@ def signed(r):
 
 
 def party(r):
-    """The other side, taken off the front of an invoice description."""
     if r['source'] in INVOICE:
         return str(r['desc'] or '').split(' - ')[0].strip()[:44]
     return 'Manual journal'
@@ -98,9 +118,20 @@ def band(ws, row, labels, widths=None):
         c = ws.cell(row, i, t)
         c.fill, c.font, c.border = BAND, HEAD, BOX
         c.alignment = Alignment(horizontal='center', wrap_text=True)
+    ws.row_dimensions[row].height = 46
     if widths:
         for i, w in enumerate(widths, start=1):
             ws.column_dimensions[gl(i)].width = w
+
+
+def para(ws, row, text, cols=11, bold=False, height=30):
+    c = ws.cell(row, 1, text)
+    c.font = BOLD if bold else BODY
+    c.alignment = Alignment(wrap_text=True, vertical='top')
+    if not bold:
+        ws.merge_cells(start_row=row, start_column=1,
+                       end_row=row, end_column=cols)
+        ws.row_dimensions[row].height = height
 
 
 def main():
@@ -117,18 +148,18 @@ def main():
 
     wb = openpyxl.Workbook()
 
-    # ================================================= 3. Transactions
+    # ================================================= Transactions
     tx = wb.active
     tx.title = 'Transactions'
     tx['A1'] = 'Every line on both subscription accounts'
     tx['A1'].font = TITLE
-    tx['A2'] = (f'From the export for {period}. This tab drives the other '
-                'two, so the figures there are formulas off these rows. '
+    tx['A2'] = (f'From the export for {period}. This tab drives the summary '
+                'tabs, so the figures there are formulas off these rows. '
                 'Amount is income positive and cost negative.')
     tx['A2'].font = NOTE
     band(tx, 4, ['Date', 'Month', 'Account', 'Source', 'Other side',
                  'Description', 'Reference', 'Debit', 'Credit', 'Amount',
-                 'GST', 'Is the cause'],
+                 'GST', 'Is it Spacera'],
          [12, 11, 11, 20, 46, 64, 22, 14, 14, 14, 12, 13])
     for i, r in enumerate(rows):
         n = 5 + i
@@ -169,7 +200,7 @@ def main():
           f'Transactions!$L$5:$L${last},"Yes",'
           f'Transactions!$B$5:$B${last},')
 
-    # ================================================= 1. Monthly recon
+    # ================================================= Monthly recon
     mr = wb.create_sheet('Monthly recon', 0)
     mr['A1'] = 'Subscriptions and licences, income against cost, by month'
     mr['A1'].font = TITLE
@@ -178,33 +209,35 @@ def main():
     mr['A3'] = period
     mr['A3'].font = NOTE
 
-    mr['A5'] = 'THE ANSWER'
-    mr['A5'].font = BOLD
+    para(mr, 5, 'THE ANSWER', bold=True)
     for i, t in enumerate([
-        'The book does not make 3 per cent. It makes 11.3 per cent in FY2025 '
-        'and 13.0 per cent in FY2026.',
-        'The 3 per cent is FY2027 to date. July was 15.7 per cent. The fall '
-        'is all in August and September.',
-        'One supplier explains all of it. SPACERA PTY LTD began billing '
-        '5,208.00 a month to the cost account in August, for the Aware Super '
-        'National Support Agreement, with no subscription income beside it.',
-        'Taken out, the four months to September read 15.2, 15.7, 15.6 and '
-        '15.1 per cent. The book is flat at 15 per cent.',
-        'Whether that cost belongs here is not something this export can '
-        'answer. The only recurring Aware Super income is 11,000.00 a month '
-        'and it is coded to Contract Support Staff, not to subscriptions.',
+        'The book made 11.3 per cent in FY2025 and 13.0 per cent in FY2026. '
+        'It is losing money in FY2027.',
+        'One contract is the whole of the difference. Spacera bills 5,208.00 '
+        'a month for the Aware Super National Support Agreement, which '
+        'started on 1 July 2026 and runs for twelve months.',
+        'Nothing bills it out. Every Aware Super invoice from June to October '
+        'was checked and none of them carries Hypercare, Mission Control or '
+        'Photon. The recurring Aware Super income is 11,000.00 a month for '
+        'maintenance site visits and it does not mention the platform.',
+        'The July bill was coded to Sub-Contract Labour, not to '
+        'subscriptions, so July looks better than it is. On a consistent '
+        'basis the three months to September read minus 3.6, minus 3.7 and '
+        'minus 1.9 per cent.',
+        'The rest of the book is healthy. Without this contract the three '
+        'months run at 15.7, 15.6 and 15.1 per cent.',
+        'So this is not a pricing problem across the book. It is one '
+        'contract costing 62,496.00 a year with no charge against it.',
     ]):
-        r = 6 + i
-        c = mr.cell(r, 1, t)
-        c.font = BODY
-        c.alignment = Alignment(wrap_text=True, vertical='top')
-        mr.merge_cells(start_row=r, start_column=1, end_row=r, end_column=8)
-        mr.row_dimensions[r].height = 30
+        para(mr, 6 + i, t, height=32)
 
-    band(mr, 13, ['Month', 'Income', 'Cost', 'Margin', 'Margin %',
-                  'The Spacera cost', 'Margin without it', 'Per cent without'],
-         [12, 15, 15, 14, 12, 17, 18, 17])
-    first = 14
+    HDR = ['Month', 'Income', 'Cost as booked', 'Margin as booked',
+           'Per cent', 'Spacera in this account',
+           'Spacera booked elsewhere', 'Margin with Spacera in every month',
+           'Per cent', 'Margin without the Spacera contract', 'Per cent']
+    band(mr, 14, HDR,
+         [12, 14, 14, 14, 10, 13, 13, 15, 10, 15, 10])
+    first = 15
     for i, (y, m) in enumerate(months):
         r = first + i
         mr.cell(r, 1, datetime.date(y, m, 1)).number_format = MON
@@ -213,64 +246,67 @@ def main():
         mr.cell(r, 4, f'=B{r}+C{r}')
         mr.cell(r, 5, f'=IFERROR(D{r}/B{r},"")')
         mr.cell(r, 6, f'={SS}$A{r})')
-        mr.cell(r, 7, f'=D{r}-F{r}')
-        mr.cell(r, 8, f'=IFERROR(G{r}/B{r},"")')
-        for k in (2, 3, 4, 6, 7):
+        mr.cell(r, 7, ELSEWHERE.get((y, m), 0.0))
+        mr.cell(r, 8, f'=D{r}+G{r}')
+        mr.cell(r, 9, f'=IFERROR(H{r}/B{r},"")')
+        mr.cell(r, 10, f'=D{r}-F{r}')
+        mr.cell(r, 11, f'=IFERROR(J{r}/B{r},"")')
+        for k in (2, 3, 4, 6, 7, 8, 10):
             mr.cell(r, k).number_format = MONEY
-        for k in (5, 8):
+        for k in (5, 9, 11):
             mr.cell(r, k).number_format = PCT
-        for k in range(1, 9):
+        for k in range(1, 12):
             mr.cell(r, k).font = BODY
-        if (y, m) in ((2026, 8), (2026, 9)):
-            for k in range(1, 9):
+        if fy_of(datetime.date(y, m, 1)) == 2027:
+            for k in range(1, 12):
                 mr.cell(r, k).fill = BLUE
                 mr.cell(r, k).font = BOLD
     last_m = first + len(months) - 1
 
     tot = last_m + 1
     mr.cell(tot, 1, 'Total').font = BOLD
-    for k, col in ((2, 'B'), (3, 'C'), (6, 'F')):
-        mr.cell(tot, k, f'=SUM({col}{first}:{col}{last_m})')
+    for k in (2, 3, 6, 7):
+        mr.cell(tot, k, f'=SUM({gl(k)}{first}:{gl(k)}{last_m})')
     mr.cell(tot, 4, f'=B{tot}+C{tot}')
     mr.cell(tot, 5, f'=D{tot}/B{tot}')
-    mr.cell(tot, 7, f'=D{tot}-F{tot}')
-    mr.cell(tot, 8, f'=G{tot}/B{tot}')
-    for k in range(1, 9):
+    mr.cell(tot, 8, f'=D{tot}+G{tot}')
+    mr.cell(tot, 9, f'=H{tot}/B{tot}')
+    mr.cell(tot, 10, f'=D{tot}-F{tot}')
+    mr.cell(tot, 11, f'=J{tot}/B{tot}')
+    for k in range(1, 12):
         mr.cell(tot, k).fill = TOTF
         mr.cell(tot, k).font = BOLD
         mr.cell(tot, k).border = BOX
-        mr.cell(tot, k).number_format = PCT if k in (5, 8) else MONEY
+        mr.cell(tot, k).number_format = PCT if k in (5, 9, 11) else MONEY
     mr.cell(tot, 1).number_format = 'General'
 
-    # by financial year
     fy = sorted({fy_of(datetime.date(y, m, 1)) for y, m in months})
     fr = tot + 2
-    mr.cell(fr, 1, 'BY FINANCIAL YEAR').font = BOLD
-    band(mr, fr + 1, ['Year', 'Income', 'Cost', 'Margin', 'Margin %',
-                      'The Spacera cost', 'Margin without it',
-                      'Per cent without'])
+    para(mr, fr, 'BY FINANCIAL YEAR', bold=True)
+    band(mr, fr + 1, ['Year'] + HDR[1:])
     for i, y in enumerate(fy):
         r = fr + 2 + i
-        ms = [first + months.index(k) for k in months if fy_of(
-            datetime.date(k[0], k[1], 1)) == y]
+        ms = [first + months.index(k) for k in months
+              if fy_of(datetime.date(k[0], k[1], 1)) == y]
         rng = lambda col: '+'.join(f'{col}{x}' for x in ms)
         mr.cell(r, 1, f'FY{y}').font = BOLD
-        mr.cell(r, 2, f'={rng("B")}')
-        mr.cell(r, 3, f'={rng("C")}')
+        for k, col in ((2, 'B'), (3, 'C'), (6, 'F'), (7, 'G')):
+            mr.cell(r, k, f'={rng(col)}')
         mr.cell(r, 4, f'=B{r}+C{r}')
         mr.cell(r, 5, f'=D{r}/B{r}')
-        mr.cell(r, 6, f'={rng("F")}')
-        mr.cell(r, 7, f'=D{r}-F{r}')
-        mr.cell(r, 8, f'=G{r}/B{r}')
-        for k in range(2, 9):
-            mr.cell(r, k).number_format = PCT if k in (5, 8) else MONEY
+        mr.cell(r, 8, f'=D{r}+G{r}')
+        mr.cell(r, 9, f'=H{r}/B{r}')
+        mr.cell(r, 10, f'=D{r}-F{r}')
+        mr.cell(r, 11, f'=J{r}/B{r}')
+        for k in range(2, 12):
+            mr.cell(r, k).number_format = PCT if k in (5, 9, 11) else MONEY
             mr.cell(r, k).font = BOLD if y == fy[-1] else BODY
         if y == fy[-1]:
-            for k in range(1, 9):
+            for k in range(1, 12):
                 mr.cell(r, k).fill = BLUE
 
     chk = fr + 3 + len(fy)
-    mr.cell(chk, 1, 'CHECKS').font = BOLD
+    para(mr, chk, 'CHECKS', bold=True)
     ti = sum(signed(r) for r in rows if r['sec'] == 'Income')
     tc = sum(signed(r) for r in rows if r['sec'] == 'Expense')
     f27 = [r for r in rows if fy_of(r['date']) == 2027]
@@ -289,27 +325,128 @@ def main():
          f'ROUND({c27:.2f}+82143.32,2)=0),"OK","CHECK")'),
         ('September margin agrees with Xero, a loss of 582.89',
          f'=IF(ROUND(D{sep}+582.89,2)=0,"OK","CHECK")'),
+        ('The Spacera cost picked up equals the bills Xero holds',
+         f'=IF(ROUND(F{tot}+G{tot}+15624,2)=0,"OK","CHECK")'),
     ]):
         r = chk + 1 + i
         mr.cell(r, 1, lbl).font = BODY
-        c = mr.cell(r, 7, f)
+        c = mr.cell(r, 9, f)
         c.font = BOLD
         c.alignment = Alignment(horizontal='center')
-    mr.freeze_panes = 'A14'
+    mr.freeze_panes = 'A15'
 
-    # ================================================= 2. What changed
+    # ================================================= The contract
+    sc = wb.create_sheet('The Spacera contract', 1)
+    sc['A1'] = 'The Spacera contract, and what bills it out'
+    sc['A1'].font = TITLE
+    sc['A2'] = ('Taken from Xero on 5 November 2026, not from the export. '
+                'The export only holds the subscription accounts, so the '
+                'July bill is not in it.')
+    sc['A2'].font = NOTE
+    sc.merge_cells('A2:G2')
+    sc.row_dimensions[2].height = 30
+
+    para(sc, 4, 'WHAT WE ARE BILLED', bold=True)
+    band(sc, 5, ['Bill', 'Date', 'Net', 'GST', 'Gross', 'Account coded to',
+                 'In the subscription accounts'],
+         [16, 13, 14, 12, 14, 38, 24])
+    for i, (num, d, net, code, name) in enumerate(BILLS):
+        r = 6 + i
+        sc.cell(r, 1, num)
+        sc.cell(r, 2, d).number_format = DATE
+        sc.cell(r, 3, net).number_format = MONEY
+        sc.cell(r, 4, f'=C{r}*0.1').number_format = MONEY
+        sc.cell(r, 5, f'=C{r}+D{r}').number_format = MONEY
+        sc.cell(r, 6, f'{code} {name}')
+        sc.cell(r, 7, 'Yes' if code == '51500' else 'No, it is elsewhere')
+        for k in range(1, 8):
+            sc.cell(r, k).font = BODY
+        if code != '51500':
+            for k in range(1, 8):
+                sc.cell(r, k).fill = AMBER
+    r = 6 + len(BILLS)
+    sc.cell(r, 1, 'Total').font = BOLD
+    for k in (3, 4, 5):
+        c = sc.cell(r, k, f'=SUM({gl(k)}6:{gl(k)}{r-1})')
+        c.number_format, c.font, c.fill, c.border = MONEY, BOLD, TOTF, BOX
+    sc.cell(r, 1).fill, sc.cell(r, 1).border = TOTF, BOX
+    sc.cell(r + 1, 1, 'A full twelve months').font = BODY
+    c = sc.cell(r + 1, 3, '=C6*12')
+    c.font, c.number_format = BOLD, MONEY
+
+    row = r + 3
+    para(sc, row, 'WHAT THE BILL IS FOR', bold=True)
+    band(sc, row + 1, ['Line', 'Quantity', 'Unit', 'Net', '', '', ''])
+    for i, (d, q, u) in enumerate((('HYPERCARE MANAGED x 16 x 12 months',
+                                    16, 100.00),
+                                   ('MISSION CONTROL x 82 x 12 months',
+                                    82, 44.00),
+                                   ('PHOTON x 14 x 12 months', 14, 0.00))):
+        n = row + 2 + i
+        sc.cell(n, 1, d).font = BODY
+        sc.cell(n, 2, q).font = BODY
+        sc.cell(n, 3, u).number_format = MONEY
+        sc.cell(n, 4, f'=B{n}*C{n}').number_format = MONEY
+        sc.cell(n, 3).font = sc.cell(n, 4).font = BODY
+    n = row + 5
+    sc.cell(n, 1, 'Total a month').font = BOLD
+    c = sc.cell(n, 4, f'=SUM(D{row+2}:D{n-1})')
+    c.number_format, c.font, c.fill, c.border = MONEY, BOLD, TOTF, BOX
+
+    row = n + 3
+    para(sc, row, 'WHAT BILLS IT OUT', bold=True)
+    for i, t in enumerate([
+        'Nothing. Every Aware Super invoice issued from 1 June to 5 November '
+        '2026 was checked, fourteen of them.',
+        'None carries a line for Hypercare, Mission Control or Photon.',
+        'The only platform licence billed to Aware Super is Appspace, on '
+        'INV-10635, and that is a separate deal with its own supplier bill.',
+        'The recurring Aware Super income is 11,000.00 a month on INV-10551, '
+        'INV-10583, INV-10652 and INV-10700, described as National AV '
+        'Maintenance site visits, coded to Contract Support Staff. It does '
+        'not mention the platform.',
+        'So either the platform is meant to be covered inside that 11,000.00 '
+        'a month, or it is not being charged for at all. Whoever signed the '
+        'contract needs to say which.',
+    ]):
+        c = sc.cell(row + 1 + i, 1, t)
+        c.font = BODY
+        c.alignment = Alignment(wrap_text=True, vertical='top')
+        sc.merge_cells(start_row=row + 1 + i, start_column=1,
+                       end_row=row + 1 + i, end_column=7)
+        sc.row_dimensions[row + 1 + i].height = 30
+
+    row = row + 7
+    para(sc, row, 'ONE MORE THING', bold=True)
+    for i, t in enumerate([
+        'There are two Spacera contacts in Xero. SPACERA PTY LTD, which has '
+        'all four bills, and a second one called spacera in lower case with '
+        'no email and no transactions. The empty one should be merged away '
+        'before a bill lands on it.',
+    ]):
+        c = sc.cell(row + 1 + i, 1, t)
+        c.font = BODY
+        c.alignment = Alignment(wrap_text=True, vertical='top')
+        sc.merge_cells(start_row=row + 1 + i, start_column=1,
+                       end_row=row + 1 + i, end_column=7)
+        sc.row_dimensions[row + 1 + i].height = 30
+
+    # ================================================= What changed
     MONTHS4 = [(2026, m) for m in (6, 7, 8, 9)]
-    wc = wb.create_sheet('What changed', 1)
-    wc['A1'] = 'What changed in August, by the other side of the entry'
+    wc = wb.create_sheet('What changed', 2)
+    wc['A1'] = 'June to September, by the other side of the entry'
     wc['A1'].font = TITLE
-    wc['A2'] = ('Four months side by side. Red is the one line that was not '
-                'there in June or July.')
+    wc['A2'] = ('Red is the Spacera cost. It is in the subscription accounts '
+                'from August. The July bill of 5,208.00 is not here because '
+                'it was coded to Sub-Contract Labour.')
     wc['A2'].font = NOTE
+    wc.merge_cells('A2:F2')
+    wc.row_dimensions[2].height = 30
 
     row = 4
     for sec, title in (('Expense', 'COST SIDE, BY SUPPLIER'),
                        ('Income', 'INCOME SIDE, BY CUSTOMER')):
-        wc.cell(row, 1, title).font = BOLD
+        para(wc, row, title, bold=True)
         band(wc, row + 1,
              ['Other side'] + [datetime.date(*k, 1).strftime('%b %Y')
                                for k in MONTHS4] + ['Four months'],
@@ -345,17 +482,17 @@ def main():
         wc.cell(n, 1).fill, wc.cell(n, 1).border = TOTF, BOX
         row = n + 3
 
-    wc.cell(row, 1, 'THE MARGIN, WITH AND WITHOUT THE SPACERA COST').font = BOLD
-    band(wc, row + 1, ['Month', 'Income', 'Margin as booked', 'Per cent',
-                       'Margin without Spacera', 'Per cent'],
-         [46, 15, 18, 15, 22, 16])
+    para(wc, row, 'THE MARGIN ON ALL THREE BASES', bold=True)
+    band(wc, row + 1, ['Month', 'Income', 'As booked', 'Per cent',
+                       'With Spacera in every month', 'Per cent'],
+         [46, 15, 16, 12, 24, 12])
     for i, k in enumerate(MONTHS4):
         n = row + 2 + i
         m = first + months.index(k)
         wc.cell(n, 1, datetime.date(*k, 1).strftime('%B %Y')).font = BODY
         for j, (col, fmt) in enumerate((('B', MONEY), ('D', MONEY),
-                                        ('E', PCT), ('G', MONEY),
-                                        ('H', PCT))):
+                                        ('E', PCT), ('H', MONEY),
+                                        ('I', PCT))):
             c = wc.cell(n, 2 + j, f"='Monthly recon'!{col}{m}")
             c.number_format, c.font = fmt, BODY
     wc.freeze_panes = 'A6'
@@ -378,7 +515,7 @@ def main():
             fill = RED
         elif src.cell(r, 2).value == 'Manual Journal':
             fill = AMBER
-        elif d.year == 2026 and d.month in (8, 9):
+        elif d.year == 2026 and d.month in (7, 8, 9):
             fill = BLUE
         if fill:
             for c in range(1, 10):
@@ -389,10 +526,11 @@ def main():
     lg = src.max_row + 3
     out.cell(lg, 1, 'LEGEND').font = BOLD
     for i, (f, t) in enumerate((
-            (RED, 'The Spacera cost. This is the whole of the fall.'),
+            (RED, 'The Spacera cost. August and September only. The July '
+                  'bill went to Sub-Contract Labour and is not on this tab.'),
             (AMBER, 'A manual journal, which is how the licences are '
-                    'deferred over their term.'),
-            (BLUE, 'August and September 2026, the two months that fell.'))):
+                    'spread over their term.'),
+            (BLUE, 'July to September 2026, the FY2027 months.'))):
         out.cell(lg + 1 + i, 1).fill = f
         out.cell(lg + 1 + i, 1).border = BOX
         out.cell(lg + 1 + i, 2, t).font = BODY
