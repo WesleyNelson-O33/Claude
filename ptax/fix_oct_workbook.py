@@ -150,6 +150,19 @@ def main():
                 print(f'  STOPPED, {ref} not found')
                 return 1
             print(f'  {ref:<5} {was[:38]:<40}->  {formula}')
+        # any stored answer that is an error is stale now, because the
+        # cells it came from have changed. Excel recalculates on open, but
+        # the file should not sit there holding wrong answers in the
+        # meantime, so they are dropped.
+        stale = re.findall(r'<c r="([A-Z]+\d+)"[^>]*t="e"', xml)
+        xml = re.sub(r'(<c r="[A-Z]+\d+"[^>]*?)\s*t="e"([^>]*>)'
+                     r'(<f[^>]*?(?:/>|>.*?</f>))<v>#[A-Z/0]+!</v></c>',
+                     r'\1\2\3</c>', xml, flags=re.S)
+        left = re.findall(r'<c r="([A-Z]+\d+)"[^>]*t="e"', xml)
+        if stale:
+            print(f'  {len(stale)-len(left)} stale error values dropped'
+                  + (f', {len(left)} could not be: {left}' if left else ''))
+
         bad = orphans(xml)
         if bad:
             print('  STOPPED, shared formulas left dangling:')
