@@ -13,3 +13,7 @@ wip/out/
 accruals/out/
 payexp/out/
 wages/out/
+
+# Employee-level payroll data. Handed to Danica directly, never committed.
+ptax/EH Payroll Split File*.xlsx
+ptax/*_EH_PTax_*.xlsx

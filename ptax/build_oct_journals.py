@@ -84,11 +84,19 @@ def read_journal(path):
 
 
 def centre_for(job, known):
+    """The cost centre as the September journals coded this job, or, for a
+    job that is new this month, from the tag at the end of its name. A tag
+    can carry extra words, as in [ONS non-chargeable], so only the code at
+    the front of it is read."""
     if job in known:
         return known[job], False
-    m = re.search(r'\[([A-Z]+)\]\s*$', job)
-    if m and m.group(1) in TAGS:
-        return TAGS[m.group(1)], True
+    m = re.search(r'\[\s*([A-Za-z]+)[^\]]*\]\s*$', job)
+    if m and m.group(1).upper() in TAGS:
+        return TAGS[m.group(1).upper()], True
+    # some jobs carry no tag at all. September coded every one of those to
+    # Onsite, and they all name a site rather than a department.
+    if re.match(r'^\d+\s*-\s*ONS\b', job) or 'ONSITE' in job.upper():
+        return 'Onsite', True
     return None, True
 
 
@@ -105,16 +113,23 @@ def allocate(jobs, pot):
     return share, plug, (biggest if plug else None)
 
 
+def amount(x):
+    """The way September wrote them: no trailing zeros on a round figure."""
+    t = f'{x:.2f}'.rstrip('0').rstrip('.')
+    return t if t not in ('', '-0') else '0'
+
+
 def write(path, narration, credit_desc, lines, pot):
     with open(path, 'w', newline='', encoding='utf-8') as f:
         w = csv.writer(f)
         w.writerow(HDR)
         w.writerow([narration, DATE, credit_desc, LIABILITY, 'BAS Excluded',
-                    -pot, 'Cost Centres', 'CTS', 'Job Numbers',
+                    amount(-pot), 'Cost Centres', 'CTS', 'Job Numbers',
                     '9000 - OFFICE / ADMIN [CTS]'])
         for job, amt, centre in lines:
-            w.writerow([narration, DATE, job, EXPENSE, 'BAS Excluded', amt,
-                        'Cost Centres', centre, 'Job Numbers', job])
+            w.writerow([narration, DATE, job, EXPENSE, 'BAS Excluded',
+                        amount(amt), 'Cost Centres', centre, 'Job Numbers',
+                        job])
 
 
 def main():
