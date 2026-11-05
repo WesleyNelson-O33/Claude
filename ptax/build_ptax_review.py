@@ -104,31 +104,37 @@ ITEMS = [
      "timesheet export before either journal can be written. Only the job "
      "lines are blocked by this, not the totals."),
     (None,
-     "September's 2,001.04 is still in the October wages formula",
-     'Main & NSW', 'E3',
-     '=169021.21-2001.04-E8', '=169021.21-E8', 99.35,
-     "I left September's figure in the October formula. In September the "
-     "2,001.04 was part of super, where row 5 reads 19,240.54 plus 2,001.04 "
-     "and comes to the 21,241.58 Employment Hero gives as total New South "
-     "Wales super. In October I have taken the same 2,001.04 off wages "
-     "instead and not added it back anywhere, because row 5 is typed in as "
-     "20,086.18 with no formula. So New South Wales wages are 2,001.04 light "
-     "and the tax is 99.35 light, which takes October from 5,798.13 to "
-     "5,897.48. Before I change it I need the October Employment Hero report, "
-     "to see whether the 169,021.21 I typed already leaves that super out. If "
-     "it does, only the look of the formula is wrong."),
+     "September's 2,001.04 was in the October wages formula. Now fixed",
+     'Main & NSW', 'E3 and E5',
+     '=169021.21-2001.04-E8, and E5 typed as 20,086.18',
+     '=165587.15-E8, and E5 =21675.13', 2.14,
+     "I had left September's 2,001.04 in the October wages formula and my "
+     "super figure was 1,588.95 short, so New South Wales was 155.93 light. "
+     "The October Employment Hero report settles it. Wages 162,504.03 plus "
+     "salary sacrifice super 2,725.88 plus pre tax deductions 357.24 gives "
+     "165,587.15, and the 2,000 bonus comes off there because it sits on row "
+     "8. Total super is 21,675.13. I rebuilt both cells the way September was "
+     "built and New South Wales now ties to the report at 187,262.28."),
     (None,
-     'No exempt per diems are deducted anywhere in October',
+     'No exempt per diems in October, and that turns out to be right',
      'Main & NSW and the four state tabs', 'E3 on each',
-     'nothing deducted', 'the October exempt per diems per state', None,
-     "Per diems are exempt so I take them out of wages before the tax is "
-     "worked out. I did that in July, 75 on New South Wales. In August, 300 "
-     "on Queensland and 150 each on South Australia, Victoria and Western "
-     "Australia. In September, 300 on New South Wales and 525 on South "
-     "Australia. In October I have taken none out on any state. If October "
-     "had per diems I am taxing them. I need the October Employment Hero "
-     "report, the section headed payments in pay categories exempt, and then "
-     "I deduct whatever it shows state by state."),
+     'nothing deducted', 'nothing to deduct', 'none',
+     "I flagged this because I deduct per diems every other month and "
+     "deducted none in October. The October Employment Hero report has no "
+     "payments in pay categories exempt section at all, so there were no per "
+     "diems in October and there is nothing to take out. Deducting none was "
+     "right. Nothing to change."),
+    (None,
+     'South Australia was 300.00 over in October. Now fixed',
+     'SA', 'E3 and E5',
+     'E3 typed as 5,665.51, E5 as 679.86',
+     'E3 =5397.65, E5 =647.72', None,
+     "South Australia was 300.00 higher than the report. Wages were 267.86 "
+     "over and super 32.14 over. The report gives wages of 5,397.65 and super "
+     "of 647.72, so I put both cells back to the report. The 267.86 is the "
+     "same figure as two separate South Australian lines on the report, "
+     "annual leave taken and public holiday not worked, so it looks like one "
+     "of them went in twice. Worth a look before next month."),
     ('JOURNAL 2  Payroll Tax ACT/QLD/SA/VIC/WA October 2026 Accrual',
      'October timesheets, the same problem as above',
      'September 2026 Timesheets', 'the whole tab',
@@ -286,8 +292,8 @@ def main():
          'version 2 of the return, worked out on actuals', True),
         ('September NSW, posted to Xero', 5902.75,
          'so Xero is 15.83 light on September', True),
-        ('October NSW, as the file stands', as_is,
-         'before the two corrections below', False),
+        ('October NSW, after the corrections', 5800.27,
+         'all five states now tie to the October EH report', False),
         ('October other states accrual', 2700.00,
          'a fixed monthly figure, 3,000 less the ACT 300', False),
     ]
@@ -302,14 +308,12 @@ def main():
                 js.cell(r, k).fill = AMBER
 
     para(js, 12, 'ENDING POSITION', 9, font=BOLD, height=18)
-    para(js, 13, 'Still to do. September needs a decision on the 15.83 '
-                 'between the return and the journal. October NSW becomes '
-                 '5,897.48 once the 2,001.04 is dealt with, and moves again '
-                 'by whatever the October exempt per diems come to. Neither '
-                 'October journal can be written until the October timesheets '
-                 'are loaded, because the job lines are a pivot of that tab. '
-                 'The other states accrual stays at 2,700. The formula faults '
-                 'are already fixed in the corrected workbook.', 9, height=58)
+    para(js, 13, 'October New South Wales payroll tax is 5,800.27 and '
+                 'the other states accrual is 2,700. All five states tie to '
+                 'the October Employment Hero report to the cent. The only '
+                 'thing left is the October timesheet export, which both '
+                 'journals need for the job lines. September needs the 15.83 '
+                 'top up, and that journal is written.', 9, height=46)
 
     r = 15
     HDRS = ['Item', 'Tab', 'Cell to change', 'The file says now',
@@ -374,10 +378,12 @@ def main():
          'A month already posted and lodged, and the two disagree'),
         ('October timesheets', 'September 2026 Timesheets', 'the whole tab',
          'RED', 'Stops both October journals being written'),
-        ("September's 2,001.04", 'Main & NSW', 'E3', 'AMBER',
-         'Changes the October tax, and the amount is known'),
+("September's 2,001.04", 'Main & NSW', 'E3 and E5', 'GREEN',
+         'Fixed off the October report. October now ties'),
+        ('South Australia 300.00 over', 'SA', 'E3 and E5', 'GREEN',
+         'Fixed off the October report. October now ties'),
         ('Exempt per diems', 'Main & NSW, QLD, SA, VIC, WA', 'E3 on each',
-         'RED', 'Needs the October Employment Hero report first'),
+         'GREEN', 'There were none in October. Nothing to change'),
         ('The June drag', 'Main & NSW', 'M20, M21, M22', 'GREEN',
          'Already fixed in the corrected workbook'),
         ('The state tab drag', 'QLD, SA, VIC, WA', 'E14 to L14', 'GREEN',

@@ -33,10 +33,15 @@ What is changed:
                          formula the other months use, wrapped in IFERROR so
                          a month with no wages reads nil rather than #DIV/0!
 
+  Main & NSW   E3, E5    rebuilt from the October Employment Hero report.
+                         September's 2,001.04 had been left in the October
+                         wages formula and the super figure was 1,588.95
+                         short. New South Wales was 155.93 light.
+  SA           E3, E5    rebuilt the same way. South Australia was 300.00
+                         over.
+
 Left alone on purpose:
 
-  Main & NSW   E3        September's 2,001.04, needs the October EH report
-  Main & NSW   E3 etc    the exempt per diems, needs the October EH report
   Main & NSW   K23       the stray 1.1276, source unknown
   September 2026 Timesheets          needs the October export
 
@@ -67,6 +72,18 @@ for part in STATES.values():
 
 # formulas to set explicitly, cell by cell
 SET = {NSW: {}, **{p: {} for p in STATES.values()}}
+
+# October inputs, read off the Employment Hero payroll tax report for
+# 1 to 31 October 2026, and built the way September was built:
+#   row 3 = total wages + salary sacrifice super + pre-tax deductions,
+#           less the exempt per diems, less any bonus shown on row 8
+#   row 5 = total super
+# The October report has no "payments in pay categories exempt" section at
+# all, so there are no per diems to take out this month.
+SET[NSW]['E3'] = '165587.15-E8'      # 162,504.03 + 2,725.88 + 357.24
+SET[NSW]['E5'] = '21675.13'
+SET[STATES['SA']]['E3'] = '5397.65'
+SET[STATES['SA']]['E5'] = '647.72'
 for col in MONTHS:
     SET[NSW][f'{col}20'] = f'IFERROR(({col}12/{col}19)*(1200000/$N$1*{col}1),0)'
 SET[NSW]['M21'] = '+M19-M20-M18'
@@ -154,14 +171,22 @@ def main():
         # cells it came from have changed. Excel recalculates on open, but
         # the file should not sit there holding wrong answers in the
         # meantime, so they are dropped.
-        stale = re.findall(r'<c r="([A-Z]+\d+)"[^>]*t="e"', xml)
-        xml = re.sub(r'(<c r="[A-Z]+\d+"[^>]*?)\s*t="e"([^>]*>)'
-                     r'(<f[^>]*?(?:/>|>.*?</f>))<v>#[A-Z/0]+!</v></c>',
-                     r'\1\2\3</c>', xml, flags=re.S)
-        left = re.findall(r'<c r="([A-Z]+\d+)"[^>]*t="e"', xml)
-        if stale:
-            print(f'  {len(stale)-len(left)} stale error values dropped'
-                  + (f', {len(left)} could not be: {left}' if left else ''))
+        # an error flag on a cell whose answer is now gone would be read
+        # as the answer, so those go too
+        xml = re.sub(r'(<c r="[A-Z]+\d+"[^>]*?)\s*t="e"([^>]*>)',
+                     r'\1\2', xml)
+
+        # Every formula cell on a sheet this script touches has its stored
+        # answer removed. A cell that depends on one I changed would
+        # otherwise keep showing the old number until something recalculated
+        # it, and not every program recalculates the same way. With the
+        # answers gone, and fullCalcOnLoad set below, they have to be worked
+        # out fresh.
+        xml, n = re.subn(
+            r'(<c r="[A-Z]+\d+"[^>]*?>)(<f[^>]*?(?:/>|>.*?</f>))'
+            r'<v>[^<]*</v>(</c>)',
+            r'\1\2\3', xml, flags=re.S)
+        print(f'  {n} stored answers cleared, so they are worked out fresh')
 
         bad = orphans(xml)
         if bad:
