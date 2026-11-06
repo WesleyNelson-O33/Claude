@@ -33,12 +33,10 @@ What is changed:
                          formula the other months use, wrapped in IFERROR so
                          a month with no wages reads nil rather than #DIV/0!
 
-  Main & NSW   E3, E5    rebuilt from the October Employment Hero report.
-                         September's 2,001.04 had been left in the October
-                         wages formula and the super figure was 1,588.95
-                         short. New South Wales was 155.93 light.
-  SA           E3, E5    rebuilt the same way. South Australia was 300.00
-                         over.
+  Main & NSW   E3, E5    rebuilt from the split file. September's 2,001.04
+                         had been left in the October wages formula, and the
+                         employer contribution of 2,001.04 was being taken
+                         off the super rather than added to it.
 
 Left alone on purpose:
 
@@ -73,17 +71,16 @@ for part in STATES.values():
 # formulas to set explicitly, cell by cell
 SET = {NSW: {}, **{p: {} for p in STATES.values()}}
 
-# October inputs, read off the Employment Hero payroll tax report for
-# 1 to 31 October 2026, and built the way September was built:
-#   row 3 = total wages + salary sacrifice super + pre-tax deductions,
-#           less the exempt per diems, less any bonus shown on row 8
-#   row 5 = total super
-# The October report has no "payments in pay categories exempt" section at
-# all, so there are no per diems to take out this month.
-SET[NSW]['E3'] = '165587.15-E8'      # 162,504.03 + 2,725.88 + 357.24
-SET[NSW]['E5'] = '21675.13'
-SET[STATES['SA']]['E3'] = '5397.65'
-SET[STATES['SA']]['E5'] = '647.72'
+# October inputs, taken from the split file rather than the Employment Hero
+# payroll tax report, because the report leaves out the ad hoc pay run of
+# 9 October and those wages were paid in October.
+#   row 3 = gross earnings, less any bonus shown separately on row 8
+#   row 5 = SG super plus the employer contribution
+# The October report has no exempt per diems section at all, so there is
+# nothing to take out this month. The four state tabs are left alone: the
+# split file already carries the ad hoc pay, so they are right as they are.
+SET[NSW]['E3'] = '169021.21-E8'      # gross, less the bonus on row 8
+SET[NSW]['E5'] = '22087.22'          # SG super 20,086.18 + 2,001.04
 for col in MONTHS:
     SET[NSW][f'{col}20'] = f'IFERROR(({col}12/{col}19)*(1200000/$N$1*{col}1),0)'
 SET[NSW]['M21'] = '+M19-M20-M18'
