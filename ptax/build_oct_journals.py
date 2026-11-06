@@ -20,8 +20,14 @@ The method:
 
 October inputs:
 
-  NSW payroll tax 5,800.27, from Main & NSW cell E23 once the October
-  Employment Hero report figures are in. All five states tie to that report.
+  NSW payroll tax 5,996.99, from Main & NSW cell E23.
+
+  That is the figure on the wages actually paid in October, which includes
+  the ad hoc pay run of 9 October. The Employment Hero payroll tax report
+  leaves ad hoc runs out, so it shows 5,800.27, and going by the report
+  would have understated New South Wales wages by 3,846.15 and South
+  Australia by 300.00. The split file has the run and is the record used
+  here.
 
 Cost centres are taken from the September journals where the job appears in
 them, so the coding carries over rather than being invented. A job that is
@@ -45,7 +51,7 @@ OUT_OTH = ('ptax/2026-10_Payroll_Tax_Alloc_Other_States_'
 MONTH = 'October'
 DATE = '31/10/2026'
 LIABILITY, EXPENSE = '21440', '65106'
-NSW_TAX = 5800.27
+NSW_TAX = 5996.99
 POTS = {'QLD': 500.0, 'SA': 200.0, 'VIC': 1300.0, 'WA': 700.0, 'ACT': 0.0}
 
 HDR = ['*Narration', '*Date', 'Description', '*AccountCode', '*TaxRate',
