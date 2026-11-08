@@ -53,7 +53,7 @@ portal/CTS_deck.js        module D, Monthly Business Review deck
 portal/data/              seed data files (generated)
 portal/templates/         01 to 14 Excel templates (generated)
 portal/build/             generators and the JSON they read
-portal/docs/              MONTHLY, HOSTING, AUTOMATION, FORECASTING, HANDOVER
+portal/docs/              MONTHLY, HOSTING, AUTOMATION, FORECASTING, HANDOVER, COWORK
 ```
 
 ## How to work
@@ -100,6 +100,13 @@ portal/docs/              MONTHLY, HOSTING, AUTOMATION, FORECASTING, HANDOVER
   workbook, a PowerPoint. She works in Excel, PowerPoint, Outlook and Edge.
 - Do not ask a string of clarifying questions. Make a reasonable assumption,
   say what it was, and proceed.
+
+## Two folders
+
+The repository clone is for building and holds seed data. The team's
+portal is a separate hosted copy with live data, run from a Cowork project.
+`portal/docs/COWORK.md` section 5 says what to copy across after a change:
+the HTML, the four scripts, `vendor` and `docs`, never `data`.
 
 ## Current state (November 2026)
 

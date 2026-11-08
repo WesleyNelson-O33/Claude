@@ -9,7 +9,8 @@ so.
 
 Reading order: this file, then `CLAUDE.md` at the repository root, then
 `portal/README.md`, `portal/docs/MONTHLY.md`, `portal/docs/HOSTING.md`,
-`portal/docs/AUTOMATION.md`, `portal/docs/FORECASTING.md`. The older
+`portal/docs/AUTOMATION.md`, `portal/docs/FORECASTING.md`, and
+`portal/docs/COWORK.md` if the month is run from a Cowork project. The older
 `CTS Technical Handover.md` at the root covers the payroll and reporting
 manuals and workbooks that came before the portal; background only.
 
@@ -193,7 +194,7 @@ portal/
   data/                the data files the page loads
   templates/           01 to 14
   build/               build_templates.py, build_data.py, fill_test_templates.py, schedule_lines.json, budget_groups.json
-  docs/                MONTHLY, HOSTING, AUTOMATION, FORECASTING, HANDOVER
+  docs/                MONTHLY, HOSTING, AUTOMATION, FORECASTING, HANDOVER, COWORK
 ```
 
 Sizes: bundle about 426 KB, build 130 KB, deck 38 KB, email 35 KB, HTML 36 KB.
