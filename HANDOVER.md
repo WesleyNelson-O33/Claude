@@ -122,6 +122,8 @@ files. Keep that convention.
 - The Payroll Tax monthly process manual.
 - The Month-End Journals WIP manual.
 - The CTS Financial Controller Pack and the FY27 budget.
+- The Payroll Workflow document, covering the fortnightly cycle end to end.
+- Seven approver email templates, in `checklists/Payroll Approval Emails.txt`.
 
 There is no Part 4 of the payroll manual. Nothing is missing. Video 4 covered a
 correction to a salaried employee, so it sits at the end of Part 3b.
@@ -167,25 +169,45 @@ handled. No account numbers or passwords are in the repo.
 
 ---
 
-## Work that was lost
+## The branch split in two, and has been merged back
 
-Some payroll work from an earlier session is not in this repo.
+This is worth understanding, because it nearly cost 41 commits.
 
-It was committed locally but the push was blocked, and the container was later
-rebuilt. The commits are gone from the history. I checked.
+The branch split at `9404d23`, the budget workbook fix. Two different lines of
+work then grew from that same point.
 
-What was lost:
+One line was payroll: the end to end workflow document and the approver
+responsibility model. Those two commits were pushed to the remote.
+
+The other line was month end: payroll tax, WIP, leave, accruals, staff
+expenses and the revenue tracker. That was 41 commits. It only ever existed
+inside a session container, which is temporary.
+
+At some point the remote was forced back to the payroll line. So the remote
+held the payroll work, and the container held the month end work, and neither
+knew about the other.
+
+They have now been merged. Nothing was forced and nothing was deleted. No file
+was touched by both lines, so the merge was clean.
+
+If you ever see this branch reject a push again, do not force it. Fetch, look
+at what is on each side, and merge.
+
+### What came back in the merge
 
 - A Payroll Workflow document, covering the full fortnightly cycle end to end.
 - A responsibility model moving the timesheet, roster, overtime and time in lieu
   checks onto approving managers rather than payroll.
 - Seven email templates for chasing timesheet approvals each fortnight.
-- A payroll notes register, with one fortnight recorded in it.
+- Two new block types in the manual renderer, for grids and email templates.
 
-Danica was sent copies of those files at the time, so she may still have them
-on her machine. Ask her before rebuilding any of it.
+One thing did not come back. A payroll notes register, holding one fortnight of
+notes, was never pushed. Danica was sent a copy at the time. Ask her for it
+before rebuilding it.
 
-Two decisions from that work were never signed off by Duncan or Graham:
+### Two decisions in that work are still only drafts
+
+Neither was signed off by Duncan or Graham:
 
 - The responsibility model itself, and the liability wording.
 - The rule that time not approved by the Monday cut-off is paid in the next pay
