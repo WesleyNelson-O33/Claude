@@ -28,10 +28,14 @@ for h,cs in hs.items():
         for r in range(3,155): copy_style(ss.cell(row=r,column=cs), ns.cell(row=r,column=cn))
         ns.column_dimensions[L(cn)].width=ss.column_dimensions[L(cs)].width
         ns.column_dimensions[L(cn)].hidden=ss.column_dimensions[L(cs)].hidden
-for h in ("Earned this month (days)","Milestone this month","Days excluded (before scheme start)","Over-accrued in EH (hrs)"):
+for h in ("Earned this month (days)","Milestone this month","Days excluded (before scheme start)","Over-accrued in EH (hrs)","Should have left (hrs)","Working in plain English"):
     if h in hn and h not in hs:
         for r in range(3,155): copy_style(ss.cell(row=r,column=hs["Hours to Accrue"]), ns.cell(row=r,column=hn[h]))
         ns.cell(row=4,column=hn[h]).value=h
+        if h=="Working in plain English":
+            ns.column_dimensions[L(hn[h])].width=60
+            from openpyxl.styles import Alignment
+            for r in range(5,155): ns.cell(row=r,column=hn[h]).alignment=Alignment(horizontal="left")
 if "Milestone this month" in hn:
     for r in range(5,155): ns.cell(row=r,column=hn["Milestone this month"]).number_format='dd/mm/yyyy'
 for r in range(1,5):
