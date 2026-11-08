@@ -176,7 +176,7 @@ PCT = '0.0%;[Red]-0.0%'
 DATE = 'dd/mm/yyyy'
 
 
-def head_row(ws, r, labels, widths=None):
+def head_row(ws, r, labels, widths=None, freeze=True):
     for c, lab in enumerate(labels, 1):
         cell = ws.cell(r, c, lab)
         cell.font, cell.fill, cell.border = HEAD, HFILL, THIN
@@ -184,7 +184,11 @@ def head_row(ws, r, labels, widths=None):
     if widths:
         for c, w in enumerate(widths, 1):
             ws.column_dimensions[get_column_letter(c)].width = w
-    ws.freeze_panes = ws.cell(r + 1, 1)
+    # Only freeze where the sheet is one long list. Setting freeze_panes and
+    # then clearing it leaves a selection pointing at a pane that is no
+    # longer there, and Excel reports the workbook as damaged.
+    if freeze:
+        ws.freeze_panes = ws.cell(r + 1, 1)
 
 
 def put(ws, r, vals, fmts):
@@ -237,7 +241,7 @@ def main(src, out):
     r += 1
 
     r = line(r, 'Margin per year, as booked', True)
-    head_row(ws, r, ['Year', 'Income', 'Cost', 'Margin', 'Margin %'])
+    head_row(ws, r, ['Year', 'Income', 'Cost', 'Margin', 'Margin %'], freeze=False)
     r += 1
     years = (('FY2025', (2024, 7), (2025, 6)),
              ('FY2026', (2025, 7), (2026, 6)),
@@ -264,7 +268,7 @@ def main(src, out):
     tc = sum(signed(x) for x in sel if x['code'] == EXP)
 
     r = line(r, 'Why FY2027 reads 3.1 per cent', True)
-    head_row(ws, r, ['', 'Income', 'Cost', 'Margin', 'Margin %'])
+    head_row(ws, r, ['', 'Income', 'Cost', 'Margin', 'Margin %'], freeze=False)
     r += 1
     for label, i, c in (
             ('Licences released by journal', ti - li, tc - lc),
@@ -279,7 +283,7 @@ def main(src, out):
     r += 1
 
     r = line(r, 'The unbilled cost in FY2027', True)
-    head_row(ws, r, ['Supplier', 'Bills', 'Cost'])
+    head_row(ws, r, ['Supplier', 'Bills', 'Cost'], freeze=False)
     r += 1
     agg = {}
     for x in loose:
@@ -308,8 +312,6 @@ def main(src, out):
                 'By Month and Raw: the monthly totals and every line '
                 'behind them.'):
         r = line(r, txt)
-
-    ws.freeze_panes = None
 
     # ------------------------------------------------ 1. licence margins
     ws = wb.create_sheet('Licence Margins')

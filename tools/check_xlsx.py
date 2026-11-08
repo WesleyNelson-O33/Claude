@@ -76,6 +76,17 @@ def main(path):
         af = root.find(NS + 'autoFilter')
         if af is not None and not af.get('ref'):
             out.append(f'{where}: autoFilter with no ref')
+        # A <selection> may only name a pane when the view actually has one.
+        # Setting freeze_panes in openpyxl and then clearing it leaves the
+        # selection behind, and Excel reports the workbook as damaged.
+        for sv in root.iter(NS + 'sheetView'):
+            pane = sv.find(NS + 'pane')
+            for sel in sv.findall(NS + 'selection'):
+                p_ = sel.get('pane')
+                if p_ and p_ != 'topLeft' and pane is None:
+                    out.append(f'{where}: selection names pane "{p_}" but the '
+                               f'sheet view has no <pane>; clear the selection '
+                               f'or do not set freeze_panes')
     # defined names must point at a sheet that exists
     for nm, ref in re.findall(r'<definedName[^>]*\bname="([^"]+)"[^>]*>([^<]*)</definedName>', wbx):
         for s in re.findall(r"(?:'([^']+)'|([A-Za-z_][\w.]*))!", unesc(ref)):
