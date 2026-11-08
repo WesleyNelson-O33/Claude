@@ -14,9 +14,9 @@ Australian context. Every figure here is for payroll and statutory obligations. 
 
 The register is `awards/CTS_Payroll_Setup_Register_21102026.xlsx` on branch `claude/gallant-planck-uztwlf`. It's the working file, and it includes Danica's own edits.
 
-The award columns are filled by `awards/fill_award_columns.py`. Don't re-run it on the current file, because it would overwrite later edits. It's kept as a record only.
+The award columns are filled by `awards/payroll_fill_award_columns.py`. Don't re-run it on the current file, because it would overwrite later edits. It's kept as a record only.
 
-The Casual Rate Check tab is built by `awards/casual_rate_check.py`. It takes the register path and a Pay Run Audit xlsx. Re-running it rebuilds that tab only.
+The Casual Rate Check tab is built by `awards/payroll_casual_rate_check.py`. It takes the register path and a Pay Run Audit xlsx. Re-running it rebuilds that tab only.
 
 The Payroll Tracker template is on branch `claude/amazing-mayer-mwuadq` at `payroll/Payroll_Tracker_Template.xlsx`. It belongs to a different chat.
 
