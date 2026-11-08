@@ -123,6 +123,94 @@ function keyValueTable(rows) {
   });
 }
 
+/** An N-column table with a header row, for matrices the key/value table cannot carry. */
+function gridTable(headers, rows, widths) {
+  const cols = widths && widths.length === headers.length
+    ? widths
+    : headers.map(() => Math.floor(CONTENT_DXA / headers.length));
+  const cell = (text, width, fill, bold, color) => new TableCell({
+    width: { size: width, type: WidthType.DXA },
+    shading: { type: ShadingType.CLEAR, fill },
+    margins: { top: 90, bottom: 90, left: 140, right: 140 },
+    children: [new Paragraph({ children: [new TextRun({ text, bold, size: 19, color })] })],
+  });
+  const header = new TableRow({
+    tableHeader: true,
+    children: headers.map((h, i) => cell(h, cols[i], ACCENT, true, 'FFFFFF')),
+  });
+  const body = rows.map((row, index) => {
+    const fill = index % 2 ? 'FFFFFF' : 'F7F9FC';
+    return new TableRow({
+      children: row.map((value, i) => cell(String(value), cols[i], fill, i === 0, undefined)),
+    });
+  });
+  return new Table({ columnWidths: cols, rows: [header, ...body] });
+}
+
+/**
+ * A ready-to-send email template in a box, so it is obvious where the template
+ * starts and stops and it can be copied straight into Outlook.
+ */
+function emailTemplate(spec) {
+  const label = (text) => new Paragraph({
+    spacing: { after: 40 },
+    children: [new TextRun({ text, bold: true, size: 18, color: MUTED, characterSpacing: 40 })],
+  });
+  const field = (name, value) => new Paragraph({
+    spacing: { after: 40 },
+    children: [
+      new TextRun({ text: `${name}:  `, bold: true, size: 19, color: ACCENT }),
+      new TextRun({ text: value, size: 19 }),
+    ],
+  });
+  const children = [];
+  if (spec.when) children.push(label(`SEND: ${spec.when.toUpperCase()}`));
+  if (spec.to) children.push(field('To', spec.to));
+  if (spec.cc) children.push(field('Cc', spec.cc));
+  if (spec.subject) children.push(field('Subject', spec.subject));
+  if (spec.attach) children.push(field('Attach', spec.attach));
+  children.push(new Paragraph({
+    spacing: { before: 100, after: 120 },
+    border: { bottom: { style: BorderStyle.SINGLE, size: 4, color: 'D0D7E5', space: 6 } },
+    children: [],
+  }));
+  for (const item of spec.body) {
+    if (Array.isArray(item)) {
+      for (const point of item) {
+        children.push(new Paragraph({
+          numbering: { reference: 'manual-bullets', level: 0 },
+          spacing: { after: 60 },
+          children: [new TextRun({ text: point, size: 20 })],
+        }));
+      }
+    } else {
+      children.push(new Paragraph({
+        spacing: { after: 120 },
+        children: [new TextRun({ text: item, size: 20 })],
+      }));
+    }
+  }
+  return new Table({
+    columnWidths: [CONTENT_DXA],
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 2, color: 'B8C4D9' },
+      bottom: { style: BorderStyle.SINGLE, size: 2, color: 'B8C4D9' },
+      left: { style: BorderStyle.SINGLE, size: 2, color: 'B8C4D9' },
+      right: { style: BorderStyle.SINGLE, size: 2, color: 'B8C4D9' },
+      insideHorizontal: { style: BorderStyle.NONE },
+      insideVertical: { style: BorderStyle.NONE },
+    },
+    rows: [new TableRow({
+      children: [new TableCell({
+        width: { size: CONTENT_DXA, type: WidthType.DXA },
+        shading: { type: ShadingType.CLEAR, fill: 'FCFDFE' },
+        margins: { top: 160, bottom: 160, left: 200, right: 200 },
+        children,
+      })],
+    })],
+  });
+}
+
 const spacer = () => new Paragraph({ spacing: { after: 200 }, children: [] });
 
 /** A question with the recording and words it came from, for citing in a meeting. */
@@ -266,6 +354,12 @@ function renderSpec(spec, { nested = false, root = '.', counter } = {}) {
       case 'table':
         out.push(keyValueTable(block.rows), spacer());
         break;
+      case 'grid':
+        out.push(gridTable(block.headers, block.rows, block.widths), spacer());
+        break;
+      case 'email':
+        out.push(emailTemplate(block), spacer());
+        break;
       case 'questions':
         out.push(questionTable(block.items, block.start || 1), spacer());
         break;
@@ -337,6 +431,6 @@ function sectionShell(runningHead, children) {
 }
 
 module.exports = {
-  renderSpec, contentsPage, sectionShell, keyValueTable,
+  renderSpec, contentsPage, sectionShell, keyValueTable, gridTable, emailTemplate,
   BULLET_NUMBERING, DEFAULT_STYLES, ACCENT, MUTED,
 };
