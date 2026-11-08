@@ -164,3 +164,52 @@ The detail behind the first five items was in the September GL and trial balance
 ## 10. First thing to do
 
 Ask her which month and file she is working on now. September is closed apart from the open items above. October month end is likely next. Ask her to upload last month's working files for whatever she needs, because nothing from the September session is still on disk.
+
+## 11. Bonus Leave tracker (October 2026 session)
+
+This was a separate session on branch `claude/ecstatic-ptolemy-snb6op`, merged into this history on 8 November 2026. Everything lives in `bonusleave/`.
+
+### Files
+
+- `bonusleave/out/Finance - Bonus Leave Accrual Workbook DN 01102026.xlsx` is the HR copy with staff data. It is gitignored from now on. Earlier commits on this branch did contain it, so treat the branch history as holding employee data.
+- `bonusleave/Finance - CTS Bonus Leave Tracker (blank master).xlsx` is the same workbook with no data. `build_tracker.py` with `CLEAN=1` builds it.
+- `bonusleave/Finance - Bonus Leave flowchart v2.0 vs 2026 policy - email to Graham.docx` compares the 2017 flowchart v2.0 with the written 2026 policy, with screenshots. `email_doc.js` builds it with docx-js.
+- `bonusleave/build_tracker.py`, `milestones.py` and `inject.py` build the workbooks. `inject.py` copies HR inputs, HR colours, notes and the HR tally into a fresh master. It needs the HR source file and `tally.txt`, which are not on disk any more. Ask Danica for the current HR workbook before rebuilding.
+- Recalculate with the xlsx skill's `recalc.py` after any rebuild. LibreOffice Calc must be installed first. Check for zero formula errors.
+
+### Rules the tracker applies, as at the last build
+
+- Written 2026 Bonus Leave Scheme Policy v1.0, effective 08/09/2026. Settings row 35 is Yes.
+- Full time: 1 day at 3 years, then 1 day every 4 months. 5-year anniversary is 2 days from 08/09/2026, 1 day for anniversaries before that. Then 1 day every 3 months.
+- Part time on 24 hours or more: eligible from 5 years, 1 day every 4 months. Blank hours means 24 plus.
+- Casual time never counts. Service runs from the first full-time or part-time start date. This is a CTS decision, not policy wording.
+- Service before the scheme start on 27/11/2017 counts towards the 3 and 5 year points, but no day is earned for a milestone that fell before that date. Settings row 34 is Yes. Danica reversed a "no counting back" rule on 12 October. Do not reintroduce it.
+- 1 day is 8 hours. Not paid out on termination.
+- Anyone employed before 27/11/2017 was also credited by HR for milestones before the scheme started. Those show in the Opening Balance.
+
+### How the Hours to Accrue sum works
+
+Earned under the scheme, less Leave Taken, gives Should Have Left. Should Have Left less the EH Closing Balance is Hours to Accrue. The "Working in plain English" column writes this out per person. Danica asked for it this way. Do not change it back to an opening-plus-accrued comparison. Leave taken is deducted once, on the Should Have Left side.
+
+### Position as at 30/09/2026
+
+- 528 hours to post for 12 people. Premila is 208 of that and waits on her eligibility letter.
+- Daniel Sobkowski is 104 hours under in EH. Duncan Lugstein is 16 hours over because HR ran his accruals on a Feb, May, Aug, Nov cycle instead of his October anniversary. Jordan Sexty matches.
+- Isaac Butterworth has 9 days from his part-time start 17/09/2019. Tyrell Shortt has 1 day. Both match the HR tally.
+- Milo Rankin start date confirmed 05/08/2019. HR tally is 3 days short.
+- Christopher Lehmann is terminated. Patrick Lee and Simon Gruenefeld are casual. None are on the tracker.
+
+### Open decisions for Graham
+
+- Confirm the 2026 policy governs where it differs from the flowchart. The flowchart is full time only with 1 day at 5 years.
+- Whether Daniel's 104 hours are posted and Duncan's 16 hours over stand.
+- Premila's eligibility letter.
+- Kyle Krishnappa: if his part-time stint from 19/04/2022 to 05/09/2022 was under 24 hours, move the date to Casual Start and he drops from 5 days to 4.
+
+### Things that were tried and reversed
+
+- A "no counting back before 27/11/2017" rule. Reversed by Danica.
+- A policy v1.1 draft with a no-backdating clause. Withdrawn. The policy stays at v1.0.
+- Running the tracker on the flowchart only. Reversed. Settings row 35 is Yes.
+
+The Graham emails were written in chat, not saved as files. The latest wording is in the session transcript for `session_01EcDw2RdbzrHBowkHsXKDir`.

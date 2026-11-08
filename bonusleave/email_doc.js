@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { Document, Packer, Paragraph, TextRun, ImageRun, HeadingLevel, AlignmentType } = require('docx');
-const S = '/home/user/Claude/screenshots/';
+const S = '/home/user/Claude/bonusleave/screenshots/';
 const sizeOf = (p) => { const b = fs.readFileSync(p); // PNG header: width at 16, height at 20
   return { w: b.readUInt32BE(16), h: b.readUInt32BE(20), buf: b }; };
 function img(name, label) {
@@ -56,4 +56,4 @@ const children = [
 ];
 const doc = new Document({ styles: { default: { document: { run: { font: 'Arial', size: 22 } } } },
   sections: [{ properties: { page: { margin: { top: 1134, bottom: 1134, left: 1134, right: 1134 } } }, children }] });
-Packer.toBuffer(doc).then(b => { fs.writeFileSync('/home/user/Claude/Bonus Leave - flowchart v2.0 vs 2026 policy - email to Graham.docx', b); console.log('written'); });
+Packer.toBuffer(doc).then(b => { fs.writeFileSync('/home/user/Claude/bonusleave/Finance - Bonus Leave flowchart v2.0 vs 2026 policy - email to Graham.docx', b); console.log('written'); });

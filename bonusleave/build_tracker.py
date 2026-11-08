@@ -6,7 +6,7 @@ from openpyxl.workbook.defined_name import DefinedName
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.formatting.rule import FormulaRule
 
-OUT = "/home/user/Claude/CTS_Bonus_Leave_Tracker.xlsx"
+OUT = "/home/user/Claude/bonusleave/Finance - CTS Bonus Leave Tracker (blank master).xlsx"
 NROWS = 150
 R0, R1 = 5, 5 + NROWS - 1
 EH_MAX = 3000
