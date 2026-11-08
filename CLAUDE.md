@@ -17,23 +17,26 @@ The owner is Danica Nelson, finance head at CTS. She is not a developer.
 
 ## Hard rules
 
-1. **Never commit real data.** `portal/data/` holds seed data only
-   (`meta.seed: true`, fictional clients). Real exports, built live data,
-   wages, ledgers and client names stay outside git: `portal/_*` folders are
-   ignored for this reason, and `portal/_live_september/` holds the real
-   September 2026 build. Before every commit run `git status` and check
-   nothing under `portal/data/` has lost its seed flag.
-2. **No em dashes or en dashes** in any repository file, code or docs. Use a
+1. **Live data never goes into this folder's `portal/data/`.** It holds
+   seed data only (`meta.seed: true`, fictional clients). Real exports,
+   built live data, wages, ledgers and client names live in
+   `portal/_live_september/` or in the separate hosted copy of the portal.
+   `portal/_*` folders are ignored by git for this reason. If git is ever
+   used, real data is never committed.
+2. **No em dashes or en dashes** in any file, code or docs. Use a
    comma, a full stop or the word "to".
 3. **Australian spelling and context** everywhere: colour, organisation,
    utilisation, financial year 1 July to 30 June, GST, superannuation.
-4. **No pull requests unless asked.** Work on the branch you were given.
-   Commit with clear messages. Never put a model name or identifier in a
-   commit message, code or comment.
+4. **This is a local build with no remote.** Before editing the HTML or
+   any of the four scripts, copy them into
+   `portal/_versions/YYYY-MM-DD-<short note>/` so the change can be undone.
+   The `.git` folder here is history and an optional local undo log; never
+   push anywhere or open a pull request unless Danica asks. Never put a
+   model name or identifier in code, comments, commit messages or notes.
 5. **Generated files are not edited by hand.** Templates come from
    `portal/build/build_templates.py`; seed data from
    `portal/build/build_data.py`; live data from the Build page. Change the
-   generator, regenerate, commit both.
+   generator, regenerate, keep both.
 6. **The emails and the deck ignore the department picker.** Anything that
    renders for a recipient must run inside `E.withoutView`.
 7. **Money is cents (integers) inside the engine.** Amount is credit less
@@ -60,7 +63,7 @@ portal/docs/              MONTHLY, HOSTING, AUTOMATION, FORECASTING, HANDOVER, C
 
 - **Before editing**, read the relevant section of `portal/docs/HANDOVER.md`
   (section 3 architecture, 5 build, 7 checks, 8 deck and emails).
-- **Syntax check both scripts** before any commit:
+- **Syntax check both scripts** before handing any change over:
   `node -e "new Function(require('fs').readFileSync('portal/CTS_bi_bundle.js','utf8'))"`
   and the same for `portal/CTS_build.js`.
 - **Test in a copy, never in the repo folder.** Copy `portal` to a scratch
@@ -71,6 +74,9 @@ portal/docs/              MONTHLY, HOSTING, AUTOMATION, FORECASTING, HANDOVER, C
   section 13 has the pattern and the identities that must hold (ledger ties
   to P&L; job income plus no-job income equals P&L income; derived budget
   ties to group budget; every page renders).
+- **Finishing a change** means: syntax check passed, the harness identities
+  hold, a dated copy is in `portal/_versions`, and a list for Danica of the
+  files to copy into the hosted portal (`portal/docs/COWORK.md` section 5).
 - **Adding a page** means four places: `P.<id>` in the bundle, the PAGES and
   ROLES lists in `build/build_templates.py` (then regenerate templates),
   `data/CTS_users_data.js`, and optionally `GEN.<id>`.

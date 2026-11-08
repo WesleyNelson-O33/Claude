@@ -4,14 +4,14 @@ Two surfaces, two folders, one package.
 
 | | Claude Code | Cowork project |
 |---|---|---|
-| Purpose | Building: code, pages, templates, tests, commits | Running: the monthly close, analysis, commentary, deck, emails |
-| Folder | The repository clone (`repo/` from the handover zip). Seed data only. Git | A hosted copy of `portal` with the live data. Not a git repository |
-| Reads on start | `CLAUDE.md` at the repository root | The project instructions below, pasted into the project settings |
+| Purpose | Building: code, pages, templates, tests | Running: the monthly close, analysis, commentary, deck, emails |
+| Folder | The building folder (`repo/` from the handover zip). Seed data only. No remote | A hosted copy of `portal` with the live data. Not a git repository |
+| Reads on start | `CLAUDE.md` at the root of the building folder | The project instructions below, pasted into the project settings |
 | Reference | `portal/docs/HANDOVER.md` | `portal/docs/MONTHLY.md`, and HANDOVER sections 1, 5, 7, 10 and 15 |
 
 ## 1. Set up the hosted folder
 
-1. Copy `repo\portal` to a folder outside the repository, for example
+1. Copy `repo\portal` to a folder outside the building folder, for example
    `C:\Work\CTS Business Portal` or the synced SharePoint library
    (`docs/HOSTING.md`).
 2. Copy the files from `repo\portal\_live_september\data` over that folder's
@@ -23,7 +23,7 @@ Two surfaces, two folders, one package.
 ## 2. Set up the Cowork project
 
 1. Create a project named CTS Business Portal.
-2. Connect the hosted folder (not the repository clone) so the agent can
+2. Connect the hosted folder (not the building folder) so the agent can
    read the templates, the data files, `outbox` and `archive`, and write
    filled templates.
 3. Add to the project knowledge: `docs/MONTHLY.md`, `docs/HANDOVER.md`,
@@ -47,7 +47,7 @@ Rules
   anything outside this project, never summarise wages by person outside
   the portal, and never suggest publishing it to a public host.
 - Do not edit the .html or .js files. Code changes happen in Claude Code in
-  the repository clone and are copied in (docs/COWORK.md section 5). If a
+  the building folder and are copied in (docs/COWORK.md section 5). If a
   page is wrong, describe the fault for the developer instead of patching.
 - Templates are the inputs. You may fill them from exports Danica gives you
   (paste into the right tab, header for header, values as numbers). The
@@ -109,10 +109,11 @@ to the Claude Code side.
 
 ## 5. Keeping the two folders in step
 
-When Claude Code finishes a change in the repository:
+When Claude Code finishes a change in the building folder:
 
-1. Commit and push in the repository clone.
-2. Copy these from the clone to the hosted folder, overwriting:
+1. Make sure the dated backup is in `portal/_versions` and the syntax
+   checks passed (CLAUDE.md).
+2. Copy these from the building folder to the hosted folder, overwriting:
    `CTS Business Intelligence Portal.html`, `CTS_bi_bundle.js`,
    `CTS_build.js`, `CTS_email.js`, `CTS_deck.js`, the `vendor` folder, the
    `docs` folder.
@@ -124,7 +125,8 @@ When Claude Code finishes a change in the repository:
 5. Open the hosted portal and check the About page shows the new version.
 
 A simple rule for the agents: the Cowork agent never touches code, the
-Claude Code agent never touches live data.
+Claude Code agent never touches live data, and nothing reaches the
+hosted folder except by the copy in section 5.
 
 ## 6. The handover zip
 

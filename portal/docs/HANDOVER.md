@@ -66,7 +66,7 @@ files.
 | Item | State |
 |---|---|
 | Code | Working. 33 pages, Build for all 14 templates, three email tiers, fortnightly update, deck, 28 controller checks, revenue risk, project P&L, forecast, cash flow |
-| Repository | GitHub `WesleyNelson-O33/Claude`, branch `claude/cts-replica-n0d209`, folder `portal/`. Latest commits: `0ef956f` Project P&L page, `b77649e` handover. The work agent will not have access to this remote; the zip carries the full clone with history |
+| Code location | The `repo` folder of the handover zip, a full copy of the original repository with its history. The work set-up is a local build with no remote; the original GitHub repository is not reachable from the work account and is not needed |
 | Data in the repository | Seed only. Fictional client names, modelled months between real anchors. The seed config's reporting month is August 2026 |
 | Live data | September 2026 is closed and built. The data files are in `portal/_live_september/data/` in the handover zip (ignored by git on purpose) and on a private Claude artifact in Danica's personal account. They must never be committed |
 | September result | Revenue $561,945, gross profit $187,814, net loss $41,464. Ledger ties to the closed Xero P&L in every month. Controller checks: 0 failed, 12 look |
@@ -81,7 +81,7 @@ files.
 | Tool | Why | Needed for |
 |---|---|---|
 | Microsoft Edge or Google Chrome | The Build page uses the File System Access API, which only these have | Build, Distribution writes |
-| Git for Windows | Version control, pushing to the work GitHub | Development |
+| Git for Windows | Optional. Only if the local history is to be used as an undo log | Development |
 | Node.js 20 or later | Syntax checks of the scripts, no npm packages needed | Development |
 | Python 3.11 or later with `openpyxl` | Regenerating the templates (`build/build_templates.py`), serving the folder for headless tests | Development, template changes |
 | Claude Code (desktop or CLI) | The work agent | Development |
@@ -115,28 +115,34 @@ CTS Portal Handover/
 Put `repo/` somewhere sensible, for example `C:\Work\CTS\Claude`. Open that
 folder in Claude Code. `CLAUDE.md` at its root is read automatically.
 
-### 2.3 Pointing the clone at the work GitHub
+### 2.3 Working locally without GitHub
 
-The clone still points at the personal remote, which the work account
-cannot reach. Change it:
+The work set-up is a local build: no remote repository, no pushing. The
+`repo` folder is just the building folder. Two habits replace version
+control:
 
-```
-cd repo
-git remote remove origin
-git remote add origin https://github.com/<work-org>/<work-repo>.git
-git push -u origin claude/cts-replica-n0d209
-```
+1. **Two folders.** `repo/portal` is where code is changed and tested, on
+   seed data. The team's portal is a separate hosted copy with live data
+   (section 2.4 and `docs/COWORK.md`). A change reaches the hosted copy only
+   by copying the finished files across (COWORK section 5), so a half done
+   edit can never take the team's portal down.
+2. **Dated backups before every change.** Before the agent edits the HTML or
+   any of the four scripts, it copies them into
+   `repo/portal/_versions/YYYY-MM-DD-<short note>/`. The `portal/_*` pattern
+   keeps that folder out of any future git use. Undo is copying a version
+   back. Keep the last ten or so.
 
-Or push the branch as `main` if the work repository is new:
+The `repo` folder still contains a `.git` folder with the full history of
+how the portal was built (44 commits, each message explaining the change).
+It needs no account and no network. The agent may use it as an undo log
+with plain local commits, or ignore it. Delete the `.git` folder if you
+want it gone; nothing in the portal depends on it. If a remote is ever
+wanted later, `git remote add origin <url>` and `git push -u origin
+claude/cts-replica-n0d209` is all it takes.
 
-```
-git push -u origin claude/cts-replica-n0d209:main
-```
-
-Before the first push, confirm no real data is staged: `git status` must
-not list anything under `portal/_live_september/` (it is covered by the
-`portal/_*` rule in `.gitignore`) and `portal/data/` must still hold the
-seed files (their `meta.seed` is `true`).
+Whichever way, `portal/data` in the building folder must stay seed
+(`meta.seed` is `true` in each file), and the live files stay in
+`portal/_live_september` or the hosted copy.
 
 ### 2.4 Making the portal show the real September data locally
 
@@ -149,9 +155,9 @@ xcopy /E /Y _live_september\data data
 disappears and the reporting month reads September 2026. To go back to the
 seed, `git checkout -- portal/data`.
 
-Never commit after that copy without restoring the seed first. The simplest
-habit: keep two folders, the repository clone with seed data for development,
-and a separate hosted copy with live data that is never a git repository.
+Do that only in a hosted copy, never in the building folder. The simplest
+habit: keep two folders, the building folder with seed data, and a separate
+hosted copy with live data.
 
 ### 2.5 Regenerating the templates
 
@@ -384,7 +390,8 @@ Real names and addresses are awaited.
 3. `data/CTS_users_data.js` for the seed.
 4. Optionally `GEN.<id>` for proposed commentary.
 
-Commit `0ef956f` (Project P&L) touches all four and is the example.
+The Project P&L change (the commit "Add the Project P&L page built from
+the ledger job numbers" in the history) touches all four and is the example.
 
 ---
 
@@ -896,13 +903,15 @@ Set by Danica or by the repository. Carry them over.
 
 - Australian spelling and context: financial year 1 July to 30 June, GST,
   superannuation guarantee 12%, state public holidays, Victoria by default.
-- No em dashes or en dashes in repository files. Use a comma, a full stop or
+- No em dashes or en dashes in any file in the folder. Use a comma, a full stop or
   "to".
-- Never commit real data. Column shapes and derived names only. The seed
-  stays in `portal/data`; live data lives in `portal/_live_september` or a
-  hosted copy, both outside git.
-- Never open a pull request unless asked. Work on the one branch.
-- No model names or identifiers in commit messages, code or comments.
+- Live data never goes into the building folder's `portal/data`. The seed
+  stays there; live data lives in `portal/_live_september` or the hosted
+  copy. If git is ever used, real data is never committed.
+- Back up before changing code (section 2.3). No remote, no pull requests,
+  no pushing unless Danica sets one up.
+- No model names or identifiers in code, comments or any note written into
+  the folder.
 - The emails and the deck must never leak the in-portal department filter.
 - Data files are generated; templates are generated. Edit the generator,
   not the output.
@@ -948,10 +957,12 @@ Open the `repo` folder in Claude Code and paste:
 
 > This folder is the CTS Business Intelligence Portal, a static finance
 > portal for Corporate Technology Services. Read CLAUDE.md, then
-> portal/docs/HANDOVER.md, portal/README.md and portal/docs/MONTHLY.md
-> before touching anything. The data in portal/data is seed. The real
-> September 2026 data is in portal/_live_september/data and must never be
-> committed. Australian spelling, no em dashes in repository files, no pull
-> requests unless I ask, never put model names in commits. First job:
-> [point the git remote at my work GitHub and push / host the portal with
-> the live data / rebuild September with the October pay runs I will upload].
+> portal/docs/HANDOVER.md, portal/README.md, portal/docs/MONTHLY.md and
+> portal/docs/COWORK.md before touching anything. This is a local build
+> with no GitHub. The data in portal/data is seed. The real September 2026
+> data is in portal/_live_september/data and must never be copied into this
+> folder's portal/data. Back up the HTML and scripts into portal/_versions
+> before any change. Australian spelling, no em dashes in any file, never
+> put model names in code or notes. First job: [make the hosted copy with
+> the live data / rebuild September with the October pay runs I will
+> upload].
