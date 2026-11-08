@@ -1,4 +1,4 @@
-"""Build the CTS Revenue Risk Profile workbook.
+"""Build the CTS Finance Revenue Risk Profile workbook.
 
 Only four sheets are typed or pasted into: Zoho Dump, P&L Dump, Adjustments
 and Budget. Settings holds the levers. Everything else is formulas, so a new
@@ -16,7 +16,7 @@ from openpyxl.formatting.rule import FormulaRule
 
 ROOT = Path("/home/user/Claude/revenue-risk")
 ZOHO_SRC = ROOT / "source/All Deals by Stage FY26-FY27 (12-10-2026).xlsx"
-OUT = ROOT / "CTS Revenue Risk Profile.xlsx"
+OUT = ROOT / "CTS Finance Revenue Risk Profile.xlsx"
 BUDGET_SRC = ROOT / "source/CTS Budget FY27 Final DN.xlsx"
 BUD_LINES = ["Onsite", "Production", "Consulting"]
 BUD_OF = {"Onsite": "Onsite", "Production": "Production", "Video": "Production",
