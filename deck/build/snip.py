@@ -79,6 +79,9 @@ SNIPS = {
     'dept_Video':       ('Dept P&L', 'A7:G25', False, '', {'B5': 'Video'}),
     'dept_Integration': ('Dept P&L', 'A7:G25', False, '', {'B5': 'Integration'}),
     'dept_Consulting':  ('Dept P&L', 'A7:G25', False, '', {'B5': 'Consulting'}),
+
+    # Quarterly. The year to date departmental table, which at September is Q1.
+    'dept_q1':          ('P&L by Dept', 'A259:G264', False, '', None, 'EFG'),
     'util_chart':  ('Utilisation',    'F65:AA90',    False),
     # The same hours picture rolled up to the three departments.
     'util_three':  ('Utilisation',    'F92:AA117',   False),
@@ -108,7 +111,7 @@ def collapse(ws):
             d.hidden = True
 
 
-def build(snip_id, sheet, rng, do_collapse, hide_cols='', set_cells=None):
+def build(snip_id, sheet, rng, do_collapse, hide_cols='', set_cells=None, show_cols=''):
     wb = openpyxl.load_workbook(PACK)
     for ws in wb.worksheets:
         ws.sheet_state = 'visible' if ws.title == sheet else 'hidden'
@@ -118,6 +121,9 @@ def build(snip_id, sheet, rng, do_collapse, hide_cols='', set_cells=None):
         collapse(ws)
     for col in hide_cols:
         ws.column_dimensions[col].hidden = True
+    # Some tabs keep forecast columns hidden. A snip that needs them says so.
+    for col in show_cols:
+        ws.column_dimensions[col].hidden = False
     for ref, value in (set_cells or {}).items():
         ws[ref] = value
     ws.print_area = rng
@@ -169,7 +175,8 @@ def main(only=None):
         sheet, rng, coll = spec[0], spec[1], spec[2]
         hide = spec[3] if len(spec) > 3 else ''
         sets = spec[4] if len(spec) > 4 else None
-        x = build(snip_id, sheet, rng, coll, hide, sets)
+        show = spec[5] if len(spec) > 5 else ''
+        x = build(snip_id, sheet, rng, coll, hide, sets, show)
         subprocess.run([sys.executable, SOFFICE, '--headless', '--convert-to', 'pdf',
                         '--outdir', WORK, x], check=True, capture_output=True)
         pdf = os.path.join(WORK, f'{snip_id}.pdf')
