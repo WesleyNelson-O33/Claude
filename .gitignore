@@ -19,3 +19,7 @@ CTS Training Material.zip
 # Employee-level payroll data. Handed to Danica directly, never committed.
 ptax/EH Payroll Split File*.xlsx
 ptax/*_EH_PTax_*.xlsx
+
+# Built recon workbooks carry customer job and invoice detail.
+# Handed to Danica directly, not committed.
+recon/CTS work in progress by month - 31 October 2026.xlsx
