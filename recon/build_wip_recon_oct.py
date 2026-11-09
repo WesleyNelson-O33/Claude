@@ -216,6 +216,7 @@ IN = PatternFill('solid', fgColor='FFF2CC')
 RED = PatternFill('solid', fgColor='FFC7CE')
 AMBER = PatternFill('solid', fgColor='FFEB9C')
 GREEN = PatternFill('solid', fgColor='C6EFCE')
+BLUE = PatternFill('solid', fgColor='DDEBF7')
 THIN = Border(*[Side(style='thin', color='BFBFBF')] * 4)
 MONEY = '#,##0.00;[Red]-#,##0.00'
 MONEY0 = '#,##0.00;[Red]-#,##0.00;""'
@@ -652,8 +653,8 @@ def main(wip_path, gl_path, pl_path, out):
     band(ws, 5, ['Job number', 'Job', 'WIP balance', 'Lines', 'Invoiced',
                  'Invoice numbers', 'First invoice date',
                  'Last invoice date', 'Days since last invoice',
-                 'Look at this one'],
-         [12, 44, 15, 8, 10, 32, 13, 13, 13, 40])
+                 'Licence deferral', 'Look at this one'],
+         [12, 44, 15, 8, 10, 32, 13, 13, 13, 13, 46])
     jobs = {}
     for x in wip:
         if x['job']:
@@ -674,29 +675,36 @@ def main(wip_path, gl_path, pl_path, out):
             f'=IFERROR(INDEX({JC},MATCH($A{i},{JA},0)),"")',
             f'=IFERROR(LOOKUP(2,1/({JA}=$A{i}),{JC}),"")',
             f'=IF($H{i}="","",DATE(2026,10,31)-$H{i})',
+            f'=IF(COUNTIFS({TL},$A{i},{TF},'
+            f'"Licences and subscriptions")>0,"yes","no")',
             f'=IF(ROUND($C{i},2)=0,"",'
+            f'IF($J{i}="yes","licence released monthly, a balance is the '
+            f'term still to run",'
             f'IF($E{i}="no","not invoiced yet, so WIP is correct",'
             f'IF($I{i}>60,"invoiced over 60 days ago and still in WIP",'
-            f'"invoiced recently, check it has cleared")))'],
-            [None, None, MONEY, '0', None, None, DATE, DATE, '0', None])
+            f'"invoiced recently, check it has cleared"))))'],
+            [None, None, MONEY, '0', None, None, DATE, DATE, '0', None,
+             None])
     job_last = r - 1
     r += 1
     ws.cell(r, 2, 'Total with a job number').font = SUB
     ws.cell(r, 3, f'=SUM(C6:C{job_last})').number_format = MONEY
     ws.cell(r, 4, f'=SUM(D6:D{job_last})').number_format = '0'
-    bold(ws, r, range(1, 11))
+    bold(ws, r, range(1, 12))
     r += 1
     ws.cell(r, 2, 'Lines with no job number').font = SUB
     ws.cell(r, 3, f'=SUM({TK})-C{r-1}').number_format = MONEY
     ws.cell(r, 4, f'=COUNTA({TK})-D{r-1}').number_format = '0'
-    bold(ws, r, range(1, 11))
+    bold(ws, r, range(1, 12))
     r += 1
     ws.cell(r, 2, 'Total activity, ties to the recon').font = SUB
     ws.cell(r, 3, f'=C{r-2}+C{r-1}').number_format = MONEY
-    bold(ws, r, range(1, 11))
+    bold(ws, r, range(1, 12))
     from openpyxl.formatting.rule import FormulaRule as _FR
-    ws.conditional_formatting.add(f'A6:J{job_last}', _FR(
-        formula=['$I6>60'], fill=RED))
+    ws.conditional_formatting.add(f'A6:K{job_last}', _FR(
+        formula=['AND($I6>60,$J6="no",ROUND($C6,2)<>0)'], fill=RED))
+    ws.conditional_formatting.add(f'A6:K{job_last}', _FR(
+        formula=['$J6="yes"'], fill=BLUE))
 
     # ------------------------------------------------------ Job life cycle
     # For each job, every event in date order: when cost or revenue goes
@@ -934,9 +942,18 @@ def main(wip_path, gl_path, pl_path, out):
         bold(ws, i, range(1, 10))
 
         days = (datetime.date(2026, 10, 31) - dates[-1]).days if dates else 0
+        is_lic = any(cat_of(xl_item(x['desc']))
+                     == 'Licences and subscriptions'
+                     for x in wip if x['job'] == j)
         if round(bal_of[j], 2) == 0:
             note = 'Nothing left in WIP. It went in and it came out.'
             fill = GREEN
+        elif is_lic:
+            note = ('Licence invoiced in advance and released a month at a '
+                    'time. The balance is the part of the term still to '
+                    'run, so a balance here is expected. This is deferred '
+                    'revenue rather than work in progress.')
+            fill = BLUE
         elif not invs:
             note = ('Not invoiced yet, so cost sitting in WIP is correct.')
             fill = GREEN
