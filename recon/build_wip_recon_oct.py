@@ -157,6 +157,23 @@ def paste_source(wb, title, path):
     return ws
 
 
+def wip_balance_rows(path):
+    """Which rows of the WIP export hold Opening Balance and Closing
+    Balance, so the recon can read them rather than carry a typed copy."""
+    ws = openpyxl.load_workbook(path, data_only=True,
+                                read_only=True).worksheets[0]
+    opening = closing = None
+    for n, r in enumerate(ws.iter_rows(values_only=True), 1):
+        label = str(r[0]).strip() if r[0] is not None else ''
+        if label == 'Opening Balance':
+            opening = n
+        elif label == 'Closing Balance':
+            closing = n
+    if not (opening and closing):
+        raise SystemExit('the export has no Opening or Closing Balance row')
+    return opening, closing
+
+
 def jobkey(j):
     m = re.match(r'\s*([0-9]{3,}[A-Za-z]?)', j or '')
     return m.group(1) if m else ''
@@ -167,6 +184,23 @@ def desckey(d):
     Reversal comes off before the two are compared."""
     d = re.sub(r'^Reversal:\s*', '', str(d or '')).strip()
     return re.sub(r'\s+', ' ', d).lower()[:70]
+
+
+def xl_item(desc):
+    """The item exactly as the Item column on Transactions works it out.
+
+    The formula there strips a leading "Reversal:" and then TRIMs, and
+    Excel's TRIM also squeezes runs of spaces down to one. Two source
+    descriptions that differ only by a stray double space are therefore
+    the same item on the sheet, so they have to be the same item here.
+    """
+    d = str(desc or '')
+    if d[:9].lower() == 'reversal:':
+        d = d[9:]
+    # Xero descriptions carry line breaks. Excel's TRIM does not remove
+    # them, so they are turned into spaces first, on both sides.
+    d = d.replace('\r', ' ').replace('\n', ' ')
+    return re.sub(r' +', ' ', d).strip()
 
 
 def kind(desc):
@@ -224,6 +258,7 @@ def main(wip_path, gl_path, pl_path, out):
     period, opening, closing, wip = load(wip_path)
     gl = read_gl(gl_path)
     pl = read_pl(pl_path)
+    open_row, close_row = wip_balance_rows(wip_path)
     refs = {str(x['ref']) for x in wip}
     other = [x for x in gl if x['ref'] in refs and x['account'] != WIPNAME]
     byref_job = defaultdict(set)
@@ -251,48 +286,157 @@ def main(wip_path, gl_path, pl_path, out):
     s_went = wb.create_sheet('Where it went')
     s_rev = wb.create_sheet('Accruals vs reversals')
     s_tx = wb.create_sheet('Transactions')
+    s_keys = wb.create_sheet('Job keys')
+    s_inv = wb.create_sheet('Job invoices')
     s_osrc = wb.create_sheet('Source - other side')
+
+    # --------------------------------------------------------- Job keys
+    # One row for every line on the P&L analysis export, in its own order,
+    # every cell a formula pointing back at it. Two keys are built here:
+    # one on the journal reference and the figure, one on the journal
+    # reference and the description. Both are what the Transactions tab
+    # looks a job number up on.
+    PX = "'Xero - P&L analysis'!"
+    WX = "'Xero - WIP transactions'!"
+    KY = "'Job keys'!"
+    JI = "'Job invoices'!"
+    ws = s_keys
+    ws['A1'] = 'Job keys, built from the P&L analysis export'
+    ws['A1'].font = TITLE
+    ws['A2'] = ('Nothing is typed here. Every cell reads the row named in '
+                'column A. The two key columns are how a WIP line finds '
+                'its job.')
+    band(ws, 4, ['Where it comes from', 'Key on the figure',
+                 'Key on the description', 'Job number', 'Job', 'Account',
+                 'Income or cost', 'Date', 'Invoice', 'Reference',
+                 'Source', 'Amount'],
+         [26, 30, 56, 12, 42, 32, 13, 11, 16, 13, 16, 13])
+    r = 5
+    for x in pl:
+        n = x['row']
+        i = r
+        r = put(ws, r, [
+            f'Xero - P&L analysis row {n}',
+            f'={PX}J{n}&"|"&TEXT(ROUND(ABS({PX}G{n}-{PX}F{n}),2),"0.00")',
+            f'={PX}J{n}&"|"&LOWER(LEFT(TRIM(SUBSTITUTE(SUBSTITUTE('
+            f'IF(LEFT({PX}K{n},9)="Reversal:",MID({PX}K{n},10,500),'
+            f'{PX}K{n}),CHAR(10)," "),CHAR(13)," ")),70))',
+            f'=TRIM(LEFT({PX}H{n},FIND(" ",{PX}H{n}&" ")-1))',
+            f'={PX}H{n}', f'={PX}A{n}&" "&{PX}B{n}',
+            f'=IF({PX}A{n}<50000,"Income","Cost")',
+            f'={PX}D{n}', f'={PX}I{n}', f'={PX}J{n}', f'={PX}C{n}',
+            f'={PX}G{n}-{PX}F{n}'],
+            [None, None, None, None, None, None, None, DATE, None, None,
+             None, MONEY])
+        ws.cell(i, 1).font = Font(italic=True, size=8)
+    k1, k2 = 5, r - 1
+    KB = f'{KY}$B${k1}:$B${k2}'
+    KC = f'{KY}$C${k1}:$C${k2}'
+    KD = f'{KY}$D${k1}:$D${k2}'
+    KE = f'{KY}$E${k1}:$E${k2}'
+    KH = f'{KY}$H${k1}:$H${k2}'
+    KL = f'{KY}$L${k1}:$L${k2}'
+
+    # ----------------------------------------------------- Job invoices
+    # Every sales invoice line, job by job and oldest first, so a job's
+    # first invoice is its first match and its last is its last.
+    ws = s_inv
+    ws['A1'] = 'Sales invoices raised on each job'
+    ws['A1'].font = TITLE
+    ws['A2'] = ('Taken from the Job keys tab, sorted by job and then by '
+                'date. The last column builds up the list of invoices on '
+                'the job as you go down.')
+    band(ws, 4, ['Job number', 'Invoice', 'Date',
+                 'Invoices on this job so far', 'Where it comes from'],
+         [12, 18, 12, 40, 26])
+    rowmap = {x['row']: n for n, x in enumerate(pl, 5)}
+    invlines = [x for x in pl
+                if x['code'] < 50000 and x['inv'].startswith('INV-')
+                and jobkey(x['job'])]
+    invlines.sort(key=lambda x: (jobkey(x['job']), x['date'], x['inv']))
+    r = 5
+    for x in invlines:
+        kr = rowmap[x['row']]
+        i = r
+        prev = i - 1
+        lst = (f'=IF($A{i}<>$A{prev},$B{i},'
+               f'IF(ISNUMBER(SEARCH($B{i},$D{prev})),$D{prev},'
+               f'$D{prev}&", "&$B{i}))') if i > 5 else f'=$B{i}'
+        r = put(ws, r, [f'={KY}D{kr}', f'={KY}I{kr}', f'={KY}H{kr}', lst,
+                        f'Job keys row {kr}'],
+                [None, None, DATE, None, None])
+        ws.cell(i, 5).font = Font(italic=True, size=8)
+    j1, j2 = 5, r - 1
+    JA = f'{JI}$A${j1}:$A${j2}'
+    JB = f'{JI}$B${j1}:$B${j2}'
+    JC = f'{JI}$C${j1}:$C${j2}'
+    JD = f'{JI}$D${j1}:$D${j2}'
 
     # ----------------------------------------------------- Transactions
     ws = s_tx
     ws['A1'] = 'Every line on account 11300'
     ws['A1'].font = TITLE
-    ws['A2'] = f'From the export for {period}'
+    ws['A2'] = (f'From the export for {period}. Nothing is typed on this '
+                f'tab. Every cell is a formula, and the last column names '
+                f'the Xero row it reads.')
     band(ws, 4, ['Date', 'Month', 'Source', 'Description', 'Item',
                  'Category', 'Type', 'Reference', 'Debit', 'Credit', 'Net',
+                 'Key on the figure', 'Job by the figure',
+                 'Key on the description', 'Job by the description',
                  'Job number', 'Job', 'Invoiced', 'Invoice numbers',
-                 'First invoice date', 'Last invoice date', 'Job match'],
-         [11, 11, 15, 56, 50, 26, 11, 12, 13, 13, 13, 12, 42, 11, 30, 13,
-          13, 26])
+                 'First invoice date', 'Last invoice date',
+                 'Where it comes from',
+                 'Item key, used by the formulas'],
+         [11, 11, 15, 54, 48, 24, 11, 12, 13, 13, 13, 26, 13, 44, 13, 12,
+          40, 10, 30, 13, 13, 26, 30])
+    LICW = ','.join(f'"{w}"' for w in
+                    ('licence', 'license', 'proxyclick', 'eptura', 'xio',
+                     'subscription', 'desk booking', 'appspace',
+                     'visitor mg'))
     r = 5
     for x in wip:
         i = r
-        it = item_of(x['desc'])
-        invs = inv_by_job.get(x['job'], {}) if x['job'] else {}
-        dates = sorted(invs.values())
-        r = put(ws, r, [x['date'], f'=DATE(YEAR(A{i}),MONTH(A{i}),1)',
-                        x['source'], str(x['desc']), it, cat_of(it),
-                        kind(x['desc']), str(x['ref']),
-                        x['debit'] or None, x['credit'] or None,
-                        f'=I{i}-J{i}',
-                        x['job'] or None, x['jobname'] or None,
-                        ('yes' if invs else
-                         ('no' if x['job'] else None)),
-                        ', '.join(sorted(invs)) or None,
-                        dates[0] if dates else None,
-                        dates[-1] if dates else None,
-                        x['match']],
-                [DATE, 'mmm yyyy', None, None, None, None, None, None,
-                 MONEY, MONEY, MONEY, None, None, None, None, DATE, DATE,
-                 None])
-        if cat_of(it) == 'Licences and subscriptions':
-            ws.cell(i, 6).fill = RED
-        elif cat_of(it) == 'Monthly WIP journal':
-            ws.cell(i, 6).fill = AMBER
-        if x['job'] and not invs:
-            ws.cell(i, 14).fill = AMBER
+        n = x['row']
+        uniq = lambda key, kr: (
+            f'=IF(COUNTIF({kr},${key}{i})=0,"",'
+            f'IF(COUNTIF({kr},${key}{i})=COUNTIFS({kr},${key}{i},{KD},'
+            f'INDEX({KD},MATCH(${key}{i},{kr},0))),'
+            f'INDEX({KD},MATCH(${key}{i},{kr},0)),""))')
+        r = put(ws, r, [
+            f'={WX}A{n}', f'=DATE(YEAR(A{i}),MONTH(A{i}),1)',
+            f'={WX}B{n}', f'={WX}C{n}',
+            f'=TRIM(SUBSTITUTE(SUBSTITUTE(IF(LEFT(D{i},9)="Reversal:",'
+            f'MID(D{i},10,500),D{i}),CHAR(10)," "),CHAR(13)," "))',
+            f'=IF(SUMPRODUCT(--ISNUMBER(SEARCH({{{LICW}}},E{i})))>0,'
+            f'"Licences and subscriptions",'
+            f'IF(OR(LEFT(E{i},11)="WIP Journal",LEFT(E{i},10)='
+            f'"WIPJournal"),"Monthly WIP journal",'
+            f'IF(LEFT(E{i},11)="WIP Reclass","WIP reclass",'
+            f'"Other accruals")))',
+            f'=IF(LEFT(D{i},8)="Reversal","Reversal","Posting")',
+            f'={WX}D{n}', f'={WX}E{n}', f'={WX}F{n}', f'=I{i}-J{i}',
+            f'=H{i}&"|"&TEXT(ROUND(ABS(K{i}),2),"0.00")',
+            uniq('L', KB),
+            f'=H{i}&"|"&LOWER(LEFT(E{i},70))',
+            uniq('N', KC),
+            f'=IF(M{i}<>"",M{i},O{i})',
+            f'=IF(P{i}="","",IFERROR(INDEX({KE},MATCH(P{i},{KD},0)),""))',
+            f'=IF(P{i}="","",IF(COUNTIF({JA},P{i})>0,"yes","no"))',
+            f'=IF(P{i}="","",IFERROR(LOOKUP(2,1/({JA}=P{i}),{JD}),""))',
+            f'=IF(P{i}="","",IFERROR(INDEX({JC},MATCH(P{i},{JA},0)),""))',
+            f'=IF(P{i}="","",IFERROR(LOOKUP(2,1/({JA}=P{i}),{JC}),""))',
+            f'Xero - WIP transactions row {n}',
+            f'=SUBSTITUTE(SUBSTITUTE(SUBSTITUTE($E{i},"~","~~"),'
+            f'"*","~*"),"?","~?")'],
+            [DATE, 'mmm yyyy', None, None, None, None, None, None, MONEY,
+             MONEY, MONEY, None, None, None, None, None, None, None, None,
+             DATE, DATE, None, None])
+        ws.cell(i, 22).font = Font(italic=True, size=8)
+        for c in (12, 13, 14, 15):
+            ws.cell(i, c).font = Font(italic=True, size=8)
     t1, t2 = 5, r - 1
     T = "'Transactions'!"
+    TA = f'{T}$A${t1}:$A${t2}'      # date
     TB = f'{T}$B${t1}:$B${t2}'      # month
     TE = f'{T}$E${t1}:$E${t2}'      # item
     TF = f'{T}$F${t1}:$F${t2}'      # category
@@ -300,35 +444,43 @@ def main(wip_path, gl_path, pl_path, out):
     TI = f'{T}$I${t1}:$I${t2}'      # debit
     TJ = f'{T}$J${t1}:$J${t2}'      # credit
     TK = f'{T}$K${t1}:$K${t2}'      # net
-    TL = f'{T}$L${t1}:$L${t2}'      # job number
-    TN = f'{T}$N${t1}:$N${t2}'      # invoiced
+    TL = f'{T}$P${t1}:$P${t2}'      # job number
+    TN = f'{T}$R${t1}:$R${t2}'      # invoiced
+    TW = f'{T}$W${t1}:$W${t2}'      # item key
 
     # ------------------------------------------------- Source - other side
+    # The other side of each WIP journal, taken from the P&L analysis
+    # export so every cell can be a formula. The ledger export also holds
+    # Tracking Transfers on these journals, which nets to nil and is a
+    # clearing account, not profit and loss.
     ws = s_osrc
     ws['A1'] = 'The other side of every WIP journal'
     ws['A1'].font = TITLE
-    ws['A2'] = ('From the General Ledger Detail export. Lines sharing a '
-                'reference with a WIP line, with WIP itself left out. The '
-                'export starts 1 June 2026, so earlier months are not here.')
+    ws['A2'] = ('Lines on the P&L analysis export that share a journal '
+                'reference with a WIP line. It starts 1 June 2026, so '
+                'earlier months are not here. Nothing is typed.')
     band(ws, 4, ['Date', 'Month', 'Account', 'Income or Cost', 'Source',
-                 'Description', 'Reference', 'Jobs', 'Debit', 'Credit',
-                 'Net'],
-         [11, 11, 32, 14, 15, 60, 12, 24, 13, 13, 13])
+                 'Description', 'Reference', 'Job', 'Debit', 'Credit',
+                 'Net', 'Where it comes from'],
+         [11, 11, 32, 14, 15, 58, 12, 24, 13, 13, 13, 26])
+    other = [x for x in pl if x['ref'] in refs]
+    other.sort(key=lambda x: (x['date'], x['account']))
     r = 5
     for x in other:
         i = r
-        side = ('Income' if any(w in x['account'] for w in INCOME_WORDS)
-                else 'Cost')
-        r = put(ws, r, [x['date'], f'=DATE(YEAR(A{i}),MONTH(A{i}),1)',
-                        x['account'], side, x['source'], x['desc'],
-                        x['ref'],
-                        ', '.join(sorted(byref_job.get(x['ref'], ()))[:3]),
-                        x['debit'] or None, x['credit'] or None,
-                        f'=I{i}-J{i}'],
-                [DATE, 'mmm yyyy', None, None, None, None, None, None,
-                 MONEY, MONEY, MONEY])
+        n = x['row']
+        kr = rowmap[n]
+        r = put(ws, r, [
+            f'={PX}D{n}', f'=DATE(YEAR(A{i}),MONTH(A{i}),1)',
+            f'={KY}F{kr}', f'={KY}G{kr}', f'={PX}C{n}', f'={PX}K{n}',
+            f'={PX}J{n}', f'={PX}H{n}', f'={PX}F{n}', f'={PX}G{n}',
+            f'=J{i}-I{i}', f'Xero - P&L analysis row {n}'],
+            [DATE, 'mmm yyyy', None, None, None, None, None, None, MONEY,
+             MONEY, MONEY, None])
+        ws.cell(i, 12).font = Font(italic=True, size=8)
     o1, o2 = 5, r - 1
     O = "'Source - other side'!"
+    OA = f'{O}$A${o1}:$A${o2}'
     OB = f'{O}$B${o1}:$B${o2}'
     OC = f'{O}$C${o1}:$C${o2}'
     OD = f'{O}$D${o1}:$D${o2}'
@@ -343,23 +495,28 @@ def main(wip_path, gl_path, pl_path, out):
     ws.column_dimensions['A'].width = 40
     ws['A5'] = 'WHERE IT LANDS'
     ws['A5'].font = SUB
-    rows_ = [('Balance at 1 July 2025, per the export', round(opening, 2),
-              True),
-             ('Balance at 30 September 2026, Q1 FY27 close', None, False),
+    # The opening and closing balances are read off the export's own
+    # Opening Balance and Closing Balance rows, not typed in.
+    rows_ = [('Balance at 1 July 2025, per the export',
+              f'={WX}E{open_row}-{WX}F{open_row}', MONEY, True),
+             ('Balance at 30 September 2026, Q1 FY27 close', None, MONEY,
+              False),
              ('Balance at 31 October 2026, per the export',
-              round(closing, 2), True),
-             ('Months in the schedule', len(months), False),
-             ('Lines in the schedule', len(wip), False)]
+              f'={WX}E{close_row}-{WX}F{close_row}', MONEY, True),
+             ('Months in the schedule', None, '0', False),
+             ('Lines in the schedule', f'=COUNT({TK})', '0', False)]
     r = 6
-    sep_row = None
-    for lab, val, is_input in rows_:
+    sep_row = months_row = None
+    for lab, val, fmt, is_input in rows_:
         ws.cell(r, 1, lab).alignment = WRAP
         if lab.startswith('Balance at 30 September'):
             sep_row = r
+        elif lab.startswith('Months in'):
+            months_row = r
         else:
             c = ws.cell(r, 4, val)
             c.border = THIN
-            c.number_format = MONEY if isinstance(val, float) else '0'
+            c.number_format = fmt
             if is_input:
                 c.fill = IN
         r += 1
@@ -372,7 +529,9 @@ def main(wip_path, gl_path, pl_path, out):
     for n, m in enumerate(months):
         i = r
         prev = '$D$6' if n == 0 else f'$F{i-1}'
-        r = put(ws, r, [m, f'={prev}', f'=SUMIFS({TI},{TB},$A{i})',
+        month = (f'=DATE(YEAR(MIN({TA})),MONTH(MIN({TA})),1)' if n == 0
+                 else f'=EDATE($A{i-1},1)')
+        r = put(ws, r, [month, f'={prev}', f'=SUMIFS({TI},{TB},$A{i})',
                         f'=SUMIFS({TJ},{TB},$A{i})', f'=$C{i}-$D{i}',
                         f'=$B{i}+$E{i}', f'=COUNTIFS({TB},$A{i})'],
                 ['mmm yyyy', MONEY, MONEY, MONEY, MONEY, MONEY, '0'])
@@ -390,6 +549,8 @@ def main(wip_path, gl_path, pl_path, out):
     tot_row = r
     ws.cell(sep_row, 4, f'=F{sep_closing}').number_format = MONEY
     ws.cell(sep_row, 4).border = THIN
+    c = ws.cell(months_row, 4, f'=COUNT($A${first_data}:$A${last_data})')
+    c.number_format, c.border = '0', THIN
     r += 2
     ws.cell(r, 1, 'Agrees with the export').font = SUB
     ws.cell(r, 4, f'=IF(ROUND(F{tot_row}-D8,2)=0,"OK","CHECK")').font = SUB
@@ -409,7 +570,7 @@ def main(wip_path, gl_path, pl_path, out):
                  'Balance'], [40, 10, 22, 18])
     items = defaultdict(float)
     for x in wip:
-        items[item_of(x['desc'])] += x['debit'] - x['credit']
+        items[xl_item(x['desc'])] += x['debit'] - x['credit']
     r = 6
     for cat in CATS:
         i = r
@@ -417,7 +578,7 @@ def main(wip_path, gl_path, pl_path, out):
                         f'=COUNTIFS($A$30:$A$9999,$A{i})',
                         f'=COUNTIFS($A$30:$A$9999,$A{i},$C$30:$C$9999,'
                         f'"<>0")',
-                        f'=SUMIFS($C$30:$C$9999,$A$30:$A$9999,$A{i})'],
+                        f'=SUMIFS({TK},{TF},$A{i})'],
                 [None, '0', '0', MONEY])
         if cat == 'Licences and subscriptions':
             ws.cell(i, 1).fill = RED
@@ -454,15 +615,27 @@ def main(wip_path, gl_path, pl_path, out):
         r += 1
 
     ws.cell(29, 1, 'EVERY ITEM').font = SUB
-    band(ws, 29, ['Category', 'Item', 'Balance', 'Lines'],
-         None, freeze=False)
+    band(ws, 29, ['Category', 'Item', 'Balance', 'Lines',
+                  'Item key, used by the formulas',
+                  'Where it comes from'], None, freeze=False)
+    # The first Transactions row each item appears on. Reading the item
+    # from there means the text on both sides of the SUMIFS is the same
+    # cell, so nothing can drift between them.
+    firstrow = {}
+    for n, x in enumerate(wip, t1):
+        firstrow.setdefault(xl_item(x['desc']), n)
     r = 30
     for it in sorted(items, key=lambda y: items[y]):
-        cat = cat_of(it)
         i = r
-        r = put(ws, r, [cat, it, round(items[it], 2),
-                        f'=COUNTIFS({TE},$B{i})'],
-                [None, None, MONEY, '0'])
+        n = firstrow[it]
+        r = put(ws, r, [f"='Transactions'!$F{n}", f"='Transactions'!$E{n}",
+                        f'=SUMIFS({TK},{TW},$E{i})',
+                        f'=COUNTIFS({TW},$E{i})',
+                        f"='Transactions'!$W{n}",
+                        f'Transactions row {n}'],
+                [None, None, MONEY, '0', None, None])
+        ws.cell(i, 5).font = Font(italic=True, size=8)
+        ws.cell(i, 6).font = Font(italic=True, size=8)
 
     # -------------------------------------------------- By job and invoice
     ws = s_job
@@ -496,10 +669,10 @@ def main(wip_path, gl_path, pl_path, out):
             j, jobs[j],
             f'=SUMIFS({TK},{TL},$A{i})',
             f'=COUNTIFS({TL},$A{i})',
-            'yes' if invs else 'no',
-            ', '.join(sorted(invs)) or None,
-            dates[0] if dates else None,
-            dates[-1] if dates else None,
+            f'=IF(COUNTIF({JA},$A{i})>0,"yes","no")',
+            f'=IFERROR(LOOKUP(2,1/({JA}=$A{i}),{JD}),"")',
+            f'=IFERROR(INDEX({JC},MATCH($A{i},{JA},0)),"")',
+            f'=IFERROR(LOOKUP(2,1/({JA}=$A{i}),{JC}),"")',
             f'=IF($H{i}="","",DATE(2026,10,31)-$H{i})',
             f'=IF(ROUND($C{i},2)=0,"",'
             f'IF($E{i}="no","not invoiced yet, so WIP is correct",'
@@ -580,13 +753,21 @@ def main(wip_path, gl_path, pl_path, out):
         return acct_or_code < 50000
 
     def wip_event(x, side):
-        """Plain English for a WIP line, given what the other side was."""
+        """Plain English for a WIP line, given what the other side was.
+
+        A debit to WIP is money sitting in WIP. Whether that is revenue
+        going into the P&L or cost coming out of it depends on which
+        account the other side hit, so the wording says both.
+        """
         into = x['debit'] > 0
+        rev = kind(x['desc']) == 'Reversal'
         if side == 'Income':
-            return ('Revenue released from WIP into the P&L' if into
-                    else 'Revenue moved out of the P&L and into WIP')
-        return ('Cost moved out of the P&L and into WIP' if into
-                else 'Cost put into the P&L, WIP carries the other side')
+            what = ('Revenue into the P&L, the debit sits in WIP' if into
+                    else 'Revenue out of the P&L, the credit sits in WIP')
+        else:
+            what = ('Cost out of the P&L, the debit sits in WIP' if into
+                    else 'Cost into the P&L, the credit sits in WIP')
+        return ('Reversal journal. ' + what) if rev else what
 
     # what the other side of each WIP journal reference was, per job
     side_of = {}
@@ -751,10 +932,19 @@ def main(wip_path, gl_path, pl_path, out):
                   'Hit the P&L in Q1', 'Left in WIP at 31 Oct', 'Invoiced',
                   'Row on Job life cycle'], [12, 44, 18, 16, 18, 10, 20])
     rr = 5
+    LC = "'Job life cycle'!"
     for jn, name, q1w, q1p, bal, inv_, row in contents:
         i = rr
-        rr = put(ws2, rr, [jn, name, q1w, q1p, bal, inv_, row],
-                 [None, None, MONEY, MONEY, MONEY, None, '0'])
+        rr = put(ws2, rr, [
+            jn, name,
+            f'=SUMIFS({TI},{TL},$A{i},{q1win_t})'
+            f'-SUMIFS({TJ},{TL},$A{i},{q1win_t})',
+            f'=SUMIFS({KL},{KD},$A{i},{KH},">="&DATE(2026,7,1),'
+            f'{KH},"<="&DATE(2026,9,30))',
+            f'=SUMIFS({TK},{TL},$A{i})',
+            f'=IF(COUNTIF({JA},$A{i})>0,"yes","no")',
+            f'=MATCH("JOB "&$A{i}&" *",{LC}$A:$A,0)'],
+            [None, None, MONEY, MONEY, MONEY, None, '0'])
         if q1w:
             ws2.cell(i, 3).fill = AMBER
     rr += 1
@@ -799,7 +989,9 @@ def main(wip_path, gl_path, pl_path, out):
     band(ws, 5, ['Account', 'Income or Cost'] + [''] * len(omonths)
          + ['Total'], [34, 14] + [13] * len(omonths) + [14])
     for c, m in enumerate(omonths, 3):
-        cell = ws.cell(5, c, m)
+        first_m = (f'=DATE(YEAR(MIN({OA})),MONTH(MIN({OA})),1)' if c == 3
+                   else f'=EDATE({get_column_letter(c-1)}$5,1)')
+        cell = ws.cell(5, c, first_m)
         cell.number_format = 'mmm yy'
         cell.font, cell.fill, cell.border = HEAD, HFILL, THIN
         cell.alignment = Alignment(horizontal='center')
@@ -843,9 +1035,11 @@ def main(wip_path, gl_path, pl_path, out):
                  'Reversal lines', 'Any reversals'],
          [14, 16, 16, 16, 14, 14, 14])
     r = 5
-    for m in months:
+    for n, m in enumerate(months):
         i = r
-        r = put(ws, r, [m,
+        month = (f"='Monthly recon'!$A${first_data}" if n == 0
+                 else f'=EDATE($A{i-1},1)')
+        r = put(ws, r, [month,
                         f'=SUMIFS({TK},{TB},$A{i},{TG},"Posting")',
                         f'=SUMIFS({TK},{TB},$A{i},{TG},"Reversal")',
                         f'=$B{i}+$C{i}',
