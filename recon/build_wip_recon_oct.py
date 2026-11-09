@@ -329,7 +329,9 @@ def main(wip_path, gl_path, pl_path, out, notes_path=None):
             f'{PX}K{n}),CHAR(10)," "),CHAR(13)," ")),70))',
             f'=TRIM(LEFT({PX}H{n},FIND(" ",{PX}H{n}&" ")-1))',
             f'={PX}H{n}', f'={PX}A{n}&" "&{PX}B{n}',
-            f'=IF({PX}A{n}<50000,"Income","Cost")',
+            # the account code pastes in as text, so it is turned back
+            # into a number before it is compared
+            f'=IF(IFERROR(VALUE({PX}A{n}),999999)<50000,"Income","Cost")',
             f'={PX}D{n}', f'={PX}I{n}', f'={PX}J{n}', f'={PX}C{n}',
             f'={PX}G{n}-{PX}F{n}'],
             [None, None, None, None, None, None, None, DATE, None, None,

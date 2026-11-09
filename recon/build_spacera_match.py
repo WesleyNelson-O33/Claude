@@ -36,7 +36,7 @@ def load_bills(path):
     import json
     d = json.load(open(path))
     bills = [(b[0], datetime.date(*map(int, b[1].split('-'))), b[2], b[3],
-              b[4]) for b in d['bills']]
+              b[4], b[5] if len(b) > 5 else b[2]) for b in d['bills']]
     lines = [tuple(x) for x in d['lines']]
     return d['job'], d['read_on'], bills, lines
 
@@ -144,54 +144,76 @@ def main(pl_path, bills_path, out):
     ws['A2'] = (f'Cream cells are read from Xero on {READ_ON}. Everything '
                 f'else is a formula over the pasted export.')
     ws['A2'].font = Font(italic=True, size=9)
-    band(ws, 4, ['Month', 'Spacera bill', 'Bill date', 'Cost',
-                 'Coded to', 'Account name', 'How it was entered',
-                 'Aware Super invoice', 'Invoice date', 'Income',
+    ws['A3'] = ('STATUS: the correction below is not yet done. The Coded '
+                'to column is what Xero has now.')
+    ws['A3'].font = SUB
+    ws['A3'].fill = AMBER
+    band(ws, 5, ['Month', 'Spacera bill', 'Bill date', 'Cost',
+                 'Coded to now', 'Should be', 'How it was entered',
+                 'Done', 'Aware Super invoice', 'Invoice date', 'Income',
                  'Margin', 'Where the income comes from'],
-         [11, 12, 11, 12, 10, 32, 22, 16, 11, 12, 12, 26])
-    r = 5
-    for n, (num, bdate, code, acct, how) in enumerate(BILLS):
+         [11, 12, 11, 12, 13, 11, 22, 7, 16, 11, 12, 12, 26])
+    r = 6
+    for n, (num, bdate, code, acct, how, should) in enumerate(BILLS):
         i = r
         inc = income[n] if n < len(income) else None
         r = put(ws, r, [
-            bdate.strftime('%b %Y'), num, bdate, 5208.00, code, acct, how,
+            bdate.strftime('%b %Y'), num, bdate, 5208.00, code, should,
+            how, '',
             inc['inv'] if inc else None,
             f'={PX}D{inc["row"]}' if inc else None,
             f'={PX}G{inc["row"]}-{PX}F{inc["row"]}' if inc else None,
-            f'=IF(J{i}="","",J{i}-D{i})',
+            f'=IF(K{i}="","",K{i}-D{i})',
             f'Xero - P&L analysis row {inc["row"]}' if inc else None],
-            [None, None, DATE, MONEY, None, None, None, None, DATE, MONEY,
-             MONEY, None])
-        for c in (2, 3, 4, 5, 6, 7):
+            [None, None, DATE, MONEY, None, None, None, None, None, DATE,
+             MONEY, MONEY, None])
+        for c in (2, 3, 4, 5, 7):
             ws.cell(i, c).fill = XERO
-        ws.cell(i, 5).fill = RED if code == '51310' else AMBER
-        ws.cell(i, 12).font = Font(italic=True, size=8)
+        if code != should:
+            ws.cell(i, 5).fill = RED
+            ws.cell(i, 6).fill = PatternFill('solid', fgColor='DDEBF7')
+            ws.cell(i, 8).fill = AMBER
+        ws.cell(i, 13).font = Font(italic=True, size=8)
     last = r - 1
+    first = 6
     i = r
-    r = put(ws, r, ['Total', '', '', f'=SUM(D5:D{last})', '', '', '', '',
-                    '', f'=SUM(J5:J{last})', f'=SUM(K5:K{last})', ''],
-            [None, None, None, MONEY, None, None, None, None, None, MONEY,
-             MONEY, None])
-    for c in range(1, 13):
+    r = put(ws, r, ['Total', '', '', f'=SUM(D{first}:D{last})', '', '', '',
+                    '', '', '', f'=SUM(K{first}:K{last})',
+                    f'=SUM(L{first}:L{last})', ''],
+            [None, None, None, MONEY, None, None, None, None, None, None,
+             MONEY, MONEY, None])
+    for c in range(1, 14):
         ws.cell(i, c).fill = SF
         ws.cell(i, c).font = SUB
     r += 1
     i = r
-    r = put(ws, r, ['In Q1 only, July to September', '', '',
-                    f'=SUM(D5:D7)', '', '', '', '', '', f'=SUM(J5:J7)',
-                    f'=SUM(K5:K7)', ''],
-            [None, None, None, MONEY, None, None, None, None, None, MONEY,
-             MONEY, None])
-    for c in range(1, 13):
+    r = put(ws, r, ['In Q1, July to September', '', '',
+                    f'=SUM(D{first}:D{first+2})', '', '', '', '', '', '',
+                    f'=SUM(K{first}:K{first+2})',
+                    f'=SUM(L{first}:L{first+2})', ''],
+            [None, None, None, MONEY, None, None, None, None, None, None,
+             MONEY, MONEY, None])
+    for c in range(1, 14):
         ws.cell(i, c).font = SUB
     r += 1
     i = r
-    r = put(ws, r, ['Of that, sitting in 51500', '', '', f'=D6+D7', '', '',
-                    'August and September only', '', '', '', '', ''],
+    r = put(ws, r, ['In 51500 as Xero has it now', '', '',
+                    f'=D{first+1}+D{first+2}', '', '',
+                    'August and September', '', '', '', '', '', ''],
             [None, None, None, MONEY, None, None, None, None, None, None,
-             None, None])
-    for c in range(1, 13):
+             None, None, None])
+    for c in range(1, 14):
         ws.cell(i, c).fill = RED
+        ws.cell(i, c).font = SUB
+    r += 1
+    i = r
+    r = put(ws, r, ['In 51500 once July is corrected', '', '',
+                    f'=SUM(D{first}:D{first+2})', '', '',
+                    'July, August and September', '', '', '', '', '', ''],
+            [None, None, None, MONEY, None, None, None, None, None, None,
+             None, None, None])
+    for c in range(1, 14):
+        ws.cell(i, c).fill = PatternFill('solid', fgColor='DDEBF7')
         ws.cell(i, c).font = SUB
 
     # ----------------------------------------------- the bill line items
@@ -205,7 +227,7 @@ def main(pl_path, bills_path, out):
                  'Unit price', 'Amount', 'Coded to'],
          [12, 11, 44, 10, 12, 12, 10])
     r = 5
-    for num, bdate, code, acct, how in BILLS:
+    for num, bdate, code, acct, how, should in BILLS:
         for desc, qty, unit, amt in LINES:
             i = r
             r = put(ws, r, [num, bdate, desc, qty, unit, amt,
@@ -238,6 +260,67 @@ def main(pl_path, bills_path, out):
     for c in range(1, 9):
         ws.cell(i, c).fill = SF
         ws.cell(i, c).font = SUB
+
+    # ----------------------------------- effect on the licence accounts
+    ws = wb.create_sheet('Effect on the licence accounts')
+    for col, w in zip('ABCD', (52, 16, 16, 40)):
+        ws.column_dimensions[col].width = w
+    ws['A1'] = 'What the correction does to the licence accounts, Q1 FY27'
+    ws['A1'].font = TITLE
+    ws['A2'] = ('STATUS: not done yet. The after column is what it will '
+                'read once July is moved to 51500.')
+    ws['A2'].font = SUB
+    ws['A2'].fill = AMBER
+    Q = (f'{PX}$D:$D,">="&DATE(2026,7,1),{PX}$D:$D,"<="&DATE(2026,9,30)')
+    band(ws, 4, ['', 'As Xero has it now', 'Once July is moved',
+                 'Note'])
+    jul = 5208.00
+    rows_ = [
+        ('Licence income, 41175',
+         f'=SUMIFS({PX}$G:$G,{PX}$A:$A,"41175",{Q})'
+         f'-SUMIFS({PX}$F:$F,{PX}$A:$A,"41175",{Q})',
+         '=B5', 'unchanged'),
+        ('Licence cost, 51500',
+         f'=SUMIFS({PX}$G:$G,{PX}$A:$A,"51500",{Q})'
+         f'-SUMIFS({PX}$F:$F,{PX}$A:$A,"51500",{Q})',
+         f'=B6-{jul}', 'July Spacera comes in'),
+        ('Margin', '=B5+B6', '=C5+C6', ''),
+        ('Margin per cent', '=IFERROR(B7/B5,"")',
+         '=IFERROR(C7/C5,"")', ''),
+    ]
+    r = 5
+    for lab, b, c, note in rows_:
+        i = r
+        r = put(ws, r, [lab, b, c, note],
+                [None,
+                 '0.0%;[Red]-0.0%' if 'per cent' in lab else MONEY,
+                 '0.0%;[Red]-0.0%' if 'per cent' in lab else MONEY,
+                 None])
+        if lab == 'Margin' or 'per cent' in lab:
+            for cc in range(1, 5):
+                ws.cell(i, cc).fill = SF
+                ws.cell(i, cc).font = SUB
+    r += 1
+    ws.cell(r, 1, 'Spacera in 51500 in Q1').font = SUB
+    ws.cell(r, 2, f'=D{9}+D{10}').number_format = MONEY
+    ws.cell(r, 2, "='Bills against income'!D7+'Bills against income'!D8")
+    ws.cell(r, 2).number_format = MONEY
+    ws.cell(r, 3, "=SUM('Bills against income'!D6:D8)")
+    ws.cell(r, 3).number_format = MONEY
+    ws.cell(r, 4, 'August and September now, all three months after')
+    r += 2
+    for txt in ('Correcting July makes the licence margin worse, not '
+                'better. That is expected. It puts the whole quarter of '
+                'Aware Super maintenance cost into the licence account.',
+                '',
+                'The mismatch itself does not go away. The cost for this '
+                'contract sits in Subscriptions and Licences while the '
+                'income sits in Contract Support Staff. Correcting July '
+                'only makes the coding consistent.'):
+        c = ws.cell(r, 1, txt)
+        c.alignment = WRAP
+        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=4)
+        r += 1
 
     paste_source(wb, 'Xero - P&L analysis', pl_path)
 
