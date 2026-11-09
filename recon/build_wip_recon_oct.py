@@ -12,9 +12,13 @@ because the real supplier bill has gone in.
 Categories and the item netting are taken from build_wip_monthly, so this
 file is cut the same way as last month's.
 
-Usage: build_wip_recon_oct.py <WIP export> <GL Detail> <P&L Analysis> <out>
+Usage: build_wip_recon_oct.py <WIP export> <GL Detail> <P&L Analysis>
+       <out> [notes.json]
+
+The optional notes file is Danica's own column from the last copy, keyed
+by job number. It is carried straight through so her wording is kept.
 """
-import sys, re, datetime
+import sys, re, json, datetime
 from collections import defaultdict
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -255,11 +259,12 @@ def bold(ws, r, cols):
         ws.cell(r, c).fill = SFILL
 
 
-def main(wip_path, gl_path, pl_path, out):
+def main(wip_path, gl_path, pl_path, out, notes_path=None):
     period, opening, closing, wip = load(wip_path)
     gl = read_gl(gl_path)
     pl = read_pl(pl_path)
     open_row, close_row = wip_balance_rows(wip_path)
+    notes = json.load(open(notes_path)) if notes_path else {}
     refs = {str(x['ref']) for x in wip}
     other = [x for x in gl if x['ref'] in refs and x['account'] != WIPNAME]
     byref_job = defaultdict(set)
@@ -720,8 +725,8 @@ def main(wip_path, gl_path, pl_path, out):
                 'numbers start. Jobs still holding a WIP balance come '
                 'first.')
     ws['A3'].font = Font(italic=True, size=9)
-    for col, w in zip('ABCDEFGHI',
-                      (11, 44, 30, 22, 13, 13, 13, 15, 28)):
+    for col, w in zip('ABCDEFGHIJ',
+                      (11, 44, 30, 22, 13, 13, 13, 15, 26, 30)):
         ws.column_dimensions[col].width = w
     WX = "'Xero - WIP transactions'!"
     PX = "'Xero - P&L analysis'!"
@@ -816,7 +821,7 @@ def main(wip_path, gl_path, pl_path, out):
         dates = sorted(invs.values())
         contents.append((j, jobs[j], q1_wip[j], q1_pl[j], bal_of[j],
                          'yes' if invs else 'no', start))
-        for c in range(1, 10):
+        for c in range(1, 11):
             ws.cell(r, c).fill = HFILL
             ws.cell(r, c).border = THIN
         ws.cell(r, 1, f'JOB {j}   {jobs[j]}').font = Font(
@@ -824,11 +829,16 @@ def main(wip_path, gl_path, pl_path, out):
         tag = ('Moved through WIP this quarter' if q1_wip[j]
                else 'No WIP movement this quarter')
         ws.cell(r, 7, tag).font = Font(bold=True, color='FFFFFF', size=9)
+        mine = notes.get(j, '')
+        if mine:
+            c = ws.cell(r, 10, mine)
+            c.font = Font(bold=True, color='FFFFFF', size=10)
+            c.alignment = WRAP
         r += 1
         for c, lab in enumerate(
                 ['Date', 'What happened', 'Account', 'Invoice',
                  'Into WIP', 'Out of WIP', 'Into the P&L',
-                 'WIP balance', 'Where it comes from'], 1):
+                 'WIP balance', 'Where it comes from', 'My note'], 1):
             cell = ws.cell(r, c, lab)
             cell.font, cell.fill, cell.border, cell.alignment = (
                 SUB, SFILL, THIN, WRAP)
@@ -842,8 +852,15 @@ def main(wip_path, gl_path, pl_path, out):
             note = wip_event(x, side_for(x, j))
             if xl_item(x['desc']) in failed and kind(x['desc']) == \
                     'Reversal':
-                note += (' CHECK: this went the same way as the accrual, '
-                         'so the accrual has not come back out.')
+                if notes.get(j, '').strip().lower().startswith('correct'):
+                    note += (' This went the same way as the accrual. I '
+                             'have corrected it in Xero. The export was '
+                             'taken before the correction, so the figures '
+                             'here still show it the old way.')
+                else:
+                    note += (' CHECK: this went the same way as the '
+                             'accrual, so the accrual has not come back '
+                             'out.')
             events.append(dict(
                 date=x['date'], sort=0, what=note, ref=str(x['ref']),
                 src='wip', row=x['row'],
@@ -892,8 +909,9 @@ def main(wip_path, gl_path, pl_path, out):
                      None])
             ws.cell(i, 9).font = Font(italic=True, size=8)
             if e.get('flag'):
-                for c in range(1, 10):
-                    ws.cell(i, c).fill = RED
+                done = notes.get(j, '').strip().lower().startswith('correct')
+                for c in range(1, 11):
+                    ws.cell(i, c).fill = AMBER if done else RED
             elif e['src'] == 'wip':
                 ws.cell(i, 2).fill = AMBER
             elif e['what'].startswith('Invoiced'):
@@ -908,7 +926,7 @@ def main(wip_path, gl_path, pl_path, out):
                         f'=E{i}-F{i}', ''],
                 [None, None, None, None, MONEY, MONEY, MONEY, MONEY,
                  None])
-        bold(ws, i, range(1, 10))
+        bold(ws, i, range(1, 11))
         tot = i
         i = r
         r = put(ws, r, ['', 'Left in WIP at 31 October', '', '', '', '',
@@ -916,12 +934,12 @@ def main(wip_path, gl_path, pl_path, out):
                 [None, None, None, None, None, None, None, MONEY, None])
         ws.cell(i, 3, f'=IF(ROUND(H{i},2)=0,"nothing left",'
                       f'IF(H{i}<0,"credit","debit"))')
-        bold(ws, i, range(1, 10))
+        bold(ws, i, range(1, 11))
         i = r
         r = put(ws, r, ['', 'Margin on the job so far', '', '', '', '',
                         f'=G{tot}', '', ''],
                 [None, None, None, None, None, None, MONEY, None, None])
-        bold(ws, i, range(1, 10))
+        bold(ws, i, range(1, 11))
         # Both Q1 figures are summed from this job's own rows above, so
         # the working is on screen and nothing depends on matching the
         # job number a second time.
@@ -933,13 +951,13 @@ def main(wip_path, gl_path, pl_path, out):
                         f'=SUMIFS($E${first}:$E${last},{win})'
                         f'-SUMIFS($F${first}:$F${last},{win})', ''],
                 [None, None, None, None, None, None, None, MONEY, None])
-        bold(ws, i, range(1, 10))
+        bold(ws, i, range(1, 11))
         i = r
         r = put(ws, r, ['', 'Hit the P&L in Q1, July to September', '', '',
                         '', '', f'=SUMIFS($G${first}:$G${last},{win})',
                         '', ''],
                 [None, None, None, None, None, None, MONEY, None, None])
-        bold(ws, i, range(1, 10))
+        bold(ws, i, range(1, 11))
 
         days = (datetime.date(2026, 10, 31) - dates[-1]).days if dates else 0
         is_lic = any(cat_of(xl_item(x['desc']))
@@ -968,8 +986,8 @@ def main(wip_path, gl_path, pl_path, out):
             fill = AMBER
         cell = ws.cell(r, 1, note)
         cell.alignment = WRAP
-        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=9)
-        for c in range(1, 10):
+        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=10)
+        for c in range(1, 11):
             ws.cell(r, c).fill = fill
         r += 2
 
@@ -1124,4 +1142,4 @@ def main(wip_path, gl_path, pl_path, out):
 
 
 if __name__ == '__main__':
-    main(*sys.argv[1:5])
+    main(*sys.argv[1:6])
