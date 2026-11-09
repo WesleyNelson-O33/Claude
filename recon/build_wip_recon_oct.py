@@ -128,6 +128,34 @@ def invoices_by_job(pl):
     return out
 
 
+def paste_source(wb, title, path):
+    """Copy a Xero export into the workbook cell for cell.
+
+    Every row, every column, in the order the report prints them, with the
+    report's own title rows, its Opening and Closing Balance lines and its
+    number formats. Nothing is renamed, reordered or left out, so the tab
+    can be checked straight against the report in Xero.
+    """
+    src = openpyxl.load_workbook(path, data_only=True).worksheets[0]
+    ws = wb.create_sheet(title)
+    for row in src.iter_rows():
+        for cell in row:
+            if cell.value is None:
+                continue
+            out = ws.cell(cell.row, cell.column, cell.value)
+            out.number_format = cell.number_format
+    for letter, dim in src.column_dimensions.items():
+        if dim.width:
+            ws.column_dimensions[letter].width = dim.width
+    for c in range(1, src.max_column + 1):
+        letter = get_column_letter(c)
+        if letter not in ws.column_dimensions or \
+                not ws.column_dimensions[letter].width:
+            ws.column_dimensions[letter].width = 18
+    ws.freeze_panes = 'A6'
+    return ws
+
+
 def jobkey(j):
     m = re.match(r'\s*([0-9]{3,}[A-Za-z]?)', j or '')
     return m.group(1) if m else ''
@@ -217,10 +245,10 @@ def main(wip_path, gl_path, pl_path, out):
     s_rec.title = 'Monthly recon'
     s_in = wb.create_sheet('What is in it')
     s_job = wb.create_sheet('By job and invoice')
+    s_life = wb.create_sheet('Job life cycle')
     s_went = wb.create_sheet('Where it went')
     s_rev = wb.create_sheet('Accruals vs reversals')
     s_tx = wb.create_sheet('Transactions')
-    s_src = wb.create_sheet('Source - from Jul 2025')
     s_osrc = wb.create_sheet('Source - other side')
 
     # ----------------------------------------------------- Transactions
@@ -303,27 +331,6 @@ def main(wip_path, gl_path, pl_path, out):
     OC = f'{O}$C${o1}:$C${o2}'
     OD = f'{O}$D${o1}:$D${o2}'
     OK = f'{O}$K${o1}:$K${o2}'
-
-    # ------------------------------------------------ Source - from Jul 2025
-    ws = s_src
-    ws['A1'] = 'Work in Progress Transactions'
-    ws['A1'].font = TITLE
-    ws['A2'] = 'Corporate Technology Services Pty Ltd'
-    ws['A3'] = period
-    band(ws, 4, ['Date', 'Source', 'Description', 'Reference', 'Debit',
-                 'Credit'], [11, 15, 74, 12, 13, 13])
-    ws.cell(5, 1, 'Opening Balance').font = SUB
-    c = ws.cell(5, 6, round(-opening, 2))
-    c.number_format, c.fill, c.border = MONEY, IN, THIN
-    r = 6
-    for x in wip:
-        r = put(ws, r, [x['date'], x['source'], str(x['desc']),
-                        str(x['ref']), x['debit'] or None,
-                        x['credit'] or None],
-                [DATE, None, None, None, MONEY, MONEY])
-    ws.cell(r + 1, 1, 'Closing Balance').font = SUB
-    c = ws.cell(r + 1, 6, round(-closing, 2))
-    c.number_format, c.fill, c.border = MONEY, IN, THIN
 
     # ------------------------------------------------------ Monthly recon
     ws = s_rec
@@ -516,6 +523,242 @@ def main(wip_path, gl_path, pl_path, out):
     ws.conditional_formatting.add(f'A6:J{job_last}', _FR(
         formula=['$I6>60'], fill=RED))
 
+    # ------------------------------------------------------ Job life cycle
+    # For each job, every event in date order: when cost or revenue goes
+    # into WIP, when it comes back out, what hits the P&L, and which
+    # invoice. The running balance is the WIP balance on that job.
+    ws = s_life
+    ws['A1'] = 'The workings, job by job, in date order'
+    ws['A1'].font = TITLE
+    ws['A2'] = ('Read each block downwards. You can see the day something '
+                'goes into WIP, the day it comes out, what lands in the '
+                'P&L, and which invoice it was.')
+    ws['A3'] = ('Jobs run from 1 June 2026, because that is where the job '
+                'numbers start. Jobs still holding a WIP balance come '
+                'first.')
+    ws['A3'].font = Font(italic=True, size=9)
+    for col, w in zip('ABCDEFGH',
+                      (11, 44, 30, 22, 14, 14, 14, 16)):
+        ws.column_dimensions[col].width = w
+
+    plw_refs = refs
+    pl_by_job = defaultdict(list)
+    for x in pl:
+        j = jobkey(x['job'])
+        if j:
+            pl_by_job[j].append(x)
+
+    jobs = {}
+    for x in wip:
+        if x['job']:
+            jobs.setdefault(x['job'], x['jobname'])
+    bal_of = {j: round(sum(y['debit'] - y['credit']
+                           for y in wip if y['job'] == j), 2)
+              for j in jobs}
+    # Q1 FY27 is the quarter being reported on, so the tab leads with the
+    # jobs that moved through WIP in it. The block still shows the whole
+    # life of the job, because a Q1 release usually starts in June.
+    Q1A, Q1B = datetime.date(2026, 7, 1), datetime.date(2026, 9, 30)
+    q1_wip = {j: round(sum(y['debit'] - y['credit'] for y in wip
+                           if y['job'] == j and Q1A <= y['date'] <= Q1B), 2)
+              for j in jobs}
+    q1_pl = {j: round(sum(x['net'] for x in pl
+                          if jobkey(x['job']) == j
+                          and Q1A <= x['date'] <= Q1B), 2)
+             for j in jobs}
+    order = [j for j in jobs if q1_wip[j] != 0]
+    order.sort(key=lambda j: -abs(q1_wip[j]))
+    rest = [j for j in jobs if q1_wip[j] == 0]
+    rest.sort(key=lambda j: (bal_of[j] == 0, -abs(bal_of[j])))
+    order += rest
+
+    def is_income(acct_or_code):
+        return acct_or_code < 50000
+
+    def wip_event(x, side):
+        """Plain English for a WIP line, given what the other side was."""
+        into = x['debit'] > 0
+        if side == 'Income':
+            return ('Revenue released from WIP into the P&L' if into
+                    else 'Revenue moved out of the P&L and into WIP')
+        return ('Cost moved out of the P&L and into WIP' if into
+                else 'Cost put into the P&L, WIP carries the other side')
+
+    # what the other side of each WIP journal reference was, per job
+    side_of = {}
+    for x in pl:
+        if x['ref'] in plw_refs and jobkey(x['job']):
+            k = (x['ref'], jobkey(x['job']),
+                 round(abs(x['net']), 2))
+            side_of[k] = ('Income' if is_income(x['code']) else 'Cost')
+
+    contents = []
+    r = 5
+    for j in order:
+        start = r
+        invs = inv_by_job.get(j, {})
+        dates = sorted(invs.values())
+        contents.append((j, jobs[j], q1_wip[j], q1_pl[j], bal_of[j],
+                         'yes' if invs else 'no', start))
+        for c in range(1, 9):
+            ws.cell(r, c).fill = HFILL
+            ws.cell(r, c).border = THIN
+        ws.cell(r, 1, f'JOB {j}   {jobs[j]}').font = Font(
+            bold=True, color='FFFFFF', size=11)
+        tag = ('Moved through WIP this quarter' if q1_wip[j]
+               else 'No WIP movement this quarter')
+        ws.cell(r, 7, tag).font = Font(bold=True, color='FFFFFF', size=9)
+        r += 1
+        for c, lab in enumerate(
+                ['Date', 'What happened', 'Account', 'Invoice',
+                 'Into WIP', 'Out of WIP', 'Into the P&L',
+                 'WIP balance'], 1):
+            cell = ws.cell(r, c, lab)
+            cell.font, cell.fill, cell.border, cell.alignment = (
+                SUB, SFILL, THIN, WRAP)
+        r += 1
+        first = r
+
+        events = []
+        for x in wip:
+            if x['job'] != j:
+                continue
+            amt = round(abs(x['debit'] - x['credit']), 2)
+            side = side_of.get((str(x['ref']), j, amt), 'Cost')
+            events.append(dict(
+                date=x['date'], sort=0, what=wip_event(x, side),
+                account='11300 Work in Progress', inv=str(x['ref']),
+                wdr=x['debit'] or None, wcr=x['credit'] or None,
+                pl=None))
+        for x in pl_by_job.get(j, []):
+            if x['ref'] in plw_refs and x['source'] == 'Manual Journal':
+                what = ('The other side of that journal, in the P&L')
+                inv = x['ref']
+            elif x['source'].startswith('Receivable'):
+                what = 'Invoiced to the customer, revenue into the P&L'
+                inv = x['inv']
+            elif x['source'].startswith('Payable'):
+                what = 'Supplier bill, cost into the P&L'
+                inv = x['inv']
+            else:
+                what = f'{x["source"]}, into the P&L'
+                inv = x['inv'] or x['ref']
+            events.append(dict(
+                date=x['date'], sort=1, what=what,
+                account=f'{x["code"]} {x["account"]}', inv=inv,
+                wdr=None, wcr=None, pl=round(x['net'], 2)))
+        events.sort(key=lambda e: (e['date'], e['sort'], e['what']))
+
+        for e in events:
+            i = r
+            prev = '0' if i == first else f'$H{i-1}'
+            r = put(ws, r, [e['date'], e['what'], e['account'],
+                            e['inv'] or None, e['wdr'], e['wcr'], e['pl'],
+                            f'={prev}+N(E{i})-N(F{i})'],
+                    [DATE, None, None, None, MONEY, MONEY, MONEY, MONEY])
+            if e['wdr'] or e['wcr']:
+                ws.cell(i, 2).fill = AMBER
+            elif e['what'].startswith('Invoiced'):
+                ws.cell(i, 2).fill = GREEN
+        last = r - 1
+
+        i = r
+        r = put(ws, r, ['', 'Totals', '', '',
+                        f'=SUM(E{first}:E{last})',
+                        f'=SUM(F{first}:F{last})',
+                        f'=SUM(G{first}:G{last})',
+                        f'=E{i}-F{i}'],
+                [None, None, None, None, MONEY, MONEY, MONEY, MONEY])
+        bold(ws, i, range(1, 9))
+        tot = i
+        i = r
+        r = put(ws, r, ['', 'Left in WIP at 31 October', '', '', '', '',
+                        '', f'=H{tot}'],
+                [None, None, None, None, None, None, None, MONEY])
+        ws.cell(i, 3, f'=IF(ROUND(H{i},2)=0,"nothing left",'
+                      f'IF(H{i}<0,"credit","debit"))')
+        bold(ws, i, range(1, 9))
+        i = r
+        r = put(ws, r, ['', 'Margin on the job so far', '', '', '', '',
+                        f'=G{tot}', ''],
+                [None, None, None, None, None, None, MONEY, None])
+        bold(ws, i, range(1, 9))
+        i = r
+        r = put(ws, r, ['', 'Moved through WIP in Q1, July to September',
+                        '', '', '', '', '', q1_wip[j]],
+                [None, None, None, None, None, None, None, MONEY])
+        bold(ws, i, range(1, 9))
+        i = r
+        r = put(ws, r, ['', 'Hit the P&L in Q1, July to September', '', '',
+                        '', '', q1_pl[j], ''],
+                [None, None, None, None, None, None, MONEY, None])
+        bold(ws, i, range(1, 9))
+
+        days = (datetime.date(2026, 10, 31) - dates[-1]).days if dates else 0
+        if round(bal_of[j], 2) == 0:
+            note = 'Nothing left in WIP. It went in and it came out.'
+            fill = GREEN
+        elif not invs:
+            note = ('Not invoiced yet, so cost sitting in WIP is correct.')
+            fill = GREEN
+        elif days > 60:
+            note = (f'Invoiced on {dates[-1].strftime("%d/%m/%Y")}, which '
+                    f'is {days} days before 31 October, and it is still '
+                    f'holding a balance. Look at this one.')
+            fill = RED
+        else:
+            note = (f'Invoiced on {dates[-1].strftime("%d/%m/%Y")}. Still '
+                    f'holding a balance. Check it clears next month.')
+            fill = AMBER
+        cell = ws.cell(r, 1, note)
+        cell.alignment = WRAP
+        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=8)
+        for c in range(1, 9):
+            ws.cell(r, c).fill = fill
+        r += 2
+
+    ws2 = wb.create_sheet('Contents', 2)
+    ws2['A1'] = 'Jobs on the Job life cycle tab'
+    ws2['A1'].font = TITLE
+    ws2['A2'] = ('Go to the row shown. Jobs still holding a WIP balance '
+                 'are listed first.')
+    band(ws2, 4, ['Job number', 'Job', 'Moved through WIP in Q1',
+                  'Hit the P&L in Q1', 'Left in WIP at 31 Oct', 'Invoiced',
+                  'Row on Job life cycle'], [12, 44, 18, 16, 18, 10, 20])
+    rr = 5
+    for jn, name, q1w, q1p, bal, inv_, row in contents:
+        i = rr
+        rr = put(ws2, rr, [jn, name, q1w, q1p, bal, inv_, row],
+                 [None, None, MONEY, MONEY, MONEY, None, '0'])
+        if q1w:
+            ws2.cell(i, 3).fill = AMBER
+    rr += 1
+    last = rr - 2
+    ws2.cell(rr, 2, 'Total for the jobs listed above').font = SUB
+    for c in (3, 4, 5):
+        L = get_column_letter(c)
+        ws2.cell(rr, c, f'=SUM({L}5:{L}{last})').number_format = MONEY
+    bold(ws2, rr, range(1, 8))
+    listed = rr
+    q1win = (f'{TB},">="&DATE(2026,7,1),{TB},"<="&DATE(2026,9,1)')
+    rr += 1
+    ws2.cell(rr, 2, 'Lines with no job number').font = SUB
+    ws2.cell(rr, 3,
+             f'=SUMIFS({TK},{q1win})-C{listed}').number_format = MONEY
+    ws2.cell(rr, 5, f'=SUM({TK})-E{listed}').number_format = MONEY
+    bold(ws2, rr, range(1, 8))
+    rr += 1
+    ws2.cell(rr, 2, 'Whole account, ties to the Monthly recon').font = SUB
+    ws2.cell(rr, 3, f'=SUMIFS({TK},{q1win})').number_format = MONEY
+    ws2.cell(rr, 5, f'=SUM({TK})').number_format = MONEY
+    bold(ws2, rr, range(1, 8))
+    rr += 2
+    ws2.cell(rr, 2, 'Moved through WIP in Q1 is the WIP side. Hit the P&L '
+                    'in Q1 is everything that job put through the profit '
+                    'and loss in the quarter, invoices and bills '
+                    'included.').alignment = WRAP
+    ws2.merge_cells(start_row=rr, start_column=2, end_row=rr, end_column=7)
+
     # ------------------------------------------------------- Where it went
     ws = s_went
     ws['A1'] = 'Where the WIP movement went'
@@ -596,6 +839,11 @@ def main(wip_path, gl_path, pl_path, out):
     from openpyxl.formatting.rule import FormulaRule
     ws.conditional_formatting.add(f'A5:G{rl}', FormulaRule(
         formula=[f'$F5=0'], fill=RED))
+
+    # ------------------------------------------- the Xero reports, verbatim
+    paste_source(wb, 'Xero - WIP transactions', wip_path)
+    paste_source(wb, 'Xero - GL detail', gl_path)
+    paste_source(wb, 'Xero - P&L analysis', pl_path)
 
     wb.save(out)
     print(f'  period           {period}')

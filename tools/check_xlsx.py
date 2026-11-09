@@ -109,10 +109,14 @@ def main(path):
     for p in sorted(names):
         if re.match(r'xl/worksheets/sheet\d+\.xml$', p):
             body = z.read(p).decode('utf8', 'replace')
-            for i in sorted(set(re.findall(r'\[(\d+)\]', body))):
-                if int(i) > nlinks:
-                    out.append(f'{p} has a formula referring to external '
-                               f'workbook [{i}], but {nlinks} exist')
+            # Only look inside formulas. Cell text can hold anything, and a
+            # product code such as "[1009] SKU: FXC-1009" in a pasted Xero
+            # description is not a workbook reference.
+            for f in re.findall(r'<f\b[^>]*>(.*?)</f>', body, re.S):
+                for i in sorted(set(re.findall(r'\[(\d+)\]', f))):
+                    if int(i) > nlinks:
+                        out.append(f'{p} has a formula referring to external '
+                                   f'workbook [{i}], but {nlinks} exist')
     if 'xl/calcChain.xml' in names:
         out.append('calcChain.xml is present and is almost certainly stale; delete it')
     ct = z.read('[Content_Types].xml').decode()
