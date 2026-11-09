@@ -55,23 +55,89 @@ def read_gl(path):
 
 
 def read_pl(path):
+    """The P&L Analysis export. This is where the job numbers and the
+    invoice numbers live. It covers profit and loss accounts only, so
+    account 11300 is not in it."""
     rows = list(openpyxl.load_workbook(path, data_only=True, read_only=True)
                 .worksheets[0].iter_rows(values_only=True))
     out = []
     for r in rows[4:]:
         try:
-            int(r[0])
+            code = int(r[0])
         except (TypeError, ValueError):
             continue
         if not isinstance(r[3], datetime.datetime):
             continue
-        out.append(dict(job=str(r[7] or ''), ref=str(r[9] or '')))
+        out.append(dict(
+            code=code, account=str(r[1] or ''), source=str(r[2] or ''),
+            date=r[3].date(), net=float(r[6] or 0) - float(r[5] or 0),
+            job=str(r[7] or ''), inv=str(r[8] or ''), ref=str(r[9] or ''),
+            desc=re.sub(r'\s+', ' ', str(r[10] or '')).strip()))
+    return out
+
+
+def match_jobs(wip, pl):
+    """Put a job number on each WIP line.
+
+    A WIP line and its other side share a journal reference. Usually they
+    also share the figure, one as a debit and one as a credit, and that
+    pair identifies the job on its own. Where the WIP side is one line and
+    the other side is split across several, the figures do not pair, so
+    the description is used instead. The two agree wherever both resolve.
+    Anything that still points at more than one job is left blank rather
+    than guessed at.
+    """
+    by_amt, by_desc = defaultdict(list), defaultdict(list)
+    for x in pl:
+        by_amt[(x['ref'], round(abs(x['net']), 2))].append(x)
+        by_desc[(x['ref'], desckey(x['desc']))].append(x)
+
+    def one(cands):
+        jobs = {jobkey(y['job']) for y in cands if jobkey(y['job'])}
+        if len(jobs) != 1:
+            return None, None, len(jobs)
+        j = jobs.pop()
+        return j, next(y['job'] for y in cands if jobkey(y['job']) == j), 1
+
+    for x in wip:
+        ref = str(x['ref'])
+        j, name, n = one(by_amt.get(
+            (ref, round(abs(x['debit'] - x['credit']), 2)), []))
+        how = 'matched on the figure'
+        if j is None:
+            j, name, n2 = one(by_desc.get((ref, desckey(x['desc'])), []))
+            how = 'matched on the description'
+            n = max(n, n2)
+        if j:
+            x['job'], x['jobname'], x['match'] = j, name, how
+        else:
+            x['job'], x['jobname'] = '', ''
+            x['match'] = ('several jobs on this journal line' if n > 1
+                          else 'no job found')
+    return wip
+
+
+def invoices_by_job(pl):
+    """Every sales invoice raised on each job, with its date."""
+    out = defaultdict(dict)
+    for x in pl:
+        if x['code'] < 50000 and x['inv'].startswith('INV-'):
+            j = jobkey(x['job'])
+            if j:
+                out[j][x['inv']] = x['date']
     return out
 
 
 def jobkey(j):
     m = re.match(r'\s*([0-9]{3,}[A-Za-z]?)', j or '')
     return m.group(1) if m else ''
+
+
+def desckey(d):
+    """An accrual and its reversal describe the same thing, so the word
+    Reversal comes off before the two are compared."""
+    d = re.sub(r'^Reversal:\s*', '', str(d or '')).strip()
+    return re.sub(r'\s+', ' ', d).lower()[:70]
 
 
 def kind(desc):
@@ -134,6 +200,12 @@ def main(wip_path, gl_path, pl_path, out):
     for x in pl:
         if x['ref'] and jobkey(x['job']):
             byref_job[x['ref']].add(jobkey(x['job']))
+    match_jobs(wip, pl)
+    inv_by_job = invoices_by_job(pl)
+    pl_from = min(x['date'] for x in pl)
+    for x in wip:
+        if x['date'] < pl_from:
+            x['match'] = 'before the job export starts'
 
     wip.sort(key=lambda x: (x['date'], str(x['ref'])))
     other.sort(key=lambda x: (x['date'], x['account']))
@@ -144,6 +216,7 @@ def main(wip_path, gl_path, pl_path, out):
     s_rec = wb.active
     s_rec.title = 'Monthly recon'
     s_in = wb.create_sheet('What is in it')
+    s_job = wb.create_sheet('By job and invoice')
     s_went = wb.create_sheet('Where it went')
     s_rev = wb.create_sheet('Accruals vs reversals')
     s_tx = wb.create_sheet('Transactions')
@@ -156,23 +229,38 @@ def main(wip_path, gl_path, pl_path, out):
     ws['A1'].font = TITLE
     ws['A2'] = f'From the export for {period}'
     band(ws, 4, ['Date', 'Month', 'Source', 'Description', 'Item',
-                 'Category', 'Type', 'Reference', 'Debit', 'Credit', 'Net'],
-         [11, 11, 15, 62, 56, 26, 11, 12, 13, 13, 13])
+                 'Category', 'Type', 'Reference', 'Debit', 'Credit', 'Net',
+                 'Job number', 'Job', 'Invoiced', 'Invoice numbers',
+                 'First invoice date', 'Last invoice date', 'Job match'],
+         [11, 11, 15, 56, 50, 26, 11, 12, 13, 13, 13, 12, 42, 11, 30, 13,
+          13, 26])
     r = 5
     for x in wip:
         i = r
         it = item_of(x['desc'])
+        invs = inv_by_job.get(x['job'], {}) if x['job'] else {}
+        dates = sorted(invs.values())
         r = put(ws, r, [x['date'], f'=DATE(YEAR(A{i}),MONTH(A{i}),1)',
                         x['source'], str(x['desc']), it, cat_of(it),
                         kind(x['desc']), str(x['ref']),
                         x['debit'] or None, x['credit'] or None,
-                        f'=I{i}-J{i}'],
+                        f'=I{i}-J{i}',
+                        x['job'] or None, x['jobname'] or None,
+                        ('yes' if invs else
+                         ('no' if x['job'] else None)),
+                        ', '.join(sorted(invs)) or None,
+                        dates[0] if dates else None,
+                        dates[-1] if dates else None,
+                        x['match']],
                 [DATE, 'mmm yyyy', None, None, None, None, None, None,
-                 MONEY, MONEY, MONEY])
+                 MONEY, MONEY, MONEY, None, None, None, None, DATE, DATE,
+                 None])
         if cat_of(it) == 'Licences and subscriptions':
             ws.cell(i, 6).fill = RED
         elif cat_of(it) == 'Monthly WIP journal':
             ws.cell(i, 6).fill = AMBER
+        if x['job'] and not invs:
+            ws.cell(i, 14).fill = AMBER
     t1, t2 = 5, r - 1
     T = "'Transactions'!"
     TB = f'{T}$B${t1}:$B${t2}'      # month
@@ -182,6 +270,8 @@ def main(wip_path, gl_path, pl_path, out):
     TI = f'{T}$I${t1}:$I${t2}'      # debit
     TJ = f'{T}$J${t1}:$J${t2}'      # credit
     TK = f'{T}$K${t1}:$K${t2}'      # net
+    TL = f'{T}$L${t1}:$L${t2}'      # job number
+    TN = f'{T}$N${t1}:$N${t2}'      # invoiced
 
     # ------------------------------------------------- Source - other side
     ws = s_osrc
@@ -364,6 +454,67 @@ def main(wip_path, gl_path, pl_path, out):
         r = put(ws, r, [cat, it, round(items[it], 2),
                         f'=COUNTIFS({TE},$B{i})'],
                 [None, None, MONEY, '0'])
+
+    # -------------------------------------------------- By job and invoice
+    ws = s_job
+    ws['A1'] = 'WIP balance by job, against the invoices on that job'
+    ws['A1'].font = TITLE
+    ws['A2'] = ('This is the test of whether an item still belongs in WIP. '
+                'Cost sitting in WIP is right while the job is not '
+                'invoiced. Once the job is invoiced the cost should have '
+                'come out.')
+    ws['A3'] = ('Job numbers come from matching each WIP line to its other '
+                'side on the journal. The job export starts 1 June 2026, '
+                'so lines before that carry no job.')
+    ws['A3'].font = Font(italic=True, size=9)
+    band(ws, 5, ['Job number', 'Job', 'WIP balance', 'Lines', 'Invoiced',
+                 'Invoice numbers', 'First invoice date',
+                 'Last invoice date', 'Days since last invoice',
+                 'Look at this one'],
+         [12, 44, 15, 8, 10, 32, 13, 13, 13, 40])
+    jobs = {}
+    for x in wip:
+        if x['job']:
+            jobs.setdefault(x['job'], x['jobname'])
+    order = sorted(jobs, key=lambda j: sum(
+        y['debit'] - y['credit'] for y in wip if y['job'] == j))
+    r = 6
+    for j in order:
+        i = r
+        invs = inv_by_job.get(j, {})
+        dates = sorted(invs.values())
+        r = put(ws, r, [
+            j, jobs[j],
+            f'=SUMIFS({TK},{TL},$A{i})',
+            f'=COUNTIFS({TL},$A{i})',
+            'yes' if invs else 'no',
+            ', '.join(sorted(invs)) or None,
+            dates[0] if dates else None,
+            dates[-1] if dates else None,
+            f'=IF($H{i}="","",DATE(2026,10,31)-$H{i})',
+            f'=IF(ROUND($C{i},2)=0,"",'
+            f'IF($E{i}="no","not invoiced yet, so WIP is correct",'
+            f'IF($I{i}>60,"invoiced over 60 days ago and still in WIP",'
+            f'"invoiced recently, check it has cleared")))'],
+            [None, None, MONEY, '0', None, None, DATE, DATE, '0', None])
+    job_last = r - 1
+    r += 1
+    ws.cell(r, 2, 'Total with a job number').font = SUB
+    ws.cell(r, 3, f'=SUM(C6:C{job_last})').number_format = MONEY
+    ws.cell(r, 4, f'=SUM(D6:D{job_last})').number_format = '0'
+    bold(ws, r, range(1, 11))
+    r += 1
+    ws.cell(r, 2, 'Lines with no job number').font = SUB
+    ws.cell(r, 3, f'=SUM({TK})-C{r-1}').number_format = MONEY
+    ws.cell(r, 4, f'=COUNTA({TK})-D{r-1}').number_format = '0'
+    bold(ws, r, range(1, 11))
+    r += 1
+    ws.cell(r, 2, 'Total activity, ties to the recon').font = SUB
+    ws.cell(r, 3, f'=C{r-2}+C{r-1}').number_format = MONEY
+    bold(ws, r, range(1, 11))
+    from openpyxl.formatting.rule import FormulaRule as _FR
+    ws.conditional_formatting.add(f'A6:J{job_last}', _FR(
+        formula=['$I6>60'], fill=RED))
 
     # ------------------------------------------------------- Where it went
     ws = s_went
