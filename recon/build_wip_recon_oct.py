@@ -779,6 +779,16 @@ def main(wip_path, gl_path, pl_path, out):
 
     q1win_t = (f'{TB},">="&DATE(2026,7,1),'
                f'{TB},"<="&DATE(2026,9,1)')
+    # A reversal should go the opposite way to the accrual it reverses.
+    # Where it does not, the accrual never comes back out, so the line is
+    # called out on the job it belongs to.
+    sides = defaultdict(lambda: {'Posting': 0.0, 'Reversal': 0.0})
+    for x in wip:
+        sides[xl_item(x['desc'])][kind(x['desc'])] += \
+            x['debit'] - x['credit']
+    failed = {k for k, vv in sides.items()
+              if vv['Posting'] * vv['Reversal'] > 0}
+
     contents = []
     r = 5
     for j in order:
@@ -812,9 +822,15 @@ def main(wip_path, gl_path, pl_path, out):
                 continue
             amt = round(abs(x['debit'] - x['credit']), 2)
             side = side_of.get((str(x['ref']), j, amt), 'Cost')
+            note = wip_event(x, side)
+            if xl_item(x['desc']) in failed and kind(x['desc']) == \
+                    'Reversal':
+                note += (' CHECK: this went the same way as the accrual, '
+                         'so the accrual has not come back out.')
             events.append(dict(
-                date=x['date'], sort=0, what=wip_event(x, side),
-                src='wip', row=x['row']))
+                date=x['date'], sort=0, what=note, ref=str(x['ref']),
+                src='wip', row=x['row'],
+                flag=xl_item(x['desc']) in failed))
         for x in pl_by_job.get(j, []):
             if x['ref'] in plw_refs and x['source'] == 'Manual Journal':
                 what = ('The other side of that journal, in the P&L')
@@ -830,8 +846,13 @@ def main(wip_path, gl_path, pl_path, out):
                 inv = x['inv'] or x['ref']
             events.append(dict(
                 date=x['date'], sort=1, what=what,
-                src='pl', row=x['row']))
-        events.sort(key=lambda e: (e['date'], e['sort'], e['what']))
+                ref=str(x['ref'] or x['inv'] or ''),
+                src='pl', row=x['row'], flag=False))
+        # date, then journal, then the WIP side before its other side,
+        # so each journal reads as one block instead of being interleaved
+        # with another journal posted the same day.
+        events.sort(key=lambda e: (e['date'], e['ref'], e['sort'],
+                                   e['row']))
 
         for e in events:
             i = r
@@ -853,7 +874,10 @@ def main(wip_path, gl_path, pl_path, out):
                     [DATE, None, None, None, MONEY0, MONEY0, MONEY0, MONEY,
                      None])
             ws.cell(i, 9).font = Font(italic=True, size=8)
-            if e['src'] == 'wip':
+            if e.get('flag'):
+                for c in range(1, 10):
+                    ws.cell(i, c).fill = RED
+            elif e['src'] == 'wip':
                 ws.cell(i, 2).fill = AMBER
             elif e['what'].startswith('Invoiced'):
                 ws.cell(i, 2).fill = GREEN
