@@ -293,32 +293,58 @@ Reconciled month by month from two Account Transactions exports.
 The account runs from a credit of 141,095.27 at 1 July 2024 to a credit of
 133,253.18 at 30 September 2026, which matches the balance sheet.
 
-**The monthly WIP journals are never reversed.** 343 posted, none reversed, so
-the balance is every accrual ever put through. 624 items still carry a
-balance. Accounts 44100 and 44200 have no entries at all, so the balance sheet
-moves without the P&L WIP accounts being used. 189 of the items are licences
-and subscriptions, which are not work in progress.
+**I first said the monthly WIP journals are never reversed. That was wrong
+and I corrected it in writing.** There are 88 reversal lines and 74 accrual
+and reversal pairs. The accrual reverses the following month and WIP does
+pull through the P&L correctly.
 
-**Reported, not actioned.** Danica has not come back on it.
+Rebuilt in full for October from the GL and the P&L analysis. Opening
+126,389.71 credit at 1 July 2025, 380,517.76 credit at 30 June 2026,
+133,253.18 credit at 30 September 2026, 125,405.18 credit at 31 October 2026.
+Ties to the balance sheet at each date.
+
+**One real fault.** The 1 October reversal, journal 71185, posted 8 of its 13
+lines the same way round as the accrual it was meant to reverse. 12,415.00 is
+stuck in WIP and the same amount is sitting in October revenue. It is the only
+fault of its kind in the 74 pairs. It does not touch Q1. The correction
+schedule is `wip/oct_reversal_edit_schedule.py`. **Not yet posted.**
+
+**The account holds two different things.** Licence deferrals of 33,479.05
+credit, and genuine work in progress of 34,463.58 debit. There is no deferred
+income account anywhere in the chart. Danica's decision was to leave it as is
+for now.
 
 ### Subscriptions margin
 
 Duncan asked why subscriptions and licences only make about 3 per cent.
 
-FY2025 made 11.3 per cent, FY2026 13.0 per cent, FY2027 to date 3.1 per cent.
-Spacera bills 5,208 a month for an Aware Super National Support Agreement from
-1 July 2026 and **nothing bills it out**. All fourteen Aware Super invoices
-from June to November were checked and none carries Hypercare, Mission Control
-or Photon. The recurring Aware Super income is 11,000 a month coded to
-Contract Support Staff.
+FY2025 made 11.3 per cent, FY2026 13.0 per cent, FY2027 Q1 as booked 3.1 per
+cent. Q1 as booked is 2,666.90 of margin on 84,810.19 of licence income.
 
-`recon/CTS subscriptions by month - 30 September 2026.xlsx`.
+Two things cause the 3.1 per cent, and neither is pricing.
 
-I first said the book makes 15 per cent and Spacera was a distortion. **That
-was wrong and I corrected it in writing.** The cost is real and recurring. The
-open question is whether the platform is meant to be covered inside the 11,000
-a month or is not being charged for at all. Whoever signed QU-0003 can settle
-it.
+Spacera bills 5,208 a month for the Aware Super National Support Agreement
+from 1 July 2026. The cost sits in Subscriptions & Licences Expense. The
+income that covers it is coded to Contract Support Staff, so the licence
+account carries the cost without the matching income. The second cause is
+2,525.99 of internal department software, which is cost with nothing to sell
+against it.
+
+Put both right and Q1 reads 15,608.89, or 18.4 per cent. Strip only the
+Spacera contract and the rest of the book runs about 15.5 per cent.
+
+**I said twice that nothing bills Spacera out. That was wrong both times and I
+corrected it in writing.** It is recovered on job 26022301 Aware Super AV
+Maintenance, which billed 31,300.00 in Q1 against 15,624.00 of Spacera cost.
+The job is fine. It is the account coding that reads badly.
+
+`recon/CTS subscriptions by month - 30 September 2026.xlsx` is the September
+build and **its own written conclusion still says nothing bills it out**. Do
+not forward that file without fixing the text first.
+
+The open question that remains is whether the platform is meant to be covered
+inside the 11,000 a month Aware Super maintenance fee or is a separate charge
+that is not being raised. Whoever signed QU-0003 can settle it.
 
 **Reported, not actioned.**
 
