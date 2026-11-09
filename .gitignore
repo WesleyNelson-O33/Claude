@@ -26,3 +26,6 @@ recon/CTS work in progress by month - 31 October 2026.xlsx
 
 # Snip working files. Every deck build regenerates these.
 deck/build/snipwork/
+
+# Backups the recalc step writes beside a workbook.
+*.xlsx.bak
