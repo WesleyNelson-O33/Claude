@@ -769,13 +769,24 @@ def main(wip_path, gl_path, pl_path, out):
                     else 'Cost into the P&L, the credit sits in WIP')
         return ('Reversal journal. ' + what) if rev else what
 
-    # what the other side of each WIP journal reference was, per job
-    side_of = {}
+    # What the other side of each WIP journal was. The figure usually
+    # pairs one for one, but where the WIP side is a single line and the
+    # other side is split, it does not. Then the side is taken from the
+    # journal and job together, and only when every line on it agrees.
+    side_of, side_by_job = {}, defaultdict(set)
     for x in pl:
         if x['ref'] in plw_refs and jobkey(x['job']):
-            k = (x['ref'], jobkey(x['job']),
-                 round(abs(x['net']), 2))
-            side_of[k] = ('Income' if is_income(x['code']) else 'Cost')
+            side = 'Income' if is_income(x['code']) else 'Cost'
+            side_of[(x['ref'], jobkey(x['job']),
+                     round(abs(x['net']), 2))] = side
+            side_by_job[(x['ref'], jobkey(x['job']))].add(side)
+
+    def side_for(x, job):
+        key = (str(x['ref']), job, round(abs(x['debit'] - x['credit']), 2))
+        if key in side_of:
+            return side_of[key]
+        both = side_by_job.get((str(x['ref']), job), set())
+        return both.pop() if len(both) == 1 else 'Cost'
 
     q1win_t = (f'{TB},">="&DATE(2026,7,1),'
                f'{TB},"<="&DATE(2026,9,1)')
@@ -820,9 +831,7 @@ def main(wip_path, gl_path, pl_path, out):
         for x in wip:
             if x['job'] != j:
                 continue
-            amt = round(abs(x['debit'] - x['credit']), 2)
-            side = side_of.get((str(x['ref']), j, amt), 'Cost')
-            note = wip_event(x, side)
+            note = wip_event(x, side_for(x, j))
             if xl_item(x['desc']) in failed and kind(x['desc']) == \
                     'Reversal':
                 note += (' CHECK: this went the same way as the accrual, '
