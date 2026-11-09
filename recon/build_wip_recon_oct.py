@@ -61,7 +61,7 @@ def read_pl(path):
     rows = list(openpyxl.load_workbook(path, data_only=True, read_only=True)
                 .worksheets[0].iter_rows(values_only=True))
     out = []
-    for r in rows[4:]:
+    for n, r in enumerate(rows[4:], 5):
         try:
             code = int(r[0])
         except (TypeError, ValueError):
@@ -72,7 +72,8 @@ def read_pl(path):
             code=code, account=str(r[1] or ''), source=str(r[2] or ''),
             date=r[3].date(), net=float(r[6] or 0) - float(r[5] or 0),
             job=str(r[7] or ''), inv=str(r[8] or ''), ref=str(r[9] or ''),
-            desc=re.sub(r'\s+', ' ', str(r[10] or '')).strip()))
+            desc=re.sub(r'\s+', ' ', str(r[10] or '')).strip(),
+            row=n))
     return out
 
 
@@ -183,6 +184,7 @@ AMBER = PatternFill('solid', fgColor='FFEB9C')
 GREEN = PatternFill('solid', fgColor='C6EFCE')
 THIN = Border(*[Side(style='thin', color='BFBFBF')] * 4)
 MONEY = '#,##0.00;[Red]-#,##0.00'
+MONEY0 = '#,##0.00;[Red]-#,##0.00;""'
 DATE = 'dd/mm/yyyy'
 WRAP = Alignment(wrap_text=True, vertical='top')
 
@@ -537,9 +539,11 @@ def main(wip_path, gl_path, pl_path, out):
                 'numbers start. Jobs still holding a WIP balance come '
                 'first.')
     ws['A3'].font = Font(italic=True, size=9)
-    for col, w in zip('ABCDEFGH',
-                      (11, 44, 30, 22, 14, 14, 14, 16)):
+    for col, w in zip('ABCDEFGHI',
+                      (11, 44, 30, 22, 13, 13, 13, 15, 28)):
         ws.column_dimensions[col].width = w
+    WX = "'Xero - WIP transactions'!"
+    PX = "'Xero - P&L analysis'!"
 
     plw_refs = refs
     pl_by_job = defaultdict(list)
@@ -592,6 +596,8 @@ def main(wip_path, gl_path, pl_path, out):
                  round(abs(x['net']), 2))
             side_of[k] = ('Income' if is_income(x['code']) else 'Cost')
 
+    q1win_t = (f'{TB},">="&DATE(2026,7,1),'
+               f'{TB},"<="&DATE(2026,9,1)')
     contents = []
     r = 5
     for j in order:
@@ -600,7 +606,7 @@ def main(wip_path, gl_path, pl_path, out):
         dates = sorted(invs.values())
         contents.append((j, jobs[j], q1_wip[j], q1_pl[j], bal_of[j],
                          'yes' if invs else 'no', start))
-        for c in range(1, 9):
+        for c in range(1, 10):
             ws.cell(r, c).fill = HFILL
             ws.cell(r, c).border = THIN
         ws.cell(r, 1, f'JOB {j}   {jobs[j]}').font = Font(
@@ -612,7 +618,7 @@ def main(wip_path, gl_path, pl_path, out):
         for c, lab in enumerate(
                 ['Date', 'What happened', 'Account', 'Invoice',
                  'Into WIP', 'Out of WIP', 'Into the P&L',
-                 'WIP balance'], 1):
+                 'WIP balance', 'Where it comes from'], 1):
             cell = ws.cell(r, c, lab)
             cell.font, cell.fill, cell.border, cell.alignment = (
                 SUB, SFILL, THIN, WRAP)
@@ -627,9 +633,7 @@ def main(wip_path, gl_path, pl_path, out):
             side = side_of.get((str(x['ref']), j, amt), 'Cost')
             events.append(dict(
                 date=x['date'], sort=0, what=wip_event(x, side),
-                account='11300 Work in Progress', inv=str(x['ref']),
-                wdr=x['debit'] or None, wcr=x['credit'] or None,
-                pl=None))
+                src='wip', row=x['row']))
         for x in pl_by_job.get(j, []):
             if x['ref'] in plw_refs and x['source'] == 'Manual Journal':
                 what = ('The other side of that journal, in the P&L')
@@ -645,18 +649,30 @@ def main(wip_path, gl_path, pl_path, out):
                 inv = x['inv'] or x['ref']
             events.append(dict(
                 date=x['date'], sort=1, what=what,
-                account=f'{x["code"]} {x["account"]}', inv=inv,
-                wdr=None, wcr=None, pl=round(x['net'], 2)))
+                src='pl', row=x['row']))
         events.sort(key=lambda e: (e['date'], e['sort'], e['what']))
 
         for e in events:
             i = r
             prev = '0' if i == first else f'$H{i-1}'
-            r = put(ws, r, [e['date'], e['what'], e['account'],
-                            e['inv'] or None, e['wdr'], e['wcr'], e['pl'],
-                            f'={prev}+N(E{i})-N(F{i})'],
-                    [DATE, None, None, None, MONEY, MONEY, MONEY, MONEY])
-            if e['wdr'] or e['wcr']:
+            n = e['row']
+            if e['src'] == 'wip':
+                vals = [f'={WX}A{n}', e['what'], '11300 Work in Progress',
+                        f'={WX}D{n}', f'={WX}E{n}', f'={WX}F{n}', None,
+                        f'={prev}+N(E{i})-N(F{i})',
+                        f'Xero - WIP transactions row {n}']
+            else:
+                vals = [f'={PX}D{n}', e['what'],
+                        f'={PX}A{n}&" "&{PX}B{n}',
+                        f'=IF({PX}I{n}="",{PX}J{n},{PX}I{n})',
+                        None, None, f'={PX}G{n}-{PX}F{n}',
+                        f'={prev}+N(E{i})-N(F{i})',
+                        f'Xero - P&L analysis row {n}']
+            r = put(ws, r, vals,
+                    [DATE, None, None, None, MONEY0, MONEY0, MONEY0, MONEY,
+                     None])
+            ws.cell(i, 9).font = Font(italic=True, size=8)
+            if e['src'] == 'wip':
                 ws.cell(i, 2).fill = AMBER
             elif e['what'].startswith('Invoiced'):
                 ws.cell(i, 2).fill = GREEN
@@ -667,32 +683,41 @@ def main(wip_path, gl_path, pl_path, out):
                         f'=SUM(E{first}:E{last})',
                         f'=SUM(F{first}:F{last})',
                         f'=SUM(G{first}:G{last})',
-                        f'=E{i}-F{i}'],
-                [None, None, None, None, MONEY, MONEY, MONEY, MONEY])
-        bold(ws, i, range(1, 9))
+                        f'=E{i}-F{i}', ''],
+                [None, None, None, None, MONEY, MONEY, MONEY, MONEY,
+                 None])
+        bold(ws, i, range(1, 10))
         tot = i
         i = r
         r = put(ws, r, ['', 'Left in WIP at 31 October', '', '', '', '',
-                        '', f'=H{tot}'],
-                [None, None, None, None, None, None, None, MONEY])
+                        '', f'=H{tot}', ''],
+                [None, None, None, None, None, None, None, MONEY, None])
         ws.cell(i, 3, f'=IF(ROUND(H{i},2)=0,"nothing left",'
                       f'IF(H{i}<0,"credit","debit"))')
-        bold(ws, i, range(1, 9))
+        bold(ws, i, range(1, 10))
         i = r
         r = put(ws, r, ['', 'Margin on the job so far', '', '', '', '',
-                        f'=G{tot}', ''],
-                [None, None, None, None, None, None, MONEY, None])
-        bold(ws, i, range(1, 9))
+                        f'=G{tot}', '', ''],
+                [None, None, None, None, None, None, MONEY, None, None])
+        bold(ws, i, range(1, 10))
+        # Both Q1 figures are summed from this job's own rows above, so
+        # the working is on screen and nothing depends on matching the
+        # job number a second time.
+        win = (f'$A${first}:$A${last},">="&DATE(2026,7,1),'
+               f'$A${first}:$A${last},"<="&DATE(2026,9,30)')
         i = r
         r = put(ws, r, ['', 'Moved through WIP in Q1, July to September',
-                        '', '', '', '', '', q1_wip[j]],
-                [None, None, None, None, None, None, None, MONEY])
-        bold(ws, i, range(1, 9))
+                        '', '', '', '', '',
+                        f'=SUMIFS($E${first}:$E${last},{win})'
+                        f'-SUMIFS($F${first}:$F${last},{win})', ''],
+                [None, None, None, None, None, None, None, MONEY, None])
+        bold(ws, i, range(1, 10))
         i = r
         r = put(ws, r, ['', 'Hit the P&L in Q1, July to September', '', '',
-                        '', '', q1_pl[j], ''],
-                [None, None, None, None, None, None, MONEY, None])
-        bold(ws, i, range(1, 9))
+                        '', '', f'=SUMIFS($G${first}:$G${last},{win})',
+                        '', ''],
+                [None, None, None, None, None, None, MONEY, None, None])
+        bold(ws, i, range(1, 10))
 
         days = (datetime.date(2026, 10, 31) - dates[-1]).days if dates else 0
         if round(bal_of[j], 2) == 0:
@@ -712,8 +737,8 @@ def main(wip_path, gl_path, pl_path, out):
             fill = AMBER
         cell = ws.cell(r, 1, note)
         cell.alignment = WRAP
-        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=8)
-        for c in range(1, 9):
+        ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=9)
+        for c in range(1, 10):
             ws.cell(r, c).fill = fill
         r += 2
 
