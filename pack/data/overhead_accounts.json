@@ -1,0 +1,302 @@
+{
+ "General & Administrative Exp": [
+  [
+   "61050",
+   "Accounting Fees"
+  ],
+  [
+   "61100",
+   "Legal Fees"
+  ],
+  [
+   "61150",
+   "Payroll Processing Fee"
+  ],
+  [
+   "61200",
+   "Bank Charges"
+  ],
+  [
+   "61300",
+   "Depreciation"
+  ],
+  [
+   "61400",
+   "Dues & Subscriptions"
+  ],
+  [
+   "61450",
+   "Donations / Charity"
+  ],
+  [
+   "61900",
+   "Bad Debts"
+  ],
+  [
+   "61700",
+   "Freight Paid"
+  ],
+  [
+   "61701",
+   "Filing Fee"
+  ],
+  [
+   "61730",
+   "Instant Asset Write Off"
+  ],
+  [
+   "61901",
+   "Business Advisory"
+  ],
+  [
+   "61902",
+   "Custodian Vaults"
+  ],
+  [
+   "61903",
+   "Taxis/Parking"
+  ],
+  [
+   "61500",
+   "Office Supplies"
+  ],
+  [
+   "93006",
+   "Stripe Fees"
+  ],
+  [
+   "61350",
+   "Depreciation - ROU"
+  ]
+ ],
+ "Business Insurances": [
+  [
+   "62100",
+   "Business Combined"
+  ],
+  [
+   "62200",
+   "Professional Indemnity"
+  ],
+  [
+   "62300",
+   "Other Insurance"
+  ],
+  [
+   "62400",
+   "Travel Insurance"
+  ]
+ ],
+ "Advertising & Promotion Exp": [
+  [
+   "63100",
+   "Advertising"
+  ]
+ ],
+ "Operating Expenses": [
+  [
+   "64100",
+   "Office Supplies"
+  ],
+  [
+   "64200",
+   "Postage"
+  ],
+  [
+   "64400",
+   "Rent"
+  ],
+  [
+   "64410",
+   "Rental Outgoings"
+  ],
+  [
+   "64450",
+   "Electricity"
+  ],
+  [
+   "64451",
+   "Repairs & Maintenance"
+  ],
+  [
+   "64510",
+   "1300 Number"
+  ],
+  [
+   "64520",
+   "Office Phones"
+  ],
+  [
+   "64530",
+   "Mobile Phones"
+  ],
+  [
+   "64540",
+   "Pager"
+  ],
+  [
+   "64550",
+   "Fax"
+  ],
+  [
+   "64560",
+   "Internet"
+  ],
+  [
+   "64570",
+   "Other Telco Expenses"
+  ],
+  [
+   "64580",
+   "Insurance"
+  ],
+  [
+   "64600",
+   "Office Cleaning"
+  ],
+  [
+   "64700",
+   "IT Network Service & Support"
+  ],
+  [
+   "64800",
+   "Travel & Per Diems"
+  ],
+  [
+   "64850",
+   "Client Entertainment"
+  ],
+  [
+   "61905",
+   "Stamp Duty (Indirect)"
+  ],
+  [
+   "61906",
+   "Office Rentals"
+  ],
+  [
+   "64300",
+   "Printing"
+  ],
+  [
+   "64900",
+   "Other Expenses"
+  ],
+  [
+   "61904",
+   "Replacements"
+  ],
+  [
+   "61907",
+   "Storage Fees"
+  ]
+ ],
+ "Employment Expenses": [
+  [
+   "65106",
+   "Payroll Tax"
+  ],
+  [
+   "65110",
+   "Staff Amenities"
+  ],
+  [
+   "65115",
+   "Staff Entertainment"
+  ],
+  [
+   "65120",
+   "Superannuation"
+  ],
+  [
+   "65130",
+   "Wages & Salaries"
+  ],
+  [
+   "65131",
+   "Indirect Salaries - ADMIN"
+  ],
+  [
+   "65132",
+   "Indirect Salaries - ONS"
+  ],
+  [
+   "65133",
+   "Indirect Salaries - PRD"
+  ],
+  [
+   "65134",
+   "Indirect Salaries - VID"
+  ],
+  [
+   "65135",
+   "Indirect Salaries - INTEGRATION"
+  ],
+  [
+   "65136",
+   "Indirect Salaries - CONS"
+  ],
+  [
+   "65170",
+   "Indirect Wages"
+  ],
+  [
+   "65171",
+   "Indirect Wages - ADMIN"
+  ],
+  [
+   "65172",
+   "Indirect Wages - ONS"
+  ],
+  [
+   "65173",
+   "Indirect Wages - PRD"
+  ],
+  [
+   "65174",
+   "Indirect Wages - VID"
+  ],
+  [
+   "65175",
+   "Indirect Wages - INTEGRATION"
+  ],
+  [
+   "65176",
+   "Indirect Wages - CONS"
+  ],
+  [
+   "65126",
+   "Workers' Compensation"
+  ],
+  [
+   "65127",
+   "Training Material & Courses"
+  ],
+  [
+   "65128",
+   "Recruitment"
+  ],
+  [
+   "65101",
+   "Leave expense (Long Service)"
+  ],
+  [
+   "65102",
+   "Leave expense (Annual)"
+  ],
+  [
+   "65105",
+   "Fringe Benefits Tax"
+  ],
+  [
+   "65125",
+   "SGC Penalties"
+  ]
+ ],
+ "Credit Card fees paid": [
+  [
+   "61800",
+   "Credit Card Fees Paid"
+  ]
+ ]
+}

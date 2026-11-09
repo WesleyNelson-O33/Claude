@@ -1,0 +1,21 @@
+{
+ "ops_first": 6,
+ "ops_n": 9,
+ "ops_total": 15,
+ "dist_first": 49,
+ "dist_last": 58,
+ "dist_total": 59,
+ "lab_first": 64,
+ "lab_last": 77,
+ "lab_total": 78,
+ "top10_dept": 105,
+ "bva_first": 102,
+ "bva_last": 107,
+ "bva_hdr": 101,
+ "bvm_first": 112,
+ "bvm_last": 123,
+ "bvm_hdr": 111,
+ "prof_hdr": 128,
+ "prof_first": 129,
+ "prof_last": 140
+}

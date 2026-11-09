@@ -1,0 +1,183 @@
+"""Load the real Xero GL export into the pack and tie it back to the numbers
+CTS already produce in PL_Analysis.xlsm and 2026-08_Graph.xlsx."""
+import shutil, subprocess, sys, re
+from pathlib import Path
+from collections import defaultdict
+from openpyxl import load_workbook
+
+HERE = Path(__file__).parent
+SRC = HERE / "CTS Financial Controller Pack.xlsx"
+TEST = HERE / "_verify_cts.xlsx"
+UP = Path("/root/.claude/uploads/a00ffe59-433c-507b-9006-917d8c60083a")
+PL = UP / "8084a881-PL_Analysis_-_Aug_2026_-_Xero.xlsm"
+RECALC = str(next(Path("/root/.claude/skills/synced").glob("*/xlsx/scripts/recalc.py")))
+
+# ---- read their GL export -------------------------------------------------
+src = load_workbook(PL, data_only=True, read_only=True)["1. Xero GL Transactions"]
+rows = [r for r in src.iter_rows(min_row=2, max_col=18, values_only=True) if r[1] is not None]
+print(f"GL lines from their export: {len(rows):,}")
+
+# their own answers, straight from the same file
+exp = defaultdict(float)
+for r in rows:
+    exp[(r[15], r[12], r[17])] += (r[13] or 0)      # Month, CostCentre, AccountType
+DEPTS = ["Onsite", "Production", "Video", "Integration", "Consulting", "CTS"]
+
+shutil.copy(SRC, TEST)
+wb = load_workbook(TEST)
+gl, st = wb["GL_Paste"], wb["Setup"]
+st["B5"] = "Aug 2026"
+for i, row in enumerate(rows):
+    for j, v in enumerate(row):
+        if v is not None:
+            # their export carries #N/A in the Index column; never write it back as a formula
+            if isinstance(v, str) and v.startswith("="):
+                v = None
+            gl.cell(2 + i, 1 + j, v)
+wb.save(TEST)
+print("pasted, recalculating (this grid is large - allow a few minutes)")
+res = subprocess.run([sys.executable, RECALC, str(TEST), "1500"], capture_output=True, text=True)
+print(res.stdout.strip()[:400])
+
+vb = load_workbook(TEST, data_only=True)
+fs, ct, se = vb["Financial_Summary"], vb["Controls"], vb["Setup"]
+fails = 0
+def chk(label, got, want, tol=0.5):
+    global fails
+    ok = abs((got or 0) - want) < tol
+    fails += not ok
+    print(f"{'OK ' if ok else 'BAD'} {label:44} theirs {want:>13,.2f}   pack {(got or 0):>13,.2f}")
+
+print(f"\nSetup: FY {se['B7'].value}  period {se['B8'].value}  ({se['B5'].value})")
+print(f"Lines pasted {se['B21'].value:,}  kept {se['B23'].value:,}  "
+      f"no account {se['B26'].value}  no dept {se['B27'].value}  outside FY {se['B28'].value}")
+
+# locate the GM-by-department block
+gm0 = None
+for r in range(1, fs.max_row + 1):
+    if str(fs.cell(r, 1).value).strip() == "Department" and fs.cell(r, 2).value:
+        gm0 = r + 1; break
+print("\n--- revenue by department, AUGUST (their tab 4 / graph 'PL' month block) ---")
+for i, d in enumerate(DEPTS):
+    want = exp.get(("Aug", d.upper(), "Income"), 0.0)
+    chk(f"{d} revenue - Aug", fs.cell(gm0 + i, 2).value, want)
+print("\n--- revenue by department, YEAR TO DATE (their tab 6 / graph 'PL' YTD block) ---")
+for i, d in enumerate(DEPTS):
+    want = sum(exp.get((m, d.upper(), "Income"), 0.0) for m in ("Jul", "Aug"))
+    chk(f"{d} revenue - YTD", fs.cell(gm0 + i, 6).value, want)
+print("\n--- cost of sales by department, YEAR TO DATE ---")
+for i, d in enumerate(DEPTS):
+    want = sum(exp.get((m, d.upper(), "Cost of Sales"), 0.0) for m in ("Jul", "Aug"))
+    chk(f"{d} COGS - YTD", fs.cell(gm0 + i, 7).value, want)
+
+tot_inc = sum(v for (m, c, t), v in exp.items() if t == "Income")
+tot_cogs = sum(v for (m, c, t), v in exp.items() if t == "Cost of Sales")
+print("\n--- company totals ---")
+inc_r = next(r for r in range(1, fs.max_row) if str(fs.cell(r, 1).value).strip() == "Income")
+cogs_r = next(r for r in range(1, fs.max_row) if str(fs.cell(r, 1).value).strip() == "Cost of Sales")
+gp_r = next(r for r in range(1, fs.max_row) if str(fs.cell(r, 1).value).strip() == "Gross Profit")
+chk("company income YTD", fs.cell(inc_r, 6).value, tot_inc)
+chk("company cost of sales YTD", fs.cell(cogs_r, 6).value, tot_cogs)
+chk("company gross profit YTD", fs.cell(gp_r, 6).value, tot_inc + tot_cogs)
+gm = fs.cell(gp_r + 1, 6).value
+print(f"    gross margin YTD: {gm:.1%}" if isinstance(gm, float) else f"    gross margin: {gm}")
+
+# Revenue_Comparison must reproduce what they type on the Revenue tab by hand
+rc = vb["Revenue_Comparison"]
+THEIRS = {"Jul": {"Support": 235402.94, "Production": 110900.03, "Consulting": 112803.24,
+                  "Total": 459106.21},
+          "Aug": {"Support": 240235.93, "Production": 268942.12, "Consulting": 94288.49,
+                  "Total": 603466.54}}
+roll0 = None
+for r in range(1, rc.max_row + 1):
+    if str(rc.cell(r, 1).value).strip() == "Month" and rc.cell(r, 2).value == "Support":
+        roll0 = r + 1; break
+print("\n--- Revenue_Comparison rolled up, against the numbers typed on their Revenue tab ---")
+soft = 0
+for k, m in enumerate(("Jul", "Aug")):
+    for gi, g in enumerate(("Support", "Production", "Consulting")):
+        got = rc.cell(roll0 + k, 2 + gi).value or 0
+        want = THEIRS[m][g]
+        ok = abs(got - want) < 0.5
+        if not ok: soft += 1
+        print(f"{'OK ' if ok else '>> '} {m} {g:<12} theirs {want:>13,.2f}   pack {got:>13,.2f}"
+              f"   {'' if ok else f'DIFF {got-want:,.2f}'}")
+    got = rc.cell(roll0 + k, 6).value or 0
+    want = THEIRS[m]["Total"]
+    ok = abs(got - want) < 0.5
+    if not ok: soft += 1
+    print(f"{'OK ' if ok else '>> '} {m} {'TOTAL':<12} theirs {want:>13,.2f}   pack {got:>13,.2f}"
+          f"   {'' if ok else f'DIFF {got-want:,.2f}'}")
+print(f"    ({soft} line(s) differ from their typed figures - see note)")
+
+# Budget_Variance: actual from the GL against the budget now loaded in the pack
+import json as _j
+BUD = _j.loads(Path("/home/user/Claude/reporting/data/cts_budget_fy27.json").read_text())
+bud_ytd = {}
+for b in BUD["rows"]:
+    bud_ytd[(b["dept"], b["line"])] = sum(b["months"][:2])          # Jul + Aug
+bv = vb["Budget_Variance"]
+print("\n--- Budget variance, year to date (Jul + Aug FY27) ---")
+cur = None
+for r in range(6, bv.max_row + 1):
+    a = bv.cell(r, 1).value
+    if not isinstance(a, str): continue
+    t = a.strip()
+    if t.isupper() and t.title() in [d.upper().title() for d in DEPTS]:
+        cur = t.title(); continue
+    if cur and t == "Income":
+        act = bv.cell(r, 6).value or 0
+        bud = bv.cell(r, 7).value or 0
+        want = bud_ytd.get((cur, "Income"), 0.0)
+        ok = abs(bud - want) < 0.5
+        fails_local = 0 if ok else 1
+        globals()["fails"] = globals().get("fails", 0) + fails_local
+        print(f"{'OK ' if ok else 'BAD'} {cur:<12} budget YTD {bud:>13,.2f} (expected {want:>13,.2f})"
+              f"   actual {act:>13,.2f}   var {act-bud:>13,.2f}")
+
+# Tech_Spend, against the same GL computed independently here
+TECHEXP = {"IT Network Service & Support": 30218.74, "Dues & Subscriptions": 20672.16,
+           "Instant Asset Write Off": 5000.00, "Internet": 727.64, "Mobile Phones": 1286.29,
+           "Office Phones": 343.42, "1300 Number": 171.33}
+TECHBUD = {"IT Network Service & Support": 149160.0, "Dues & Subscriptions": 86544.0,
+           "Instant Asset Write Off": 60000.0, "Internet": 4814.0, "Mobile Phones": 3300.0,
+           "Office Phones": 2400.0, "1300 Number": 780.0}
+ts = vb["Tech_Spend"]
+print("\n--- Tech_Spend: actual YTD per account ---")
+srow = {}
+for r in range(1, ts.max_row + 1):          # summary block only - the monthly
+    v = ts.cell(r, 2).value                  # header repeats the account names
+    if isinstance(v, str) and v.strip() in TECHEXP and v.strip() not in srow:
+        srow[v.strip()] = r
+    if isinstance(v, str) and v.strip() == "TOTAL discretionary tech spend": grand = r
+for a, want in TECHEXP.items():
+    r = srow[a]
+    chk(f"{a[:34]}", ts.cell(r, 6).value, want)
+    b = ts.cell(r, 5).value or 0
+    wb2 = TECHBUD[a] / 12 * 2
+    chk(f"  ^ budget YTD", b, wb2, tol=0.02)
+chk("TOTAL actual YTD", ts.cell(grand, 6).value, sum(TECHEXP.values()))
+chk("TOTAL budget FY", ts.cell(grand, 3).value, sum(TECHBUD.values()), tol=0.02)
+chk("TOTAL budget YTD", ts.cell(grand, 5).value, sum(TECHBUD.values()) / 12 * 2, tol=0.02)
+print(f"    full-year run-rate {ts.cell(grand,8).value:,.0f} against budget "
+      f"{ts.cell(grand,3).value:,.0f}")
+# supplier block
+for r in range(1, ts.max_row + 1):
+    if str(ts.cell(r, 1).value).strip() == "First Focus IT Pty Ltd":
+        chk("First Focus IT YTD", ts.cell(r, 2).value, 37799.82); break
+for r in range(1, ts.max_row + 1):
+    if str(ts.cell(r, 1).value).strip() == "All other suppliers":
+        print(f"    'all other suppliers' catch-all: {ts.cell(r,2).value:,.2f} (should be ~0 "
+              f"while the seeded list still covers everyone)"); break
+det = sum(1 for r in range(1, ts.max_row + 1)
+          if isinstance(ts.cell(r, 1).value, int) and ts.cell(r, 6).value not in (None, ""))
+print(f"    transaction detail lines rendered for the reporting month: {det}")
+
+print("\n--- Controls ---")
+for r in range(6, 25):
+    if ct.cell(r, 1).value:
+        s = ct.cell(r, 5).value
+        fails += s == "FAIL"
+        print(f"{'!! ' if s=='FAIL' else '   '}{ct.cell(r,1).value:5}{str(s):8}"
+              f"{str(ct.cell(r,3).value):>14}  {str(ct.cell(r,2).value)[:52]}")
+print("\nRESULT:", "TIES TO THEIR OWN NUMBERS" if fails == 0 else f"{fails} MISMATCHES")

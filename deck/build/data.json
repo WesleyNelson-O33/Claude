@@ -1,0 +1,818 @@
+{
+ "pl": {
+  "revenue": {
+   "month": 561944.53,
+   "month_budget": 413664.681666667,
+   "month_ly": 356323.22,
+   "ytd": 1624459.78,
+   "ytd_budget": 1996109.605,
+   "ytd_ly": 1228582.17
+  },
+  "other_income": {
+   "month": 955.03,
+   "month_budget": 0,
+   "month_ly": 0,
+   "ytd": 3400.2,
+   "ytd_budget": 0,
+   "ytd_ly": 0
+  },
+  "cos": {
+   "month": -374130.12,
+   "month_budget": -289191.65833784,
+   "month_ly": -194056.33,
+   "ytd": -992160.28,
+   "ytd_budget": -1083717.4626484,
+   "ytd_ly": -667265.47
+  },
+  "overheads": {
+   "month": -230233.37,
+   "month_budget": -231573.14623077,
+   "month_ly": -214882.34,
+   "ytd": -641507.5,
+   "ytd_budget": -689691.904031829,
+   "ytd_ly": -646720.99
+  },
+  "gross_profit": {
+   "month": 187814.41,
+   "month_budget": 124473.023328826,
+   "month_ly": 162266.89,
+   "ytd": 632299.5,
+   "ytd_budget": 912392.142351602,
+   "ytd_ly": 561316.7
+  },
+  "gp_pct": {
+   "month": 0.334222329737777,
+   "month_budget": 0.300903192477832,
+   "month_ly": 0.455392410295349,
+   "ytd": 0.389236783689406,
+   "ytd_budget": 0.457085192148856,
+   "ytd_ly": 1.363254456304653
+  },
+  "da": {
+   "month": -9981.59,
+   "month_budget": 0.0,
+   "month_ly": 0.0,
+   "ytd": -14981.59,
+   "ytd_budget": 0,
+   "ytd_ly": 0.0
+  },
+  "ebitda": {
+   "month": -32437.37,
+   "month_budget": -107100.122901944,
+   "month_ly": -52615.45,
+   "ytd": 5773.59000000003,
+   "ytd_budget": 222700.238319772,
+   "ytd_ly": -85404.29000000001
+  },
+  "ebitda_pct": {
+   "month": -0.0577234375784385,
+   "month_budget": -0.258905649064442,
+   "month_ly": -0.147662142253878,
+   "ytd": 0.00355416001743055,
+   "ytd_budget": 0.111567139280296,
+   "ytd_ly": -0.29792485321059947
+  },
+  "net_profit": {
+   "month": -41463.9299999999,
+   "month_budget": -107100.122901944,
+   "month_ly": -52615.45,
+   "ytd": -5807.79999999996,
+   "ytd_budget": 222700.238319772,
+   "ytd_ly": -85404.29000000001
+  },
+  "np_pct": {
+   "month": -0.0737865176835157,
+   "month_budget": -0.258905649064442,
+   "month_ly": -0.147662142253878,
+   "ytd": -0.0035752193261442,
+   "ytd_budget": 0.111567139280296,
+   "ytd_ly": -0.29792485321059947
+  }
+ },
+ "dept": [
+  {
+   "name": "Support",
+   "revenue": 242948.43,
+   "budget": 248016.77,
+   "ly": 231214.01,
+   "cos": -141658.68,
+   "gross_profit": 101289.75,
+   "gm_pct": 0.41691872633216853,
+   "own_overhead": -13101.12,
+   "alloc_overhead": -59181.7452795523,
+   "all_overhead": -72282.8652795523,
+   "result": 29006.884720447706,
+   "ytd_revenue": 718587.3,
+   "ytd_budget": 743184.77,
+   "ytd_cos": -407667.92,
+   "cos_budget": -135541.852161636
+  },
+  {
+   "name": "Events",
+   "revenue": 73304.02,
+   "budget": 65827.5558,
+   "ly": 75333.21,
+   "cos": -16423.01,
+   "gross_profit": 56881.01000000001,
+   "gm_pct": 0.7759603088616424,
+   "own_overhead": -39436.07,
+   "alloc_overhead": -71671.5917089552,
+   "all_overhead": -111107.66170895519,
+   "result": -54226.651708955185,
+   "ytd_revenue": 420120.87,
+   "ytd_budget": 321957.4374,
+   "ytd_cos": -178254.05,
+   "cos_budget": -81780.5587820209
+  },
+  {
+   "name": "Video",
+   "revenue": 7302.6,
+   "budget": 17498.4642,
+   "ly": 20025.28,
+   "cos": -1489.32,
+   "gross_profit": 5813.280000000001,
+   "gm_pct": 0.7960561991619424,
+   "own_overhead": -2877.59,
+   "alloc_overhead": -9781.67220611941,
+   "all_overhead": -12659.26220611941,
+   "result": -6845.98220611941,
+   "ytd_revenue": 40270.4,
+   "ytd_budget": 85583.6226,
+   "ytd_cos": -9509.46,
+   "cos_budget": -21739.135878765
+  },
+  {
+   "name": "Integration",
+   "revenue": 234858.23,
+   "budget": 59271.762,
+   "ly": 21420.52,
+   "cos": -211102.17,
+   "gross_profit": 23756.059999999998,
+   "gm_pct": 0.10115063883432995,
+   "own_overhead": -9136.3,
+   "alloc_overhead": -4148.28011537314,
+   "all_overhead": -13284.580115373139,
+   "result": 10471.479884626859,
+   "ytd_revenue": 441413.71,
+   "ytd_budget": 608676.318,
+   "ytd_cos": -387074.6,
+   "cos_budget": -36093.6802911014
+  },
+  {
+   "name": "Consulting",
+   "revenue": 3531.25,
+   "budget": 23050.1296666667,
+   "ly": 8330.2,
+   "cos": -3456.94,
+   "gross_profit": 74.30999999999995,
+   "gm_pct": 0.021043539823008835,
+   "own_overhead": -5964.94,
+   "alloc_overhead": -13979.03069,
+   "all_overhead": -19943.97069,
+   "result": -19869.660689999997,
+   "ytd_revenue": 4067.5,
+   "ytd_budget": 236707.457,
+   "ytd_cos": -9624.41,
+   "cos_budget": -14036.4312243172
+  }
+ ],
+ "staff": [
+  {
+   "name": "Support",
+   "departmental": 8980.02,
+   "office": 42262.2775110703,
+   "total": 51242.2975110703
+  },
+  {
+   "name": "Events",
+   "departmental": 35664.57,
+   "office": 15294.4660722182,
+   "total": 50959.0360722182
+  },
+  {
+   "name": "Video",
+   "departmental": 2660.31,
+   "office": 1300.62390160069,
+   "total": 3960.93390160069
+  },
+  {
+   "name": "Integration",
+   "departmental": 8563.26,
+   "office": 268.746820790533,
+   "total": 8832.00682079053
+  },
+  {
+   "name": "Consulting",
+   "departmental": 5544.82,
+   "office": 3951.3456943203,
+   "total": 9496.1656943203
+  }
+ ],
+ "fte": [
+  {
+   "name": "Support",
+   "hours": 40311.22,
+   "share": 0.670006013417
+  },
+  {
+   "name": "Events",
+   "hours": 14588.39,
+   "share": 0.242471178646353
+  },
+  {
+   "name": "Video",
+   "hours": 1240.58,
+   "share": 0.0206194717035322
+  },
+  {
+   "name": "Integration",
+   "hours": 256.34,
+   "share": 0.00426058406268314
+  },
+  {
+   "name": "Consulting",
+   "hours": 3768.93,
+   "share": 0.0626427521704314
+  }
+ ],
+ "annual_hours": 2024,
+ "util": [
+  {
+   "name": "Support",
+   "chargeable": 2131.75,
+   "non_chargeable": 11,
+   "leave": 218,
+   "util_pct": 0.994866409987166,
+   "fte": 12.1747159090909,
+   "worked_cc": 3151.65
+  },
+  {
+   "name": "Events",
+   "chargeable": 240.5,
+   "non_chargeable": 249,
+   "leave": 332.75,
+   "util_pct": 0.491317671092952,
+   "fte": 2.78125,
+   "worked_cc": 1249
+  },
+  {
+   "name": "Video",
+   "chargeable": 24.5,
+   "non_chargeable": 7.75,
+   "leave": 0,
+   "util_pct": 0.75968992248062,
+   "fte": 0.183238636363636,
+   "worked_cc": 37.25
+  },
+  {
+   "name": "Integration",
+   "chargeable": 9.5,
+   "non_chargeable": 0,
+   "leave": 0,
+   "util_pct": 1,
+   "fte": 0.0539772727272727,
+   "worked_cc": 9.5
+  },
+  {
+   "name": "Consulting",
+   "chargeable": 30.75,
+   "non_chargeable": 84,
+   "leave": 53,
+   "util_pct": 0.26797385620915,
+   "fte": 0.651988636363636,
+   "worked_cc": 286.25
+  }
+ ],
+ "working_hours_month": 176,
+ "top10": [
+  {
+   "rank": 1,
+   "name": "Deloitte Services",
+   "month": 119613.52,
+   "ytd": 401754.9,
+   "share": 0.24731600310843
+  },
+  {
+   "rank": 2,
+   "name": "Aware Super",
+   "month": 241177.54,
+   "ytd": 285074.54,
+   "share": 0.175488826199193
+  },
+  {
+   "rank": 3,
+   "name": "CBA Place South",
+   "month": 30409.17,
+   "ytd": 105039.74,
+   "share": 0.0646613362135688
+  },
+  {
+   "rank": 4,
+   "name": "Ventia",
+   "month": 9105.35,
+   "ytd": 97662.12,
+   "share": 0.0601197525493675
+  },
+  {
+   "rank": 5,
+   "name": "PwC Services",
+   "month": 26707,
+   "ytd": 88051,
+   "share": 0.0542032502645279
+  },
+  {
+   "rank": 6,
+   "name": "APT Management Services",
+   "month": 4526.77,
+   "ytd": 63613.17,
+   "share": 0.0391595844866039
+  },
+  {
+   "rank": 7,
+   "name": "ASX Operations",
+   "month": 17167,
+   "ytd": 60857.7,
+   "share": 0.0374633467379537
+  },
+  {
+   "rank": 8,
+   "name": "Bankwest",
+   "month": 17230,
+   "ytd": 54971.25,
+   "share": 0.0338397113162137
+  },
+  {
+   "rank": 9,
+   "name": "Data#3",
+   "month": 0,
+   "ytd": 45909,
+   "share": 0.0282610875105815
+  },
+  {
+   "rank": 10,
+   "name": "Generation-e Productivity\u2026",
+   "month": 12388.8,
+   "ytd": 37166.4,
+   "share": 0.0228792368131146
+  }
+ ],
+ "top10_total": {
+  "top_ten_month": 478325.15,
+  "top_ten_ytd": 1240099.82,
+  "top_ten_share": 0.763392135199555,
+  "rest_month": 83619.38,
+  "rest_ytd": 384359.96,
+  "rest_share": 0.236607864800445
+ },
+ "dso": {
+  "receivables": 833320.29,
+  "revenue_3m": 1624459.78,
+  "days": 47.1944381903995,
+  "target": 30,
+  "above": 17.1944381903995,
+  "locked": 303605.144347826,
+  "at_target": 529715.145652174,
+  "overdue": 244538.43,
+  "overdue_share": 0.293450709090499
+ },
+ "ageing": [
+  {
+   "bucket": "Current",
+   "amount": 588781.86,
+   "share": 0.706549290909501
+  },
+  {
+   "bucket": "Under 1 month",
+   "amount": 133176.79,
+   "share": 0.159814649418893
+  },
+  {
+   "bucket": "1 month",
+   "amount": 86553.12,
+   "share": 0.103865369700767
+  },
+  {
+   "bucket": "2 months",
+   "amount": 0,
+   "share": 0
+  },
+  {
+   "bucket": "3 months",
+   "amount": 24808.52,
+   "share": 0.0297706899708394
+  },
+  {
+   "bucket": "Over 3 months",
+   "amount": 0,
+   "share": 0
+  }
+ ],
+ "debtors": [
+  {
+   "name": "Aware Super",
+   "amount": 277395.31,
+   "share": 0.332879582231221
+  },
+  {
+   "name": "Deloitte Services P/L for Deloitte Services Trust",
+   "amount": 131574.88,
+   "share": 0.157892327330707
+  },
+  {
+   "name": "Ventia",
+   "amount": 94701.34,
+   "share": 0.113643386746289
+  },
+  {
+   "name": "Downer EDI Limited",
+   "amount": 39663.82,
+   "share": 0.0475973289933934
+  },
+  {
+   "name": "Generation-e Productivity Solutions",
+   "amount": 39105.52,
+   "share": 0.0469273585070154
+  },
+  {
+   "name": "PwC Services",
+   "amount": 38727.7,
+   "share": 0.0464739674105379
+  },
+  {
+   "name": "Commonwealth Bank of Australia (CBA Place South)",
+   "amount": 33450.09,
+   "share": 0.0401407362828043
+  },
+  {
+   "name": "ASX Operations Pty Ltd",
+   "amount": 20544.7,
+   "share": 0.0246540258848131
+  },
+  {
+   "name": "Property NSW",
+   "amount": 19733.45,
+   "share": 0.0236805106473527
+  },
+  {
+   "name": "Bank of Western Australia Ltd (Bankwest)",
+   "amount": 17908,
+   "share": 0.0214899363604839
+  }
+ ],
+ "other_opex": [
+  {
+   "label": "Rent",
+   "amount": 62043.48,
+   "share": 0.453694529192552
+  },
+  {
+   "label": "IT Network Service & Support",
+   "amount": 39569.79,
+   "share": 0.289355098139211
+  },
+  {
+   "label": "Rental Outgoings",
+   "amount": 14684.28,
+   "share": 0.107379171850638
+  },
+  {
+   "label": "Travel & Per Diems",
+   "amount": 5627.04,
+   "share": 0.0411478734517738
+  },
+  {
+   "label": "Stamp Duty (Indirect)",
+   "amount": 3454.94,
+   "share": 0.0252643368277943
+  },
+  {
+   "label": "Repairs & Maintenance",
+   "amount": 2078.86,
+   "share": 0.015201716746985
+  },
+  {
+   "label": "Office Cleaning",
+   "amount": 2078.73,
+   "share": 0.0152007661186709
+  },
+  {
+   "label": "Mobile Phones",
+   "amount": 1824.93,
+   "share": 0.0133448471484734
+  },
+  {
+   "label": "Everything else",
+   "amount": 5389.61000000002,
+   "share": 0.0394116605239016
+  }
+ ],
+ "cost_dist": [
+  {
+   "label": "Cost of sales, labour",
+   "amount": 620736.65,
+   "share": 0.379965044055653
+  },
+  {
+   "label": "Cost of sales, equipment & services",
+   "amount": 347306.67,
+   "share": 0.212593205455763
+  },
+  {
+   "label": "Cost of sales, transportation",
+   "amount": 0,
+   "share": 0
+  },
+  {
+   "label": "Cost of sales, other direct",
+   "amount": 24116.96,
+   "share": 0.0147624629041775
+  },
+  {
+   "label": "Overhead, General & Administrative Exp",
+   "amount": 75700.43,
+   "share": 0.0463377137792361
+  },
+  {
+   "label": "Overhead, Business Insurances",
+   "amount": 25227.41,
+   "share": 0.015442191067758
+  },
+  {
+   "label": "Overhead, Advertising & Promotion Exp",
+   "amount": 34119.46,
+   "share": 0.02088518878667
+  },
+  {
+   "label": "Overhead, Operating Expenses",
+   "amount": 136751.66,
+   "share": 0.0837083657241499
+  },
+  {
+   "label": "Overhead, Employment Expenses",
+   "amount": 369466.38,
+   "share": 0.226157597354341
+  },
+  {
+   "label": "Overhead, Credit Card fees paid",
+   "amount": 242.16,
+   "share": 0.000148230872252374
+  }
+ ],
+ "labour_mix": [
+  {
+   "label": "Labour line",
+   "amount": 0.0,
+   "share": 0.0
+  },
+  {
+   "label": "Sub-Contract Labour",
+   "amount": 117012,
+   "share": 0
+  },
+  {
+   "label": "Service - hires",
+   "amount": 23704.26,
+   "share": 0
+  },
+  {
+   "label": "Direct Wages & Salaries",
+   "amount": 0,
+   "share": 0
+  },
+  {
+   "label": "Direct Salaries",
+   "amount": 314762.76,
+   "share": 0
+  },
+  {
+   "label": "Direct Wages",
+   "amount": 111018.03,
+   "share": 0
+  },
+  {
+   "label": "Direct Superannuation",
+   "amount": 54239.6,
+   "share": 0
+  },
+  {
+   "label": "Direct Workers Comp",
+   "amount": 0,
+   "share": 0
+  },
+  {
+   "label": "Payroll Tax",
+   "amount": 0,
+   "share": 25768.62
+  },
+  {
+   "label": "Superannuation",
+   "amount": 0,
+   "share": 40877.7
+  },
+  {
+   "label": "Wages & Salaries",
+   "amount": 0,
+   "share": 0
+  },
+  {
+   "label": "Indirect Salaries",
+   "amount": 0,
+   "share": 271731.08
+  },
+  {
+   "label": "Indirect Wages",
+   "amount": 0,
+   "share": 4576.92
+  },
+  {
+   "label": "Workers' Compensation",
+   "amount": 0,
+   "share": 4115.22
+  },
+  {
+   "label": "Leave expense",
+   "amount": 0,
+   "share": -3011.74
+  },
+  {
+   "label": "All labour",
+   "amount": 620736.65,
+   "share": 344057.8
+  }
+ ],
+ "budget_actual": [
+  {
+   "label": "Total Income",
+   "amount": 1624459.78,
+   "share": 1996109.605
+  },
+  {
+   "label": "Cost of Sales",
+   "amount": -992160.28,
+   "share": -1083717.4626484
+  },
+  {
+   "label": "Gross profit",
+   "amount": 632299.5,
+   "share": 912392.142351602
+  },
+  {
+   "label": "Expenses Overheds",
+   "amount": -641507.5,
+   "share": -689691.904031829
+  },
+  {
+   "label": "EBITDA",
+   "amount": 5773.59000000003,
+   "share": 222700.238319772
+  },
+  {
+   "label": "Net profit",
+   "amount": -5807.79999999996,
+   "share": 222700.238319772
+  }
+ ],
+ "income_by_month": [
+  {
+   "month": "2026-07-01 00:00:00",
+   "actual": 459048.71,
+   "budget": 609277.181666667
+  },
+  {
+   "month": "2026-08-01 00:00:00",
+   "actual": 603466.54,
+   "budget": 973167.741666667
+  },
+  {
+   "month": "2026-09-01 00:00:00",
+   "actual": 561944.53,
+   "budget": 413664.681666667
+  },
+  {
+   "month": "2026-10-01 00:00:00",
+   "actual": 950415.681666667,
+   "budget": 950415.681666667
+  },
+  {
+   "month": "2026-11-01 00:00:00",
+   "actual": 540305.181666667,
+   "budget": 540305.181666667
+  },
+  {
+   "month": "2026-12-01 00:00:00",
+   "actual": 344970.181666667,
+   "budget": 344970.181666667
+  },
+  {
+   "month": "2027-01-01 00:00:00",
+   "actual": 353969.358333667,
+   "budget": 353969.358333667
+  },
+  {
+   "month": "2027-02-01 00:00:00",
+   "actual": 576619.441666667,
+   "budget": 576619.441666667
+  },
+  {
+   "month": "2027-03-01 00:00:00",
+   "actual": 414239.441666667,
+   "budget": 414239.441666667
+  },
+  {
+   "month": "2027-04-01 00:00:00",
+   "actual": 392359.441666667,
+   "budget": 392359.441666667
+  },
+  {
+   "month": "2027-05-01 00:00:00",
+   "actual": 402497.118333667,
+   "budget": 402497.118333667
+  },
+  {
+   "month": "2027-06-01 00:00:00",
+   "actual": 333115.201666667,
+   "budget": 333115.201666667
+  }
+ ],
+ "profit_by_month": [
+  {
+   "month": "2026-07-01 00:00:00",
+   "a": 176534.55,
+   "b": -20863.39,
+   "c": -24279.57
+  },
+  {
+   "month": "2026-08-01 00:00:00",
+   "a": 267950.54,
+   "b": 59074.35,
+   "c": 59935.7
+  },
+  {
+   "month": "2026-09-01 00:00:00",
+   "a": 187814.41,
+   "b": -32437.37,
+   "c": -41463.9299999999
+  },
+  {
+   "month": "2026-10-01 00:00:00",
+   "a": 476236.458485562,
+   "b": 267105.707627012,
+   "c": 267105.707627012
+  },
+  {
+   "month": "2026-11-01 00:00:00",
+   "a": 281088.037421296,
+   "b": 78742.2024760775,
+   "c": 78742.2024760775
+  },
+  {
+   "month": "2026-12-01 00:00:00",
+   "a": 103045.664340901,
+   "b": -98031.3726645037,
+   "c": -98031.3726645037
+  },
+  {
+   "month": "2027-01-01 00:00:00",
+   "a": 174896.12059824,
+   "b": -26307.5898490085,
+   "c": -26307.5898490085
+  },
+  {
+   "month": "2027-02-01 00:00:00",
+   "a": 326781.46289624,
+   "b": 129358.620771522,
+   "c": 129358.620771522
+  },
+  {
+   "month": "2027-03-01 00:00:00",
+   "a": 187656.387404208,
+   "b": -24050.5259490922,
+   "c": -24050.5259490922
+  },
+  {
+   "month": "2027-04-01 00:00:00",
+   "a": 185113.504722354,
+   "b": -13734.6951841144,
+   "c": -13734.6951841144
+  },
+  {
+   "month": "2027-05-01 00:00:00",
+   "a": 187948.478887901,
+   "b": -20725.3291356236,
+   "c": -20725.3291356236
+  },
+  {
+   "month": "2027-06-01 00:00:00",
+   "a": 90295.6676159008,
+   "b": -117806.502681984,
+   "c": -117806.502681984
+  },
+  {
+   "month": "Check, net profit to date against the P&L YTD",
+   "a": 0.0,
+   "b": 0.0,
+   "c": 0
+  }
+ ],
+ "setup_month": "September 2026"
+}

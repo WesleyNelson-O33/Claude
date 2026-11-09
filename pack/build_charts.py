@@ -1,0 +1,868 @@
+"""Every chart in the pack, built in one place with the same settings.
+
+Clears whatever charts are on the sheets and puts them back, because openpyxl
+does not round trip data label settings: reload a book and the labels come
+back as None, so patching them in place is not reliable. Rebuilding is.
+
+House rules for a chart here:
+  data labels show the value and nothing else, never the series name, the
+    category name or a legend key
+  a ranked bar chart runs best at the top, and drops the value axis, since
+    the label on each bar already says the number
+  bars are thick, so the chart reads as a shape rather than a row of pins
+  colours come from brand.json, and departments from dept_colours.json
+
+Run after the patch scripts and before recalc.
+"""
+import os, json
+import openpyxl
+from openpyxl.chart import BarChart, LineChart, Reference
+from openpyxl.chart.legend import Legend, LegendEntry
+from openpyxl.chart.label import DataLabelList
+from openpyxl.chart.shapes import GraphicalProperties
+from openpyxl.chart.text import RichText
+from openpyxl.chart.marker import DataPoint, Marker
+from openpyxl.drawing.line import LineProperties
+from openpyxl.drawing.text import (RichTextProperties, Paragraph,
+                                   ParagraphProperties, CharacterProperties)
+from openpyxl.utils import get_column_letter as gl
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+OUT = f'{HERE}/CTS Financial Controller Pack - v20.xlsx'
+B = json.load(open(f'{HERE}/data/brand.json'))
+D = json.load(open(f'{HERE}/data/dept_colours.json'))
+P = json.load(open(f'{HERE}/data/pldept.json'))
+R = json.load(open(f'{HERE}/data/newsheet_rows.json'))
+ACC = json.load(open(f'{HERE}/data/overhead_accounts.json'))
+CC = json.load(open(f'{HERE}/data/costcharts.json'))
+
+INK, GREY, GREYL, WHITE = B['charcoal'], B['grey'], B['grey_lt'], B['white']
+TEAL, AQUA, NAVY, BLUE, PURP, RED = (B['dark_teal'], B['bright_teal'], B['deep_blue'],
+                                     B['primary_blue'], B['purple'], B['accent_red'])
+
+def txt(size=900, bold=False, colour=INK):
+    return RichText(bodyPr=RichTextProperties(), p=[Paragraph(
+        pPr=ParagraphProperties(defRPr=CharacterProperties(
+            sz=size, b=bold, solidFill=colour, latin=None)),
+        endParaRPr=CharacterProperties(sz=size, b=bold, solidFill=colour))])
+
+def _dl(fmt, pos, size, colour, bold):
+    d = DataLabelList()
+    d.showVal = True
+    d.showSerName = False
+    d.showCatName = False
+    d.showLegendKey = False
+    d.showPercent = False
+    d.showBubbleSize = False
+    d.numFmt = fmt
+    d.dLblPos = pos
+    d.txPr = txt(size, bold, colour)
+    return d
+
+def labels(ch, fmt='#,##0', pos='outEnd', size=900, colour=INK, bold=False):
+    ch.dataLabels = _dl(fmt, pos, size, colour, bold)
+
+def labels_out(ch, fmt='"$"#,##0', size=900):
+    """Value outside the bar end, in charcoal. Use where the figures have a
+    long tail: a centred label does not fit inside a short bar, and these
+    lists run from tens of thousands down to hundreds."""
+    ch.dataLabels = _dl(fmt, 'outEnd', size, INK, False)
+
+def ranked_axis(ch):
+    """Ranked, but the value axis stays. It gives the longest bar's label room
+    at the right hand end, which outEnd labels need."""
+    ch.x_axis.scaling.orientation = 'maxMin'
+    ch.x_axis.tickLblPos = 'low'
+    ch.y_axis.majorGridlines = None
+
+def hide_thin(ch, shares, floor=0.045):
+    """Drop the label on any segment too narrow to hold it.
+
+    A hundred per cent stacked bar can only put the label inside the segment.
+    Where a segment is half a per cent of the bar, its number prints across the
+    neighbour and both become unreadable. The figures are all on the table
+    beside the chart, so dropping the label loses nothing."""
+    from openpyxl.chart.label import DataLabel
+    off = dict(showVal=False, showSerName=False, showCatName=False,
+               showLegendKey=False, showPercent=False, showBubbleSize=False)
+    for s_, row in zip(ch.series, shares):
+        thin = [DataLabel(idx=i, **off)
+                for i, v in enumerate(row) if v < floor]
+        if thin:
+            s_.dLbls.dLbl = thin
+
+
+def mix_shares(wb, bases, n=3, groups=None):
+    """Each segment as a share of its own bar, for the reporting month. Read
+    from the pasted hours, not from the chart cells, because those are formulas
+    and an openpyxl save leaves them with no cached value."""
+    u, want = wb['Utilisation'], wb['Summary']['B3'].value
+    col = next(c for c in range(4, 16) if u.cell(4, c).value == want)
+    rows = [[u.cell(b + i, col).value or 0 for b in bases] for i in range(n)]
+    if groups:
+        rows = [[sum(r[k] for k in g) for g in groups] for r in rows]
+    w = len(rows[0])
+    tot = [sum(rows[i][j] for i in range(n)) or 1 for j in range(w)]
+    return [[rows[i][j] / tot[j] for j in range(w)] for i in range(n)]
+
+
+def labels_in(ch, cols, fmt='$#,##0', size=900):
+    """Sit the value in the middle of each bar. At the end of the bar the
+    longest one runs into the edge of the plot and its label gets dropped.
+    One text colour per series, because a white number is invisible on a
+    pale bar."""
+    for s_, col in zip(ch.series, cols):
+        s_.dLbls = _dl(fmt, 'ctr', size, col, True)
+
+def frame(ch, title, w, h, gap=45):
+    ch.title = title
+    ch.width, ch.height = w, h
+    ch.style = None
+    ch.gapWidth = gap
+    ch.y_axis.majorGridlines = None
+    ch.legend = None
+    for ax in (ch.x_axis, ch.y_axis):
+        ax.txPr = txt(900)
+        ax.majorTickMark = 'none'
+        ax.minorTickMark = 'none'
+        ax.spPr = GraphicalProperties(ln=LineProperties(solidFill=GREY, w=9525))
+
+def ranked(ch):
+    """A top ten reads best with number one at the top and no value axis.
+    tickLblPos low pins the names to the left; without it they drift to
+    wherever the value axis crosses and end up sitting on the bars."""
+    ch.x_axis.scaling.orientation = 'maxMin'
+    ch.x_axis.tickLblPos = 'low'
+    ch.y_axis.delete = True
+    ch.y_axis.majorGridlines = None
+
+def legend(ch, pos='b'):
+    ch.legend = Legend()
+    ch.legend.position = pos
+    ch.legend.overlay = False
+    ch.legend.txPr = txt(900)
+
+def paint(ch, cols):
+    for s, col in zip(ch.series, cols):
+        s.graphicalProperties = GraphicalProperties(solidFill=col)
+        s.graphicalProperties.line = LineProperties(noFill=True)
+
+def paint_depts(ser, names):
+    ser.data_points = [DataPoint(idx=i, spPr=GraphicalProperties(
+        solidFill=D['departments'].get(n, INK), ln=LineProperties(noFill=True)))
+        for i, n in enumerate(names)]
+
+wb = openpyxl.load_workbook(OUT)
+for ws in wb.worksheets:
+    ws._charts = []
+
+# ---------------------------------------------------- Top 10 Clients ------
+ws = wb['Top 10 Clients']
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=4, min_row=6, max_row=16), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=7, min_row=7, max_row=16))
+frame(ch, 'Top 10 customers, year to date', 32, 8.5, gap=32)
+ranked(ch)
+paint(ch, [TEAL])
+# The story on this chart is concentration, so the top three are called out in
+# the Support red and the rest left in teal.
+ch.series[0].data_points = [
+    DataPoint(idx=i, spPr=GraphicalProperties(
+        solidFill=RED if i < 3 else TEAL, ln=LineProperties(noFill=True)))
+    for i in range(10)]
+labels_in(ch, [WHITE])
+ws.add_chart(ch, 'G5')
+
+# -------------------------------------------------------- Top 10 YoY ------
+ws = wb['Top 10 YoY']
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=3, max_col=4, min_row=4, max_row=14),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=10, min_row=5, max_row=14))
+frame(ch, 'This year against the same three months last year', 24, 13, gap=55)
+ranked(ch)
+legend(ch)
+paint(ch, [NAVY, GREY])
+labels_in(ch, [WHITE, INK], size=800)
+ws.add_chart(ch, 'J4')
+
+# ------------------------------------------------------- P&L by Dept ------
+# The six blocks are a P&L each, so the chart reads the side by side table at
+# the bottom rather than any one block.
+ws = wb['P&L by Dept']
+S = P["side_by_side"]
+N = 4                                       # four departments now
+DNAMES = [ws.cell(S + 2 + i, 1).value for i in range(N)]
+for cols, anchor, title in (((2, 4), f'I{S}', 'Revenue and gross profit by department, year to date'),
+                            ((2, 6), f'I{S + 24}', 'Revenue and net profit by department, year to date')):
+    ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+    for c in cols:
+        ch.add_data(Reference(ws, min_col=c, min_row=S + 1, max_row=S + 1 + N),
+                    titles_from_data=True)
+    ch.set_categories(Reference(ws, min_col=1, min_row=S + 2, max_row=S + 1 + N))
+    frame(ch, title, 23, 11)
+    labels(ch, '#,##0', size=850)
+    legend(ch)
+    paint(ch, [TEAL, INK])
+    paint_depts(ch.series[0], DNAMES)
+    ws.add_chart(ch, anchor)
+
+# --------------------------------------------------------------- DSO ------
+ws = wb['DSO']
+ch = BarChart(); ch.type = 'col'
+ch.add_data(Reference(ws, min_col=2, min_row=18, max_row=24), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=19, max_row=24))
+frame(ch, 'Aged receivables', 18, 10)
+labels(ch, '$#,##0')
+ch.y_axis.delete = True
+paint(ch, [NAVY])
+ws.add_chart(ch, 'J5')
+
+ch = BarChart(); ch.type = 'bar'
+ch.add_data(Reference(ws, min_col=3, min_row=30, max_row=40), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=2, min_row=31, max_row=40))
+frame(ch, 'Who owes the most', 32, 8.5, gap=32)
+ranked(ch)
+paint(ch, [BLUE])
+labels_in(ch, [WHITE])
+ws.add_chart(ch, 'J24')
+
+T = R['dso_trend']
+ch = LineChart()
+ch.add_data(Reference(ws, min_col=1, min_row=T + 5, max_col=13, max_row=T + 5),
+            from_rows=True, titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=2, min_row=T + 1, max_col=13))
+frame(ch, 'DSO month by month', 23, 10)
+labels(ch, '#,##0.0', pos='t')
+for s in ch.series:
+    s.graphicalProperties = GraphicalProperties(
+        ln=LineProperties(solidFill=TEAL, w=28000))
+    s.smooth = False
+ws.add_chart(ch, f'A{T + 9}')
+
+# ---------------------------------------------------- Overhead Split ------
+ws = wb['Overhead Split']
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=1, min_row=16, max_col=6, max_row=18),
+            from_rows=True, titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=2, min_row=15, max_col=6))
+frame(ch, 'The three split keys', 21, 10)
+labels(ch, '0%', size=850)
+ch.y_axis.delete = True
+legend(ch)
+paint(ch, [INK, GREY, NAVY])
+ws.add_chart(ch, 'V5')
+
+# ---------------------------------------------------- Overheads MoM ------
+ws = wb['Overheads MoM']
+SUB = [r for r in range(1, ws.max_row + 1) if ws.cell(r, 1).value in ACC]
+P0 = next(r for r in range(1, ws.max_row + 1)
+          if str(ws.cell(r, 1).value or '').startswith('CHART DATA'))
+first, last = P0 + 2, P0 + 1 + len(SUB)
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'stacked'; ch.overlap = 100
+ch.add_data(Reference(ws, min_col=1, min_row=first, max_col=13, max_row=last),
+            from_rows=True, titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=2, min_row=P0 + 1, max_col=13))
+frame(ch, 'Overhead spend, month by month', 30, 13, gap=35)
+legend(ch)
+paint(ch, [NAVY, BLUE, PURP, INK, GREY, AQUA])
+ws.add_chart(ch, f'A{last + 3}')
+
+# -------------------------------------------- Top 10 by department -------
+ws = wb['Top 10 Clients']
+S = CC['top10_dept']
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'stacked'; ch.overlap = 100
+ch.add_data(Reference(ws, min_col=2, max_col=7, min_row=S + 1, max_row=S + 11),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=7, min_row=7, max_row=16))
+frame(ch, 'Top 10 customers, split by department', 23, 13, gap=45)
+ranked(ch)
+legend(ch)
+paint(ch, [D['departments'][d] for d in
+           ('Support', 'Events', 'Video', 'Integration', 'Consulting', 'General Admin')])
+ws.add_chart(ch, f'J{S}')
+
+# ------------------------------------------------- Cost Analysis ---------
+# All seven sit in column I and down, stacked with a gap, so the data in
+# columns A to G stays clear of them.
+ws = wb['Cost Analysis']
+
+# the operating expense accounts, biggest first
+n = CC['ops_n']
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, min_row=CC['ops_first'] - 1,
+                      max_row=CC['ops_first'] - 1 + n), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=CC['ops_first'],
+                            max_row=CC['ops_first'] - 1 + n))
+frame(ch, 'Other operating expenses, year to date', 32, 9, gap=40)
+ranked_axis(ch)
+paint(ch, [NAVY])
+labels_out(ch)
+ws.add_chart(ch, 'I4')
+
+# where every dollar of operating cost goes
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, min_row=CC['dist_first'] - 1,
+                      max_row=CC['dist_last']), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=CC['dist_first'],
+                            max_row=CC['dist_last']))
+frame(ch, 'Operating cost distribution, year to date', 32, 8.5, gap=32)
+ranked_axis(ch)
+paint(ch, [INK])
+labels_out(ch)
+ws.add_chart(ch, 'I33')
+
+# direct against indirect labour
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'stacked'; ch.overlap = 100
+ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=CC['lab_first'] - 1,
+                      max_row=CC['lab_last']), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=CC['lab_first'],
+                            max_row=CC['lab_last']))
+frame(ch, 'Labour mix, direct against indirect, year to date', 36, 10, gap=28)
+ranked_axis(ch)
+legend(ch)
+paint(ch, [NAVY, GREY])
+labels_out(ch, size=800)
+ws.add_chart(ch, 'I61')
+
+# ------------------------------------------- budget against actual ------
+ws = wb['Cost Analysis']
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=CC['bva_hdr'],
+                      max_row=CC['bva_last']), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=CC['bva_first'],
+                            max_row=CC['bva_last']))
+frame(ch, 'Budget against actual, year to date', 22, 11, gap=50)
+ranked_axis(ch)
+legend(ch)
+paint(ch, [NAVY, GREY])
+labels_out(ch, size=800)
+ws.add_chart(ch, 'I92')
+
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+# Column D is the actual for closed months only. Column B carries the budget
+# once the month is in the future, so charting B printed every label twice.
+ch.add_data(Reference(ws, min_col=4, min_row=CC['bvm_hdr'], max_row=CC['bvm_last']),
+            titles_from_data=True)
+ch.add_data(Reference(ws, min_col=3, min_row=CC['bvm_hdr'], max_row=CC['bvm_last']),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=CC['bvm_first'],
+                            max_row=CC['bvm_last']))
+frame(ch, 'Income by month, actual against budget', 30, 7.71, gap=60)
+legend(ch)
+paint(ch, [NAVY, GREY])
+# Thousands, so twenty four labels fit side by side instead of colliding, and
+# the trailing semicolons hide the zero on the months with no actual yet.
+labels(ch, '#,##0,;;', size=800)
+ws.add_chart(ch, 'I117')
+
+# --------------------------------------------------- profitability ------
+ws = wb['Cost Analysis']
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, max_col=4, min_row=CC['prof_hdr'],
+                      max_row=CC['prof_last']), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=CC['prof_first'],
+                            max_row=CC['prof_last']))
+frame(ch, 'Profitability month on month, actual to date then budget', 26, 11)
+ch.y_axis.delete = True
+legend(ch)
+paint(ch, [NAVY, BLUE, INK])
+labels(ch, '#,##0', size=700)
+ws.add_chart(ch, 'I142')
+
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+for col in (4, 5):
+    ch.add_data(Reference(ws, min_col=col, min_row=CC['prof_hdr'],
+                          max_row=CC['prof_last']), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=CC['prof_first'],
+                            max_row=CC['prof_last']))
+frame(ch, 'Net profit year on year, this year against last', 26, 11)
+ch.y_axis.delete = True
+legend(ch)
+paint(ch, [NAVY, GREY])
+labels(ch, '#,##0', size=700)
+ws.add_chart(ch, 'I167')
+
+# ------------------------------- revenue by department, the month -------
+# Actual against budget and against the same month last year.
+ws = wb['Cost Analysis']
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, max_col=4, min_row=191, max_row=196),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=192, max_row=196))
+frame(ch, 'Revenue by department, the month against budget and last year', 30, 7.66)
+ch.y_axis.delete = True
+legend(ch)
+paint(ch, [TEAL, GREY, AQUA])
+labels(ch, '#,##0', size=700)
+ws.add_chart(ch, 'F190')
+
+# ----------------------------------- hours by department, the month ----
+ws = wb['Utilisation']
+# Support works roughly a hundred times the hours Integration does, so on an
+# absolute scale four of the five departments are invisible. Each bar is scaled
+# to its own total instead, which is what makes the mix readable. The label on
+# each segment still carries the hours.
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'percentStacked'; ch.overlap = 100
+ch.add_data(Reference(ws, min_col=2, max_col=4, min_row=67, max_row=72),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=68, max_row=72))
+frame(ch, 'How each department spent its hours, billable against not billable',
+      30, 7.71)
+ranked(ch)
+legend(ch)
+paint(ch, [TEAL, AQUA, GREYL])
+# A stacked bar can only take a label inside the segment, so the label colour
+# has to follow the segment under it. White is invisible on the bright teal and
+# on the pale grey.
+labels_in(ch, [WHITE, INK, INK], fmt='#,##0', size=800)
+hide_thin(ch, mix_shares(wb, [9, 15, 21, 27, 33]))
+ws.add_chart(ch, 'F66')
+
+# ------------------------- employment expense, office against dept -----
+ws = wb['Overheads MoM']
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'stacked'; ch.overlap = 100
+ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=161, max_row=166),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=162, max_row=166))
+frame(ch, 'Employment expense, departmental staff against office staff', 24, 10)
+ranked(ch)
+legend(ch)
+paint(ch, [TEAL, AQUA])
+# Same again: the office staff segment is bright teal, so its label is ink.
+labels_in(ch, [WHITE, INK], fmt='$#,##0', size=700)
+ws.add_chart(ch, 'E160')
+
+# ------------------------- revenue by month and department --------------
+# The mix behind each month's revenue, which the other revenue charts do not
+# show: one column a month, split by the department that billed it.
+ws = wb['Cost Analysis']
+# only the closed months: an empty column for every month still to come makes
+# the chart read as unfinished. The period number comes off the reporting
+# month, so the chart lengthens on its own as the year goes on.
+period = ((wb['Summary']['B3'].value.month - int(wb['Setup']['B6'].value)) % 12) + 1
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'stacked'; ch.overlap = 100
+ch.add_data(Reference(ws, min_col=2, max_col=6, min_row=231,
+                      max_row=231 + period), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=232, max_row=231 + period))
+frame(ch, 'Revenue by month and department, against budget', 30, 8.27, gap=60)
+legend(ch)
+# each department in its own colour, the same ones the introduction cards use
+paint(ch, [D['departments'][k] for k in
+                ('Support', 'Events', 'Video', 'Integration', 'Consulting')])
+# no segment labels: five stacked segments a column collide at this size, and
+# the figures behind them are on the P&L summary table
+
+# budget for the same months, as a line over the stack, so the chart answers
+# both questions at once: who billed it, and was the month enough
+line = LineChart()
+line.add_data(Reference(ws, min_col=7, min_row=231, max_row=231 + period),
+              titles_from_data=True)
+line.series[0].graphicalProperties = GraphicalProperties(
+    ln=LineProperties(solidFill=INK, w=22000))
+line.series[0].marker = Marker(symbol='circle', size=7)
+line.series[0].marker.graphicalProperties = GraphicalProperties(solidFill=INK)
+line.series[0].smooth = False
+ch += line
+ws.add_chart(ch, 'H230')
+
+# ------------- revenue against budget, month by month -------------------
+# Each closed month with its actual and its budget side by side. The year to
+# date pair is on the table rather than the chart: it cannot sit next to the
+# months in one series, and a column five times the others wrecks the scale.
+ws = wb['Cost Analysis']
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=261,
+                      max_row=261 + period), titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=262, max_row=261 + period))
+frame(ch, 'Revenue against budget, month by month', 18, 11, gap=55)
+ch.y_axis.delete = True
+legend(ch)
+paint(ch, [TEAL, GREY])
+labels(ch, '#,##0', size=900)
+ws.add_chart(ch, 'H260')
+
+# ------------- revenue by month, year on year, and the first quarter ----
+# Only the years that have figures are charted. FY26 and FY27 are references
+# and are always there; FY23 to FY25 appear the moment they are pasted in.
+ws = wb['Cost Analysis']
+YEAR_COL = {0: 'FY23', 1: 'FY24', 2: 'FY25', 3: 'FY26', 4: 'FY27'}
+live = []
+for j in range(5):
+    col = 2 + j
+    if YEAR_COL[j] in ('FY26', 'FY27'):
+        live.append(col)
+        continue
+    if any(ws.cell(r, col).value not in (None, '') for r in range(282, 294)):
+        live.append(col)
+
+# the reporting month set against the same month in earlier years, which is
+# the comparison asked for: September 2026 beside September 2025 and so on
+first_m = min(318 + j for j in range(5) if 2 + j in live)
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, min_row=first_m, max_row=322))
+ch.set_categories(Reference(ws, min_col=1, min_row=first_m, max_row=322))
+frame(ch, 'Revenue for the month, year on year', 18, 11, gap=60)
+ch.y_axis.delete = True
+paint(ch, [TEAL])
+labels(ch, '#,##0,;;', size=900)
+ws.add_chart(ch, 'H340')
+
+# the same years as the line chart, so an empty FY23 to FY25 does not sit
+# there as three gaps on the floor of the chart
+first_q = min(298 + j for j in range(5) if 2 + j in live)
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, min_row=first_q, max_row=302))
+ch.set_categories(Reference(ws, min_col=1, min_row=first_q, max_row=302))
+frame(ch, 'First quarter revenue, year on year', 24, 10, gap=60)
+ch.y_axis.delete = True
+paint(ch, [TEAL])
+labels(ch, '#,##0,;;', size=900)
+ws.add_chart(ch, 'H306')
+
+# ----------------- hours by the three departments, the month ------------
+# The same picture as the five department version, rolled up the way the P&L
+# groups the business: Production is Events and Video, Consulting is
+# Integration and Consulting.
+ws = wb['Utilisation']
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'percentStacked'; ch.overlap = 100
+ch.add_data(Reference(ws, min_col=2, max_col=4, min_row=77, max_row=80),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=78, max_row=80))
+frame(ch, 'How the three departments spent their hours', 30, 7.12)
+ranked(ch)
+legend(ch)
+paint(ch, [TEAL, AQUA, GREYL])
+labels_in(ch, [WHITE, INK, INK], fmt='#,##0', size=800)
+hide_thin(ch, mix_shares(wb, [9, 15, 21, 27, 33], groups=[[0], [1, 2], [3, 4]]))
+ws.add_chart(ch, 'F92')
+
+# ------------------- the Xero history, thirty six months ----------------
+# One continuous run rather than three lines on top of each other. The year on
+# year comparison lives on Cost Analysis; what this one shows is the shape of
+# the business over three years, and where the seasonal peaks fall. The colour
+# changes at each financial year so the three years can be told apart.
+# The bars sit behind in grey and the dotted line and its dots sit in front.
+# The colour is on the dots rather than the bars, because grey bars let the line
+# read in front of them and the dots still say which year is which. The line is
+# one series across the whole period so it does not break at a year end; the
+# dots are three marker only series, one per year, because LibreOffice ignores a
+# marker colour set per data point.
+ws = wb['Xero History']
+last = 33 + period                  # closed months only, so the year end
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=3, min_row=10, max_row=last))
+ch.set_categories(Reference(ws, min_col=1, min_row=10, max_row=last))
+frame(ch, 'Revenue by month, FY25 then FY26 then FY27', 30, 9.08, gap=30)
+ch.x_axis.txPr = txt(700)
+ch.series[0].data_points = [
+    DataPoint(idx=i, spPr=GraphicalProperties(solidFill=GREY,
+                                              ln=LineProperties(noFill=True)))
+    for i in range(last - 9)]
+
+ln = LineChart()
+ln.add_data(Reference(ws, min_col=3, min_row=10, max_row=last))
+run = ln.series[0]
+run.graphicalProperties = GraphicalProperties(
+    ln=LineProperties(solidFill=INK, w=19050, prstDash='sysDot'))
+run.marker = Marker(symbol='none')
+run.smooth = False
+for colour, col in ((NAVY, 29), (AQUA, 30), (TEAL, 31)):
+    at = len(ln.series)
+    ln.add_data(Reference(ws, min_col=col, min_row=10, max_row=last))
+    d = ln.series[at]
+    d.graphicalProperties = GraphicalProperties(ln=LineProperties(noFill=True))
+    d.marker = Marker(symbol='circle', size=7, spPr=GraphicalProperties(
+        solidFill=colour, ln=LineProperties(solidFill=WHITE, w=19050)))
+    d.smooth = False
+ch += ln
+ws.add_chart(ch, 'F9')
+
+# --------- the same three years, in forms that carry more than three bars ---
+# Three columns for one month is a table drawn as a chart. These three are the
+# same data asked better: where the year stands at every point in it, what is
+# still to come, and the trend with the seasonality taken out.
+ws = wb['Xero History']
+
+def line_series(ch, col, first, last, colour, width=28000, marker=True):
+    before = len(ch.series)
+    ch.add_data(Reference(ws, min_col=col, min_row=first - 1, max_row=last),
+                titles_from_data=True)
+    s_ = ch.series[before]
+    s_.graphicalProperties = GraphicalProperties(
+        ln=LineProperties(solidFill=colour, w=width))
+    s_.marker = Marker(symbol='circle' if marker else 'none', size=6,
+                       spPr=GraphicalProperties(solidFill=colour,
+                                                ln=LineProperties(solidFill=colour)))
+    s_.smooth = False
+    return s_
+
+# cumulative revenue year to date, one line per year
+ch = LineChart()
+for col, colour, last in ((2, NAVY, 69), (3, AQUA, 69), (4, TEAL, 57 + period)):
+    line_series(ch, col, 58, last, colour)
+# budget last, dashed, so the two readings sit on one picture: ahead of both
+# completed years, behind the plan for this one
+b = line_series(ch, 5, 58, 69, RED, width=22000, marker=False)
+b.graphicalProperties.ln.dashStyle = 'dash'
+ch.set_categories(Reference(ws, min_col=1, min_row=58, max_row=69))
+frame(ch, 'Revenue year to date, cumulative, against budget', 30, 9.08)
+legend(ch)
+ws.add_chart(ch, 'F34')
+
+# all four quarters across the three years
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=73, max_row=77),
+            titles_from_data=True)
+ch.add_data(Reference(ws, min_col=4, min_row=73, max_row=73 + max(1, period // 3)),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=74, max_row=77))
+frame(ch, 'Revenue by quarter, year on year', 30, 9.08, gap=60)
+legend(ch)
+paint(ch, [NAVY, AQUA, TEAL])
+labels(ch, '#,##0', size=800)
+ws.add_chart(ch, 'F60')
+
+# the rolling twelve months: the trend with the seasonality taken out
+ch = LineChart()
+line_series(ch, 2, 82, 94 + period, TEAL, width=32000, marker=False)
+ch.set_categories(Reference(ws, min_col=1, min_row=82, max_row=94 + period))
+frame(ch, 'Revenue, rolling twelve months', 30, 11)
+ch.x_axis.txPr = txt(800)
+# The series moves between 5.8m and 7.0m. Drawn from zero it reads as a flat
+# line and a 17% fall disappears, so the scale starts at 5m. The axis labels
+# say so, and the speaker note says so.
+ch.y_axis.scaling.min = 5000000
+ch.y_axis.scaling.max = 7250000
+ch.y_axis.majorUnit = 500000
+ws.add_chart(ch, 'F86')
+
+# ----------- spend and profit for the cost and profit pages -------------
+# Three charts, all drawn at the shape of the box on a bottom commentary page.
+# Spend is the two parts stacked with revenue on the line over the top, so the
+# months where revenue sat under the spend are visible. Profit is one bar per
+# period, teal above the line and red below, fed from two columns so the colour
+# does not depend on this script reading the figures.
+ws = wb['Xero History']
+
+def spend_chart(first, title, anchor):
+    ch = BarChart(); ch.type = 'col'; ch.grouping = 'stacked'; ch.overlap = 100
+    ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=first - 1,
+                          max_row=first + 3), titles_from_data=True)
+    ch.set_categories(Reference(ws, min_col=1, min_row=first, max_row=first + 3))
+    frame(ch, title, 30, 9.14, gap=55)
+    legend(ch)
+    paint(ch, [TEAL, AQUA])
+    labels_in(ch, [WHITE, WHITE], fmt='#,##0', size=800)
+    ln = LineChart()
+    ln.add_data(Reference(ws, min_col=4, min_row=first - 1, max_row=first + 3),
+                titles_from_data=True)
+    r = ln.series[0]
+    r.graphicalProperties = GraphicalProperties(
+        ln=LineProperties(solidFill=RED, w=26000))
+    r.marker = Marker(symbol='circle', size=7, spPr=GraphicalProperties(
+        solidFill=RED, ln=LineProperties(solidFill=RED)))
+    r.smooth = False
+    ch += ln
+    ws.add_chart(ch, anchor)
+
+spend_chart(120, 'Spend for the month, against budget and the two years before',
+            'H146')
+spend_chart(128, 'Spend for the first quarter, against budget and the two years '
+                 'before', 'H174')
+
+# The month and the quarter get a chart each. The deck hides one or the other
+# depending on which review is being given, so they can never share a slide.
+def profit_chart(head, title, anchor):
+    ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'; ch.overlap = 100
+    ch.add_data(Reference(ws, min_col=3, max_col=4, min_row=head,
+                          max_row=head + 3), titles_from_data=True)
+    ch.set_categories(Reference(ws, min_col=1, min_row=head + 1, max_row=head + 3))
+    frame(ch, title, 30, 9.14, gap=60)
+    paint(ch, [TEAL, RED])
+    labels(ch, '#,##0', size=900)
+    ch.x_axis.tickLblPos = 'low'
+    ws.add_chart(ch, anchor)
+
+profit_chart(135, 'Net profit and net loss, the month', 'H202')
+profit_chart(141, 'Net profit and net loss, the quarter', 'H230')
+
+# ------- where each department's result came from, the month on setup ---
+# What the department earned against the overhead charged to it, with the
+# result marked on top. This is the only cut of the table that shows why a
+# department on a good margin can still finish below the line.
+ws = wb['Overhead Split']
+FIRST_D, LAST_D, HEAD_D = 143, 147, 142
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=5, min_row=HEAD_D, max_row=LAST_D),
+            titles_from_data=True)
+ch.add_data(Reference(ws, min_col=7, min_row=HEAD_D, max_row=LAST_D),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=FIRST_D, max_row=LAST_D))
+ch.add_data(Reference(ws, min_col=8, min_row=HEAD_D, max_row=LAST_D),
+            titles_from_data=True)
+frame(ch, 'Gross profit against the overhead charged to it', 30, 9.14, gap=40)
+legend(ch)
+paint(ch, [TEAL, RED, NAVY])
+labels(ch, '#,##0', pos='outEnd', size=800)
+ch.x_axis.tickLblPos = 'low'
+ws.add_chart(ch, 'J160')
+
+# ------------- the whole profit and loss, by department ----------------
+# What each department earned, what it cost and what was left. Total cost is
+# cost of sales plus overhead, from the working at P to R. Three bars rather
+# than a stack, because a stack hides the result and squashes the two small
+# departments into slivers, and the labels sit out at the bar ends where each
+# one has its own air.
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=16, max_col=18, min_row=HEAD_D, max_row=LAST_D),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=FIRST_D, max_row=LAST_D))
+frame(ch, 'What each department earned, what it cost, what was left', 30, 9.14,
+      gap=40)
+legend(ch)
+paint(ch, [TEAL, RED, NAVY])
+labels(ch, '#,##0', pos='outEnd', size=800)
+ch.x_axis.tickLblPos = 'low'
+ws.add_chart(ch, 'J190')
+
+# ---------- gross profit by department, this year against last ---------
+# Gross profit only. Overhead was not split by department before FY27, so a net
+# result cannot go back a year, and September 2024 is not held by department at
+# all. Last year is aqua and this year teal, the same as the other year on year
+# charts in the deck.
+ws = wb['Overhead Split']
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=171, max_row=176),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=172, max_row=176))
+frame(ch, 'Gross profit by department, this September against last', 30, 9.14,
+      gap=45)
+legend(ch)
+paint(ch, [AQUA, TEAL])
+labels(ch, '#,##0', pos='outEnd', size=800)
+ws.add_chart(ch, 'J220')
+
+# -------- the departmental result, above and below the line -----------
+# Every department makes a gross profit, so a gross profit chart reads as
+# though they all made money. This one shows what is left after the overhead
+# charged to them, teal above the line and red below, fed from the two columns
+# at S and T so the colour does not depend on this script reading the figures.
+ws = wb['Overhead Split']
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'; ch.overlap = 100
+ch.add_data(Reference(ws, min_col=19, max_col=20, min_row=142, max_row=147),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=143, max_row=147))
+frame(ch, 'Result by department, above and below the line', 30, 9.14, gap=60)
+paint(ch, [TEAL, RED])
+labels(ch, '#,##0', pos='outEnd', size=900)
+ch.x_axis.tickLblPos = 'low'
+ws.add_chart(ch, 'J250')
+
+
+# ======================================================================
+# The five cuts carried over from the Q4 FY2026 Business Advisory pack.
+# patch_v86.py lays the data out on Xero History; these draw it. They start
+# at row 260 because that sheet already carries charts down to about row 254,
+# and sit twenty five rows apart so no two of them overlap.
+# ======================================================================
+ws = wb['Xero History']
+
+# ---- profit per employee, four groups over five years --------------------
+# A line each, because the shape over time is the point. CONS runs far below
+# the other three, so the axis has to carry the whole range and the top three
+# bunch up. That bunching is the finding, not a fault in the chart.
+ch = LineChart()
+ch.add_data(Reference(ws, min_col=2, max_col=5, min_row=152, max_row=157),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=153, max_row=157))
+frame(ch, 'Profit per employee by reporting group', 32, 9)
+legend(ch)
+# the cells carry the pack's red-bracket negative, which on an axis reads as
+# though every gridline were an exception. The axis gets a plain format.
+ch.y_axis.numFmt = '#,##0;-#,##0'
+for s_, colour in zip(ch.series, (TEAL, AQUA, PURP, INK)):
+    s_.graphicalProperties = GraphicalProperties(
+        ln=LineProperties(solidFill=colour, w=28000))
+    s_.marker = Marker(symbol='circle', size=7, spPr=GraphicalProperties(
+        solidFill=colour, ln=LineProperties(solidFill=WHITE, w=19050)))
+    s_.smooth = False
+ws.add_chart(ch, 'G260')
+
+
+def rev_and_profit(first, last, title, anchor):
+    """Revenue as bars with the net profit as a line in front of them.
+    Eleven years is too many for a label on every bar, so only the profit
+    line carries its values; the revenue scale is on the axis."""
+    c = BarChart(); c.type = 'col'; c.grouping = 'clustered'
+    c.add_data(Reference(ws, min_col=2, min_row=first - 1, max_row=last),
+               titles_from_data=True)
+    c.set_categories(Reference(ws, min_col=1, min_row=first, max_row=last))
+    frame(c, title, 32, 9, gap=40)
+    paint(c, [GREY])
+    l = LineChart()
+    l.add_data(Reference(ws, min_col=3, min_row=first - 1, max_row=last),
+               titles_from_data=True)
+    s_ = l.series[0]
+    s_.graphicalProperties = GraphicalProperties(
+        ln=LineProperties(solidFill=TEAL, w=28000))
+    s_.marker = Marker(symbol='circle', size=7, spPr=GraphicalProperties(
+        solidFill=TEAL, ln=LineProperties(solidFill=WHITE, w=19050)))
+    s_.smooth = False
+    s_.dLbls = _dl('#,##0', 't', 800, INK, False)
+    c += l
+    legend(c)
+    c.y_axis.numFmt = '#,##0;-#,##0'
+    ws.add_chart(c, anchor)
+
+
+rev_and_profit(163, 173, 'Revenue and net profit, full year', 'G285')
+rev_and_profit(179, 189, 'Revenue and net profit, fourth quarter', 'G310')
+
+# ---- changes in profitability, FY25 to FY26 ------------------------------
+# openpyxl has no waterfall type. A stacked bar does the same job: an invisible
+# base lifts each step to the running total and the step sits on top of it.
+ch = BarChart(); ch.type = 'col'; ch.grouping = 'stacked'; ch.overlap = 100
+ch.add_data(Reference(ws, min_col=2, max_col=5, min_row=194, max_row=201),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=195, max_row=201))
+frame(ch, 'Changes in profitability, FY2025 to FY2026', 32, 9, gap=40)
+ch.series[0].graphicalProperties = GraphicalProperties(
+    noFill=True, ln=LineProperties(noFill=True))
+# The step bars are thin, because the step is small, so a label on one sits
+# half on the bar and half on white paper either side of it. Both step colours
+# are therefore light enough to take a charcoal number: the bright teal rather
+# than the dark one for an increase, and the red for a decrease. Only the two
+# totals are tall enough to carry white.
+for s_, colour in zip(ch.series[1:], (AQUA, RED, NAVY)):
+    s_.graphicalProperties = GraphicalProperties(
+        solidFill=colour, ln=LineProperties(noFill=True))
+for s_, colour in zip(ch.series[1:], (INK, INK, WHITE)):
+    s_.dLbls = _dl('#,##0', 'ctr', 800, colour, True)
+legend(ch)
+# the base series is the scaffolding that lifts each step; it has no meaning,
+# so it is dropped from the legend rather than shown as an empty swatch
+ch.legend.legendEntry = [LegendEntry(idx=0, delete=True)]
+ch.y_axis.numFmt = '#,##0;-#,##0'
+ch.x_axis.txPr = txt(800)
+ws.add_chart(ch, 'G335')
+
+# ---- revenue by type, average month --------------------------------------
+# Horizontal, because eight type names will not sit under eight columns, and
+# ranked so the lines that carry the revenue are read first.
+ch = BarChart(); ch.type = 'bar'; ch.grouping = 'clustered'
+ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=207, max_row=215),
+            titles_from_data=True)
+ch.set_categories(Reference(ws, min_col=1, min_row=208, max_row=215))
+frame(ch, 'Revenue by type, average month', 32, 10, gap=55)
+ranked(ch)
+legend(ch)
+paint(ch, [GREY, TEAL])
+# outside the bar end, because Miscellaneous averages under four thousand a
+# month and its label will not fit inside a bar that short
+for s_ in ch.series:
+    s_.dLbls = _dl('#,##0', 'outEnd', 800, INK, False)
+ws.add_chart(ch, 'G360')
+
+wb.save(OUT)
+print('charts rebuilt:', sum(len(ws._charts) for ws in wb.worksheets))

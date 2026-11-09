@@ -15,3 +15,7 @@ payexp/out/
 wages/out/
 Claude-repo-files.zip
 CTS Training Material.zip
+
+# Employee-level payroll data. Handed to Danica directly, never committed.
+ptax/EH Payroll Split File*.xlsx
+ptax/*_EH_PTax_*.xlsx

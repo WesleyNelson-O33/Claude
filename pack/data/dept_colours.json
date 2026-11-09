@@ -1,0 +1,25 @@
+{
+ "_note": "Department colour convention, from Danica 15 Oct 2026. Production is the teals and the logo green, Consulting is the blues and purple, Support is the reds. Admin is Charcoal.",
+ "groups": {
+   "Production": "005358",
+   "Consulting": "6D71FF",
+   "Support":    "F33844"
+ },
+ "departments": {
+   "Support":       "F33844",
+   "Onsite":        "F33844",
+   "Events":        "005358",
+   "Production":    "005358",
+   "Video":         "3FD0C9",
+   "Integration":   "6D71FF",
+   "Consulting":    "8F4AFA",
+   "General Admin": "242C39",
+   "Admin":         "242C39",
+   "CTS":           "242C39"
+ },
+ "second": {
+   "Support":     "A8052E",
+   "Production":  "3FD0C9",
+   "Consulting":  "122B82"
+ }
+}

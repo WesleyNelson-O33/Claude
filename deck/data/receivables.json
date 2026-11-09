@@ -1,0 +1,15 @@
+{
+ "as_of": "2026-09-30",
+ "source": "Xero aged receivables report",
+ "total_outstanding": 833320.29,
+ "invoice_count": 61, "customer_count": 28,
+ "overdue_total": 244538.43, "overdue_pct": 29.3,
+ "buckets": [["Current", 588781.86, 70.7], ["Under 1 month", 133176.79, 16.0],
+             ["1 month", 86553.12, 10.4], ["2 months", 0.0, 0.0],
+             ["3 months", 24808.52, 3.0], ["Over 3 months", 0.0, 0.0]],
+ "top_debtors": [["Aware Super", 277395.31, 33.3], ["Deloitte Services", 131574.88, 15.8],
+                 ["Ventia", 94701.34, 11.4], ["Downer EDI", 39663.82, 4.8],
+                 ["Generation-e", 39105.52, 4.7]],
+ "oldest": [["Property NSW", 19733.45, "INV-10396, due 5 Jun 26"],
+            ["Meet Magic", 5075.07, "INV-10464, due 26 Jun 26"]]
+}
