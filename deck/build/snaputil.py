@@ -4,6 +4,9 @@ It is not part of the controller pack, so it gets its own small snipper. Same
 settings as snip.py: landscape, fit to width, no header or footer, trimmed.
 """
 import os, subprocess, sys
+# -I keeps this script's own directory off sys.path, so the import of trim
+# from snip.py below fails without this line.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import openpyxl
 from openpyxl.worksheet.properties import PageSetupProperties
 

@@ -40,6 +40,9 @@ SNIPS = {
     'rev_ytd':     ('Cost Analysis',  'H259:T282',  False),
     'rev_years':   ('Cost Analysis',  'H339:T362',  False),
     'rev_q1':      ('Cost Analysis',  'H305:X328',  False),
+    # the Q1 per employee schedule now lives in the pack, so it is snipped
+    # from there like everything else instead of from a workbook of its own
+    'util_q1':     ('Utilisation Q1', 'A2:I29',     False),
     'xero_hist':   ('Xero History',   'F8:AA31',    False),
     'xero_cum':    ('Xero History',   'F33:AA58',   False),
     'xero_qtr':    ('Xero History',   'F59:AA84',   False),
