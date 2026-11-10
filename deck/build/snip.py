@@ -101,6 +101,7 @@ SNIPS = {
     # Each group's own block is tall and narrow and lands on a landscape
     # slide about two inches wide, which cannot be read. This fits.
     'q1_pl':            ('P&L by Dept', 'A271:F286', False, '', None, 'BCDEF'),
+    'ytd_dept':         ('Xero History',  'F389:AA414', False),
     'util_chart':  ('Utilisation',    'F65:AA90',    False),
     # The same hours picture rolled up to the three departments.
     'util_three':  ('Utilisation',    'F92:AA117',   False),

@@ -616,22 +616,33 @@ def line_series(ch, col, first, last, colour, width=28000, marker=True):
 #
 # Budget is grey so it reads as the reference line rather than a result, and
 # each department carries its own colour from Danica's convention.
-# FY25 and FY26 are not on it. The five departments use the five brand
-# colours exactly, so the year lines had nothing left to be drawn in: FY27
-# came out the same teal as Events and FY26 the same as Video. The three year
-# comparison has its own slide now, so this one carries the current year, the
-# budget and the split, and nothing competes for a colour.
+# cumulative revenue year to date, one line per year, out to June so the
+# budget trajectory for the rest of the year is on the page.
+#
+# The departments are NOT on this one. They were, briefly, and it did not
+# work: the finished years run to seven million and the departments to well
+# under one, so every department flattened onto the axis. They have their own
+# chart below, on a scale that can show them.
 ch = LineChart()
-line_series(ch, 4, 58, 57 + period, INK, width=34000)
-b = line_series(ch, 5, 58, 57 + period, GREY, width=22000, marker=False)
+for col, colour, last in ((2, NAVY, 69), (3, AQUA, 69), (4, TEAL, 57 + period)):
+    line_series(ch, col, 58, last, colour)
+# budget last, dashed, so the two readings sit on one picture: ahead of both
+# completed years, behind the plan for this one
+b = line_series(ch, 5, 58, 69, RED, width=22000, marker=False)
 b.graphicalProperties.ln.dashStyle = 'dash'
-for i, dept in enumerate(('Support', 'Events', 'Video', 'Integration', 'Consulting')):
-    line_series(ch, 2 + i, 242, 241 + period, D['departments'][dept])
-ch.set_categories(Reference(ws, min_col=1, min_row=58, max_row=57 + period))
-frame(ch, 'Revenue year to date, cumulative, by department and against budget',
-      30, 9.08)
+ch.set_categories(Reference(ws, min_col=1, min_row=58, max_row=69))
+frame(ch, 'Revenue year to date, cumulative, against budget', 30, 9.08)
 legend(ch)
 ws.add_chart(ch, 'F34')
+
+# the same cut split by department, on its own scale
+ch = LineChart()
+for i, dept in enumerate(('Support', 'Events', 'Video', 'Integration', 'Consulting')):
+    line_series(ch, 2 + i, 242, 241 + period, D['departments'][dept])
+ch.set_categories(Reference(ws, min_col=1, min_row=242, max_row=241 + period))
+frame(ch, 'Revenue year to date by department, cumulative', 30, 9.08)
+legend(ch)
+ws.add_chart(ch, 'F390')
 
 # the first quarter across the three years. Built the same way as the three
 # Septembers chart, so the monthly slide and the quarterly slide read as a
