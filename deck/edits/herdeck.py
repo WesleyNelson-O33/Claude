@@ -169,12 +169,42 @@ def put_full(slide, png, name):
     tree.insert(2, pic._element)
     return w, h
 
+def fill_box(box, lines, size=9):
+    tf = box.text_frame
+    tf.word_wrap = True
+    first = tf.paragraphs[0]
+    for para in list(tf.paragraphs)[1:]:
+        para._p.getparent().remove(para._p)
+    for r in list(first.runs)[1:]:
+        r._r.getparent().remove(r._r)
+    if not first.runs:
+        return
+    first.runs[0].text = lines[0]
+    from pptx.text.text import _Paragraph
+    for extra in lines[1:]:
+        np = copy.deepcopy(first._p)
+        first._p.getparent().append(np)
+        _Paragraph(np, tf).runs[0].text = extra
+    for para in tf.paragraphs:
+        for r in para.runs:
+            r.font.size = Pt(size)
+
+
 def write_panel(slide, lines):
-    """All the commentary goes in the right hand column. The old second
-    column is emptied, because her panel is one column, not two."""
+    """One column when the panel runs down the right, two when it still spans
+    the width at the bottom, because one column of text across nine inches
+    reads as a thin line."""
     by = {sh.name: sh for sh in slide.shapes}
     body = by.get('Text 5')
     if body is None:
+        return
+    panel = next((sh for sh in slide.shapes if sh.name == 'commentary panel'), None)
+    wide = panel is not None and Emu(panel.left).inches < 1.0
+    extra_box = by.get('Text 5b')
+    if wide and extra_box is not None:
+        half = -(-len(lines) // 2)
+        fill_box(body, lines[:half])
+        fill_box(extra_box, lines[half:])
         return
     tf = body.text_frame
     tf.word_wrap = True

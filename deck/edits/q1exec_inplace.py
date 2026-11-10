@@ -11,6 +11,8 @@ The company strip comes from the Summary.
 import sys, os
 import openpyxl
 from pptx import Presentation
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from herdeck import set_title
 
 PACK = '/home/user/Claude/pack/CTS Financial Controller Pack - v20.xlsx'
 TOP = 300
@@ -65,10 +67,20 @@ def main(src, out):
     done = False
     for i, s in enumerate(pres.slides, 1):
         by = {sh.name: sh for sh in s.shapes}
-        t1 = by.get('Text 1')
-        if t1 is None or 'Performance Summary' not in t1.text_frame.text:
+        # the title lives in Text 1 on the old layout and after a pipe in
+        # Text 0 on hers, so look in both
+        where = None
+        for nm in ('Text 1', 'Text 0'):
+            sh = by.get(nm)
+            if sh is not None and sh.has_text_frame and 'Performance Summary' in sh.text_frame.text:
+                where = nm
+                break
+        if where is None:
             continue
-        setext(by, 'Text 1', 'Performance Summary, First Quarter FY2027')
+        if where == 'Text 1':
+            setext(by, 'Text 1', 'Performance Summary, First Quarter FY2027')
+        else:
+            set_title(s, 'Performance Summary, First Quarter FY2027')
         for name, (big, marg, third, budg) in CARDS.items():
             e = d[name]
             setext(by, big, k(e['rev']))

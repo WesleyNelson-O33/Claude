@@ -11,10 +11,12 @@ import openpyxl
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
 INK, TEAL, BAND, LINE = '242C39', '3FD0C9', 'EDEFF2', 'C9CED6'
-KEEP = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]     # B..M of the source block
-HEAD = ['Group', 'Name', 'Chargeable', 'Non-chargeable', 'Leave', 'Public holiday',
-        'Workable hours', 'Total hours', 'Chargeable %', 'Non-chargeable %',
-        'Target %', 'Over / under']
+# Nine columns, not twelve. The table sits beside a commentary panel now, so
+# it has about five and a half inches. Public holiday, total hours and the
+# non-chargeable percentage all repeat what is already on the row.
+SRC = [3, 4, 5, 7, 9, 11, 12]                     # source columns after group and name
+HEAD = ['Group', 'Name', 'Chargeable', 'Non-chargeable', 'Leave',
+        'Workable hours', 'Chargeable %', 'Target %', 'Over / under']
 
 
 def main(src, out):
@@ -51,9 +53,9 @@ def main(src, out):
         name = str(r[2]).strip() if r[2] else ''
         total_row = name == '' and group.endswith('Total')
         is_total = group.endswith('Total') or (name == '' and r[1])
-        vals = [group if (name == '' or r[1]) else '', name] + [r[i] for i in range(3, 13)]
+        vals = [group if (name == '' or r[1]) else '', name] + [r[i] for i in SRC]
         if stop:
-            vals = ['Grand Total', ''] + [r[i] for i in range(3, 13)]
+            vals = ['Grand Total', ''] + [r[i] for i in SRC]
             is_total = True
         for c, v in enumerate(vals, 1):
             cell = ws.cell(out_r, c, v)
@@ -63,13 +65,13 @@ def main(src, out):
                 cell.alignment = Alignment(horizontal='left')
             else:
                 cell.alignment = Alignment(horizontal='right')
-                cell.number_format = '0.0%' if c >= 9 else '#,##0'
+                cell.number_format = '0.0%' if c >= 7 else '#,##0'
             cell.border = Border(bottom=thin)
             if is_total:
                 cell.fill = PatternFill('solid', fgColor=BAND)
         out_r += 1
 
-    widths = [14, 24, 12, 16, 10, 14, 15, 12, 14, 17, 11, 14]
+    widths = [13, 22, 12, 16, 9, 15, 13, 10, 13]
     for c, w in enumerate(widths, 1):
         ws.column_dimensions[openpyxl.utils.get_column_letter(c)].width = w
     nb.save(out)

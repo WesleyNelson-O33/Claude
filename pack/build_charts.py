@@ -605,17 +605,6 @@ def line_series(ch, col, first, last, colour, width=28000, marker=True):
     s_.smooth = False
     return s_
 
-# cumulative revenue year to date, the years, the budget and the departments
-# all on one picture, which is what Danica asked for.
-#
-# It runs only to the months reported, not the full twelve. Carrying the
-# finished years out to June puts the top of the chart at seven million, and
-# at that scale every department flattens onto the axis and cannot be read.
-# Stopping at the reported months puts the top near two million, where the
-# year lines, the budget and the five departments are all legible together.
-#
-# Budget is grey so it reads as the reference line rather than a result, and
-# each department carries its own colour from Danica's convention.
 # cumulative revenue year to date, one line per year, out to June so the
 # budget trajectory for the rest of the year is on the page.
 #
