@@ -66,6 +66,10 @@ SNIPS = {
     'labour_mix':  ('Cost Analysis',  'I61:AF87',    False),
     'income_month':('Cost Analysis',  'I117:AC140',  False),  # I142 starts the next chart
     'staff_split': ('Overheads MoM',  'A160:P178',  False),
+    # top ten customers across three first quarters, the chart and the
+    # same figures as a table, so either can go on the slide
+    'top10_3yr':     ('Top 10 Q1 3yr', 'A29:V55',    False),
+    'top10_3yr_tbl': ('Top 10 Q1 3yr', 'A2:F13',     False),
     'top10':       ('Top 10 Clients', 'G4:AA27',     False),
     'dso_calc':    ('DSO',            'A5:B15',     False),
     'dso_who':     ('DSO',            'J23:AC46',   False),
