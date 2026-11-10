@@ -3,7 +3,7 @@
 Danica asked for the customer slide to compare three years. The pack only
 held two, FY27 and FY26 year to date by customer on the Top 10 YoY sheet.
 
-Q1 FY24, that is July to September 2024, was not in the pack at all. It is
+Q1 FY25, that is July to September 2024, was not in the pack at all. It is
 summed here from the 187 Xero invoices for that quarter, net of GST. The
 basis was checked against Xero's own revenue report for the same quarter:
 every one of its top five comes to exactly 1.10 times the net sum, so that
@@ -36,8 +36,8 @@ AFTER = 'Top 10 YoY'
 INK, TEAL, BAND, LINE = '242C39', '3FD0C9', 'EDEFF2', 'C9CED6'
 GOOD, BAD = '005358', 'C41A28'
 # oldest faintest, newest strongest
-YEARS = [('Q1 FY24', 'C9CED6'), ('Q1 FY25', '3FD0C9'), ('Q1 FY26', '122B82')]
-HEAD = ['Customer', 'Q1 FY24', 'Q1 FY25', 'Q1 FY26', 'Change on FY25', 'Note']
+YEARS = [('Q1 FY25', 'C9CED6'), ('Q1 FY26', '3FD0C9'), ('Q1 FY27', '122B82')]
+HEAD = ['Customer', 'Q1 FY25', 'Q1 FY26', 'Q1 FY27', 'Change on FY26', 'Note']
 WIDTHS = [24, 13, 13, 13, 17, 17]
 # name, Q1 2024, Q1 2025, Q1 2026, note. Ordered by Q1 2026, as the slide is.
 ROWS = [
@@ -114,7 +114,7 @@ def main():
         'The ten are this quarter\u2019s top ten. The earlier columns are what those '
         'same ten were worth then, not the top ten of those years.')
     ws.cell(note + 1, 1).value = (
-        'Q1 FY24 is pasted: the 187 Xero invoices for 1 Jul to 30 Sep 2024, net of '
+        'Q1 FY25 is pasted: the 187 Xero invoices for 1 Jul to 30 Sep 2024, net of '
         'GST. It does not recalculate.')
     ws.cell(note + 1, 1).font = Font(size=8, italic=True, color='6B7585')
     ws.cell(note, 1).font = Font(size=8, italic=True, color='6B7585')
@@ -145,7 +145,7 @@ def main():
     ch.legend.position = 'b'
     ch.y_axis.numFmt = '#,##0'
     ch.x_axis.delete = ch.y_axis.delete = False
-    ch.width, ch.height = 26, 12
+    ch.width, ch.height = 30, 10.2
     ws.add_chart(ch, 'A%d' % (MIRROR + len(ROWS) + 3))
 
     for c, w in enumerate(WIDTHS, 1):
