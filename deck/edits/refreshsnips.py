@@ -6,7 +6,11 @@ are re-placed. This walks the deck and swaps each one.
 
 Geometry is recomputed, because a chart that loses its title gets shorter and
 its aspect ratio changes. The picture is sized to the gap between the title and
-the commentary strip, exactly as addslide.add() sizes it, and centred.
+the commentary strip, then centred in it both ways.
+
+Centring vertically matters for the wide short tables. They fill the width long
+before they fill the height, so pinned to the top they left a band of white
+between themselves and the commentary.
 
 A slide carrying more than one chart is left alone. Those have a hand-built
 side by side layout that this would flatten.
@@ -54,9 +58,13 @@ def main(src, out):
         aspect = im.width / im.height
         if panel is not None:
             strip_top = emu_in(panel.top)
-            pic_h = min(strip_top - 0.12 - TOP, SPAN / aspect)
+            room = strip_top - 0.12 - TOP
+            pic_h = min(room, SPAN / aspect)
             pic_w = pic_h * aspect
-            left, top = LEFT + (SPAN - pic_w) / 2, TOP
+            # centred in the room it has, not pinned to the top. A wide short
+            # table fills the width long before it fills the height, and
+            # pinning it left a band of white between it and the commentary.
+            left, top = LEFT + (SPAN - pic_w) / 2, TOP + (room - pic_h) / 2
         else:
             # no strip on this one, so keep the box it had and fit inside it
             left, top = emu_in(old_box[0]), emu_in(old_box[1])

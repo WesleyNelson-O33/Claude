@@ -87,6 +87,12 @@ SNIPS = {
     # Columns B, C and D are the three months and F is the rolling forecast,
     # all hidden, which leaves Line, YTD, YTD Budget, Var $ and Var %.
     'q1_summary':       ('Summary', 'A5:I182', True, 'BCDF'),
+
+    # Quarterly. A full profit and loss for each reporting group, the quarter
+    # only. Column O of that tab is the year to date, which at September is Q1.
+    'q1_pl_production': ('P&L by Dept', 'A6:O79',    True, 'BCDEFGHIJKLMN'),
+    'q1_pl_consulting': ('P&L by Dept', 'A83:O156',  True, 'BCDEFGHIJKLMN'),
+    'q1_pl_support':    ('P&L by Dept', 'A160:O233', True, 'BCDEFGHIJKLMN'),
     'util_chart':  ('Utilisation',    'F65:AA90',    False),
     # The same hours picture rolled up to the three departments.
     'util_three':  ('Utilisation',    'F92:AA117',   False),
