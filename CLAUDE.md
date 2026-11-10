@@ -78,6 +78,24 @@ nothing improved, no method of my own.
   Copy them from last month.
 - If I am unsure whether something came from the source, it did not. Ask.
 
+## Spreadsheets: always formulas
+
+Every workbook I build for her is live. She checks a figure by clicking the cell
+and reading the bar. A typed number tells her nothing, and it goes stale the
+moment anything upstream changes, with nothing to warn her.
+
+- Totals are SUM. Percentages are the division. Differences are the
+  subtraction. Variances, per head, per cent of revenue, change on last year,
+  all of it is the formula, never the answer typed in.
+- Only a true input is typed: something pasted from Xero, from a report, or
+  given to me. Everything derived from it is a formula pointing at it.
+- Where a figure already exists in the pack, point at that cell instead of
+  retyping it, even across sheets.
+- Every pasted block says on the sheet what it is, where it came from and when,
+  and that it does not recalculate.
+- This applies to anything with cells in it, not just the pack. A one-off answer
+  workbook gets the same treatment.
+
 ## Adjustment journal schedules
 
 Danica approved the September 2026 WIP Adjustment Schedule as the model for every
