@@ -27,12 +27,16 @@ SNIP = '/home/user/Claude/deck/snips/'
 GAP = 0.18          # between the content and the panel
 
 # slide title (lower case) -> (snip id, new title or None, which commentary)
+# these carry a table too tall for the band above a bottom strip, so the
+# strip comes off and the table takes the full slide height
+FULL_HEIGHT = {'utilisation per employee, fy27 q1'}
+
 FILL = {
     'profit and loss by reporting group, first quarter fy2027': ('q1_pl', None, 'pl'),
     'support q1':     ('pl_sup',  'Support Q1',     'sup'),
     'events q1':      ('pl_prd',  'Production Q1',  'prd'),
     'consulting q1':  ('pl_cons', 'Consulting Q1',  'cons'),
-    'utilisation per employee, first quarter fy2027': ('util_q1', None, 'util'),
+    'utilisation per employee, fy27 q1': ('util_q1', None, 'util'),
 }
 # titles to drop outright
 DROP_EXTRA = {'video q1', 'integration q1'}
@@ -40,25 +44,65 @@ DROP_DUPLICATE = 'results by reporting group, first quarter fy2027'
 
 
 def title_of(slide):
-    """Her layout puts the section and the title in one box, so the title is
-    the last non-empty line of Text 0. Older slides still use Text 1."""
-    for name in ('Text 1', 'Text 0'):
+    """Her layout puts the section and the title in one box, separated by a
+    pipe: "DEPARTMENTAL PERFORMANCE|Support Q1". Older slides still carry the
+    title on its own in Text 1."""
+    for name in ('Text 0', 'Text 1'):
         for sh in slide.shapes:
-            if sh.name == name and sh.has_text_frame:
-                lines = [x.strip() for x in sh.text_frame.text.split('\n') if x.strip()]
-                if len(lines) > 1 or (name == 'Text 1' and lines):
-                    return lines[-1]
+            if sh.name != name or not sh.has_text_frame:
+                continue
+            raw = sh.text_frame.text.replace('\n', '|').replace('\v', '|')
+            parts = [x.strip() for x in raw.split('|') if x.strip()]
+            if len(parts) > 1:
+                return parts[-1]
+            if name == 'Text 1' and parts:
+                return parts[0]
     return ''
 
 
+
+def candidates(slide):
+    """Every spelling of the title on the slide. Her Text 0 is sometimes cut
+    short, so Text 1 is checked as well."""
+    out = []
+    for name in ('Text 0', 'Text 1'):
+        for sh in slide.shapes:
+            if sh.name != name or not sh.has_text_frame:
+                continue
+            raw = sh.text_frame.text.replace('\n', '|').replace('\v', '|')
+            parts = [x.strip() for x in raw.split('|') if x.strip()]
+            if len(parts) > 1:
+                out.append(parts[-1])
+            elif parts:
+                out.append(parts[0])
+    return [x.lower() for x in out]
+
+
+def match(slide):
+    """A FILL key, allowing for a title that has been cut short."""
+    cands = candidates(slide)
+    for c in cands:
+        if c in FILL:
+            return c
+    for c in cands:
+        for k in FILL:
+            if len(c) >= 20 and (k.startswith(c) or c.startswith(k)):
+                return k
+    return None
+
 def set_title(slide, text):
+    """Rewrite only the part after the pipe, so her section label is kept."""
     for sh in slide.shapes:
         if sh.name != 'Text 0' or not sh.has_text_frame:
             continue
-        paras = [p for p in sh.text_frame.paragraphs if p.text.strip()]
-        if len(paras) >= 2 and paras[-1].runs:
-            paras[-1].runs[0].text = text
-            for extra in paras[-1].runs[1:]:
+        for para in sh.text_frame.paragraphs:
+            if '|' not in para.text:
+                continue
+            section = para.text.split('|')[0]
+            if not para.runs:
+                continue
+            para.runs[0].text = '%s|%s' % (section, text)
+            for extra in para.runs[1:]:
                 extra.text = ''
             return True
     return False
@@ -77,9 +121,17 @@ def put_picture(slide, png, name):
     if panel is None:
         return None
     left0 = 0.55
-    top0 = Emu(panel.top).inches
-    room_w = Emu(panel.left).inches - GAP - left0
-    room_h = Emu(panel.height).inches
+    pl, pt = Emu(panel.left).inches, Emu(panel.top).inches
+    pw = Emu(panel.width).inches
+    if pl - left0 < 1.0:
+        # the panel still spans the width at the bottom, so the content goes
+        # above it rather than beside it
+        top0, room_w, room_h = 1.22, pw, pt - 0.12 - 1.22
+        left0 = pl
+    else:
+        top0 = pt
+        room_w = pl - GAP - left0
+        room_h = Emu(panel.height).inches
     tree = slide.shapes._spTree
     for sh in list(slide.shapes):
         if 'PICTURE' in str(sh.shape_type) and sh.name.startswith('snip'):
@@ -96,6 +148,26 @@ def put_picture(slide, png, name):
     tree.insert(2, pic._element)
     return w, h
 
+
+
+def put_full(slide, png, name):
+    """The whole slide between the heading and the footer, centred."""
+    tree = slide.shapes._spTree
+    for sh in list(slide.shapes):
+        if 'PICTURE' in str(sh.shape_type) and sh.name.startswith('snip'):
+            tree.remove(sh._element)
+    im = Image.open(png)
+    aspect = im.width / im.height
+    room_w, room_h, top0 = 8.90, 3.84, 1.22
+    h = min(room_h, room_w / aspect)
+    w = h * aspect
+    pic = slide.shapes.add_picture(png, Inches(0.55 + (room_w - w) / 2),
+                                   Inches(top0 + (room_h - h) / 2),
+                                   width=Inches(w), height=Inches(h))
+    pic.name = name
+    tree.remove(pic._element)
+    tree.insert(2, pic._element)
+    return w, h
 
 def write_panel(slide, lines):
     """All the commentary goes in the right hand column. The old second
@@ -184,17 +256,24 @@ def main(src, out):
 
     # 2. fill
     for i, s in enumerate(pres.slides, 1):
-        t = title_of(s).lower()
-        if t not in FILL:
+        hit = match(s)
+        if hit is None:
             continue
-        snip, newtitle, key = FILL[t]
+        snip, newtitle, key = FILL[hit]
         png = os.path.join(SNIP, snip + '.png')
         if not os.path.exists(png):
             print('  %-3d %-34s PNG MISSING, left alone' % (i, t[:34])); continue
         if newtitle:
             set_title(s, newtitle)
-        geom = put_picture(s, png, 'snip ' + snip)
-        write_panel(s, text[key])
+        if hit in FULL_HEIGHT:
+            s.notes_slide.notes_text_frame.text = '\n'.join(text[key])
+            for sh in list(s.shapes):
+                if sh.name in ('commentary panel', 'Text 4', 'Text 5', 'Text 5b'):
+                    s.shapes._spTree.remove(sh._element)
+            geom = put_full(s, png, 'snip ' + snip)
+        else:
+            geom = put_picture(s, png, 'snip ' + snip)
+            write_panel(s, text[key])
         print('  %-3d %-34s %s  %.2f x %.2f' % (i, (newtitle or title_of(s))[:34], snip,
                                                 geom[0], geom[1]))
 
