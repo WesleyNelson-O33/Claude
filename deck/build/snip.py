@@ -82,7 +82,11 @@ SNIPS = {
 
     # Quarterly. The year to date departmental table, which at September is Q1.
     'dept_q1':          ('P&L by Dept', 'A259:G264', False, '', None, 'EFG'),
-    'ytd_dept':         ('Xero History',  'F389:AA414', False),
+
+    # Quarterly. The whole P&L on one page, the quarter against its budget.
+    # Columns B, C and D are the three months and F is the rolling forecast,
+    # all hidden, which leaves Line, YTD, YTD Budget, Var $ and Var %.
+    'q1_summary':       ('Summary', 'A5:I182', True, 'BCDF'),
     'util_chart':  ('Utilisation',    'F65:AA90',    False),
     # The same hours picture rolled up to the three departments.
     'util_three':  ('Utilisation',    'F92:AA117',   False),
@@ -97,7 +101,7 @@ SUBDEPTS = {'events', 'video', 'integration', 'consulting'}
 
 # Where a snip starts below the sheet's own header row, the header is printed
 # again at the top of the snip so the columns can be read.
-TITLE_ROWS = {'pl_result': '5:5', 'util_pct_b': '8:8'}
+TITLE_ROWS = {'pl_result': '5:5', 'util_pct_b': '8:8', 'q1_summary': '5:5'}
 
 
 def collapse(ws):
