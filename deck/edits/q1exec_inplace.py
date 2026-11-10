@@ -15,6 +15,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from herdeck import set_title
 
 PACK = '/home/user/Claude/pack/CTS Financial Controller Pack - v20.xlsx'
+
+# The two budgeted jobs Danica asked to be named. These are not in the pack,
+# they are read from her budget model, CTS_Budget_FY27_Final_DN.xlsx, sheet
+# 'CONS Sales Forecast': PwC tagged INT at 335,984 in August, Bankwest tagged
+# CONS at 48,984 in September.
+PWC, BANKWEST = 335984, 48984
 TOP = 300
 DEPTS = ['Support', 'Events', 'Video', 'Integration', 'Consulting', 'Total']
 CARDS = {
@@ -101,17 +107,17 @@ def main(src, out):
         short = d['Total']['bud'] - d['Total']['rev']
         para = ('The quarter in summary. Revenue was %s against a budget of %s, short by %s '
                 'or %.0f%%. Almost all of the shortfall is Integration at %s and Consulting '
-                'at %s. Support is the only department covering its allocated overhead, at '
-                '%s, while Events lost %s and Consulting %s. At the quarter gross margin of '
-                '%.1f%%, revenue of approximately %s is required to cover overheads of %s, '
-                'against the %s billed.'
+                'at %s. Two budgeted jobs explain much of that gap. PwC was budgeted at %s '
+                'in August and will not now happen, and Bankwest was budgeted at %s in '
+                'September and has moved into Q2. Support is the only department covering '
+                'its allocated overhead, at %s, while Events lost %s and Consulting %s.'
                 % (k(d['Total']['rev']), k(d['Total']['bud']), k(short),
                    short / d['Total']['bud'] * 100,
                    k(d['Integration']['bud'] - d['Integration']['rev']),
                    k(d['Consulting']['bud'] - d['Consulting']['rev']),
+                   k(PWC), k(BANKWEST),
                    k(d['Support']['res']), k(abs(d['Events']['res'])),
-                   k(abs(d['Consulting']['res'])), gpc * 100, k(breakeven), k(oh),
-                   k(d['Total']['rev'])))
+                   k(abs(d['Consulting']['res']))))
         setext(by, 'Text 53', para)
         s.notes_slide.notes_text_frame.text = para
         print('  slide %d rewritten to the quarter' % i)
