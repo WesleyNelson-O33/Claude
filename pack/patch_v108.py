@@ -19,6 +19,9 @@ from openpyxl.formatting.rule import DataBarRule
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
+# Every Font here names Calibri. Without a name openpyxl leaves the
+# workbook default, which comes out of LibreOffice as a serif and does
+# not match the rest of the deck.
 PACK = 'CTS Financial Controller Pack - v20.xlsx'
 # It gets a sheet of its own. Putting it under the blocks on Utilisation
 # meant sharing that sheet's column widths, and those are already set for the
@@ -61,11 +64,11 @@ def main(src):
     thin = Side(style='thin', color=LINE)
 
     ws.cell(TOP, 1).value = 'UTILISATION PER EMPLOYEE, FY27 Q1'
-    ws.cell(TOP, 1).font = Font(bold=True, size=10, color=INK)
+    ws.cell(TOP, 1).font = Font(name='Calibri', bold=True, size=10, color=INK)
     head_row = TOP + 1
     for c, h in enumerate(HEAD, 1):
         cell = ws.cell(head_row, c, h)
-        cell.font = Font(bold=True, color='FFFFFF', size=10)
+        cell.font = Font(name='Calibri', bold=True, color='FFFFFF', size=10)
         cell.fill = PatternFill('solid', fgColor=INK)
         cell.alignment = Alignment(horizontal='left' if c <= 2 else 'right',
                                    vertical='center')
@@ -82,7 +85,7 @@ def main(src):
         vals = [group if (name == '' or r[1]) else ''] + [r[i] for i in SRC_COLS[1:]]
         for c, v in enumerate(vals, 1):
             cell = ws.cell(out, c, v)
-            cell.font = Font(bold=is_total, size=9, color=INK)
+            cell.font = Font(name='Calibri', bold=is_total, size=9, color=INK)
             if c <= 2:
                 cell.alignment = Alignment(horizontal='left')
             else:

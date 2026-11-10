@@ -30,6 +30,9 @@ from openpyxl.drawing.fill import ColorChoice
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter as L
 
+# Every Font here names Calibri. Without a name openpyxl leaves the
+# workbook default, which comes out of LibreOffice as a serif and does
+# not match the rest of the deck.
 PACK = 'CTS Financial Controller Pack - v20.xlsx'
 SHEET = 'Top 10 Q1 3yr'
 AFTER = 'Top 10 YoY'
@@ -67,10 +70,10 @@ def main():
     thin = Side(style='thin', color=LINE)
 
     ws.cell(TOP, 1).value = 'TOP TEN CUSTOMERS, FIRST QUARTER, THREE YEARS'
-    ws.cell(TOP, 1).font = Font(bold=True, size=10, color=INK)
+    ws.cell(TOP, 1).font = Font(name='Calibri', bold=True, size=10, color=INK)
     for c, h in enumerate(HEAD, 1):
         cell = ws.cell(HEAD_ROW, c, h)
-        cell.font = Font(bold=True, color='FFFFFF', size=10)
+        cell.font = Font(name='Calibri', bold=True, color='FFFFFF', size=10)
         cell.fill = PatternFill('solid', fgColor=INK)
         cell.alignment = Alignment(
             horizontal='left' if c in (1, 6) else 'right',
@@ -80,32 +83,32 @@ def main():
 
     for i, (name, a, b, c3, note) in enumerate(ROWS):
         r = FIRST + i
-        ws.cell(r, 1, name).font = Font(size=9, color=INK)
+        ws.cell(r, 1, name).font = Font(name='Calibri', size=9, color=INK)
         ws.cell(r, 1).border = Border(bottom=thin)
         for j, v in enumerate((a, b, c3)):
             cell = ws.cell(r, 2 + j, v)
-            cell.font = Font(size=9, color=INK)
+            cell.font = Font(name='Calibri', size=9, color=INK)
             cell.number_format = '#,##0'
             cell.alignment = Alignment(horizontal='right')
             cell.border = Border(bottom=thin)
         chg = ws.cell(r, 5, '=D%d-C%d' % (r, r))
         chg.number_format = '+#,##0;-#,##0;-'
-        chg.font = Font(size=9, bold=True, color=GOOD if c3 >= b else BAD)
+        chg.font = Font(name='Calibri', size=9, bold=True, color=GOOD if c3 >= b else BAD)
         chg.alignment = Alignment(horizontal='right')
         chg.border = Border(bottom=thin)
         n = ws.cell(r, 6, note)
-        n.font = Font(size=9, italic=True, color=INK)
+        n.font = Font(name='Calibri', size=9, italic=True, color=INK)
         n.alignment = Alignment(horizontal='left', indent=1)
         n.border = Border(bottom=thin)
 
     tot = LAST + 1
-    ws.cell(tot, 1, 'These ten together').font = Font(bold=True, size=9, color=INK)
+    ws.cell(tot, 1, 'These ten together').font = Font(name='Calibri', bold=True, size=9, color=INK)
     for j, col in enumerate('BCD'):
         cell = ws.cell(tot, 2 + j, '=SUM(%s%d:%s%d)' % (col, FIRST, col, LAST))
-        cell.font = Font(bold=True, size=9, color=INK)
+        cell.font = Font(name='Calibri', bold=True, size=9, color=INK)
         cell.number_format = '#,##0'
     ws.cell(tot, 5, '=D%d-C%d' % (tot, tot)).number_format = '+#,##0;-#,##0;-'
-    ws.cell(tot, 5).font = Font(bold=True, size=9, color=GOOD)
+    ws.cell(tot, 5).font = Font(name='Calibri', bold=True, size=9, color=GOOD)
     for c in range(1, 7):
         ws.cell(tot, c).fill = PatternFill('solid', fgColor=BAND)
 
@@ -116,19 +119,19 @@ def main():
     ws.cell(note + 1, 1).value = (
         'Q1 FY25 is pasted: the 187 Xero invoices for 1 Jul to 30 Sep 2024, net of '
         'GST. It does not recalculate.')
-    ws.cell(note + 1, 1).font = Font(size=8, italic=True, color='6B7585')
-    ws.cell(note, 1).font = Font(size=8, italic=True, color='6B7585')
+    ws.cell(note + 1, 1).font = Font(name='Calibri', size=8, italic=True, color='6B7585')
+    ws.cell(note, 1).font = Font(name='Calibri', size=8, italic=True, color='6B7585')
 
     # the mirror the chart reads, smallest first so it plots top down
     for c, h in enumerate(HEAD[:4], 1):
-        ws.cell(MIRROR, c, h).font = Font(bold=True, size=9, color=INK)
+        ws.cell(MIRROR, c, h).font = Font(name='Calibri', bold=True, size=9, color=INK)
     for i in range(len(ROWS)):
         src = LAST - i
         r = MIRROR + 1 + i
         for c in range(1, 5):
             ws.cell(r, c, '=%s%d' % (L(c), src))
             ws.cell(r, c).number_format = '#,##0' if c > 1 else 'General'
-            ws.cell(r, c).font = Font(size=9, color=INK)
+            ws.cell(r, c).font = Font(name='Calibri', size=9, color=INK)
 
     ch = BarChart()
     ch.type, ch.grouping, ch.gapWidth, ch.overlap = 'bar', 'clustered', 40, -10
