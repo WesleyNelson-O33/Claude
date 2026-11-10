@@ -13,6 +13,9 @@ cross-sheet formula into #REF and the render would come out full of errors.
 """
 import os, shutil, subprocess, sys, json
 import openpyxl
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                '..', '..', 'tools'))
+import databar_match
 from openpyxl.worksheet.properties import PageSetupProperties
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -185,6 +188,10 @@ def build(snip_id, sheet, rng, do_collapse, hide_cols='', set_cells=None,
     ws.HeaderFooter.differentOddEven = False
     path = os.path.join(WORK, f'{snip_id}.xlsx')
     wb.save(path)
+    # openpyxl drops the x14 half of a data bar rule, and without it
+    # LibreOffice invents its own axis and negative colour, so the picture
+    # stops matching the pack. Put her definition back on the copy.
+    databar_match.fix(path, quiet=True)
     return path
 
 
