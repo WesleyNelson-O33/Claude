@@ -86,13 +86,21 @@ SNIPS = {
     # Quarterly. The whole P&L on one page, the quarter against its budget.
     # Columns B, C and D are the three months and F is the rolling forecast,
     # all hidden, which leaves Line, YTD, YTD Budget, Var $ and Var %.
-    'q1_summary':       ('Summary', 'A5:I182', True, 'BCDF'),
+    # 58 is the single Other Income account, 165 to 170 the overhead accounts
+    # and 172 the single Other Expenses account. All of them repeat the total
+    # on the line above, and without them the whole P&L fits one page.
+    # The four sub-departments on each side come off too. They are on the
+    # two quarterly departmental slides, and carrying them here made the
+    # table too tall to read once it was fitted to the slide.
+    'q1_summary':       ('Summary', 'A5:I182', True, 'BCDF', None, '',
+                         (58, 165, 166, 167, 168, 169, 170, 172,
+                          8, 16, 25, 33, 61, 78, 96, 113),
+                         {'A': 46, 'E': 17, 'G': 17, 'H': 17, 'I': 17}),
 
-    # Quarterly. A full profit and loss for each reporting group, the quarter
-    # only. Column O of that tab is the year to date, which at September is Q1.
-    'q1_pl_production': ('P&L by Dept', 'A6:O79',    True, 'BCDEFGHIJKLMN'),
-    'q1_pl_consulting': ('P&L by Dept', 'A83:O156',  True, 'BCDEFGHIJKLMN'),
-    'q1_pl_support':    ('P&L by Dept', 'A160:O233', True, 'BCDEFGHIJKLMN'),
+    # Quarterly. One profit and loss with the reporting groups as columns.
+    # Each group's own block is tall and narrow and lands on a landscape
+    # slide about two inches wide, which cannot be read. This fits.
+    'q1_pl':            ('P&L by Dept', 'A271:F286', False, '', None, 'BCDEF'),
     'util_chart':  ('Utilisation',    'F65:AA90',    False),
     # The same hours picture rolled up to the three departments.
     'util_three':  ('Utilisation',    'F92:AA117',   False),
@@ -122,7 +130,8 @@ def collapse(ws):
             d.hidden = True
 
 
-def build(snip_id, sheet, rng, do_collapse, hide_cols='', set_cells=None, show_cols=''):
+def build(snip_id, sheet, rng, do_collapse, hide_cols='', set_cells=None,
+          show_cols='', hide_rows=(), col_widths=None):
     wb = openpyxl.load_workbook(PACK)
     for ws in wb.worksheets:
         ws.sheet_state = 'visible' if ws.title == sheet else 'hidden'
@@ -135,6 +144,13 @@ def build(snip_id, sheet, rng, do_collapse, hide_cols='', set_cells=None, show_c
     # Some tabs keep forecast columns hidden. A snip that needs them says so.
     for col in show_cols:
         ws.column_dimensions[col].hidden = False
+    # Detail rows a summary does not want, named outright. The outline level
+    # cannot separate them, because the sub-departments sit on the same level
+    # as the overhead accounts.
+    for row in hide_rows:
+        ws.row_dimensions[row].hidden = True
+    for ref, width in (col_widths or {}).items():
+        ws.column_dimensions[ref].width = width
     for ref, value in (set_cells or {}).items():
         ws[ref] = value
     ws.print_area = rng
@@ -187,7 +203,9 @@ def main(only=None):
         hide = spec[3] if len(spec) > 3 else ''
         sets = spec[4] if len(spec) > 4 else None
         show = spec[5] if len(spec) > 5 else ''
-        x = build(snip_id, sheet, rng, coll, hide, sets, show)
+        rows = spec[6] if len(spec) > 6 else ()
+        widths = spec[7] if len(spec) > 7 else None
+        x = build(snip_id, sheet, rng, coll, hide, sets, show, rows, widths)
         subprocess.run([sys.executable, SOFFICE, '--headless', '--convert-to', 'pdf',
                         '--outdir', WORK, x], check=True, capture_output=True)
         pdf = os.path.join(WORK, f'{snip_id}.pdf')

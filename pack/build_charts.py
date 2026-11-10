@@ -616,9 +616,13 @@ def line_series(ch, col, first, last, colour, width=28000, marker=True):
 #
 # Budget is grey so it reads as the reference line rather than a result, and
 # each department carries its own colour from Danica's convention.
+# FY25 and FY26 are not on it. The five departments use the five brand
+# colours exactly, so the year lines had nothing left to be drawn in: FY27
+# came out the same teal as Events and FY26 the same as Video. The three year
+# comparison has its own slide now, so this one carries the current year, the
+# budget and the split, and nothing competes for a colour.
 ch = LineChart()
-for col, colour in ((2, NAVY), (3, AQUA), (4, TEAL)):
-    line_series(ch, col, 58, 57 + period, colour)
+line_series(ch, 4, 58, 57 + period, INK, width=34000)
 b = line_series(ch, 5, 58, 57 + period, GREY, width=22000, marker=False)
 b.graphicalProperties.ln.dashStyle = 'dash'
 for i, dept in enumerate(('Support', 'Events', 'Video', 'Integration', 'Consulting')):
