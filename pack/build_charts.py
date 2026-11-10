@@ -114,8 +114,16 @@ def labels_in(ch, cols, fmt='$#,##0', size=900):
     for s_, col in zip(ch.series, cols):
         s_.dLbls = _dl(fmt, 'ctr', size, col, True)
 
+# Every chart sits on a slide that already carries the heading, so the chart's
+# own title printed a second heading under the first. Danica asked for it gone.
+# The only exception is the pair that share one slide, where the title is the
+# only thing telling the two charts apart.
+KEEP_TITLE = {'Revenue against budget, month by month',
+              'Revenue for the month, year on year'}
+
+
 def frame(ch, title, w, h, gap=45):
-    ch.title = title
+    ch.title = title if title in KEEP_TITLE else None
     ch.width, ch.height = w, h
     ch.style = None
     ch.gapWidth = gap
