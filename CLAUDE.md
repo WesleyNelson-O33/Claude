@@ -108,6 +108,46 @@ one out the same way.
   and word the meaning, ending position and verification lines as still to do.
   The narration column stays as written. She makes the corrections as it says.
 
+## The deck: look and accuracy
+
+Danica has had to redo my work on both. Neither is optional.
+
+### Accuracy
+
+- Every figure on a slide is read from the controller pack when the slide is
+  built. Never typed in. `deck/edits/qcommentary.py` is how that is done, and
+  anything new follows it.
+- A figure typed into commentary goes stale the moment the pack is re-pasted,
+  and nothing warns me. That has already put wrong numbers in front of the MD.
+- Before saying a pack ties to Xero, check every section. Income, cost of
+  sales, other income and overheads, account by account. A reclass nets to
+  zero at the section total, so checking totals proves nothing.
+- Never report a check as complete when only part of it was run. Say what was
+  actually checked.
+
+### Look
+
+- She works to a layout: the section and the title in one box top left, the
+  content on the left, and the commentary in a panel down the right hand side.
+  Match the layout already on the slide. Read its shape positions and fit the
+  content to them.
+- A table that is close to square does not go in a short wide band. It will
+  shrink to a third of the slide and cannot be read. Put it in the tall left
+  area, or give it the full height.
+- Never leave a band of white between the content and the commentary. Centre
+  the content in the space it has, both ways.
+- Chart titles come off. The slide heading is the heading. Two headings on one
+  slide is wrong.
+- Headings are title case, every word capitalised, except that FY2027, Q1,
+  P&L, EBITDA and DSO stay as they are.
+- Before sending anything, render it and look at it. Do not ship a slide I
+  have not seen.
+
+### Before pasting into a slide she has set up
+
+Ask what goes where first. She lays slides out deliberately and a guess
+undoes her work.
+
 ## One deck, monthly and quarterly
 
 The deck is one file that serves both the monthly review and the quarterly review.
