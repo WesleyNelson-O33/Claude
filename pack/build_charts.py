@@ -629,16 +629,14 @@ frame(ch, 'Revenue year to date by department, cumulative', 30, 9.08)
 legend(ch)
 ws.add_chart(ch, 'F390')
 
-# all four quarters across the three years
+# the first quarter across the three years. Built the same way as the three
+# Septembers chart, so the monthly slide and the quarterly slide read as a
+# pair and either one stands on its own when the other is hidden.
 ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
-ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=73, max_row=77),
-            titles_from_data=True)
-ch.add_data(Reference(ws, min_col=4, min_row=73, max_row=73 + max(1, period // 3)),
-            titles_from_data=True)
-ch.set_categories(Reference(ws, min_col=1, min_row=74, max_row=77))
-frame(ch, 'Revenue by quarter, year on year', 30, 9.08, gap=60)
-legend(ch)
-paint(ch, [NAVY, AQUA, TEAL])
+ch.add_data(Reference(ws, min_col=2, min_row=422, max_row=424))
+ch.set_categories(Reference(ws, min_col=1, min_row=422, max_row=424))
+frame(ch, 'Revenue, first quarter, three years', 30, 9.08, gap=60)
+paint(ch, [TEAL])
 labels(ch, '#,##0', size=800)
 ws.add_chart(ch, 'F60')
 
