@@ -49,10 +49,11 @@ def title_of(slide):
 
 def main(src, out):
     pres = Presentation(src)
-    wanted = set(MONTHLY_TITLES)
+    # matched without case, because the headings are title cased after this
+    wanted = {t.lower() for t in MONTHLY_TITLES}
     seen, hidden = set(), 0
     for s in pres.slides:
-        t = title_of(s)
+        t = title_of(s).lower()
         el = s._element
         if t in wanted:
             el.set('show', '0')
