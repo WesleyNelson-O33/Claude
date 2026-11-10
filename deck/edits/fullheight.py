@@ -16,7 +16,10 @@ from PIL import Image
 
 SNIPDIR = '/home/user/Claude/deck/snips/'
 TOP, FLOOR, LEFT, SPAN = 1.22, 5.06, 0.55, 8.90
-TITLES = {'profit and loss summary, first quarter fy2027'}
+TITLES = {'profit and loss summary, first quarter fy2027',
+          'production profit and loss, first quarter fy2027',
+          'consulting profit and loss, first quarter fy2027',
+          'support profit and loss, first quarter fy2027'}
 STRIP = {'commentary panel', 'Text 4', 'Text 5', 'Text 5b'}
 
 

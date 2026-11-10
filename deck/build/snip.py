@@ -102,6 +102,12 @@ SNIPS = {
     # slide about two inches wide, which cannot be read. This fits.
     'q1_pl':            ('P&L by Dept', 'A271:F286', False, '', None, 'BCDEF'),
     'ytd_dept':         ('Xero History',  'F389:AA414', False),
+
+    # Each reporting group's own profit and loss, the three months beside the
+    # quarter. Column O is the year to date, which at September is Q1.
+    'pl_prd':           ('P&L by Dept', 'A6:O79',    True, 'EFGHIJKLMN'),
+    'pl_cons':          ('P&L by Dept', 'A83:O156',  True, 'EFGHIJKLMN'),
+    'pl_sup':           ('P&L by Dept', 'A160:O206', True, 'EFGHIJKLMN'),
     'util_chart':  ('Utilisation',    'F65:AA90',    False),
     # The same hours picture rolled up to the three departments.
     'util_three':  ('Utilisation',    'F92:AA117',   False),
