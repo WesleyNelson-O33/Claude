@@ -82,6 +82,7 @@ SNIPS = {
 
     # Quarterly. The year to date departmental table, which at September is Q1.
     'dept_q1':          ('P&L by Dept', 'A259:G264', False, '', None, 'EFG'),
+    'ytd_dept':         ('Xero History',  'F389:AA414', False),
     'util_chart':  ('Utilisation',    'F65:AA90',    False),
     # The same hours picture rolled up to the three departments.
     'util_three':  ('Utilisation',    'F92:AA117',   False),

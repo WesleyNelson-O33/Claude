@@ -610,6 +610,17 @@ frame(ch, 'Revenue year to date, cumulative, against budget', 30, 9.08)
 legend(ch)
 ws.add_chart(ch, 'F34')
 
+# the same cut split by department. Its own chart, because the year lines run
+# to seven million and the departments to well under one, so on one picture
+# the departments flatten onto the axis and cannot be read.
+ch = LineChart()
+for i, dept in enumerate(('Support', 'Events', 'Video', 'Integration', 'Consulting')):
+    line_series(ch, 2 + i, 242, 244, D['departments'][dept])
+ch.set_categories(Reference(ws, min_col=1, min_row=242, max_row=244))
+frame(ch, 'Revenue year to date by department, cumulative', 30, 9.08)
+legend(ch)
+ws.add_chart(ch, 'F390')
+
 # all four quarters across the three years
 ch = BarChart(); ch.type = 'col'; ch.grouping = 'clustered'
 ch.add_data(Reference(ws, min_col=2, max_col=3, min_row=73, max_row=77),
