@@ -1,0 +1,6 @@
+*Narration,*Date,Description,*AccountCode,*TaxRate,*Amount,TrackingName1,TrackingOption1,TrackingName2,TrackingOption2
+LSL Provision - Oct 2026,31/10/2026,LSL Provision - Oct 2026,65101,BAS Excluded,1201.66,Cost Centres,CTS,Job Numbers,9000 - OFFICE / ADMIN [CTS]
+LSL Provision - Oct 2026,31/10/2026,LSL Provision - Oct 2026,65101,BAS Excluded,411.21,Cost Centres,PRODUCTION,Job Numbers,9100 - PRODUCTION [PRD]
+LSL Provision - Oct 2026,31/10/2026,LSL Provision - Oct 2026,65101,BAS Excluded,432.51,Cost Centres,ONSITE,Job Numbers,9105 - ONSITE (including PROD backup)
+LSL Provision - Oct 2026,31/10/2026,LSL Provision - Oct 2026,65101,BAS Excluded,171.74,Cost Centres,CONSULTING,Job Numbers,9400 - CONSULTING [CONS]
+LSL Provision - Oct 2026,31/10/2026,LSL Provision - Oct 2026,21240,BAS Excluded,-2217.12,Cost Centres,CTS,Job Numbers,9000 - OFFICE / ADMIN [CTS]
