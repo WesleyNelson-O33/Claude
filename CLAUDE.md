@@ -104,6 +104,19 @@ one out the same way.
 
 - Tabs: Journal Edit Schedule, What i did, then the raw source tabs (the schedule
   and the Xero export) with each item highlighted.
+- **The raw tabs are raw.** The Xero export goes in exactly as it downloads. Every
+  row, every column, its own title rows, its Opening Balance row, its Running
+  Balance, Gross and GST columns, all of it. Last month's schedule goes in as the
+  whole sheet, every row and every column, not the rows I think matter. I do not
+  filter, sort, re-order, rename a heading, drop a column, add a column or retype
+  a figure on a raw tab. Highlighting the rows an item sits on is the only mark I
+  make on one.
+- She checks my work by reading the raw tab against Xero on screen. A tidied
+  extract cannot be checked, and a row I left out is a row she cannot see. If I
+  need something the export does not show, it is a formula or a column on the
+  Journal Edit Schedule, pointing at the raw tab. Never on the raw tab itself.
+- Give the raw tab the name of the export it came from, and say on the Journal
+  Edit Schedule which export each tab is, and when it was pulled.
 - Journal Edit Schedule: starting position (schedule, Xero, variance), ending
   position, then the lines to change grouped under a heading per journal
   ("JOURNAL #number" and its narration). Columns: Item, Journal, Line to change,
