@@ -36,7 +36,7 @@ NEW = [
     (61400, "9200", "50BB48DA0013", datetime.date(2026, 10, 6), "Qwilr Pty Ltd", "Starter plan 6/10/26 to 6/10/27, USD 1,260", 454.55, 12, "BH"),
     (61400, "9400", "50BB48DA0013", datetime.date(2026, 10, 6), "Qwilr Pty Ltd", "Starter plan 6/10/26 to 6/10/27, USD 1,260", 454.54, 12, "BH"),
     (61400, "9000", "INV137607", datetime.date(2026, 10, 1), "The CEO Institute (DL)", "Syndicate 41 membership Oct to Dec 2026", 2100.00, 3, "BH"),
-    (61400, "9300", "INV51110778741", datetime.date(2026, 10, 1), "Linkedin Singapore", "Job Slots 3 of 3, 15/08/2026 to 14/08/2027", 6360.00, 12, "BH"),
+    (61400, "9300", "INV51110778741", datetime.date(2026, 10, 1), "Linkedin Singapore", "Job Slots 3 of 3, 15/08/2026 to 14/08/2027. Oct release includes Aug and Sep catch up", 6360.00, 12, "BF"),
     (62300, "585", "INV02434590", datetime.date(2026, 10, 23), "Avetta", "Advantage membership 23/10/26 to 22/10/27", 297.34, 12, "BI"),
     (62300, "587", "INV02434590", datetime.date(2026, 10, 23), "Avetta", "Advantage membership 23/10/26 to 22/10/27", 297.33, 12, "BI"),
     (62300, "1350", "INV02434590", datetime.date(2026, 10, 23), "Avetta", "Advantage membership 23/10/26 to 22/10/27", 297.33, 12, "BI"),
@@ -107,8 +107,9 @@ def build():
         for _, x in cells: row.remove(x)
         for _, x in cells: row.append(x)
         row.set("spans", "1:%d" % max(col for col, _ in cells))
-        if first == CUR:
-            new_lines.append({"row": r, "amount": round(cost / months, 2), "desc": "Inv%s|%s|%s|%s" % (inv, d.strftime("%d/%m"), sup, det),
+        if colnum(first) <= colnum(CUR):
+            n_months = colnum(CUR) - colnum(first) + 1
+            new_lines.append({"row": r, "amount": round(round(cost / months, 2) * n_months, 2), "desc": "Inv%s|%s|%s|%s" % (inv, d.strftime("%d/%m"), sup, det),
                               "job": "%s - %s" % (job, JOBNAME[job]), "gl": gl, "jobname": JOBNAME[job], "cc": CC[job], "supplier": sup})
     ws.fix_dimension()
     parts[sheets["Prepayment"]] = ws.dump()
