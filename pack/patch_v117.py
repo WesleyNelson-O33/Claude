@@ -1,5 +1,8 @@
 """Put the Q1 FY27 against Q1 FY26 P&L into the pack, in the Summary layout.
 
+The whole company on one sheet. patch_v118 does the same thing a block per
+department, so this one is named for the company to keep the two apart.
+
 Danica asked for the departmental figures for both years, laid out exactly
 as the Summary tab. The Summary carries the whole P&L line list down the
 side, every department and every account under it, with comparison blocks
@@ -28,7 +31,8 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter as L
 
 PACK = 'CTS Financial Controller Pack - v20.xlsx'
-SHEET = 'Q1 Summary by Dept'
+SHEET = 'Q1 Company Summary'
+OLD = 'Q1 Summary by Dept'      # what this sheet was called before v118 arrived
 SRC = 'Summary'
 F27, F26 = "'P&L FY27'", "'Actual FY26'"
 LAST = 191                                 # the last row the Summary uses
@@ -50,8 +54,9 @@ def main():
         print('STOPPED at %s!A6: expected %r, found %r. The Summary has moved.'
               % (SRC, 'Total Income', s.cell(6, 1).value))
         return
-    if SHEET in pk.sheetnames:
-        del pk[SHEET]
+    for n in (SHEET, OLD):
+        if n in pk.sheetnames:
+            del pk[n]
     ws = pk.create_sheet(SHEET, pk.sheetnames.index(SRC) + 1)
 
     ws.cell(1, 1, 'Profit & Loss').font = copy.copy(s.cell(1, 1).font)
