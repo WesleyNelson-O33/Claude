@@ -58,6 +58,29 @@ She quotes the numbering she sees in chat, not the numbering inside a document.
 When she refers to an item by number, resolve it by what she describes, not by
 matching the number.
 
+## Never check one month. Check the full year.
+
+Every check runs across the whole financial year, not the month I happen to be
+working in. One month is a slice. An answer built on a slice is wrong often
+enough to cost her money.
+
+- If an invoice, a bill, a journal, a payment or a balance is not in the month
+  in front of me, it is not missing. It is in another month. Widen to the full
+  year before I say anything does not exist.
+- Same for a trend. One month is not a trend. Read the twelve months and say
+  what the shape is.
+- Same for a job or a project. A job runs across months. Pull everything on
+  that job for the year, both sides, cost and revenue, before deciding which
+  month anything belongs in.
+- Before I write "has not been invoiced", "no bill", "nothing posted" or
+  "there is no cost", I have searched the full year and I say which period I
+  searched.
+
+This has already gone wrong. I told her CSIRO had not been invoiced and that
+the two WIP lines should come out, because I searched October. INV-10648 went
+out on 25 September. The revenue was sitting in the month before the one I
+looked at, and the advice that followed was wrong.
+
 ## Honesty
 
 She is relying on this for payroll and statutory reporting. Say plainly when
