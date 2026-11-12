@@ -1,0 +1,144 @@
+{
+ "source": "2025-09_Graph.xlsx, sheet PL, rows 84 to 118, the Q1 FY26 column of each pair",
+ "period": "Q1 FY26, July to September 2025",
+ "lines": {
+  "Sales Revenue": {
+   "Managed Services": 683960.45,
+   "Events": 400107.67,
+   "Video": 47776.75,
+   "Integration": 76128.81,
+   "Consulting": 20608.5,
+   "CTS": 1228582.18
+  },
+  "Labour": {
+   "Managed Services": 390735.05000000005,
+   "Events": 89152.21999999999,
+   "Video": 9614.099999999999,
+   "Integration": 1921.71,
+   "Consulting": 8878.74,
+   "CTS": 500301.82
+  },
+  "Equipment & Misc": {
+   "Managed Services": 2722.3099999999995,
+   "Events": 91049.62999999998,
+   "Video": 0,
+   "Integration": 53495.340000000026,
+   "Consulting": 3880.6,
+   "CTS": 151147.88
+  },
+  "Transport": {
+   "Managed Services": 0,
+   "Events": 14977.77,
+   "Video": 162.15,
+   "Integration": 114.59,
+   "Consulting": 1061.3,
+   "CTS": 16315.81
+  },
+  "Gross Profit": {
+   "Managed Services": 290503.0899999999,
+   "Events": 204928.05000000002,
+   "Video": 38000.5,
+   "Integration": 20597.169999999976,
+   "Consulting": 6787.860000000001,
+   "CTS": 560816.6699999999
+  },
+  "Advertising & Promotion Exp": {
+   "Managed Services": 4351.8354,
+   "Events": 3428.7188,
+   "Video": 1054.9904,
+   "Integration": 659.369,
+   "Consulting": 3692.4664000000002,
+   "CTS": 13187.380000000001
+  },
+  "Business Insurances": {
+   "Managed Services": 7457.5678,
+   "Events": 7395.3516,
+   "Video": 1756.3728,
+   "Integration": 2044.163,
+   "Consulting": 6147.304800000001,
+   "CTS": 24800.760000000002
+  },
+  "Employment Expenses": {
+   "Managed Services": 174131.5839663944,
+   "Events": 162548.98827464788,
+   "Video": 22925.961093774655,
+   "Integration": 5549.588332591551,
+   "Consulting": 30018.318332591552,
+   "CTS": 395174.44000000006
+  },
+  "Office Staff": {
+   "Managed Services": null,
+   "Events": null,
+   "Video": null,
+   "Integration": null,
+   "Consulting": null,
+   "CTS": 156622.38
+  },
+  "Departmental Staff": {
+   "Managed Services": 68397.71000000002,
+   "Events": 122698.68000000002,
+   "Video": 16301.420000000002,
+   "Integration": 3342.76,
+   "Consulting": 27811.490000000005,
+   "CTS": 238552.06000000006
+  },
+  "General & Administrative Exp": {
+   "Managed Services": 22571.224292084506,
+   "Events": 28619.466080281687,
+   "Video": 20028.416129380283,
+   "Integration": 2898.75319912676,
+   "Consulting": 14898.71029912676,
+   "CTS": 89016.57
+  },
+  "Operating Expenses": {
+   "Managed Services": 27885.00727669014,
+   "Events": 80896.94835563381,
+   "Video": 10986.640532605634,
+   "Integration": 2071.1714175352113,
+   "Consulting": 2202.102417535211,
+   "CTS": 124041.87000000001
+  },
+  "Total OpEx": {
+   "Managed Services": 236397.21873516904,
+   "Events": 282889.47311056335,
+   "Video": 56752.38095576057,
+   "Integration": 13223.044949253524,
+   "Consulting": 56958.90224925353,
+   "CTS": 646221.02
+  },
+  "Profit/Loss": {
+   "Managed Services": 54105.87126483087,
+   "Events": -77961.42311056334,
+   "Video": -18751.88095576057,
+   "Integration": 7374.125050746452,
+   "Consulting": -50171.04224925353,
+   "CTS": -85404.3500000001
+  }
+ },
+ "gpm": {
+  "Managed Services": 0.3247342445020029,
+  "Events": 0.20551810466417703,
+  "Video": 0.45417656077485385,
+  "Integration": 0.22664757271261662,
+  "Consulting": -1.0201436300555597,
+  "CTS": 0.2623061080049199
+ },
+ "combined": {
+  "Support": 54105.87126483087,
+  "Production": -96713.30406632391,
+  "Consulting": -42796.91719850708,
+  "CTS": -85404.3500000001
+ },
+ "employees": {
+  "Support": 20.64,
+  "Production": 8.7,
+  "Consulting": 1.44,
+  "CTS": 29.34
+ },
+ "per_employee": {
+  "Support": 2621.4084915131234,
+  "Production": -11116.47173176137,
+  "Consulting": -29720.08138785214,
+  "CTS": -2910.8503749147953
+ }
+}
