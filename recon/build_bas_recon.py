@@ -70,8 +70,8 @@ put(2, 1, 'Three quarters, January 2026 to September 2026. '
           'Corporate Technology Services Pty Ltd.', SUB)
 
 put(4, 1, 'Where the figures came from', SECT)
-put(5, 1, 'BAS G1 is read off the lodged activity statements attached at the bottom '
-          'of this sheet. Both say GST accounting method Cash and G1 includes GST Yes. '
+put(5, 1, 'BAS G1 is read off the two lodged activity statements supplied as PDFs '
+          'alongside this workbook. Both say GST accounting method Cash and G1 includes GST Yes. '
           'Typed once, it does not recalculate.', NOTE)
 put(5, 2, '', NOTE)
 put(6, 1, 'Xero is typed from the Xero profit and loss, pulled 17 November 2026. '
@@ -190,11 +190,15 @@ for i, line in enumerate(findings):
 # ------------------------------------------------------------- attachments
 k0 = f0 + 7
 put(k0, 1, 'Lodged activity statements', SECT)
-put(k0 + 1, 1, 'Double click an icon to open the statement. '
-               'The April to June 2026 statement has not been supplied.', NOTE)
+put(k0 + 1, 1, 'The lodged statements are supplied as two PDFs alongside this '
+               'workbook: Jan - Mar 2026 BAS Lodged.pdf and BAS Jul-Sept 2026 '
+               'Lodged.pdf. To hold them inside this file, click the cell below, '
+               'then Insert, Object, Create from File, Browse, tick Display as '
+               'icon. The April to June 2026 statement has not been supplied.', NOTE)
 ws.merge_cells(start_row=k0 + 1, start_column=1, end_row=k0 + 1, end_column=8)
 ws.cell(k0 + 1, 1).alignment = Alignment(horizontal='left', vertical='top',
                                          wrap_text=True)
+ws.row_dimensions[k0 + 1].height = 46
 for rr in range(k0 + 2, k0 + 11):
     ws.row_dimensions[rr].height = 15
 ATTACH_ROW = k0 + 2
