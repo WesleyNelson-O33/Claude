@@ -366,9 +366,14 @@ for top, q, qname in SUMMARY:
     lodged_1a = 'SUMIFS({S}!$E${a}:$E${b},{S}!$C${a}:$C${b},"BAS*"{D})'.format(
         S=GSS, a=GST_FIRST, b=GST_LAST, D=gr)
 
-    ledger = ['=(%s)-(%s)' % (inc_net, inc_gst), '=%s' % free_net,
-              '=-(%s)' % inc_gst, '=%s' % interest]
-    lodged = [LODGED_G1[q], '=%s' % free_net, '=%s' % lodged_1a, None]
+    # The summary reads the quarter calc rows below it on THIS tab.
+    # t is set further down; the rows are t+3 (GST collected, excluding the BAS
+    # journal) and t+5 (the BAS journal clearing GST collected).
+    t = top + 5
+    collected = 'F%d' % (t + 3)
+    lodged_1a_ref = 'E%d' % (t + 5)
+    ledger = ['=%s*11' % collected, 0, '=%s' % collected, '=%s' % interest]
+    lodged = [LODGED_G1[q], 0, '=%s' % lodged_1a_ref, None]
 
     h = calc.cell(top - 3, 4)
     h.value = qname
@@ -401,6 +406,17 @@ for top, q, qname in SUMMARY:
             diff.font = Font(name='Calibri', sz=11, b=True, color=NAVY)
 
     n = calc.cell(top + 4, 4)
+    g2 = calc.cell(top + 1, 5)
+    g2.font = INPUT
+    g2b = calc.cell(top + 1, 6)
+    g2b.font = INPUT
+    n2 = calc.cell(top + 5, 4)
+    n2.value = ('G2 is nil. GST free sales never post to the GST account, so '
+                'this tab cannot prove it. The proof is on the BAS Calc tab, '
+                'where no ledger line carries a GST free rate. Interest '
+                'received carries no GST so it is not on this tab either and '
+                'is read from the GL raw tab.')
+    n2.font = NOTE
     n.value = ('Why they differ: the BAS was lodged on a CASH basis and the '
                'ledger is accrual, so the ledger counts sales invoiced and the '
                'lodged figure counts sales banked. The difference is the GST on '
@@ -412,7 +428,6 @@ for top, q, qname in SUMMARY:
 
     # the GST account calc for this quarter, from the rows above on this tab
     first, last, anc = BLOCKS[q]
-    t = top + 5
     th = calc.cell(t, 4)
     th.value = ('How the GST account moved this quarter, from rows %d to %d above'
                 % (first, last))
