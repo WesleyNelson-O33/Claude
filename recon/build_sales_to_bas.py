@@ -190,5 +190,25 @@ ws.page_setup.fitToWidth = 1
 ws.page_setup.fitToHeight = 1
 ws.sheet_properties.pageSetUpPr.fitToPage = True
 
+# --------------------------------------------------- trim the BAS to Xero tab
+# The "Other income, excluded from G1" block was a working check from when the
+# lodgement basis was still being proved. The hypothetical "variance if other
+# income were included" column answers a question nobody asked, so it goes.
+bx = wb['BAS to Xero']
+for rr in range(21, 27):
+    for cc in range(1, 9):
+        c = bx.cell(rr, cc)
+        c.value = None
+        c.fill = PatternFill(fill_type=None)
+        c.border = Border()
+bx.merge_cells(start_row=21, start_column=1, end_row=21, end_column=8)
+n = bx.cell(21, 1)
+n.value = ('Interest received is a financial supply and is not declared at G1. '
+           'It is excluded from every figure above. The amounts are on the BAS '
+           'Calc tab.')
+n.font = NOTE
+n.alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
+bx.row_dimensions[21].height = 16
+
 wb.save(OUT)
 print('wrote', OUT, '| TAX row', TAX, '| bridge at', B)
