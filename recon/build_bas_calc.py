@@ -68,7 +68,7 @@ def band(r, labels):
         c = put(r, 1 + i, lab, HEAD, fill=BAND)
         c.alignment = Alignment(horizontal='left' if i == 0 else 'right',
                                 vertical='center', wrap_text=True)
-    ws.row_dimensions[r].height = 30
+    ws.row_dimensions[r].height = 42
 
 
 def note(r, text):
@@ -305,9 +305,9 @@ for i, w in enumerate(warnings):
     put(rr, 1, w, BODY, wrap=True)
     ws.row_dimensions[rr].height = 46
 
-ws.column_dimensions['A'].width = 48
+ws.column_dimensions['A'].width = 44
 for c in range(2, 6):
-    ws.column_dimensions[gl(c)].width = 19
+    ws.column_dimensions[gl(c)].width = 17
 
 # ------------------------------------------- repair her CALC tab, fill summary
 # Her tab holds three quarterly blocks with a heading row above each later one.
@@ -344,7 +344,7 @@ QD = {0: ((2026, 1, 1), (2026, 3, 31)),
 LABELS = ['G1 - Total sales  ', 'G2 - International Sales ', '1A - GST',
           'Interest received']
 SUMMARY = [(548, 0, 'Jan - Mar 2026'),
-           (1168, 1, 'Apr - Jun 2026'),
+           (1166, 1, 'Apr - Jun 2026'),
            (1926, 2, 'Jul - Sep 2026')]
 LODGED_G1 = {0: 1324425.00, 1: 1678257.00, 2: 1909366.00}
 
@@ -401,6 +401,58 @@ for top, q, qname in SUMMARY:
                'As lodged reads the BAS journals on the GST raw tab. '
                'Only G1 as lodged is typed, off the activity statement.')
     n.font = NOTE
+
+    # the GST account calc for this quarter, from the rows above on this tab
+    first, last, anc = BLOCKS[q]
+    t = top + 5
+    th = calc.cell(t, 4)
+    th.value = ('How the GST account moved this quarter, from rows %d to %d above'
+                % (first, last))
+    th.font = Font(name='Calibri', sz=11, b=True, color=TEAL)
+    for c, txt in ((5, 'Debit'), (6, 'Credit'), (8, 'Gross')):
+        hc = calc.cell(t + 1, c)
+        hc.value = txt
+        hc.font = Font(name='Calibri', sz=11, b=True, color=NAVY)
+        hc.alignment = Alignment(horizontal='right')
+
+    rng = '$%s$%d:$%s$%d'
+    desc = '$C$%d:$C$%d' % (first, last)
+    lines = [
+        ('Total of the rows above', [
+            (5, '=SUM($E$%d:$E$%d)' % (first, last)),
+            (6, '=SUM($F$%d:$F$%d)' % (first, last)),
+            (8, '=SUM($H$%d:$H$%d)' % (first, last))]),
+        ('GST collected on sales, excluding the BAS journal', [
+            (6, '=SUMIFS($F$%d:$F$%d,%s,"<>BAS*")' % (first, last, desc))]),
+        ('GST paid on purchases, excluding the BAS journal', [
+            (5, '=SUMIFS($E$%d:$E$%d,%s,"<>BAS*")' % (first, last, desc))]),
+        ('BAS journal, GST collected cleared out', [
+            (5, '=SUMIFS($E$%d:$E$%d,%s,"BAS*")' % (first, last, desc))]),
+        ('BAS journal, GST paid cleared out', [
+            (6, '=SUMIFS($F$%d:$F$%d,%s,"BAS*")' % (first, last, desc))]),
+        ('Movement in the quarter, credits less debits', [
+            (6, '=$F$%d-$E$%d' % (t + 2, t + 2))]),
+        ('Movement per the Xero running balance, column G', [
+            (6, '=G%d-G%d' % (last, anc))]),
+        ('Difference', [
+            (6, '=$F$%d-$F$%d' % (t + 7, t + 8))]),
+    ]
+    for i, (lab, cells) in enumerate(lines):
+        rr = t + 2 + i
+        strong = lab in ('Total of the rows above', 'Difference')
+        lc = calc.cell(rr, 4)
+        lc.value = lab
+        lc.font = Font(name='Calibri', sz=11, b=strong, color=NAVY)
+        for cc, fml in cells:
+            vc = calc.cell(rr, cc)
+            vc.value = fml
+            vc.number_format = MONEY
+            vc.font = Font(name='Calibri', sz=11, b=strong, color=NAVY)
+    nn = calc.cell(t + 11, 4)
+    nn.value = ('Every figure here is a SUM or SUMIFS over the quarter rows on '
+                'this tab. The difference line proves the block agrees with the '
+                'Xero running balance.')
+    nn.font = NOTE
 
 wb.save(OUT)
 print('wrote', OUT)
