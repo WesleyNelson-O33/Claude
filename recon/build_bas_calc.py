@@ -490,7 +490,8 @@ GH = "%s!$H$%d:$H$%d" % (GLS, G6, G7)
 GI = "%s!$I$%d:$I$%d" % (GLS, G6, G7)
 
 HEADERS = [(10, 'Supplier name\nfrom the GL'), (11, 'Invoice number\nfrom the GL'),
-           (12, 'Total sales amount\nexcluding GST'), (13, 'GST'), (14, 'Total\nincluding GST')]
+           (12, 'Amount for this line\nexcluding GST'), (13, 'GST\non this line'),
+           (14, 'Total for this line\nincluding GST')]
 for hr in (2, 565, 1183):
     for cc, txt in HEADERS:
         hc = calc.cell(hr, cc)
@@ -503,15 +504,16 @@ for hr in (2, 565, 1183):
 
 for first, last, anc in BLOCKS:
     for rr in range(first, last + 1):
-        crit = ',%s,$D%d,%s,$A%d,%s,10' % (GD, rr, GA, rr, GI)
         calc.cell(rr, 10).value = (
             '=IFERROR(SUBSTITUTE(INDEX(%s,MATCH($D%d,%s,0)),"Payment: ",""),"")'
             % (GC, rr, GD))
         calc.cell(rr, 11).value = (
             '=IFERROR(LEFT($D%d,FIND(" - ",$D%d)-1),$D%d)' % (rr, rr, rr))
-        calc.cell(rr, 12).value = (
-            '=SUMIFS(%s%s)-SUMIFS(%s%s)' % (GF, crit, GE, crit))
-        calc.cell(rr, 13).value = '=-SUMIFS(%s%s)' % (GH, crit)
+        # Line level, off this row. The GST on the row is the credit less the
+        # debit, and every line in this account is at 10 per cent, so the
+        # amount it was charged on is ten times it.
+        calc.cell(rr, 12).value = '=($F%d-$E%d)*10' % (rr, rr)
+        calc.cell(rr, 13).value = '=$F%d-$E%d' % (rr, rr)
         calc.cell(rr, 14).value = '=L%d+M%d' % (rr, rr)
         for cc in (12, 13, 14):
             calc.cell(rr, cc).number_format = MONEY
