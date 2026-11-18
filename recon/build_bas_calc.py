@@ -373,7 +373,7 @@ for top, q, qname in SUMMARY:
     h = calc.cell(top - 3, 4)
     h.value = qname
     h.font = Font(name='Calibri', sz=11, b=True, color=TEAL)
-    for c, txt in ((5, 'Per the ledger'), (6, 'As lodged')):
+    for c, txt in ((5, 'Per the ledger'), (6, 'As lodged'), (8, 'Difference')):
         hc = calc.cell(top - 2, c)
         hc.value = txt
         hc.font = Font(name='Calibri', sz=11, b=True, color=NAVY)
@@ -395,11 +395,19 @@ for top, q, qname in SUMMARY:
             b.number_format = MONEY
             b.font = (INPUT if isinstance(lodged[i], float)
                       else Font(name='Calibri', sz=11, color=NAVY))
+            diff = calc.cell(rr, 8)
+            diff.value = '=E%d-F%d' % (rr, rr)
+            diff.number_format = MONEY
+            diff.font = Font(name='Calibri', sz=11, b=True, color=NAVY)
 
     n = calc.cell(top + 4, 4)
-    n.value = ('Per the ledger reads the GL raw tab by GST Rate Name and date. '
-               'As lodged reads the BAS journals on the GST raw tab. '
-               'Only G1 as lodged is typed, off the activity statement.')
+    n.value = ('Why they differ: the BAS was lodged on a CASH basis and the '
+               'ledger is accrual, so the ledger counts sales invoiced and the '
+               'lodged figure counts sales banked. The difference is the GST on '
+               'debtors that moved across the quarter end. It is not an error. '
+               'Per the ledger reads the GL raw tab by GST Rate Name and date, '
+               'as lodged reads the BAS journals on the GST raw tab, and only '
+               'G1 as lodged is typed, off the activity statement.')
     n.font = NOTE
 
     # the GST account calc for this quarter, from the rows above on this tab
@@ -453,6 +461,54 @@ for top, q, qname in SUMMARY:
                 'this tab. The difference line proves the block agrees with the '
                 'Xero running balance.')
     nn.font = NOTE
+
+# ------------------------------------------- columns J to N on the CALC tab
+# Pulled from the GL raw tab on Reference plus Date. The GL export carries no
+# invoice number column, so K takes the leading token of the reference.
+G6, G7 = 6, 22766
+GC = "%s!$C$%d:$C$%d" % (GLS, G6, G7)
+GD = "%s!$D$%d:$D$%d" % (GLS, G6, G7)
+GA = "%s!$A$%d:$A$%d" % (GLS, G6, G7)
+GE = "%s!$E$%d:$E$%d" % (GLS, G6, G7)
+GF = "%s!$F$%d:$F$%d" % (GLS, G6, G7)
+GH = "%s!$H$%d:$H$%d" % (GLS, G6, G7)
+GI = "%s!$I$%d:$I$%d" % (GLS, G6, G7)
+
+HEADERS = [(10, 'Supplier name\nfrom the GL'), (11, 'Invoice number\nfrom the GL'),
+           (12, 'Total sales amount\nexcluding GST'), (13, 'GST'), (14, 'Total\nincluding GST')]
+for hr in (2, 565, 1183):
+    for cc, txt in HEADERS:
+        hc = calc.cell(hr, cc)
+        hc.value = txt
+        hc.font = Font(name='Calibri', sz=11, b=True, color=WHITE)
+        hc.fill = BAND
+        hc.alignment = Alignment(horizontal='right', vertical='center',
+                                 wrap_text=True)
+    calc.row_dimensions[hr].height = 42
+
+for first, last, anc in BLOCKS:
+    for rr in range(first, last + 1):
+        crit = ',%s,$D%d,%s,$A%d,%s,10' % (GD, rr, GA, rr, GI)
+        calc.cell(rr, 10).value = (
+            '=IFERROR(SUBSTITUTE(INDEX(%s,MATCH($D%d,%s,0)),"Payment: ",""),"")'
+            % (GC, rr, GD))
+        calc.cell(rr, 11).value = (
+            '=IFERROR(LEFT($D%d,FIND(" - ",$D%d)-1),$D%d)' % (rr, rr, rr))
+        calc.cell(rr, 12).value = (
+            '=SUMIFS(%s%s)-SUMIFS(%s%s)' % (GF, crit, GE, crit))
+        calc.cell(rr, 13).value = '=-SUMIFS(%s%s)' % (GH, crit)
+        calc.cell(rr, 14).value = '=L%d+M%d' % (rr, rr)
+        for cc in (12, 13, 14):
+            calc.cell(rr, cc).number_format = MONEY
+        for cc in range(10, 15):
+            cell = calc.cell(rr, cc)
+            cell.font = Font(name='Calibri', sz=11, color=NAVY)
+            cell.alignment = Alignment(horizontal='left' if cc < 12 else 'right',
+                                       vertical='center', wrap_text=False)
+
+calc.column_dimensions['F'].width = 16
+for cc, w in ((10, 36), (11, 22), (12, 19), (13, 14), (14, 17)):
+    calc.column_dimensions[gl(cc)].width = w
 
 wb.save(OUT)
 print('wrote', OUT)
