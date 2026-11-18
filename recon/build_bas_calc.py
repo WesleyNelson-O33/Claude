@@ -318,28 +318,88 @@ for first, last, anchor in BLOCKS:
         prev = anchor if rr == first else rr - 1
         calc.cell(rr, 7).value = '=(G%d+F%d)-E%d' % (prev, rr, rr)
 
+# Each summary cell reads the raw tabs directly. No hop through another tab.
+GI = '"GST on Income"'
+GF = '"GST Free Income"'
+
+
+def drange(col, q):
+    s, e = QD[q]
+    return (',{G}!$A:$A,">="&DATE({sy},{sm},{sd}),{G}!$A:$A,"<="&DATE({ey},{em},{ed})'
+            .format(G=GLS, sy=s[0], sm=s[1], sd=s[2], ey=e[0], em=e[1], ed=e[2]))
+
+
+def grange(q):
+    s, e = QD[q]
+    return (',{S}!$A${a}:$A${b},">="&DATE({sy},{sm},{sd}),'
+            '{S}!$A${a}:$A${b},"<="&DATE({ey},{em},{ed})'
+            .format(S=GSS, a=GST_FIRST, b=GST_LAST, sy=s[0], sm=s[1], sd=s[2],
+                    ey=e[0], em=e[1], ed=e[2]))
+
+
+QD = {0: ((2026, 1, 1), (2026, 3, 31)),
+      1: ((2026, 4, 1), (2026, 6, 30)),
+      2: ((2026, 7, 1), (2026, 9, 30))}
+
 LABELS = ['G1 - Total sales  ', 'G2 - International Sales ', '1A - GST',
           'Interest received']
-SRC = [LOD, LOD + 1, LOD + 2, INT]
-SUMMARY = [(548, 'B', 'Jan - Mar 2026'),
-           (1168, 'C', 'Apr - Jun 2026'),
-           (1926, 'D', 'Jul - Sep 2026')]
-for top, col, qname in SUMMARY:
+SUMMARY = [(548, 0, 'Jan - Mar 2026'),
+           (1168, 1, 'Apr - Jun 2026'),
+           (1926, 2, 'Jul - Sep 2026')]
+LODGED_G1 = {0: 1324425.00, 1: 1678257.00, 2: 1909366.00}
+
+for top, q, qname in SUMMARY:
+    dr = drange('x', q)
+    gr = grange(q)
+    inc_net = ('SUMIFS({G}!$F:$F,{G}!$J:$J,{R}{D})-SUMIFS({G}!$E:$E,{G}!$J:$J,{R}{D})'
+               .format(G=GLS, R=GI, D=dr))
+    inc_gst = 'SUMIFS({G}!$H:$H,{G}!$J:$J,{R}{D})'.format(G=GLS, R=GI, D=dr)
+    free_net = ('SUMIFS({G}!$F:$F,{G}!$J:$J,{R}{D})-SUMIFS({G}!$E:$E,{G}!$J:$J,{R}{D})'
+                .format(G=GLS, R=GF, D=dr))
+    interest = ('SUMIFS({G}!$F${a}:$F${b},{G}!$A${a}:$A${b},">="&DATE({sy},{sm},{sd}),'
+                '{G}!$A${a}:$A${b},"<="&DATE({ey},{em},{ed}))'
+                '-SUMIFS({G}!$E${a}:$E${b},{G}!$A${a}:$A${b},">="&DATE({sy},{sm},{sd}),'
+                '{G}!$A${a}:$A${b},"<="&DATE({ey},{em},{ed}))'
+                .format(G=GLS, a=INT_FIRST, b=INT_LAST,
+                        sy=QD[q][0][0], sm=QD[q][0][1], sd=QD[q][0][2],
+                        ey=QD[q][1][0], em=QD[q][1][1], ed=QD[q][1][2]))
+    lodged_1a = 'SUMIFS({S}!$E${a}:$E${b},{S}!$C${a}:$C${b},"BAS*"{D})'.format(
+        S=GSS, a=GST_FIRST, b=GST_LAST, D=gr)
+
+    ledger = ['=(%s)-(%s)' % (inc_net, inc_gst), '=%s' % free_net,
+              '=-(%s)' % inc_gst, '=%s' % interest]
+    lodged = [LODGED_G1[q], '=%s' % free_net, '=%s' % lodged_1a, None]
+
+    h = calc.cell(top - 3, 4)
+    h.value = qname
+    h.font = Font(name='Calibri', sz=11, b=True, color=TEAL)
+    for c, txt in ((5, 'Per the ledger'), (6, 'As lodged')):
+        hc = calc.cell(top - 2, c)
+        hc.value = txt
+        hc.font = Font(name='Calibri', sz=11, b=True, color=NAVY)
+        hc.alignment = Alignment(horizontal='right')
+
     for i, lab in enumerate(LABELS):
         rr = top + i
         lc = calc.cell(rr, 4)
         if lc.value in (None, ''):
             lc.value = lab
             lc.font = Font(name='Calibri', sz=11, color=NAVY)
-        v = calc.cell(rr, 5)
-        v.value = "='BAS Calc'!%s%d" % (col, SRC[i])
-        v.number_format = MONEY
-        v.font = Font(name='Calibri', sz=11, b=True, color=NAVY)
-    h = calc.cell(top - 2, 4)
-    h.value = qname
-    h.font = Font(name='Calibri', sz=11, b=True, color=TEAL)
+        a = calc.cell(rr, 5)
+        a.value = ledger[i]
+        a.number_format = MONEY
+        a.font = Font(name='Calibri', sz=11, b=True, color=NAVY)
+        if lodged[i] is not None:
+            b = calc.cell(rr, 6)
+            b.value = lodged[i]
+            b.number_format = MONEY
+            b.font = (INPUT if isinstance(lodged[i], float)
+                      else Font(name='Calibri', sz=11, color=NAVY))
+
     n = calc.cell(top + 4, 4)
-    n.value = 'Every figure above is a formula off the BAS Calc tab.'
+    n.value = ('Per the ledger reads the GL raw tab by GST Rate Name and date. '
+               'As lodged reads the BAS journals on the GST raw tab. '
+               'Only G1 as lodged is typed, off the activity statement.')
     n.font = NOTE
 
 wb.save(OUT)
