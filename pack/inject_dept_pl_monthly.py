@@ -75,7 +75,7 @@ for mr in re.finditer(r'<row r="(\d+)"[^>]*>(.*?)</row>', q1, re.S):
             F[(rn, mc.group(1))] = '=' + fm.group(1).replace('&amp;', '&') \
                 .replace('&lt;', '<').replace('&gt;', '>')
 
-cells, merges, rows_xml = [], [], []
+rows_by_num = {}
 
 
 def cell(ref, s, value=None, formula=None):
@@ -88,9 +88,10 @@ def cell(ref, s, value=None, formula=None):
 
 
 def row(n, items, ht=15, level=0):
+    # Excel requires rows in ascending order, so collect and sort at the end.
     lv = ' outlineLevel="%d"' % level if level else ''
-    rows_xml.append('<row r="%d" ht="%s" customHeight="1"%s>%s</row>'
-                    % (n, ht, lv, ''.join(items)))
+    rows_by_num[n] = ('<row r="%d" ht="%s" customHeight="1"%s>%s</row>'
+                      % (n, ht, lv, ''.join(items)))
 
 
 row(1, [cell('B1', S_TITLE, 'Dept P&L Monthly')], 21)
@@ -211,7 +212,7 @@ sheet_xml = (
     '<col min="3" max="6" width="14" customWidth="1"/>'
     '<col min="7" max="7" width="2" customWidth="1"/>'
     '<col min="8" max="8" width="14" customWidth="1"/></cols>'
-    '<sheetData>' + ''.join(rows_xml) + '</sheetData>'
+    '<sheetData>' + ''.join(rows_by_num[k] for k in sorted(rows_by_num)) + '</sheetData>'
     '<pageMargins left="0.5" right="0.5" top="0.6" bottom="0.6" header="0.3" footer="0.3"/>'
     '</worksheet>')
 
