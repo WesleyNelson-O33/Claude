@@ -16,6 +16,7 @@ import openpyxl
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                 '..', '..', 'tools'))
 import databar_match
+from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.properties import PageSetupProperties
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -28,6 +29,33 @@ SOFFICE = '/root/.claude/skills/synced/e9aa5ee9-a99d-40c9-9bb1-cc5bc5010cf8_723c
 #        cells to set first)
 # Hidden columns let a snip sit a table next to a chart without the working
 # columns that happen to live between them.
+def month_cols():
+    """Columns to hide on P&L by Dept so the snip shows the reporting month,
+    the two months before it, and the year to date."""
+    wb = openpyxl.load_workbook(PACK, data_only=True)
+    month = wb['Summary']['B3'].value
+    if month is None:
+        raise SystemExit('Summary!B3 is empty, so there is no reporting month')
+    head = wb['P&L by Dept']
+    col = None
+    for c in range(2, 14):                       # B to M, July to June
+        v = head.cell(6, c).value
+        if hasattr(v, 'year') and (v.year, v.month) == (month.year, month.month):
+            col = c
+    if col is None:
+        raise SystemExit('P&L by Dept row 6 has no column for %s'
+                         % month.strftime('%b %Y'))
+    keep = {col - 2, col - 1, col, 15}           # 15 is column O, the YTD
+    hide = ''.join(chr(64 + c) for c in range(2, 15) if c not in keep)
+    # The pack keeps the forecast months hidden, and the reporting month is
+    # one of them once the year moves on, so the three months are shown again
+    # by name rather than left to whatever the pack had hidden.
+    show = ''.join(chr(64 + c) for c in sorted(keep))
+    return hide, show
+
+
+PL_HIDE, PL_SHOW = month_cols()
+
 SNIPS = {
     'pl_income':   ('Summary',        'A5:I58',     True),
     'pl_result':   ('Summary',        'A59:I181',   True),
@@ -115,9 +143,9 @@ SNIPS = {
 
     # Each reporting group's own profit and loss, the three months beside the
     # quarter. Column O is the year to date, which at September is Q1.
-    'pl_prd':           ('P&L by Dept', 'A6:O79',    True, 'EFGHIJKLMN'),
-    'pl_cons':          ('P&L by Dept', 'A83:O156',  True, 'EFGHIJKLMN'),
-    'pl_sup':           ('P&L by Dept', 'A160:O206', True, 'EFGHIJKLMN'),
+    'pl_prd':           ('P&L by Dept', 'A6:O79',    True, PL_HIDE, None, PL_SHOW),
+    'pl_cons':          ('P&L by Dept', 'A83:O156',  True, PL_HIDE, None, PL_SHOW),
+    'pl_sup':           ('P&L by Dept', 'A160:O206', True, PL_HIDE, None, PL_SHOW),
     'util_chart':  ('Utilisation',    'F65:AA90',    False),
     # The same hours picture rolled up to the three departments.
     'util_three':  ('Utilisation',    'F92:AA117',   False),
@@ -133,6 +161,32 @@ SUBDEPTS = {'events', 'video', 'integration', 'consulting'}
 # Where a snip starts below the sheet's own header row, the header is printed
 # again at the top of the snip so the columns can be read.
 TITLE_ROWS = {'pl_result': '5:5', 'util_pct_b': '8:8', 'q1_summary': '5:5'}
+
+
+
+def split_columns(ws, first=2, last=15):
+    """Give every column in the range its own width and hidden setting.
+
+    The pack stores columns in groups: on P&L by Dept one entry covers B to D
+    and another covers E to N. Hiding "B" therefore hides B, C and D together,
+    which is how a snip meant to show three months came out showing none. This
+    splits the groups into single columns first, keeping what each one inherits,
+    so hiding one column hides one column.
+    """
+    from openpyxl.worksheet.dimensions import ColumnDimension
+    was = {}
+    for d in list(ws.column_dimensions.values()):
+        for i in range(d.min or 0, (d.max or 0) + 1):
+            if first <= i <= last:
+                was[i] = (bool(d.hidden), d.width)
+    for i in range(first, last + 1):
+        hidden, width = was.get(i, (False, None))
+        letter = get_column_letter(i)
+        one = ColumnDimension(ws, index=letter, min=i, max=i)
+        one.hidden = hidden
+        if width:
+            one.width = width
+        ws.column_dimensions[letter] = one
 
 
 def collapse(ws):
@@ -156,6 +210,8 @@ def build(snip_id, sheet, rng, do_collapse, hide_cols='', set_cells=None,
     ws = wb[sheet]
     if do_collapse:
         collapse(ws)
+    if hide_cols or show_cols:
+        split_columns(ws)
     for col in hide_cols:
         ws.column_dimensions[col].hidden = True
     # Some tabs keep forecast columns hidden. A snip that needs them says so.
