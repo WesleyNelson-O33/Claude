@@ -23,13 +23,19 @@ appears in them, so the coding carries over rather than being invented. A job
 that is new this month has its cost centre read off the tag at the end of its
 name, and every one of those is listed at the end so it can be checked.
 
+The state on each row is the one the split file carries. Where the Employment
+Hero payroll tax report puts an employee in a different state, the report wins,
+because it groups by residential address and that is the basis the return is
+lodged on. Those employees are named in MOVED below, with the month they
+apply to, so the override is on the page rather than hidden in the data.
+
     ptax/build_journals.py <split file> <prior NSW journal> <prior other
         states journal> <month name> <journal date> <NSW tax> <out dir>
 
 Example:
 
     ptax/build_journals.py split.xlsx ptax/2026-10_..._NSW_....csv \\
-        ptax/2026-10_..._ACCRUAL.csv November 30/11/2026 6798.41 ptax
+        ptax/2026-10_..._ACCRUAL.csv November 30/11/2026 6768.53 ptax
 """
 import csv
 import os
@@ -45,6 +51,15 @@ LIABILITY, EXPENSE = '21440', '65106'
 # from August 2026 and the tab carries the note saying so.
 POTS = {'QLD': 500.0, 'SA': 200.0, 'VIC': 1300.0, 'WA': 700.0, 'ACT': 0.0}
 
+# month -> employee -> the state the Employment Hero payroll tax report puts
+# them in. The split file's State column disagrees for these people.
+MOVED = {
+    # November 2026: the split file has Nicol Schildknecht in New South Wales
+    # and the report has them in Victoria, 462.05 of wages and 55.45 of super.
+    # Both their November jobs are Melbourne work.
+    'November': {'Nicol Schildknecht': 'VIC'},
+}
+
 HDR = ['*Narration', '*Date', 'Description', '*AccountCode', '*TaxRate',
        '*Amount', 'TrackingName1', 'TrackingOption1', 'TrackingName2',
        'TrackingOption2']
@@ -54,18 +69,30 @@ TAGS = {'ONS': 'Onsite', 'PRD': 'Production', 'VID': 'Video',
 
 
 def units_by_month(path):
-    """Units per state per job, from the split file."""
+    """Units per state per job, from the split file, with the employees the
+    payroll tax report puts in another state moved to that state."""
     wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
     it = wb['EH data (2)'].iter_rows(values_only=True)
     next(it)                      # the totals strip above the header
     next(it)                      # the header
     out = defaultdict(lambda: defaultdict(float))
+    moved = defaultdict(float)
     for r in it:
         if all(v is None for v in r) or r[10] is None:
             continue
+        month = str(r[0]).strip()
+        state = str(r[21]).strip()
+        who = str(r[6]).strip()
+        to = MOVED.get(month, {}).get(who)
+        if to and to != state:
+            moved[(month, who, state, to)] += float(r[10])
+            state = to
         job = f'{r[13]} - {r[14]}' if r[13] is not None else str(r[14])
-        out[str(r[0]).strip()][(str(r[21]).strip(), job)] += float(r[10])
+        out[month][(state, job)] += float(r[10])
     wb.close()
+    for (month, who, frm, to), units in sorted(moved.items()):
+        print(f'  {who} moved from {frm} to {to} for {month}, '
+              f'{units:,.2f} units, per the payroll tax report')
     return out
 
 

@@ -8,9 +8,17 @@ Every figure the portal works out for itself stays a formula, so the four
 lines at the bottom can be read straight off the page and checked against the
 screen before submitting.
 
-The figures come from the Main & NSW tab of the November payroll tax workbook,
-which is built from the Employment Hero split file. The comparative column is
-October as it was lodged.
+The figures come from the Employment Hero payroll tax report for 1 to 30
+November 2026, grouped by residential address, with the exempt per diems taken
+out. That is the basis Danica asked for. The Main & NSW tab of the workbook is
+built from the split file instead and gives 6,798.41, and the two differences
+are set out at the bottom of the page.
+
+Salary sacrifice super and pre-tax deductions are liable, so the report shows
+them as negatives in the wages block and adds them back in its grand total.
+They go on the salaries and wages line here, which is where October put them.
+
+The comparative column is October as it was lodged.
 
     ptax/build_nov_return.py <October return.xlsx>
 """
@@ -20,12 +28,18 @@ import openpyxl
 
 OUT = 'ptax/CTS payroll tax return - November 2026.xlsx'
 
-# Main & NSW column F, November 2026
+# The Employment Hero payroll tax report, 1 to 30 November 2026.
+#   salaries and wages  174,788.32 wages
+#                     +   2,725.88 salary sacrifice super, liable
+#                     +     178.62 pre-tax deductions, liable
+#                     -     250.00 per diems, exempt
+#                     -     107.69 termination, which has its own line
+#   termination           107.69 non-super + 875.00 non-genuine redundancy ETP
 NSW = {
-    'Salaries and wages': 178154.87,
+    'Salaries and wages': 177335.13,
     'Fringe benefits': 0,
-    'Employer superannuation contribution': 23337.35,
-    'Termination payments': 875.00,
+    'Employer superannuation contribution': 23281.90,
+    'Termination payments': 982.69,
     'Contractor payments': 0,
     'Employment agency payments': 0,
     'Allowances': 0,
@@ -34,7 +48,7 @@ NSW = {
     'Shares and options': 0,
     'NSW apprentice and trainee wages': 0,
 }
-INTERSTATE = [('QLD', 14222.05), ('SA', 6289.93), ('VIC', 22537.99),
+INTERSTATE = [('QLD', 14222.05), ('SA', 6289.93), ('VIC', 23055.49),
               ('WA', 11707.87), ('ACT', 0)]
 
 # October 2026 as lodged, for the movement column
@@ -45,19 +59,21 @@ OCT = {17: 169021.21, 18: 0, 19: 22087.22, 20: 0, 21: 0, 22: 0, 23: 0,
 DAYS = 30                      # days in November
 
 WHY = [
-    'The Employment Hero payroll tax report gives 201,849.72 of New South '
-    'Wales wages. This return uses 202,367.22, which is 517.50 more.',
+    'This return is the Employment Hero payroll tax report. The Main & NSW '
+    'tab is built from the split file and gives 202,367.22 of New South '
+    'Wales wages against 201,599.72 here, so 767.50 more, and 6,798.41 of '
+    'tax against 6,768.53 here.',
+    'Per diems of 250.00 are exempt. They are out of this return and are '
+    'still in the gross on the Main & NSW tab.',
     'One employee, Nicol Schildknecht, is New South Wales in the split file '
-    'and Victoria on the report, which groups by residential address. '
-    'That is 462.05 of wages and 55.45 of super.',
-    'The two sources agree on total Australian wages of 257,125.06, so this '
-    'is a state split, not a missing pay run. Last month the difference was '
-    'a missing pay run.',
-    'Per diems of 250.00 are exempt and are still in the New South Wales '
-    'gross on the Main & NSW tab. Taking them out would reduce the tax to '
-    '6,785.90.',
-    'The full working is on the Nov 2026 derivation tab of the payroll tax '
-    'workbook.',
+    'and Victoria on the report, which groups by residential address. That '
+    'is 462.05 of wages and 55.45 of super, and both their November jobs are '
+    'Melbourne work.',
+    'The two sources agree on total Australian wages before the per diems, '
+    'at 257,125.06, so this is a state split and not a missing pay run. Last '
+    'month the difference was a missing pay run.',
+    'The journals follow this return. Nicol Schildknecht\'s 11.50 units are '
+    'in the Victorian pot, not the New South Wales one.',
 ]
 
 
@@ -104,9 +120,10 @@ def main():
     for row, value in OCT.items():
         ws.cell(row, 4).value = value
 
+    ws['A51'] = 'WHY THIS DIFFERS FROM THE MAIN & NSW TAB'
     for i, line in enumerate(WHY):
         ws.cell(52 + i, 1).value = line
-    for row in range(52 + len(WHY), 57):
+    for row in range(52 + len(WHY), 58):
         ws.cell(row, 1).value = None
 
     wb.save(OUT)
