@@ -2,7 +2,7 @@ const B = require('./build.js');
 const L = require('./lib.js');
 const { C, DEPT } = require('./theme.js');
 const { head, commentary, note, tile, row, headRow, money, k, pct, signed, varColour } = L;
-const { pres, D, P, rev, gp, oh, eb, np, depts, dTot, byRev, ytdMargin, breakEven, revRun, MONTH, SHORT } = B;
+const { pres, D, P, rev, gp, oh, eb, np, depts, dTot, byRev, ytdMargin, breakEven, revRun, MONTH, SHORT, LY_SHORT } = B;
 
 /** White on a dark fill, navy on a light one, so every card stays readable. */
 function inkOn(hex) {
@@ -38,7 +38,7 @@ function introSlide() {
   s.addShape('rect', { x: 0.55, y: 3.58, w: 8.90, h: 0.62, fill: { color: C.tile }, line: { type: 'none' }, objectName: 'company strip' });
   const stats = [
     ['Revenue', '$' + k(rev.month) + 'k', `budget $${k(rev.month_budget)}k`],
-    ['Gross margin', pct(gp.month / rev.month), `last Sep ${pct(gp.month_ly / rev.month_ly)}`],
+    ['Gross margin', pct(gp.month / rev.month), `last ${LY_SHORT.split(' ')[0]} ${pct(gp.month_ly / rev.month_ly)}`],
     ['Overheads', '$' + k(-oh.month) + 'k', `budget $${k(-oh.month_budget)}k`],
     ['EBITDA', '$' + k(eb.month) + 'k', `budget $${k(eb.month_budget)}k`],
     ['Break even needs', '$' + k(breakEven) + 'k', `running at $${k(revRun)}k`],
@@ -46,18 +46,28 @@ function introSlide() {
   stats.forEach(([lab, val, sub], i) => {
     const x = 0.70 + i * 1.76;
     s.addText(lab, { x, y: 3.64, w: 1.6, h: 0.18, isTextBox: true, margin: 0, fontSize: 7.5, color: C.muted, charSpacing: 0.6 });
-    s.addText(val, { x, y: 3.80, w: 1.6, h: 0.24, isTextBox: true, margin: 0, fontSize: 13, bold: true, color: i === 3 ? C.bad : C.navy, valign: 'middle' });
+    s.addText(val, { x, y: 3.80, w: 1.6, h: 0.24, isTextBox: true, margin: 0, fontSize: 13, bold: true, color: i === 3 ? (eb.month < 0 ? C.bad : C.good) : C.navy, valign: 'middle' });
     s.addText(sub, { x, y: 4.02, w: 1.6, h: 0.16, isTextBox: true, margin: 0, fontSize: 7, color: C.muted });
   });
 
   s.addText([
     { text: 'The month in one line. ', options: { bold: true, color: C.navy } },
-    { text: `Revenue beat budget by $${k(rev.month - rev.month_budget)}k and the company still lost $${k(-eb.month)}k of EBITDA. Support is the only department that covers its own overhead. Integration delivered the revenue beat at ${pct(depts[3].gm_pct)} gross margin, so it added turnover and almost no profit. At the ${pct(ytdMargin)} margin we actually deliver, break even needs $${k(breakEven)}k of revenue a month and we are running at $${k(revRun)}k.` },
+    { text: (() => {
+        const beat = rev.month - rev.month_budget;
+        const gpGap = gp.month - gp.month_budget;
+        const best = [...depts].sort((a, b) => b.result - a.result)[0];
+        const red = depts.filter((x) => x.result < 0);
+        return `Revenue ${beat >= 0 ? 'beat budget by $' + k(beat) : 'missed budget by $' + k(-beat)}k and EBITDA came in at $${k(eb.month)}k against a $${k(eb.month_budget)}k plan. `
+          + `${best.name} carried the month with $${k(best.result)}k after overhead. `
+          + (red.length ? `${red.map((x) => x.name).join(' and ')} ${red.length > 1 ? 'are' : 'is'} under water by $${k(-red.reduce((a, x) => a + x.result, 0))}k. ` : '')
+          + `Gross profit still landed $${k(Math.abs(gpGap))}k ${gpGap < 0 ? 'under' : 'over'} plan, so the month was volume rather than margin. `
+          + `At the ${pct(ytdMargin)} margin we actually deliver, break even needs $${k(breakEven)}k of revenue a month and we are running at $${k(revRun)}k.`;
+      })() },
   ], { x: 0.55, y: 4.36, w: 8.90, h: 0.70, isTextBox: true, margin: 0, fontSize: 10, color: C.body, lineSpacing: 14, valign: 'top' });
 
   s.addNotes(`The introduction slide, colour coded by department: Support in red, Events and Video in the Production teals, Integration and Consulting in the Consulting blues.\n\n` +
     order.map((nm) => { const d = depts.find((x) => x.name === nm); return `${nm}: revenue ${money(d.revenue)}, gross margin ${pct(d.gm_pct)}, result ${money(d.result)} after all overhead, ${d.revenue >= d.budget ? 'ahead of' : 'behind'} budget by ${money(Math.abs(d.revenue - d.budget))}.`; }).join('\n') +
-    `\n\nCompany revenue ${money(rev.month)} against ${money(rev.month_budget)} budget. Gross margin ${pct(gp.month / rev.month)}. Overheads ${money(-oh.month)}. EBITDA ${money(eb.month)}.\n\nIf the room only hears one thing from this pack, it is the last figure on the strip. At our real margin we need ${money(breakEven)} of revenue every month to break even and we are averaging ${money(revRun)}.`);
+    `\n\nCompany revenue ${money(rev.month)} against ${money(rev.month_budget)} budget. Gross margin ${pct(gp.month / rev.month)}. Overheads ${money(-oh.month)}. EBITDA ${money(eb.month)}.\n\nIf the room only hears one thing from this pack, it is the last figure on the strip. At our real margin we need ${money(breakEven)} of revenue every month to break even and we are averaging ${money(revRun)}. ${revRun >= breakEven ? 'We are above that line, and this month is what put us there.' : 'We are below that line.'}`);
   return s;
 }
 
@@ -84,13 +94,21 @@ function barBlock(s, o) {
   });
 }
 
-// Full year budget figures, needed for the EBITDA risk on the cost and profit slide.
+// The quarterly EBITDA slide. Q1 is July to September and stays July to
+// September after the pack moves on, so it is read from the pack's own Q1 tab
+// rather than from the year to date, which grows every month. Every figure
+// here comes off the pack; none is typed in.
 const EB = {
-  q1_actual: B.eb.ytd,
-  q1_budget: B.eb.ytd_budget,
-  fy_budget: 397251,          // Budget FY27 row 176, twelve months
-  fy26_actual: 235273,        // Actual FY26 row 176, twelve months
-  fy26_q1: -85404,            // Actual FY26 row 176, Jul to Sep 2025
+  q1_actual: D.q1.ebitda.actual,
+  q1_budget: D.q1.ebitda.budget,
+  q1_revenue: D.q1.revenue.actual,
+  q1_revenue_budget: D.q1.revenue.budget,
+  q1_gp: D.q1.gross_profit.actual,
+  q1_gp_budget: D.q1.gross_profit.budget,
+  q1_overheads: D.q1.overheads.actual,
+  fy_budget: D.fy.ebitda.budget,        // Budget FY27 row 175, twelve months
+  fy26_actual: D.fy.ebitda.ly,          // Actual FY26 row 175, twelve months
+  fy26_q1: D.q1.ebitda.ly,              // Q1 tab, Jul to Sep 2025
 };
 EB.shortfall = EB.q1_actual - EB.q1_budget;
 EB.still_needed = EB.fy_budget - EB.q1_actual;
@@ -98,4 +116,17 @@ EB.budget_assumed_rest = EB.fy_budget - EB.q1_budget;
 EB.per_month_needed = EB.still_needed / 9;
 EB.per_month_assumed = EB.budget_assumed_rest / 9;
 
-module.exports = { introSlide, barBlock, inkOn, EB };
+// The same question asked from where we actually stand now, which is what the
+// monthly slides use. The quarterly slide above keeps the Q1 view.
+const YR = {
+  ytd_actual: B.eb.ytd,
+  ytd_budget: B.eb.ytd_budget,
+  fy_budget: D.fy.ebitda.budget,
+  fy26_actual: D.fy.ebitda.ly,
+  months_left: B.LEFT,
+};
+YR.shortfall = YR.ytd_actual - YR.ytd_budget;
+YR.still_needed = YR.fy_budget - YR.ytd_actual;
+YR.per_month_needed = YR.still_needed / YR.months_left;
+
+module.exports = { introSlide, barBlock, inkOn, EB, YR };

@@ -18,17 +18,18 @@ const SIZES = Object.fromEntries(
  * Drop an Excel snip into a box, keeping its aspect ratio and sitting it at the
  * top of the box so a caption underneath always has somewhere to go.
  */
-function placeSnip(slide, id, box) {
+function placeSnip(slide, id, box, centre) {
   const [pw, ph] = SIZES[id];
   if (!pw) throw new Error(`no snip rendered for ${id}`);
   const scale = Math.min(box.w / pw, box.h / ph);
   const w = pw * scale, h = ph * scale;
+  const y = centre ? box.y + (box.h - h) / 2 : box.y;
   slide.addImage({
     path: path.join(DIR, `${id}.png`),
-    x: box.x + (box.w - w) / 2, y: box.y,
+    x: box.x + (box.w - w) / 2, y,
     w, h, objectName: `snip ${id}`,
   });
-  return { w, h, bottom: box.y + h };
+  return { w, h, top: y, bottom: y + h };
 }
 
 /** Same caption on every snip, so the reader always knows it is the pack. */

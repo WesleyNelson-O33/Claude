@@ -4,8 +4,14 @@ const L = require('./lib.js');
 const { G, FOOT, money, k, pct, signed, varColour, head, commentary, note, tile, row, headRow, CHART } = L;
 const D = require('./data.json');
 
-const MONTH = D.setup_month;                 // "September 2026"
-const SHORT = 'Sep 26';
+const MONTH = D.setup_month;                 // e.g. "October 2026"
+const M = D.months;                          // short name, last year, period number
+const SHORT = M.short;                       // e.g. "Oct 26"
+const LY_SHORT = M.ly_short;                 // the same month a year earlier
+const LY_NAME = M.ly_name;                   // "October", for "last October"
+const MONTH_END = M.end;                     // "31 October 2026"
+const DONE = M.period;                       // months of the year closed so far
+const LEFT = 12 - DONE;                      // months still to come
 const pres = new pptxgen();
 pres.layout = 'LAYOUT_16x9';                 // 10" x 5.625", same canvas as the September deck
 pres.theme = { headFontFace: THEME.headFontFace, bodyFontFace: THEME.bodyFontFace };
@@ -28,9 +34,17 @@ pres.defineSlideMaster({
 const P = D.pl;
 const rev = P.revenue, gp = P.gross_profit, oh = P.overheads, eb = P.ebitda, np = P.net_profit;
 const ytdMargin = gp.ytd / rev.ytd;
-const ohRun = Math.abs(oh.ytd) / 3;                       // overhead a month, year to date
+const ohRun = Math.abs(oh.ytd) / DONE;                    // overhead a month, year to date
 const breakEven = ohRun / ytdMargin;                      // revenue needed to cover it
-const revRun = rev.ytd / 3;
+const revRun = rev.ytd / DONE;
+// Utilisation needs two monthly pastes: the hours on the pack's Utilisation
+// tab, and her own Utilisation Report figures in deck/data/util_her_basis.json.
+// Until the reporting month is in both there is nothing to report on it.
+const HER = require('../data/util_her_basis.json');
+const HU = HER[SHORT.replace(' ', '-')] || null;
+const HOURS = D.util.some((u) => u.chargeable > 0);
+const SHOW_PEOPLE = Boolean(HU && HOURS);
+
 const depts = D.dept;
 const dTot = depts.reduce((a, x) => ({
   revenue: a.revenue + x.revenue, budget: a.budget + x.budget, gross_profit: a.gross_profit + x.gross_profit,
@@ -52,9 +66,9 @@ const deptStaffTot = staff.reduce((a, s) => a + s.departmental, 0);
   s.addText('Seamless AV', { x: 0.62, y: 1.05, w: 2, h: 0.25, isTextBox: true, margin: 0, fontSize: 9.5, color: C.grey });
   s.addText('MONTHLY BUSINESS REVIEW', { x: 0.55, y: 2.00, w: 6, h: 0.3, isTextBox: true, margin: 0, fontSize: 10.5, bold: true, color: C.tealLt, charSpacing: 3 });
   s.addText(MONTH, { x: 0.55, y: 2.35, w: 6, h: 0.8, isTextBox: true, margin: 0, fontSize: 40, bold: true, color: C.white });
-  s.addText('Results, departments, spending, customers, cash and utilisation', { x: 0.55, y: 3.30, w: 6, h: 0.4, isTextBox: true, margin: 0, fontSize: 13, color: C.lt2 || 'E3E6EA' });
+  s.addText(`Results, departments, spending, customers${SHOW_PEOPLE ? ', cash and utilisation' : ' and cash'}`, { x: 0.55, y: 3.30, w: 6, h: 0.4, isTextBox: true, margin: 0, fontSize: 13, color: C.lt2 || 'E3E6EA' });
   s.addText('Financial Controller', { x: 0.55, y: 4.55, w: 3, h: 0.25, isTextBox: true, margin: 0, fontSize: 9.5, color: C.grey });
-  s.addNotes(`Monthly Business Review for ${MONTH}. Everything in this pack comes from the Financial Controller Pack, which ties to the Xero general ledger to the cent for every department and for the company.\n\nThe headline is that ${SHORT} beat budget on revenue by ${k(rev.month - rev.month_budget)} thousand and still lost money. Revenue was ${k(rev.month)} thousand against a budget of ${k(rev.month_budget)} thousand. EBITDA was ${k(eb.month)} thousand against a budgeted loss of ${k(eb.month_budget)} thousand.\n\nThe story of the month is margin and the overhead base, not sales.`);
+  s.addNotes(`Monthly Business Review for ${MONTH}. Everything in this pack comes from the Financial Controller Pack, which ties to the Xero general ledger to the cent for every department and for the company.\n\n${SHORT} sold ${money(rev.month)} against a budget of ${money(rev.month_budget)}, ${rev.month >= rev.month_budget ? 'ahead by' : 'behind by'} ${money(Math.abs(rev.month - rev.month_budget))}. EBITDA was ${money(eb.month)} against a budget of ${money(eb.month_budget)}.\n\nThe month is a good one on profit and a poor one on margin. We kept ${pct(gp.month / rev.month)} of each dollar sold against a plan of ${pct(gp.month_budget / rev.month_budget)}, so gross profit came in ${money(Math.abs(gp.month - gp.month_budget))} under plan even though sales beat it.\n\nThat is the story of the month: volume, not margin.`);
 }
 
 /* ============================================================== 2. agenda */
@@ -62,12 +76,12 @@ const deptStaffTot = staff.reduce((a, s) => a + s.departmental, 0);
   const s = pres.addSlide({ masterName: 'CTS_LIGHT' });
   head(s, 'Agenda', 'What we will cover');
   const items = [
-    ['01', 'Financial performance', 'P&L summary, the three months to date, and every department against budget'],
-    ['02', 'What we spend', 'Where the money goes: cost distribution, operating expense, labour and employment'],
-    ['03', 'Customers and cash', 'Top ten customers, receivables and days sales outstanding'],
-    ['04', 'People and utilisation', 'Chargeable hours by department and the profit they produce'],
-    ['05', 'Budget and outlook', 'Revenue by month against budget, and what we do about it'],
-  ];
+    ['Financial performance', `P&L summary, the ${DONE} months to date, and every department against budget`],
+    ['What we spend', 'Where the money goes: cost distribution, operating expense, labour and employment'],
+    ['Customers and cash', 'Top ten customers, receivables and days sales outstanding'],
+    ...(SHOW_PEOPLE ? [['People and utilisation', 'Chargeable hours by department and the profit they produce']] : []),
+    ['Budget and outlook', 'Revenue by month against budget, and what we do about it'],
+  ].map(([t, sub], i) => [String(i + 1).padStart(2, '0'), t, sub]);
   items.forEach(([n, t, sub], i) => {
     const y = 1.55 + i * 0.70;
     s.addShape('rect', { x: 0.55, y, w: 0.42, h: 0.42, fill: { color: C.navy }, line: { type: 'none' } });
@@ -91,4 +105,4 @@ function section(num, title, sub, notes) {
   return s;
 }
 
-module.exports = { pres, D, P, rev, gp, oh, eb, np, depts, dTot, byRev, util, utilTot, staff, officeTot, deptStaffTot, ytdMargin, ohRun, breakEven, revRun, section, MONTH, SHORT };
+module.exports = { pres, D, P, rev, gp, oh, eb, np, depts, dTot, byRev, util, utilTot, staff, officeTot, deptStaffTot, ytdMargin, ohRun, breakEven, revRun, section, MONTH, SHORT, LY_SHORT, LY_NAME, MONTH_END, DONE, LEFT, M, HER, HU, HOURS, SHOW_PEOPLE };

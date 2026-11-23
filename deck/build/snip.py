@@ -19,7 +19,7 @@ import databar_match
 from openpyxl.worksheet.properties import PageSetupProperties
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PACK = os.path.join(HERE, '..', '..', 'pack', 'CTS Financial Controller Pack - v20.xlsx')
+PACK = os.path.join(HERE, '..', '..', 'pack', 'CTS Financial Controller Pack - October 2026.xlsx')
 WORK = os.path.join(HERE, 'snipwork')
 OUTDIR = os.path.join(HERE, '..', 'snips')
 SOFFICE = '/root/.claude/skills/synced/e9aa5ee9-a99d-40c9-9bb1-cc5bc5010cf8_723c92f1-3883-471f-8787-0ed0739f050b/pptx/scripts/office/soffice.py'
