@@ -36,7 +36,12 @@ import openpyxl
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 MONTH, MONTH_SHORT, YEAR = 'November', 'Nov', 2026
-OLD_TAB, NEW_TAB = 'October 2026 Timesheets', 'November 2026 Timesheets'
+# Danica asked for no tab renaming, so the timesheets tab keeps its name and
+# only its contents change. Renaming it is Excel's job: do it on the tab and
+# Excel moves the pivot source and the hidden filter name with it. Doing it
+# from outside means changing three parts by hand and Excel refuses to open
+# the pivot if any one of them is missed.
+TIMESHEETS = 'October 2026 Timesheets'
 DERIV = 'Nov 2026 derivation'
 COL = 'F'                      # November is column F on Main & NSW
 NSW_TAX = 6768.53
@@ -368,8 +373,30 @@ def main():
             f'openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'
             '</Types>').encode('utf-8')
 
-    # the timesheets tab's name, and a full recalculation on open
-    wbx = wbx.replace(f'name="{OLD_TAB}"', f'name="{NEW_TAB}"')
+    # The pivot on the allocations tab reads the timesheets tab by name, so
+    # renaming the tab without telling the pivot cache leaves Excel refusing
+    # to open the pivot source. The range grows with the month's row count.
+    cache = 'xl/pivotCache/pivotCacheDefinition1.xml'
+    if cache in parts:
+        c = parts[cache].decode('utf-8')
+        before = c
+        c = re.sub(r'<worksheetSource ref="[^"]*" sheet="[^"]*"/>',
+                   f'<worksheetSource ref="A2:F{last}" '
+                   f'sheet="{TIMESHEETS}"/>', c, count=1)
+        if c == before:
+            raise SystemExit('cannot find the pivot worksheetSource')
+        # the cache still holds last month's rows. refreshOnLoad is already
+        # set, so Excel rebuilds it the moment the file opens.
+        c = re.sub(r'recordCount="\d+"', f'recordCount="{len(lines)}"', c,
+                   count=1)
+        if 'refreshOnLoad' not in c:
+            c = c.replace('<cacheSource', ' refreshOnLoad="1"><cacheSource', 1)
+        parts[cache] = c.encode('utf-8')
+
+    # the hidden filter name has to cover the month's rows, or the filter on
+    # the timesheets tab stops at last month's last row
+    wbx = wbx.replace(f"'{TIMESHEETS}'!$A$2:$S$1610",
+                      f"'{TIMESHEETS}'!$A$2:$S${last}")
     if '<calcPr' in wbx:
         wbx = re.sub(r'<calcPr[^>]*/>',
                      '<calcPr calcId="191029" fullCalcOnLoad="1"/>', wbx)
@@ -398,8 +425,11 @@ def main():
             out.writestr(i, parts[n])
 
     zc = zipfile.ZipFile(dst)
+    # the pivot cache definition is the one such part that has to change,
+    # because it names the sheet the pivot reads
     kept = [n for n in z.namelist()
-            if re.search(r'pivot|drawing|comment|vml', n, re.I)]
+            if re.search(r'pivot|drawing|comment|vml', n, re.I)
+            and n != 'xl/pivotCache/pivotCacheDefinition1.xml']
     same = all(zc.read(n) == z.read(n) for n in kept)
     print(f'  {len(lines):,} {MONTH} timesheet rows, {total_units:,.2f} units')
     print(f'  {len(all_jobs)} jobs in all, {len(nsw_jobs)} NSW, '
